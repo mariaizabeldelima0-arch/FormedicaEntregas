@@ -36,6 +36,17 @@ const FORMAS_PAGAMENTO = [
 
 const MOTOBOYS = ["Marcio", "Bruno"];
 
+const REGIOES_MARCIO = [
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
+  "Barra", "Estaleiro", "Clinica"
+];
+
+const REGIOES_BRUNO = [
+  "Taquaras", "Laranjeiras", "Itajai", "Espinheiros", "Praia dos Amores", 
+  "Praia Brava", "Itapema", "Navegantes", "Penha", "Porto Belo", 
+  "Tijucas", "Piçarras", "Bombinhas"
+];
+
 export default function NovoRomaneio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -89,6 +100,22 @@ export default function NovoRomaneio() {
 
     checkClientePendente();
   }, [formData.cliente_id]);
+
+  // Auto-preencher motoboy baseado na cidade
+  useEffect(() => {
+    if (formData.cidade_regiao && !formData.motoboy) {
+      let motoboySugerido = "";
+      if (REGIOES_MARCIO.includes(formData.cidade_regiao)) {
+        motoboySugerido = "Marcio";
+      } else if (REGIOES_BRUNO.includes(formData.cidade_regiao)) {
+        motoboySugerido = "Bruno";
+      }
+      
+      if (motoboySugerido) {
+        setFormData(prev => ({ ...prev, motoboy: motoboySugerido }));
+      }
+    }
+  }, [formData.cidade_regiao]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {

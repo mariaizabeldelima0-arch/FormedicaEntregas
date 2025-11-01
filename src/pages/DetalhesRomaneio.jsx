@@ -1,9 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   ArrowLeft,
   User,
@@ -15,18 +26,43 @@ import {
   Snowflake,
   Clock,
   CheckCircle,
-  FileText
+  FileText,
+  Printer,
+  Edit,
+  Save,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+
+const CIDADES = [
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
+  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai", 
+  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema", 
+  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras", 
+  "Bombinhas", "Clinica"
+];
+
+const FORMAS_PAGAMENTO = [
+  "Pago", "Dinheiro", "Maquina", "Troco P/", "Via na Pasta",
+  "Só Entregar", "Aguardando", "Pix - Aguardando", "Link - Aguardando",
+  "Boleto", "Pagar MP"
+];
+
+const MOTOBOYS = ["Marcio", "Bruno"];
 
 export default function DetalhesRomaneio() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const romaneioId = urlParams.get('id');
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const { data: romaneio, isLoading } = useQuery({
     queryKey: ['romaneio', romaneioId],
@@ -36,6 +72,52 @@ export default function DetalhesRomaneio() {
     },
     enabled: !!romaneioId,
   });
+
+  const updateMutation = useMutation({
+    mutationFn: (data) => base44.entities.Romaneio.update(romaneioId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+      toast.success('Romaneio atualizado com sucesso!');
+      setIsEditing(false);
+      setEditData(null);
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar romaneio');
+    }
+  });
+
+  const handleEditStart = () => {
+    setEditData({
+      numero_requisicao: romaneio.numero_requisicao,
+      cliente_nome: romaneio.cliente_nome,
+      endereco: romaneio.endereco,
+      cidade_regiao: romaneio.cidade_regiao,
+      forma_pagamento: romaneio.forma_pagamento,
+      valor_troco: romaneio.valor_troco || "",
+      item_geladeira: romaneio.item_geladeira,
+      motoboy: romaneio.motoboy,
+      periodo_entrega: romaneio.periodo_entrega,
+      observacoes: romaneio.observacoes || "",
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    updateMutation.mutate({
+      ...editData,
+      valor_troco: editData.valor_troco ? parseFloat(editData.valor_troco) : null,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditData(null);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   if (isLoading) {
     return (
@@ -74,194 +156,521 @@ export default function DetalhesRomaneio() {
     );
   };
 
+  const currentData = isEditing ? editData : romaneio;
+
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(createPageUrl("Dashboard"))}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-slate-900">
-              Romaneio #{romaneio.numero_requisicao}
-            </h1>
-            <p className="text-slate-600 mt-1">
-              Criado em {format(new Date(romaneio.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-            </p>
-          </div>
-          <StatusBadge status={romaneio.status} />
-        </div>
+    <>
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-area, #printable-area * {
+            visibility: visible;
+          }
+          #printable-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+          }
+          .no-print {
+            display: none !important;
+          }
+          .print-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+          }
+          .print-section {
+            page-break-inside: avoid;
+            margin-bottom: 20px;
+          }
+        }
+      `}</style>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coluna Principal */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Cliente */}
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-[#457bba]" />
-                  Cliente
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{romaneio.cliente_nome}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Endereço */}
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-[#457bba]" />
-                  Endereço de Entrega
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-lg font-semibold text-slate-900">
-                  {romaneio.endereco.rua}, {romaneio.endereco.numero}
-                </p>
-                <p className="text-slate-600">
-                  {romaneio.endereco.bairro} - {romaneio.cidade_regiao}
-                </p>
-                {romaneio.endereco.complemento && (
-                  <p className="text-sm text-slate-500">
-                    Complemento: {romaneio.endereco.complemento}
-                  </p>
-                )}
-                {romaneio.endereco.ponto_referencia && (
-                  <p className="text-sm text-slate-500 italic">
-                    Referência: {romaneio.endereco.ponto_referencia}
-                  </p>
-                )}
-                {romaneio.endereco.aos_cuidados_de && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-                    <p className="text-sm font-semibold text-blue-800">
-                      Aos cuidados de: {romaneio.endereco.aos_cuidados_de}
-                    </p>
-                  </div>
-                )}
-                {romaneio.endereco.observacoes && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
-                    <p className="text-xs font-semibold text-yellow-800 mb-1">OBSERVAÇÕES DO ENDEREÇO:</p>
-                    <p className="text-sm text-yellow-900">{romaneio.endereco.observacoes}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Observações do Romaneio */}
-            {romaneio.observacoes && (
-              <Card className="border-none shadow-lg border-l-4 border-l-[#890d5d]">
-                <CardHeader>
-                  <CardTitle className="text-[#890d5d]">Observações</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-700">{romaneio.observacoes}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Motivo Não Entrega */}
-            {romaneio.status === 'Não Entregue' && romaneio.motivo_nao_entrega && (
-              <Card className="border-none shadow-lg border-l-4 border-l-red-500 bg-red-50">
-                <CardHeader>
-                  <CardTitle className="text-red-700">Motivo da Não Entrega</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-red-900">{romaneio.motivo_nao_entrega}</p>
-                </CardContent>
-              </Card>
-            )}
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Header - não imprime */}
+          <div className="flex items-center gap-4 no-print">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Dashboard"))}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-slate-900">
+                Romaneio #{romaneio.numero_requisicao}
+              </h1>
+              <p className="text-slate-600 mt-1">
+                Criado em {format(new Date(romaneio.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </p>
+            </div>
+            <StatusBadge status={romaneio.status} />
+            <div className="flex gap-2">
+              {!isEditing ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleEditStart}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                  <Button
+                    className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                    onClick={handlePrint}
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Imprimir
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={handleSaveEdit}
+                    disabled={updateMutation.isPending}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Coluna Lateral */}
-          <div className="space-y-6">
-            {/* Informações */}
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle>Informações</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <CreditCard className="w-5 h-5 text-slate-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-slate-500">Pagamento</p>
-                    <p className="font-semibold text-slate-900">{romaneio.forma_pagamento}</p>
-                    {romaneio.valor_troco && (
-                      <p className="text-sm text-green-600 font-bold">
-                        Troco: R$ {romaneio.valor_troco.toFixed(2)}
-                      </p>
+          {/* Área imprimível */}
+          <div id="printable-area">
+            <div className="print-title" style={{ display: 'none' }}>
+              ROMANEIO DE ENTREGA #{romaneio.numero_requisicao}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Coluna Principal */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Informações Básicas */}
+                <Card className="border-none shadow-lg print-section">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-[#457bba]" />
+                      Informações do Romaneio
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {isEditing ? (
+                      <>
+                        <div>
+                          <Label>Número da Requisição</Label>
+                          <Input
+                            value={editData.numero_requisicao}
+                            onChange={(e) => setEditData({ ...editData, numero_requisicao: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Nome do Cliente</Label>
+                          <Input
+                            value={editData.cliente_nome}
+                            onChange={(e) => setEditData({ ...editData, cliente_nome: e.target.value })}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <p className="text-sm text-slate-500">Número da Requisição</p>
+                          <p className="text-lg font-bold text-slate-900">#{romaneio.numero_requisicao}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500">Status</p>
+                          <StatusBadge status={romaneio.status} />
+                        </div>
+                      </>
                     )}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
 
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-slate-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-slate-500">Período</p>
-                    <p className="font-semibold text-slate-900">{romaneio.periodo_entrega}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Package className="w-5 h-5 text-slate-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-slate-500">Motoboy</p>
-                    <p className="font-semibold text-slate-900">{romaneio.motoboy}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-slate-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-slate-500">Atendente</p>
-                    <p className="font-semibold text-slate-900">{romaneio.atendente_nome}</p>
-                  </div>
-                </div>
-
-                {romaneio.item_geladeira && (
-                  <div className="bg-cyan-100 border-2 border-cyan-300 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <Snowflake className="w-5 h-5 text-cyan-700" />
-                      <p className="font-bold text-cyan-900">ITEM DE GELADEIRA</p>
+                {/* Cliente */}
+                <Card className="border-none shadow-lg print-section">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="w-5 h-5 text-[#457bba]" />
+                      Cliente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-2xl font-bold text-slate-900">{currentData.cliente_nome}</p>
                     </div>
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
 
-                {romaneio.status === 'Entregue' && romaneio.data_entrega && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-xs text-green-700 mb-1">Entregue em:</p>
-                    <p className="font-semibold text-green-900">
-                      {format(new Date(romaneio.data_entrega), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                {/* Endereço */}
+                <Card className="border-none shadow-lg print-section">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-[#457bba]" />
+                      Endereço de Entrega
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {isEditing ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Rua</Label>
+                            <Input
+                              value={editData.endereco.rua}
+                              onChange={(e) => setEditData({
+                                ...editData,
+                                endereco: { ...editData.endereco, rua: e.target.value }
+                              })}
+                            />
+                          </div>
+                          <div>
+                            <Label>Número</Label>
+                            <Input
+                              value={editData.endereco.numero}
+                              onChange={(e) => setEditData({
+                                ...editData,
+                                endereco: { ...editData.endereco, numero: e.target.value }
+                              })}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Bairro</Label>
+                            <Input
+                              value={editData.endereco.bairro}
+                              onChange={(e) => setEditData({
+                                ...editData,
+                                endereco: { ...editData.endereco, bairro: e.target.value }
+                              })}
+                            />
+                          </div>
+                          <div>
+                            <Label>Complemento</Label>
+                            <Input
+                              value={editData.endereco.complemento || ""}
+                              onChange={(e) => setEditData({
+                                ...editData,
+                                endereco: { ...editData.endereco, complemento: e.target.value }
+                              })}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Ponto de Referência</Label>
+                          <Input
+                            value={editData.endereco.ponto_referencia || ""}
+                            onChange={(e) => setEditData({
+                              ...editData,
+                              endereco: { ...editData.endereco, ponto_referencia: e.target.value }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Aos Cuidados De</Label>
+                          <Input
+                            value={editData.endereco.aos_cuidados_de || ""}
+                            onChange={(e) => setEditData({
+                              ...editData,
+                              endereco: { ...editData.endereco, aos_cuidados_de: e.target.value }
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Observações do Endereço</Label>
+                          <Textarea
+                            value={editData.endereco.observacoes || ""}
+                            onChange={(e) => setEditData({
+                              ...editData,
+                              endereco: { ...editData.endereco, observacoes: e.target.value }
+                            })}
+                            rows={2}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg font-semibold text-slate-900">
+                          {currentData.endereco.rua}, {currentData.endereco.numero}
+                        </p>
+                        <p className="text-slate-600">
+                          {currentData.endereco.bairro} - {currentData.cidade_regiao}
+                        </p>
+                        {currentData.endereco.complemento && (
+                          <p className="text-sm text-slate-500">
+                            Complemento: {currentData.endereco.complemento}
+                          </p>
+                        )}
+                        {currentData.endereco.ponto_referencia && (
+                          <p className="text-sm text-slate-500 italic">
+                            Referência: {currentData.endereco.ponto_referencia}
+                          </p>
+                        )}
+                        {currentData.endereco.aos_cuidados_de && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                            <p className="text-sm font-semibold text-blue-800">
+                              Aos cuidados de: {currentData.endereco.aos_cuidados_de}
+                            </p>
+                          </div>
+                        )}
+                        {currentData.endereco.observacoes && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                            <p className="text-xs font-semibold text-yellow-800 mb-1">OBSERVAÇÕES DO ENDEREÇO:</p>
+                            <p className="text-sm text-yellow-900">{currentData.endereco.observacoes}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
 
-            {/* Código de Rastreamento */}
-            {romaneio.codigo_rastreio && (
-              <Card className="border-none shadow-lg bg-gradient-to-br from-[#457bba] to-[#890d5d] text-white">
-                <CardHeader>
-                  <CardTitle className="text-white">Código de Rastreio</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-mono font-bold tracking-wider">
-                    {romaneio.codigo_rastreio}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+                {/* Observações do Romaneio */}
+                <Card className="border-none shadow-lg border-l-4 border-l-[#890d5d] print-section">
+                  <CardHeader>
+                    <CardTitle className="text-[#890d5d]">Observações</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isEditing ? (
+                      <Textarea
+                        value={editData.observacoes}
+                        onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
+                        placeholder="Observações importantes"
+                        rows={3}
+                      />
+                    ) : (
+                      <p className="text-slate-700">{currentData.observacoes || "Nenhuma observação"}</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Motivo Não Entrega */}
+                {romaneio.status === 'Não Entregue' && romaneio.motivo_nao_entrega && (
+                  <Card className="border-none shadow-lg border-l-4 border-l-red-500 bg-red-50 print-section">
+                    <CardHeader>
+                      <CardTitle className="text-red-700">Motivo da Não Entrega</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-red-900">{romaneio.motivo_nao_entrega}</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Coluna Lateral */}
+              <div className="space-y-6">
+                {/* Informações */}
+                <Card className="border-none shadow-lg print-section">
+                  <CardHeader>
+                    <CardTitle>Informações</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {isEditing ? (
+                      <>
+                        <div>
+                          <Label>Cidade/Região</Label>
+                          <Select
+                            value={editData.cidade_regiao}
+                            onValueChange={(value) => setEditData({ ...editData, cidade_regiao: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CIDADES.map(cidade => (
+                                <SelectItem key={cidade} value={cidade}>
+                                  {cidade}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label>Forma de Pagamento</Label>
+                          <Select
+                            value={editData.forma_pagamento}
+                            onValueChange={(value) => setEditData({ ...editData, forma_pagamento: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FORMAS_PAGAMENTO.map(forma => (
+                                <SelectItem key={forma} value={forma}>
+                                  {forma}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {editData.forma_pagamento === "Troco P/" && (
+                          <div>
+                            <Label>Valor do Troco (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={editData.valor_troco}
+                              onChange={(e) => setEditData({ ...editData, valor_troco: e.target.value })}
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <Label>Período</Label>
+                          <Select
+                            value={editData.periodo_entrega}
+                            onValueChange={(value) => setEditData({ ...editData, periodo_entrega: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Manhã">Manhã</SelectItem>
+                              <SelectItem value="Tarde">Tarde</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label>Motoboy</Label>
+                          <Select
+                            value={editData.motoboy}
+                            onValueChange={(value) => setEditData({ ...editData, motoboy: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MOTOBOYS.map(motoboy => (
+                                <SelectItem key={motoboy} value={motoboy}>
+                                  {motoboy}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label>Item de Geladeira</Label>
+                          <RadioGroup
+                            value={editData.item_geladeira.toString()}
+                            onValueChange={(value) => setEditData({ ...editData, item_geladeira: value === "true" })}
+                            className="flex gap-4 mt-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="true" id="edit-geladeira-sim" />
+                              <Label htmlFor="edit-geladeira-sim">Sim</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="false" id="edit-geladeira-nao" />
+                              <Label htmlFor="edit-geladeira-nao">Não</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-5 h-5 text-slate-500 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-slate-500">Região</p>
+                            <p className="font-semibold text-slate-900">{currentData.cidade_regiao}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <CreditCard className="w-5 h-5 text-slate-500 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-slate-500">Pagamento</p>
+                            <p className="font-semibold text-slate-900">{currentData.forma_pagamento}</p>
+                            {currentData.valor_troco && (
+                              <p className="text-sm text-green-600 font-bold">
+                                Troco: R$ {currentData.valor_troco.toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <Calendar className="w-5 h-5 text-slate-500 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-slate-500">Período</p>
+                            <p className="font-semibold text-slate-900">{currentData.periodo_entrega}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <Package className="w-5 h-5 text-slate-500 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-slate-500">Motoboy</p>
+                            <p className="font-semibold text-slate-900">{currentData.motoboy}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <User className="w-5 h-5 text-slate-500 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-slate-500">Atendente</p>
+                            <p className="font-semibold text-slate-900">{romaneio.atendente_nome}</p>
+                          </div>
+                        </div>
+
+                        {currentData.item_geladeira && (
+                          <div className="bg-cyan-100 border-2 border-cyan-300 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                              <Snowflake className="w-5 h-5 text-cyan-700" />
+                              <p className="font-bold text-cyan-900">ITEM DE GELADEIRA</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {romaneio.status === 'Entregue' && romaneio.data_entrega && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <p className="text-xs text-green-700 mb-1">Entregue em:</p>
+                            <p className="font-semibold text-green-900">
+                              {format(new Date(romaneio.data_entrega), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Código de Rastreamento */}
+                {romaneio.codigo_rastreio && !isEditing && (
+                  <Card className="border-none shadow-lg bg-gradient-to-br from-[#457bba] to-[#890d5d] text-white print-section">
+                    <CardHeader>
+                      <CardTitle className="text-white">Código de Rastreio</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-mono font-bold tracking-wider">
+                        {romaneio.codigo_rastreio}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
