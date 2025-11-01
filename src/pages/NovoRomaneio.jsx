@@ -34,13 +34,7 @@ const FORMAS_PAGAMENTO = [
   "Boleto", "Pagar MP"
 ];
 
-const MOTOBOYS_POR_REGIAO = {
-  "BC": "João Silva",
-  "Nova Esperança": "Pedro Santos",
-  "Camboriú": "Carlos Oliveira",
-  "Itajai": "José Costa",
-  "Navegantes": "Antônio Lima"
-};
+const MOTOBOYS = ["Marcio", "Bruno"];
 
 export default function NovoRomaneio() {
   const navigate = useNavigate();
@@ -54,15 +48,6 @@ export default function NovoRomaneio() {
   const { data: clientes } = useQuery({
     queryKey: ['clientes'],
     queryFn: () => base44.entities.Cliente.list('nome'),
-    initialData: [],
-  });
-
-  const { data: entregadores } = useQuery({
-    queryKey: ['entregadores'],
-    queryFn: async () => {
-      const users = await base44.entities.User.list();
-      return users.filter(u => u.tipo_usuario === 'entregador');
-    },
     initialData: [],
   });
 
@@ -104,16 +89,6 @@ export default function NovoRomaneio() {
 
     checkClientePendente();
   }, [formData.cliente_id]);
-
-  // Auto-preencher motoboy baseado na cidade
-  useEffect(() => {
-    if (formData.cidade_regiao) {
-      const motoboy = MOTOBOYS_POR_REGIAO[formData.cidade_regiao];
-      if (motoboy && !formData.motoboy) {
-        setFormData(prev => ({ ...prev, motoboy }));
-      }
-    }
-  }, [formData.cidade_regiao]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -348,12 +323,21 @@ export default function NovoRomaneio() {
               {/* Motoboy */}
               <div>
                 <Label>Motoboy *</Label>
-                <Input
+                <Select
                   value={formData.motoboy}
-                  onChange={(e) => setFormData({ ...formData, motoboy: e.target.value })}
-                  placeholder="Nome do motoboy"
-                  required
-                />
+                  onValueChange={(value) => setFormData({ ...formData, motoboy: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o motoboy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOTOBOYS.map(motoboy => (
+                      <SelectItem key={motoboy} value={motoboy}>
+                        {motoboy}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Item de Geladeira */}
