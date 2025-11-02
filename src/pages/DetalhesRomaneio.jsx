@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +16,13 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { 
   ArrowLeft,
   User,
   MapPin,
@@ -39,13 +45,13 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import ImpressaoRomaneio from "../components/ImpressaoRomaneio"; // Added import
+import ImpressaoRomaneio from "../components/ImpressaoRomaneio";
 
 const CIDADES = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
-  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
-  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
-  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
+  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai", 
+  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema", 
+  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras", 
   "Bombinhas", "Clinica"
 ];
 
@@ -57,13 +63,14 @@ const FORMAS_PAGAMENTO = [
 
 const MOTOBOYS = ["Marcio", "Bruno"];
 
-// Added STATUS_OPTIONS constant
 const STATUS_OPTIONS = [
+  "Pendente",
   "Produzindo no Laboratório",
   "Preparando no Setor de Entregas",
   "A Caminho",
   "Entregue",
   "Não Entregue",
+  "Voltou",
   "Cancelado"
 ];
 
@@ -75,6 +82,8 @@ export default function DetalhesRomaneio() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [novoStatus, setNovoStatus] = useState("");
 
   const { data: romaneio, isLoading } = useQuery({
     queryKey: ['romaneio', romaneioId],
@@ -89,12 +98,10 @@ export default function DetalhesRomaneio() {
     mutationFn: (data) => {
       const updateData = {
         ...data,
-        // Set data_entrega_realizada if status changes to 'Entregue' and it wasn't set before
         ...(data.status === 'Entregue' && romaneio && !romaneio.data_entrega_realizada && {
           data_entrega_realizada: new Date().toISOString()
         })
       };
-      // If status is not 'Entregue', ensure data_entrega_realizada is nullified if it was set
       if (data.status !== 'Entregue' && romaneio && romaneio.data_entrega_realizada) {
         updateData.data_entrega_realizada = null;
       }
@@ -113,20 +120,54 @@ export default function DetalhesRomaneio() {
     }
   });
 
+  const alterarStatusMutation = useMutation({
+    mutationFn: (status) => {
+      const updateData = {
+        status,
+        ...(status === 'Entregue' && romaneio && !romaneio.data_entrega_realizada && {
+          data_entrega_realizada: new Date().toISOString()
+        })
+      };
+      if (status !== 'Entregue' && romaneio && romaneio.data_entrega_realizada) {
+        updateData.data_entrega_realizada = null;
+      }
+      return base44.entities.Romaneio.update(romaneioId, updateData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+      toast.success('Status atualizado com sucesso!');
+      setShowStatusDialog(false);
+      setNovoStatus("");
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar status');
+    }
+  });
+
+  const handleAlterarStatus = () => {
+    if (!novoStatus) {
+      toast.error('Selecione um status');
+      return;
+    }
+    alterarStatusMutation.mutate(novoStatus);
+  };
+
   const handleEditStart = () => {
     setEditData({
       numero_requisicao: romaneio.numero_requisicao,
       cliente_nome: romaneio.cliente_nome,
-      cliente_telefone: romaneio.cliente_telefone || "", // Added
+      cliente_telefone: romaneio.cliente_telefone || "",
       endereco: romaneio.endereco,
       cidade_regiao: romaneio.cidade_regiao,
       forma_pagamento: romaneio.forma_pagamento,
       valor_troco: romaneio.valor_troco || "",
       item_geladeira: romaneio.item_geladeira,
+      buscar_receita: romaneio.buscar_receita,
       motoboy: romaneio.motoboy,
       periodo_entrega: romaneio.periodo_entrega,
-      data_entrega_prevista: romaneio.data_entrega_prevista ? format(parseISO(romaneio.data_entrega_prevista), "yyyy-MM-dd") : "", // Added and formatted for input type="date"
-      status: romaneio.status, // Added
+      data_entrega_prevista: romaneio.data_entrega_prevista,
+      status: romaneio.status,
       observacoes: romaneio.observacoes || "",
     });
     setIsEditing(true);
@@ -136,7 +177,6 @@ export default function DetalhesRomaneio() {
     updateMutation.mutate({
       ...editData,
       valor_troco: editData.valor_troco ? parseFloat(editData.valor_troco) : null,
-      data_entrega_prevista: editData.data_entrega_prevista || null, // Ensure empty string becomes null
     });
   };
 
@@ -168,18 +208,18 @@ export default function DetalhesRomaneio() {
     );
   }
 
-  // Updated StatusBadge component
   const StatusBadge = ({ status }) => {
     const configs = {
+      "Pendente": { color: "bg-slate-100 text-slate-700 border-slate-300", icon: Clock },
       "Produzindo no Laboratório": { color: "bg-blue-100 text-blue-700 border-blue-300", icon: Package },
       "Preparando no Setor de Entregas": { color: "bg-yellow-100 text-yellow-700 border-yellow-300", icon: Package },
       "A Caminho": { color: "bg-purple-100 text-purple-700 border-purple-300", icon: Clock },
       "Entregue": { color: "bg-green-100 text-green-700 border-green-300", icon: CheckCircle },
       "Não Entregue": { color: "bg-red-100 text-red-700 border-red-300", icon: FileText },
+      "Voltou": { color: "bg-orange-100 text-orange-700 border-orange-300", icon: Clock },
       "Cancelado": { color: "bg-gray-100 text-gray-700 border-gray-300", icon: FileText },
     };
-    // Default to 'Produzindo no Laboratório' if status is not found
-    const { color, icon: Icon } = configs[status] || configs["Produzindo no Laboratório"];
+    const { color, icon: Icon } = configs[status] || configs["Pendente"];
     return (
       <Badge className={`${color} border text-base px-3 py-1`}>
         <Icon className="w-4 h-4 mr-2" />
@@ -192,9 +232,8 @@ export default function DetalhesRomaneio() {
 
   return (
     <>
-      {/* ImpressaoRomaneio component added */}
       <ImpressaoRomaneio romaneio={romaneio} />
-
+      
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header - não imprime */}
@@ -214,8 +253,58 @@ export default function DetalhesRomaneio() {
                 Criado em {format(new Date(romaneio.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </p>
             </div>
-            {!isEditing && <StatusBadge status={romaneio.status} />} {/* StatusBadge conditional rendering */}
+            {!isEditing && <StatusBadge status={romaneio.status} />}
             <div className="flex gap-2">
+              {/* Botão Alterar Status - sempre visível */}
+              <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => setNovoStatus(romaneio.status)}
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    Alterar Status
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Alterar Status da Entrega</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <Label>Novo Status</Label>
+                      <Select value={novoStatus} onValueChange={setNovoStatus}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map(status => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex justify-end gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowStatusDialog(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={handleAlterarStatus}
+                        disabled={alterarStatusMutation.isPending}
+                        className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                      >
+                        {alterarStatusMutation.isPending ? 'Atualizando...' : 'Atualizar Status'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               {!isEditing ? (
                 <>
                   <Button
@@ -637,6 +726,24 @@ export default function DetalhesRomaneio() {
                             </div>
                           </RadioGroup>
                         </div>
+
+                        <div>
+                          <Label>Buscar Receita</Label>
+                          <RadioGroup
+                            value={editData.buscar_receita.toString()}
+                            onValueChange={(value) => setEditData({ ...editData, buscar_receita: value === "true" })}
+                            className="flex gap-4 mt-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="true" id="edit-receita-sim" />
+                              <Label htmlFor="edit-receita-sim">Sim</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="false" id="edit-receita-nao" />
+                              <Label htmlFor="edit-receita-nao">Não</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -690,6 +797,15 @@ export default function DetalhesRomaneio() {
                             <div className="flex items-center gap-2">
                               <Snowflake className="w-5 h-5 text-cyan-700" />
                               <p className="font-bold text-cyan-900">ITEM DE GELADEIRA</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {currentData.buscar_receita && (
+                          <div className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-5 h-5 text-yellow-700" />
+                              <p className="font-bold text-yellow-900">BUSCAR RECEITA</p>
                             </div>
                           </div>
                         )}
