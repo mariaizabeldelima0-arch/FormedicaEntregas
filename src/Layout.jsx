@@ -67,11 +67,11 @@ export default function Layout({ children, currentPageName }) {
       url: createPageUrl("HistoricoClientes"),
       icon: BarChart3,
     },
-    ...(isAdmin ? [{
+    {
       title: "Relatórios",
       url: createPageUrl("Relatorios"),
       icon: BarChart3,
-    }] : []),
+    },
   ] : [];
 
   const handleLogout = async () => {

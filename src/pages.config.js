@@ -5,6 +5,7 @@ import MinhasEntregas from './pages/MinhasEntregas';
 import DetalhesRomaneio from './pages/DetalhesRomaneio';
 import Rastreamento from './pages/Rastreamento';
 import HistoricoClientes from './pages/HistoricoClientes';
+import Relatorios from './pages/Relatorios';
 import Layout from './Layout.jsx';
 
 
@@ -16,6 +17,7 @@ export const PAGES = {
     "DetalhesRomaneio": DetalhesRomaneio,
     "Rastreamento": Rastreamento,
     "HistoricoClientes": HistoricoClientes,
+    "Relatorios": Relatorios,
 }
 
 export const pagesConfig = {

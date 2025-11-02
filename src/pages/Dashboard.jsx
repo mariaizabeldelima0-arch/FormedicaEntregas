@@ -18,7 +18,9 @@ import {
   MapPin,
   User,
   Truck,
-  Snowflake
+  Snowflake,
+  AlertCircle,
+  RotateCcw
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -34,15 +36,17 @@ import { ptBR } from "date-fns/locale";
 
 const StatusBadge = ({ status }) => {
   const config = {
+    "Pendente": { color: "bg-slate-100 text-slate-700 border-slate-300", icon: Clock },
     "Produzindo no Laboratório": { color: "bg-blue-100 text-blue-700 border-blue-300", icon: Package },
     "Preparando no Setor de Entregas": { color: "bg-yellow-100 text-yellow-700 border-yellow-300", icon: Package },
     "A Caminho": { color: "bg-purple-100 text-purple-700 border-purple-300", icon: Truck },
     "Entregue": { color: "bg-green-100 text-green-700 border-green-300", icon: CheckCircle },
-    "Não Entregue": { color: "bg-red-100 text-red-700 border-red-300", icon: Clock },
-    "Cancelado": { color: "bg-gray-100 text-gray-700 border-gray-300", icon: Clock },
+    "Não Entregue": { color: "bg-red-100 text-red-700 border-red-300", icon: AlertCircle },
+    "Voltou": { color: "bg-orange-100 text-orange-700 border-orange-300", icon: RotateCcw },
+    "Cancelado": { color: "bg-gray-100 text-gray-700 border-gray-300", icon: AlertCircle },
   };
   
-  const { color, icon: Icon } = config[status] || config["Produzindo no Laboratório"];
+  const { color, icon: Icon } = config[status] || config["Pendente"];
   
   return (
     <Badge className={`${color} border font-medium`}>
@@ -58,6 +62,7 @@ export default function Dashboard() {
   const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
   const [filtroLocal, setFiltroLocal] = useState("todos");
   const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [visualizacao, setVisualizacao] = useState("dia"); // "dia" ou "todos"
 
@@ -82,12 +87,6 @@ export default function Dashboard() {
     initialData: [],
   });
 
-  const { data: clientes } = useQuery({
-    queryKey: ['clientes'],
-    queryFn: () => base44.entities.Cliente.list('nome'),
-    initialData: [],
-  });
-
   // Filtrar romaneios
   const romaneiosFiltrados = romaneios.filter(r => {
     // Filtro de data
@@ -108,6 +107,9 @@ export default function Dashboard() {
 
     // Filtro de período
     if (filtroPeriodo !== "todos" && r.periodo_entrega !== filtroPeriodo) return false;
+
+    // Filtro de status
+    if (filtroStatus !== "todos" && r.status !== filtroStatus) return false;
 
     // Busca
     if (searchTerm) {
@@ -136,10 +138,13 @@ export default function Dashboard() {
   // Estatísticas
   const stats = {
     total: romaneiosFiltrados.length,
+    pendente: romaneiosFiltrados.filter(r => r.status === 'Pendente').length,
     produzindo: romaneiosFiltrados.filter(r => r.status === 'Produzindo no Laboratório').length,
     preparando: romaneiosFiltrados.filter(r => r.status === 'Preparando no Setor de Entregas').length,
     aCaminho: romaneiosFiltrados.filter(r => r.status === 'A Caminho').length,
     entregues: romaneiosFiltrados.filter(r => r.status === 'Entregue').length,
+    naoEntregue: romaneiosFiltrados.filter(r => r.status === 'Não Entregue').length,
+    voltou: romaneiosFiltrados.filter(r => r.status === 'Voltou').length,
   };
 
   // Dados únicos para filtros
@@ -232,71 +237,91 @@ export default function Dashboard() {
 
           {/* Stats e Filtros */}
           <div className={`${visualizacao === "dia" ? "lg:col-span-3" : "lg:col-span-4"} space-y-6`}>
-            {/* Stats Cards */}
+            {/* Stats Cards - Clicáveis */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="border-none shadow-md hover:shadow-xl transition-shadow bg-white">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-slate-500 font-medium">Total</p>
-                      <CardTitle className="text-3xl font-bold mt-2 text-slate-900">
-                        {stats.total}
-                      </CardTitle>
+              <button
+                onClick={() => setFiltroStatus(filtroStatus === "todos" ? "todos" : "todos")}
+                className="text-left"
+              >
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow bg-white ${filtroStatus === "todos" ? "ring-2 ring-[#457bba]" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-slate-500 font-medium">Total</p>
+                        <CardTitle className="text-3xl font-bold mt-2 text-slate-900">
+                          {stats.total}
+                        </CardTitle>
+                      </div>
+                      <div className="p-3 bg-blue-50 rounded-xl">
+                        <FileText className="w-6 h-6 text-[#457bba]" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-blue-50 rounded-xl">
-                      <FileText className="w-6 h-6 text-[#457bba]" />
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
+                  </CardHeader>
+                </Card>
+              </button>
 
-              <Card className="border-none shadow-md hover:shadow-xl transition-shadow bg-white">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-slate-500 font-medium">Produção</p>
-                      <CardTitle className="text-3xl font-bold mt-2 text-slate-900">
-                        {stats.produzindo}
-                      </CardTitle>
+              <button
+                onClick={() => setFiltroStatus(filtroStatus === "Produzindo no Laboratório" ? "todos" : "Produzindo no Laboratório")}
+                className="text-left"
+              >
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow bg-white ${filtroStatus === "Produzindo no Laboratório" ? "ring-2 ring-blue-500" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-slate-500 font-medium">Produção</p>
+                        <CardTitle className="text-3xl font-bold mt-2 text-slate-900">
+                          {stats.produzindo}
+                        </CardTitle>
+                      </div>
+                      <div className="p-3 bg-blue-50 rounded-xl">
+                        <Package className="w-6 h-6 text-blue-500" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-blue-50 rounded-xl">
-                      <Package className="w-6 h-6 text-blue-500" />
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
+                  </CardHeader>
+                </Card>
+              </button>
 
-              <Card className="border-none shadow-md hover:shadow-xl transition-shadow bg-white">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-slate-500 font-medium">A Caminho</p>
-                      <CardTitle className="text-3xl font-bold mt-2 text-slate-900">
-                        {stats.aCaminho}
-                      </CardTitle>
+              <button
+                onClick={() => setFiltroStatus(filtroStatus === "A Caminho" ? "todos" : "A Caminho")}
+                className="text-left"
+              >
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow bg-white ${filtroStatus === "A Caminho" ? "ring-2 ring-[#890d5d]" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-slate-500 font-medium">A Caminho</p>
+                        <CardTitle className="text-3xl font-bold mt-2 text-slate-900">
+                          {stats.aCaminho}
+                        </CardTitle>
+                      </div>
+                      <div className="p-3 bg-purple-50 rounded-xl">
+                        <Truck className="w-6 h-6 text-[#890d5d]" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-purple-50 rounded-xl">
-                      <Truck className="w-6 h-6 text-[#890d5d]" />
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
+                  </CardHeader>
+                </Card>
+              </button>
 
-              <Card className="border-none shadow-md hover:shadow-xl transition-shadow bg-white">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-slate-500 font-medium">Entregues</p>
-                      <CardTitle className="text-3xl font-bold mt-2 text-slate-900">
-                        {stats.entregues}
-                      </CardTitle>
+              <button
+                onClick={() => setFiltroStatus(filtroStatus === "Entregue" ? "todos" : "Entregue")}
+                className="text-left"
+              >
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow bg-white ${filtroStatus === "Entregue" ? "ring-2 ring-green-600" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-slate-500 font-medium">Entregues</p>
+                        <CardTitle className="text-3xl font-bold mt-2 text-slate-900">
+                          {stats.entregues}
+                        </CardTitle>
+                      </div>
+                      <div className="p-3 bg-green-50 rounded-xl">
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-green-50 rounded-xl">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
+                  </CardHeader>
+                </Card>
+              </button>
             </div>
 
             {/* Busca e Filtros */}
@@ -317,7 +342,23 @@ export default function Dashboard() {
                 </div>
 
                 {/* Filtros */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos Status</SelectItem>
+                      <SelectItem value="Pendente">Pendente</SelectItem>
+                      <SelectItem value="Produzindo no Laboratório">Produção</SelectItem>
+                      <SelectItem value="Preparando no Setor de Entregas">Preparando</SelectItem>
+                      <SelectItem value="A Caminho">A Caminho</SelectItem>
+                      <SelectItem value="Entregue">Entregue</SelectItem>
+                      <SelectItem value="Não Entregue">Não Entregue</SelectItem>
+                      <SelectItem value="Voltou">Voltou</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <Select value={filtroAtendente} onValueChange={setFiltroAtendente}>
                     <SelectTrigger>
                       <SelectValue placeholder="Atendente" />
@@ -372,7 +413,7 @@ export default function Dashboard() {
                   </Select>
                 </div>
 
-                {(filtroAtendente !== "todos" || filtroMotoboy !== "todos" || filtroLocal !== "todos" || filtroPeriodo !== "todos" || searchTerm) && (
+                {(filtroAtendente !== "todos" || filtroMotoboy !== "todos" || filtroLocal !== "todos" || filtroPeriodo !== "todos" || filtroStatus !== "todos" || searchTerm) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -381,6 +422,7 @@ export default function Dashboard() {
                       setFiltroMotoboy("todos");
                       setFiltroLocal("todos");
                       setFiltroPeriodo("todos");
+                      setFiltroStatus("todos");
                       setSearchTerm("");
                     }}
                   >
@@ -393,11 +435,21 @@ export default function Dashboard() {
             {/* Lista de Romaneios */}
             <Card className="border-none shadow-lg bg-white">
               <CardHeader className="border-b border-slate-100 pb-4">
-                <CardTitle className="text-xl font-bold text-slate-900">
-                  {visualizacao === "dia" 
-                    ? `Entregas de ${format(selectedDate, "dd/MM/yyyy")}`
-                    : "Todos os Romaneios"}
-                </CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-xl font-bold text-slate-900">
+                    {visualizacao === "dia" 
+                      ? `Entregas de ${format(selectedDate, "dd/MM/yyyy")}`
+                      : "Todos os Romaneios"}
+                  </CardTitle>
+                  {visualizacao === "dia" && (
+                    <Link to={createPageUrl(`Relatorios?data=${format(selectedDate, "yyyy-MM-dd")}`)}>
+                      <Button variant="outline" size="sm">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Relatório do Dia
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 {isLoading ? (
