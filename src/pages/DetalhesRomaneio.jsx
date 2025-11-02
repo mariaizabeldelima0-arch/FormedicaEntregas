@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
+import { 
   ArrowLeft,
   User,
   MapPin,
@@ -49,10 +48,10 @@ import { toast } from "sonner";
 import ImpressaoRomaneio from "../components/ImpressaoRomaneio";
 
 const CIDADES = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
-  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
-  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
-  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
+  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai", 
+  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema", 
+  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras", 
   "Bombinhas", "Clinica"
 ];
 
@@ -96,16 +95,32 @@ export default function DetalhesRomaneio() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data) => {
+    mutationFn: async (data) => {
       const updateData = {
-        ...data,
-        ...(data.status === 'Entregue' && romaneio && !romaneio.data_entrega_realizada && {
-          data_entrega_realizada: new Date().toISOString()
-        })
+        numero_requisicao: data.numero_requisicao,
+        cliente_nome: data.cliente_nome,
+        cliente_telefone: data.cliente_telefone,
+        endereco: data.endereco,
+        cidade_regiao: data.cidade_regiao,
+        forma_pagamento: data.forma_pagamento,
+        valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
+        item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
+        buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
+        motoboy: data.motoboy,
+        periodo_entrega: data.periodo_entrega,
+        data_entrega_prevista: data.data_entrega_prevista,
+        status: data.status,
+        observacoes: data.observacoes,
       };
-      if (data.status !== 'Entregue' && romaneio && romaneio.data_entrega_realizada) {
+
+      if (data.status === 'Entregue' && !romaneio.data_entrega_realizada) {
+        updateData.data_entrega_realizada = new Date().toISOString();
+      }
+      
+      if (data.status !== 'Entregue' && romaneio.data_entrega_realizada) {
         updateData.data_entrega_realizada = null;
       }
+
       return base44.entities.Romaneio.update(romaneioId, updateData);
     },
     onSuccess: () => {
@@ -122,16 +137,19 @@ export default function DetalhesRomaneio() {
   });
 
   const alterarStatusMutation = useMutation({
-    mutationFn: (status) => {
+    mutationFn: async (status) => {
       const updateData = {
         status,
-        ...(status === 'Entregue' && romaneio && !romaneio.data_entrega_realizada && {
-          data_entrega_realizada: new Date().toISOString()
-        })
       };
-      if (status !== 'Entregue' && romaneio && romaneio.data_entrega_realizada) {
+      
+      if (status === 'Entregue' && !romaneio.data_entrega_realizada) {
+        updateData.data_entrega_realizada = new Date().toISOString();
+      }
+      
+      if (status !== 'Entregue' && romaneio.data_entrega_realizada) {
         updateData.data_entrega_realizada = null;
       }
+
       return base44.entities.Romaneio.update(romaneioId, updateData);
     },
     onSuccess: () => {
@@ -141,8 +159,9 @@ export default function DetalhesRomaneio() {
       setShowStatusDialog(false);
       setNovoStatus("");
     },
-    onError: () => {
-      toast.error('Erro ao atualizar status');
+    onError: (error) => {
+      console.error("Erro ao atualizar status:", error);
+      toast.error('Erro ao atualizar status: ' + (error.message || 'Verifique os dados.'));
     }
   });
 
@@ -175,10 +194,11 @@ export default function DetalhesRomaneio() {
   };
 
   const handleSaveEdit = () => {
-    updateMutation.mutate({
-      ...editData,
-      valor_troco: editData.valor_troco ? parseFloat(editData.valor_troco) : null,
-    });
+    if (!editData.numero_requisicao || !editData.cliente_nome) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    updateMutation.mutate(editData);
   };
 
   const handleCancelEdit = () => {
@@ -234,7 +254,7 @@ export default function DetalhesRomaneio() {
   return (
     <>
       <ImpressaoRomaneio romaneio={romaneio} />
-
+      
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header - não imprime */}
@@ -338,7 +358,7 @@ export default function DetalhesRomaneio() {
                     disabled={updateMutation.isPending}
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Salvar
+                    {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
                   </Button>
                 </>
               )}
