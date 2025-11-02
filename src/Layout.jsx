@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -60,6 +61,11 @@ export default function Layout({ children, currentPageName }) {
       title: "Clientes",
       url: createPageUrl("Clientes"),
       icon: Users,
+    },
+    {
+      title: "Histórico de Clientes",
+      url: createPageUrl("HistoricoClientes"),
+      icon: BarChart3,
     },
     ...(isAdmin ? [{
       title: "Relatórios",

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { 
+import {
   ArrowLeft,
   User,
   MapPin,
@@ -32,18 +33,19 @@ import {
   Save,
   X
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import ImpressaoRomaneio from "../components/ImpressaoRomaneio"; // Added import
 
 const CIDADES = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
-  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai", 
-  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema", 
-  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras", 
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
+  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
+  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
+  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
   "Bombinhas", "Clinica"
 ];
 
@@ -54,6 +56,16 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const MOTOBOYS = ["Marcio", "Bruno"];
+
+// Added STATUS_OPTIONS constant
+const STATUS_OPTIONS = [
+  "Produzindo no Laboratório",
+  "Preparando no Setor de Entregas",
+  "A Caminho",
+  "Entregue",
+  "Não Entregue",
+  "Cancelado"
+];
 
 export default function DetalhesRomaneio() {
   const navigate = useNavigate();
@@ -74,7 +86,20 @@ export default function DetalhesRomaneio() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data) => base44.entities.Romaneio.update(romaneioId, data),
+    mutationFn: (data) => {
+      const updateData = {
+        ...data,
+        // Set data_entrega_realizada if status changes to 'Entregue' and it wasn't set before
+        ...(data.status === 'Entregue' && romaneio && !romaneio.data_entrega_realizada && {
+          data_entrega_realizada: new Date().toISOString()
+        })
+      };
+      // If status is not 'Entregue', ensure data_entrega_realizada is nullified if it was set
+      if (data.status !== 'Entregue' && romaneio && romaneio.data_entrega_realizada) {
+        updateData.data_entrega_realizada = null;
+      }
+      return base44.entities.Romaneio.update(romaneioId, updateData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
       queryClient.invalidateQueries({ queryKey: ['romaneios'] });
@@ -82,8 +107,9 @@ export default function DetalhesRomaneio() {
       setIsEditing(false);
       setEditData(null);
     },
-    onError: () => {
-      toast.error('Erro ao atualizar romaneio');
+    onError: (error) => {
+      console.error("Erro ao atualizar romaneio:", error);
+      toast.error('Erro ao atualizar romaneio: ' + (error.message || 'Verifique os dados.'));
     }
   });
 
@@ -91,6 +117,7 @@ export default function DetalhesRomaneio() {
     setEditData({
       numero_requisicao: romaneio.numero_requisicao,
       cliente_nome: romaneio.cliente_nome,
+      cliente_telefone: romaneio.cliente_telefone || "", // Added
       endereco: romaneio.endereco,
       cidade_regiao: romaneio.cidade_regiao,
       forma_pagamento: romaneio.forma_pagamento,
@@ -98,6 +125,8 @@ export default function DetalhesRomaneio() {
       item_geladeira: romaneio.item_geladeira,
       motoboy: romaneio.motoboy,
       periodo_entrega: romaneio.periodo_entrega,
+      data_entrega_prevista: romaneio.data_entrega_prevista ? format(parseISO(romaneio.data_entrega_prevista), "yyyy-MM-dd") : "", // Added and formatted for input type="date"
+      status: romaneio.status, // Added
       observacoes: romaneio.observacoes || "",
     });
     setIsEditing(true);
@@ -107,6 +136,7 @@ export default function DetalhesRomaneio() {
     updateMutation.mutate({
       ...editData,
       valor_troco: editData.valor_troco ? parseFloat(editData.valor_troco) : null,
+      data_entrega_prevista: editData.data_entrega_prevista || null, // Ensure empty string becomes null
     });
   };
 
@@ -138,16 +168,18 @@ export default function DetalhesRomaneio() {
     );
   }
 
+  // Updated StatusBadge component
   const StatusBadge = ({ status }) => {
     const configs = {
-      "Aguardando": { color: "bg-slate-100 text-slate-700 border-slate-300", icon: Clock },
-      "Em Preparação": { color: "bg-blue-100 text-blue-700 border-blue-300", icon: Package },
-      "Saiu para Entrega": { color: "bg-purple-100 text-purple-700 border-purple-300", icon: Package },
+      "Produzindo no Laboratório": { color: "bg-blue-100 text-blue-700 border-blue-300", icon: Package },
+      "Preparando no Setor de Entregas": { color: "bg-yellow-100 text-yellow-700 border-yellow-300", icon: Package },
+      "A Caminho": { color: "bg-purple-100 text-purple-700 border-purple-300", icon: Clock },
       "Entregue": { color: "bg-green-100 text-green-700 border-green-300", icon: CheckCircle },
       "Não Entregue": { color: "bg-red-100 text-red-700 border-red-300", icon: FileText },
       "Cancelado": { color: "bg-gray-100 text-gray-700 border-gray-300", icon: FileText },
     };
-    const { color, icon: Icon } = configs[status] || configs["Aguardando"];
+    // Default to 'Produzindo no Laboratório' if status is not found
+    const { color, icon: Icon } = configs[status] || configs["Produzindo no Laboratório"];
     return (
       <Badge className={`${color} border text-base px-3 py-1`}>
         <Icon className="w-4 h-4 mr-2" />
@@ -160,36 +192,8 @@ export default function DetalhesRomaneio() {
 
   return (
     <>
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #printable-area, #printable-area * {
-            visibility: visible;
-          }
-          #printable-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 20px;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-align: center;
-          }
-          .print-section {
-            page-break-inside: avoid;
-            margin-bottom: 20px;
-          }
-        }
-      `}</style>
+      {/* ImpressaoRomaneio component added */}
+      <ImpressaoRomaneio romaneio={romaneio} />
 
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -210,7 +214,7 @@ export default function DetalhesRomaneio() {
                 Criado em {format(new Date(romaneio.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </p>
             </div>
-            <StatusBadge status={romaneio.status} />
+            {!isEditing && <StatusBadge status={romaneio.status} />} {/* StatusBadge conditional rendering */}
             <div className="flex gap-2">
               {!isEditing ? (
                 <>
@@ -251,17 +255,13 @@ export default function DetalhesRomaneio() {
             </div>
           </div>
 
-          {/* Área imprimível */}
-          <div id="printable-area">
-            <div className="print-title" style={{ display: 'none' }}>
-              ROMANEIO DE ENTREGA #{romaneio.numero_requisicao}
-            </div>
-
+          {/* Área de visualização (no-print) */}
+          <div className="no-print">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Coluna Principal */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Informações Básicas */}
-                <Card className="border-none shadow-lg print-section">
+                <Card className="border-none shadow-lg">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="w-5 h-5 text-[#457bba]" />
@@ -279,10 +279,29 @@ export default function DetalhesRomaneio() {
                           />
                         </div>
                         <div>
-                          <Label>Nome do Cliente</Label>
+                          <Label>Status</Label>
+                          <Select
+                            value={editData.status}
+                            onValueChange={(value) => setEditData({ ...editData, status: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map(status => (
+                                <SelectItem key={status} value={status}>
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Data de Entrega Prevista</Label>
                           <Input
-                            value={editData.cliente_nome}
-                            onChange={(e) => setEditData({ ...editData, cliente_nome: e.target.value })}
+                            type="date"
+                            value={editData.data_entrega_prevista}
+                            onChange={(e) => setEditData({ ...editData, data_entrega_prevista: e.target.value })}
                           />
                         </div>
                       </>
@@ -296,13 +315,21 @@ export default function DetalhesRomaneio() {
                           <p className="text-sm text-slate-500">Status</p>
                           <StatusBadge status={romaneio.status} />
                         </div>
+                        {romaneio.data_entrega_prevista && (
+                          <div>
+                            <p className="text-sm text-slate-500">Data de Entrega Prevista</p>
+                            <p className="text-lg font-semibold text-slate-900">
+                              {format(parseISO(romaneio.data_entrega_prevista), "dd/MM/yyyy", { locale: ptBR })} - {romaneio.periodo_entrega}
+                            </p>
+                          </div>
+                        )}
                       </>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Cliente */}
-                <Card className="border-none shadow-lg print-section">
+                <Card className="border-none shadow-lg">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <User className="w-5 h-5 text-[#457bba]" />
@@ -310,14 +337,41 @@ export default function DetalhesRomaneio() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div>
-                      <p className="text-2xl font-bold text-slate-900">{currentData.cliente_nome}</p>
-                    </div>
+                    {isEditing ? (
+                      <>
+                        <div>
+                          <Label>Nome do Cliente</Label>
+                          <Input
+                            value={editData.cliente_nome}
+                            onChange={(e) => setEditData({ ...editData, cliente_nome: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Telefone</Label>
+                          <Input
+                            value={editData.cliente_telefone || ""}
+                            onChange={(e) => setEditData({ ...editData, cliente_telefone: e.target.value })}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <p className="text-2xl font-bold text-slate-900">{currentData.cliente_nome}</p>
+                        </div>
+                        {currentData.cliente_telefone && (
+                          <div className="flex items-center gap-2 text-slate-600">
+                            <Phone className="w-4 h-4" />
+                            {currentData.cliente_telefone}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
                 {/* Endereço */}
-                <Card className="border-none shadow-lg print-section">
+                <Card className="border-none shadow-lg">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <MapPin className="w-5 h-5 text-[#457bba]" />
@@ -440,7 +494,7 @@ export default function DetalhesRomaneio() {
                 </Card>
 
                 {/* Observações do Romaneio */}
-                <Card className="border-none shadow-lg border-l-4 border-l-[#890d5d] print-section">
+                <Card className="border-none shadow-lg border-l-4 border-l-[#890d5d]">
                   <CardHeader>
                     <CardTitle className="text-[#890d5d]">Observações</CardTitle>
                   </CardHeader>
@@ -460,7 +514,7 @@ export default function DetalhesRomaneio() {
 
                 {/* Motivo Não Entrega */}
                 {romaneio.status === 'Não Entregue' && romaneio.motivo_nao_entrega && (
-                  <Card className="border-none shadow-lg border-l-4 border-l-red-500 bg-red-50 print-section">
+                  <Card className="border-none shadow-lg border-l-4 border-l-red-500 bg-red-50">
                     <CardHeader>
                       <CardTitle className="text-red-700">Motivo da Não Entrega</CardTitle>
                     </CardHeader>
@@ -474,7 +528,7 @@ export default function DetalhesRomaneio() {
               {/* Coluna Lateral */}
               <div className="space-y-6">
                 {/* Informações */}
-                <Card className="border-none shadow-lg print-section">
+                <Card className="border-none shadow-lg">
                   <CardHeader>
                     <CardTitle>Informações</CardTitle>
                   </CardHeader>
@@ -488,7 +542,7 @@ export default function DetalhesRomaneio() {
                             onValueChange={(value) => setEditData({ ...editData, cidade_regiao: value })}
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Selecione a cidade" />
                             </SelectTrigger>
                             <SelectContent>
                               {CIDADES.map(cidade => (
@@ -507,7 +561,7 @@ export default function DetalhesRomaneio() {
                             onValueChange={(value) => setEditData({ ...editData, forma_pagamento: value })}
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Selecione a forma de pagamento" />
                             </SelectTrigger>
                             <SelectContent>
                               {FORMAS_PAGAMENTO.map(forma => (
@@ -538,7 +592,7 @@ export default function DetalhesRomaneio() {
                             onValueChange={(value) => setEditData({ ...editData, periodo_entrega: value })}
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Selecione o período" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Manhã">Manhã</SelectItem>
@@ -554,7 +608,7 @@ export default function DetalhesRomaneio() {
                             onValueChange={(value) => setEditData({ ...editData, motoboy: value })}
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Selecione o motoboy" />
                             </SelectTrigger>
                             <SelectContent>
                               {MOTOBOYS.map(motoboy => (
@@ -640,11 +694,11 @@ export default function DetalhesRomaneio() {
                           </div>
                         )}
 
-                        {romaneio.status === 'Entregue' && romaneio.data_entrega && (
+                        {romaneio.status === 'Entregue' && romaneio.data_entrega_realizada && (
                           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                             <p className="text-xs text-green-700 mb-1">Entregue em:</p>
                             <p className="font-semibold text-green-900">
-                              {format(new Date(romaneio.data_entrega), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              {format(parseISO(romaneio.data_entrega_realizada), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                             </p>
                           </div>
                         )}
@@ -655,7 +709,7 @@ export default function DetalhesRomaneio() {
 
                 {/* Código de Rastreamento */}
                 {romaneio.codigo_rastreio && !isEditing && (
-                  <Card className="border-none shadow-lg bg-gradient-to-br from-[#457bba] to-[#890d5d] text-white print-section">
+                  <Card className="border-none shadow-lg bg-gradient-to-br from-[#457bba] to-[#890d5d] text-white">
                     <CardHeader>
                       <CardTitle className="text-white">Código de Rastreio</CardTitle>
                     </CardHeader>
