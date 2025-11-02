@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
+import {
   ArrowLeft,
   User,
   MapPin,
@@ -48,10 +49,10 @@ import { toast } from "sonner";
 import ImpressaoRomaneio from "../components/ImpressaoRomaneio";
 
 const CIDADES = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
-  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai", 
-  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema", 
-  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras", 
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
+  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
+  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
+  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
   "Bombinhas", "Clinica"
 ];
 
@@ -162,8 +163,8 @@ export default function DetalhesRomaneio() {
       cidade_regiao: romaneio.cidade_regiao,
       forma_pagamento: romaneio.forma_pagamento,
       valor_troco: romaneio.valor_troco || "",
-      item_geladeira: romaneio.item_geladeira,
-      buscar_receita: romaneio.buscar_receita,
+      item_geladeira: romaneio.item_geladeira || false,
+      buscar_receita: romaneio.buscar_receita || false,
       motoboy: romaneio.motoboy,
       periodo_entrega: romaneio.periodo_entrega,
       data_entrega_prevista: romaneio.data_entrega_prevista,
@@ -233,7 +234,7 @@ export default function DetalhesRomaneio() {
   return (
     <>
       <ImpressaoRomaneio romaneio={romaneio} />
-      
+
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header - não imprime */}
@@ -712,7 +713,7 @@ export default function DetalhesRomaneio() {
                         <div>
                           <Label>Item de Geladeira</Label>
                           <RadioGroup
-                            value={editData.item_geladeira.toString()}
+                            value={(editData.item_geladeira || false).toString()}
                             onValueChange={(value) => setEditData({ ...editData, item_geladeira: value === "true" })}
                             className="flex gap-4 mt-2"
                           >
@@ -730,7 +731,7 @@ export default function DetalhesRomaneio() {
                         <div>
                           <Label>Buscar Receita</Label>
                           <RadioGroup
-                            value={editData.buscar_receita.toString()}
+                            value={(editData.buscar_receita || false).toString()}
                             onValueChange={(value) => setEditData({ ...editData, buscar_receita: value === "true" })}
                             className="flex gap-4 mt-2"
                           >

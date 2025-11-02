@@ -83,6 +83,14 @@ export default function ImpressaoRomaneio({ romaneio }) {
             font-weight: bold;
             text-align: center;
           }
+          .print-receita {
+            background-color: #fff9cc;
+            padding: 6px;
+            border-left: 3px solid #ffcc00;
+            margin: 8px 0;
+            font-weight: bold;
+            text-align: center;
+          }
           .print-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -117,7 +125,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           <div className="print-row">
             <span className="print-label">DATA ENTREGA:</span>
             <span className="print-value">
-              {new Date(romaneio.data_entrega_prevista).toLocaleDateString('pt-BR')} - {romaneio.periodo_entrega}
+              {romaneio.data_entrega_prevista && new Date(romaneio.data_entrega_prevista).toLocaleDateString('pt-BR')} - {romaneio.periodo_entrega}
             </span>
           </div>
           <div className="print-row">
@@ -213,6 +221,13 @@ export default function ImpressaoRomaneio({ romaneio }) {
         {romaneio.item_geladeira && (
           <div className="print-geladeira">
             ❄️ ITEM DE GELADEIRA - MANTER REFRIGERADO
+          </div>
+        )}
+
+        {/* Buscar Receita */}
+        {romaneio.buscar_receita && (
+          <div className="print-receita">
+            📄 BUSCAR RECEITA
           </div>
         )}
 

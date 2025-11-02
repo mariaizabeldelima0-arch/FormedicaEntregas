@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -73,8 +74,8 @@ export default function NovoRomaneio() {
     cidade_regiao: "",
     forma_pagamento: "",
     valor_troco: "",
-    item_geladeira: false,
-    buscar_receita: false,
+    item_geladeira: "false", // Changed from false (boolean) to "false" (string)
+    buscar_receita: "false", // Changed from false (boolean) to "false" (string)
     motoboy: "",
     motoboy_email: "",
     periodo_entrega: "Tarde",
@@ -449,8 +450,8 @@ export default function NovoRomaneio() {
                   Item de Geladeira? *
                 </Label>
                 <RadioGroup
-                  value={formData.item_geladeira.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, item_geladeira: value === "true" })}
+                  value={(formData.item_geladeira || false).toString()} // Updated value prop to handle string values
+                  onValueChange={(value) => setFormData({ ...formData, item_geladeira: value })} // Updated to store string "true" or "false"
                   className="flex gap-6"
                 >
                   <div className="flex items-center space-x-2">
@@ -471,8 +472,8 @@ export default function NovoRomaneio() {
                   Buscar Receita? *
                 </Label>
                 <RadioGroup
-                  value={formData.buscar_receita.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, buscar_receita: value === "true" })}
+                  value={(formData.buscar_receita || false).toString()} // Updated value prop to handle string values
+                  onValueChange={(value) => setFormData({ ...formData, buscar_receita: value })} // Updated to store string "true" or "false"
                   className="flex gap-6"
                 >
                   <div className="flex items-center space-x-2">
