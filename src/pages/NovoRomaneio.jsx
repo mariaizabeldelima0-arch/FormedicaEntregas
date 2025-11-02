@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tantml:react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +14,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { AlertCircle, Snowflake, Plus, ArrowLeft } from "lucide-react";
+import { AlertCircle, Snowflake, Plus, ArrowLeft, Search, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { format } from "date-fns"; // Added import
+import { format } from "date-fns";
 
 const CIDADES = [
   "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
@@ -75,15 +74,24 @@ export default function NovoRomaneio() {
     forma_pagamento: "",
     valor_troco: "",
     item_geladeira: false,
+    buscar_receita: false,
     motoboy: "",
     motoboy_email: "",
-    periodo_entrega: "",
-    data_entrega_prevista: dataParam || format(new Date(), "yyyy-MM-dd"), // Added new field
+    periodo_entrega: "Tarde",
+    data_entrega_prevista: dataParam || format(new Date(), "yyyy-MM-dd"),
     observacoes: "",
   });
 
   const [clienteBloqueado, setClienteBloqueado] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState(null);
+  const [searchCliente, setSearchCliente] = useState("");
+
+  // Filtrar clientes pela busca
+  const clientesFiltrados = clientes.filter(c => 
+    c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
+    c.telefone?.includes(searchCliente) ||
+    c.cpf?.includes(searchCliente)
+  );
 
   // Verificar se cliente tem entrega pendente
   useEffect(() => {
@@ -107,9 +115,9 @@ export default function NovoRomaneio() {
     checkClientePendente();
   }, [formData.cliente_id]);
 
-  // Auto-preencher motoboy baseado na cidade
+  // Auto-preencher motoboy e cidade baseado na seleção
   useEffect(() => {
-    if (formData.cidade_regiao && !formData.motoboy) {
+    if (formData.cidade_regiao) {
       let motoboySugerido = "";
       if (REGIOES_MARCIO.includes(formData.cidade_regiao)) {
         motoboySugerido = "Marcio";
@@ -117,11 +125,21 @@ export default function NovoRomaneio() {
         motoboySugerido = "Bruno";
       }
       
-      if (motoboySugerido) {
+      if (motoboySugerido && !formData.motoboy) {
         setFormData(prev => ({ ...prev, motoboy: motoboySugerido }));
       }
     }
   }, [formData.cidade_regiao]);
+
+  // Auto-preencher cidade quando selecionar endereço
+  useEffect(() => {
+    if (selectedCliente && selectedCliente.enderecos && selectedCliente.enderecos.length > 0) {
+      const endereco = selectedCliente.enderecos[formData.endereco_index];
+      if (endereco.cidade && endereco.cidade !== formData.cidade_regiao) {
+        setFormData(prev => ({ ...prev, cidade_regiao: endereco.cidade }));
+      }
+    }
+  }, [selectedCliente, formData.endereco_index]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -133,13 +151,14 @@ export default function NovoRomaneio() {
       return base44.entities.Romaneio.create({
         ...data,
         cliente_nome: cliente.nome,
-        cliente_telefone: cliente.telefone, // Added cliente_telefone
+        cliente_telefone: cliente.telefone,
         atendente_nome: user.nome_atendente || user.full_name,
         atendente_email: user.email,
         endereco: endereco,
-        status: "Produzindo no Laboratório", // Changed status
+        status: "Pendente",
         codigo_rastreio,
         item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
+        buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
       });
     },
@@ -164,7 +183,7 @@ export default function NovoRomaneio() {
 
     if (!formData.cliente_id || !formData.numero_requisicao || !formData.cidade_regiao || 
         !formData.forma_pagamento || !formData.motoboy || !formData.periodo_entrega ||
-        !formData.data_entrega_prevista || formData.item_geladeira === "") { // Added data_entrega_prevista validation
+        !formData.data_entrega_prevista || formData.item_geladeira === "" || formData.buscar_receita === "") {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
@@ -180,6 +199,7 @@ export default function NovoRomaneio() {
       cliente_id: clienteId,
       endereco_index: 0,
     });
+    setSearchCliente("");
   };
 
   return (
@@ -216,32 +236,68 @@ export default function NovoRomaneio() {
               <CardTitle>Informações do Romaneio</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Cliente e Número */}
+              {/* Cliente com Busca */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Cliente *</Label>
-                  <div className="flex gap-2">
-                    <Select
-                      value={formData.cliente_id}
-                      onValueChange={handleClienteChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clientes.map(c => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <Input
+                        placeholder="Buscar cliente por nome, CPF ou telefone..."
+                        value={searchCliente}
+                        onChange={(e) => setSearchCliente(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    {searchCliente && clientesFiltrados.length > 0 && (
+                      <Card className="max-h-60 overflow-y-auto">
+                        <CardContent className="p-0">
+                          {clientesFiltrados.slice(0, 5).map(c => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => handleClienteChange(c.id)}
+                              className="w-full text-left p-3 hover:bg-slate-50 border-b last:border-b-0"
+                            >
+                              <div className="font-medium text-slate-900">{c.nome}</div>
+                              <div className="text-sm text-slate-600">
+                                {c.telefone}
+                                {c.cpf && ` • ${c.cpf}`}
+                              </div>
+                            </button>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
+                    {selectedCliente && (
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900">{selectedCliente.nome}</p>
+                          <p className="text-sm text-slate-600">{selectedCliente.telefone}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedCliente(null);
+                            setFormData({ ...formData, cliente_id: "", endereco_index: 0 });
+                          }}
+                        >
+                          Alterar
+                        </Button>
+                      </div>
+                    )}
                     <Button
                       type="button"
                       variant="outline"
+                      size="sm"
                       onClick={() => navigate(createPageUrl("Clientes"))}
+                      className="w-full"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-4 h-4 mr-2" />
+                      Cadastrar Novo Cliente
                     </Button>
                   </div>
                 </div>
@@ -272,6 +328,7 @@ export default function NovoRomaneio() {
                     <SelectContent>
                       {selectedCliente.enderecos.map((end, idx) => (
                         <SelectItem key={idx} value={idx.toString()}>
+                          {end.cidade && `${end.cidade} - `}
                           {end.rua}, {end.numero} - {end.bairro}
                         </SelectItem>
                       ))}
@@ -281,7 +338,7 @@ export default function NovoRomaneio() {
               )}
 
               {/* Cidade, Período e Data */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Changed to md:grid-cols-3 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Cidade/Região *</Label>
                   <Select
@@ -403,6 +460,28 @@ export default function NovoRomaneio() {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="false" id="geladeira-nao" />
                     <Label htmlFor="geladeira-nao" className="cursor-pointer">Não</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Buscar Receita */}
+              <div className={`border-2 rounded-lg p-4 ${formData.buscar_receita === "true" || formData.buscar_receita === true ? 'bg-yellow-50 border-yellow-400' : 'bg-slate-50 border-slate-200'}`}>
+                <Label className="text-base font-semibold flex items-center gap-2 mb-3">
+                  <FileText className="w-5 h-5 text-yellow-600" />
+                  Buscar Receita? *
+                </Label>
+                <RadioGroup
+                  value={formData.buscar_receita.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, buscar_receita: value === "true" })}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="true" id="receita-sim" />
+                    <Label htmlFor="receita-sim" className="cursor-pointer">Sim</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="false" id="receita-nao" />
+                    <Label htmlFor="receita-nao" className="cursor-pointer">Não</Label>
                   </div>
                 </RadioGroup>
               </div>

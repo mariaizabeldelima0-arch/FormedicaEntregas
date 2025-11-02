@@ -13,14 +13,33 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, User, Phone, MapPin, Trash2, Edit } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, User, Phone, MapPin, Trash2, Edit, ArrowLeft, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+
+const CIDADES = [
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
+  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai", 
+  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema", 
+  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras", 
+  "Bombinhas", "Clinica"
+];
 
 const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState(cliente || {
     nome: "",
+    cpf: "",
     telefone: "",
     enderecos: [{
+      cidade: "",
       rua: "",
       numero: "",
       bairro: "",
@@ -65,6 +84,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
       enderecos: [
         ...formData.enderecos,
         {
+          cidade: "",
           rua: "",
           numero: "",
           bairro: "",
@@ -92,7 +112,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="nome">Nome Completo *</Label>
           <Input
@@ -101,6 +121,15 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
             onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
             placeholder="Nome do cliente"
             required
+          />
+        </div>
+        <div>
+          <Label htmlFor="cpf">CPF</Label>
+          <Input
+            id="cpf"
+            value={formData.cpf}
+            onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+            placeholder="000.000.000-00"
           />
         </div>
         <div>
@@ -142,6 +171,24 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div>
+                <Label>Cidade/Região *</Label>
+                <Select
+                  value={endereco.cidade}
+                  onValueChange={(value) => updateEndereco(index, 'cidade', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a cidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CIDADES.map(cidade => (
+                      <SelectItem key={cidade} value={cidade}>
+                        {cidade}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="md:col-span-2">
                   <Label>Rua</Label>
@@ -225,6 +272,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
 };
 
 export default function Clientes() {
+  const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -237,7 +285,8 @@ export default function Clientes() {
 
   const filteredClientes = clientes.filter(c => 
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.telefone.includes(searchTerm)
+    c.telefone?.includes(searchTerm) ||
+    c.cpf?.includes(searchTerm)
   );
 
   const handleEdit = (cliente) => {
@@ -254,9 +303,18 @@ export default function Clientes() {
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Clientes</h1>
-            <p className="text-slate-600 mt-1">Gerencie sua base de clientes</p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Dashboard"))}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Clientes</h1>
+              <p className="text-slate-600 mt-1">Gerencie sua base de clientes</p>
+            </div>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -286,7 +344,7 @@ export default function Clientes() {
         <Card className="border-none shadow-lg">
           <CardHeader>
             <Input
-              placeholder="Buscar por nome ou telefone..."
+              placeholder="Buscar por nome, CPF ou telefone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
@@ -309,9 +367,17 @@ export default function Clientes() {
                           <h3 className="font-bold text-slate-900 text-lg">
                             {cliente.nome}
                           </h3>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Phone className="w-4 h-4" />
-                            {cliente.telefone}
+                          <div className="flex items-center gap-4 text-sm text-slate-600 mt-1">
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {cliente.telefone}
+                            </div>
+                            {cliente.cpf && (
+                              <div className="flex items-center gap-1">
+                                <CreditCard className="w-3 h-3" />
+                                {cliente.cpf}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -321,6 +387,7 @@ export default function Clientes() {
                             <div key={idx} className="flex items-start gap-2 text-sm text-slate-600">
                               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                               <span>
+                                {end.cidade && `${end.cidade} - `}
                                 {end.rua}, {end.numero} - {end.bairro}
                                 {end.complemento && ` (${end.complemento})`}
                               </span>
