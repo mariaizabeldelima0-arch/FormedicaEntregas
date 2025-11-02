@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { format } from "date-fns"; // Added import
 
 const CIDADES = [
   "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
@@ -50,6 +52,9 @@ const REGIOES_BRUNO = [
 export default function NovoRomaneio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const dataParam = urlParams.get('data');
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -73,6 +78,7 @@ export default function NovoRomaneio() {
     motoboy: "",
     motoboy_email: "",
     periodo_entrega: "",
+    data_entrega_prevista: dataParam || format(new Date(), "yyyy-MM-dd"), // Added new field
     observacoes: "",
   });
 
@@ -127,10 +133,11 @@ export default function NovoRomaneio() {
       return base44.entities.Romaneio.create({
         ...data,
         cliente_nome: cliente.nome,
+        cliente_telefone: cliente.telefone, // Added cliente_telefone
         atendente_nome: user.nome_atendente || user.full_name,
         atendente_email: user.email,
         endereco: endereco,
-        status: "Aguardando",
+        status: "Produzindo no Laboratório", // Changed status
         codigo_rastreio,
         item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
@@ -157,7 +164,7 @@ export default function NovoRomaneio() {
 
     if (!formData.cliente_id || !formData.numero_requisicao || !formData.cidade_regiao || 
         !formData.forma_pagamento || !formData.motoboy || !formData.periodo_entrega ||
-        formData.item_geladeira === "") {
+        !formData.data_entrega_prevista || formData.item_geladeira === "") { // Added data_entrega_prevista validation
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
@@ -273,8 +280,8 @@ export default function NovoRomaneio() {
                 </div>
               )}
 
-              {/* Cidade e Período */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cidade, Período e Data */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Changed to md:grid-cols-3 */}
                 <div>
                   <Label>Cidade/Região *</Label>
                   <Select
@@ -308,6 +315,17 @@ export default function NovoRomaneio() {
                       <SelectItem value="Tarde">Tarde</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="data_entrega_prevista">Data de Entrega *</Label>
+                  <Input
+                    id="data_entrega_prevista"
+                    type="date"
+                    value={formData.data_entrega_prevista}
+                    onChange={(e) => setFormData({ ...formData, data_entrega_prevista: e.target.value })}
+                    required
+                  />
                 </div>
               </div>
 

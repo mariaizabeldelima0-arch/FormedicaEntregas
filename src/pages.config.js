@@ -4,6 +4,7 @@ import NovoRomaneio from './pages/NovoRomaneio';
 import MinhasEntregas from './pages/MinhasEntregas';
 import DetalhesRomaneio from './pages/DetalhesRomaneio';
 import Rastreamento from './pages/Rastreamento';
+import HistoricoClientes from './pages/HistoricoClientes';
 import Layout from './Layout.jsx';
 
 
@@ -14,6 +15,7 @@ export const PAGES = {
     "MinhasEntregas": MinhasEntregas,
     "DetalhesRomaneio": DetalhesRomaneio,
     "Rastreamento": Rastreamento,
+    "HistoricoClientes": HistoricoClientes,
 }
 
 export const pagesConfig = {
