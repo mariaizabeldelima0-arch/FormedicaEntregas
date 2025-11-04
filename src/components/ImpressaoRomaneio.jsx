@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Snowflake } from "lucide-react";
 
@@ -78,7 +79,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           .print-geladeira {
             background-color: #ccf0ff;
             padding: 6px;
-            border-left: 3px solid #00aaff;
+            border-left: 33px solid #00aaff;
             margin: 8px 0;
             font-weight: bold;
             text-align: center;
@@ -95,6 +96,15 @@ export default function ImpressaoRomaneio({ romaneio }) {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
+          }
+          .print-valor-destaque {
+            background-color: #ffffaa;
+            padding: 8px;
+            border: 2px solid #ffcc00;
+            margin: 8px 0;
+            font-weight: bold;
+            text-align: center;
+            font-size: 14px;
           }
           .print-footer {
             margin-top: 12px;
@@ -196,6 +206,11 @@ export default function ImpressaoRomaneio({ romaneio }) {
               {romaneio.forma_pagamento}
             </span>
           </div>
+          {romaneio.valor_pagamento && (
+            <div className="print-valor-destaque">
+              💰 VALOR: R$ {romaneio.valor_pagamento.toFixed(2)}
+            </div>
+          )}
           {romaneio.valor_troco && (
             <div className="print-row">
               <span className="print-label">Troco para:</span>

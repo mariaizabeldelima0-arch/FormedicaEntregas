@@ -23,10 +23,10 @@ import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 
 const CIDADES = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
-  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai", 
-  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema", 
-  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras", 
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
+  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
+  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
+  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
   "Bombinhas", "Clinica"
 ];
 
@@ -39,20 +39,20 @@ const FORMAS_PAGAMENTO = [
 const MOTOBOYS = ["Marcio", "Bruno"];
 
 const REGIOES_MARCIO = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
   "Barra", "Estaleiro", "Clinica"
 ];
 
 const REGIOES_BRUNO = [
-  "Taquaras", "Laranjeiras", "Itajai", "Espinheiros", "Praia dos Amores", 
-  "Praia Brava", "Itapema", "Navegantes", "Penha", "Porto Belo", 
+  "Taquaras", "Laranjeiras", "Itajai", "Espinheiros", "Praia dos Amores",
+  "Praia Brava", "Itapema", "Navegantes", "Penha", "Porto Belo",
   "Tijucas", "Piçarras", "Bombinhas"
 ];
 
 export default function NovoRomaneio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const urlParams = new URLSearchParams(window.location.search);
   const dataParam = urlParams.get('data');
 
@@ -73,9 +73,10 @@ export default function NovoRomaneio() {
     endereco_index: 0,
     cidade_regiao: "",
     forma_pagamento: "",
+    valor_pagamento: "", // Added valor_pagamento
     valor_troco: "",
-    item_geladeira: "false", // Changed from false (boolean) to "false" (string)
-    buscar_receita: "false", // Changed from false (boolean) to "false" (string)
+    item_geladeira: "false",
+    buscar_receita: "false",
     motoboy: "",
     motoboy_email: "",
     periodo_entrega: "Tarde",
@@ -88,7 +89,7 @@ export default function NovoRomaneio() {
   const [searchCliente, setSearchCliente] = useState("");
 
   // Filtrar clientes pela busca
-  const clientesFiltrados = clientes.filter(c => 
+  const clientesFiltrados = clientes.filter(c =>
     c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
     c.telefone?.includes(searchCliente) ||
     c.cpf?.includes(searchCliente)
@@ -106,7 +107,7 @@ export default function NovoRomaneio() {
         cliente_id: formData.cliente_id,
       });
 
-      const pendentes = romaneios.filter(r => 
+      const pendentes = romaneios.filter(r =>
         r.status !== 'Entregue' && r.status !== 'Cancelado'
       );
 
@@ -125,7 +126,7 @@ export default function NovoRomaneio() {
       } else if (REGIOES_BRUNO.includes(formData.cidade_regiao)) {
         motoboySugerido = "Bruno";
       }
-      
+
       if (motoboySugerido && !formData.motoboy) {
         setFormData(prev => ({ ...prev, motoboy: motoboySugerido }));
       }
@@ -146,7 +147,7 @@ export default function NovoRomaneio() {
     mutationFn: async (data) => {
       const cliente = clientes.find(c => c.id === data.cliente_id);
       const endereco = cliente.enderecos[data.endereco_index];
-      
+
       const codigo_rastreio = Math.random().toString(36).substring(2, 10).toUpperCase();
 
       return base44.entities.Romaneio.create({
@@ -160,6 +161,7 @@ export default function NovoRomaneio() {
         codigo_rastreio,
         item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
         buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
+        valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null, // Added valor_pagamento
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
       });
     },
@@ -182,11 +184,18 @@ export default function NovoRomaneio() {
       return;
     }
 
-    if (!formData.cliente_id || !formData.numero_requisicao || !formData.cidade_regiao || 
+    if (!formData.cliente_id || !formData.numero_requisicao || !formData.cidade_regiao ||
         !formData.forma_pagamento || !formData.motoboy || !formData.periodo_entrega ||
         !formData.data_entrega_prevista || formData.item_geladeira === "" || formData.buscar_receita === "") {
       toast.error('Preencha todos os campos obrigatórios');
       return;
+    }
+
+    // Additional validation for valor_pagamento if the form_pagamento requires it
+    const requiresValorPagamento = ["Dinheiro", "Maquina", "Troco P/"].includes(formData.forma_pagamento);
+    if (requiresValorPagamento && (formData.valor_pagamento === "" || parseFloat(formData.valor_pagamento) <= 0)) {
+        toast.error('Informe o valor de pagamento');
+        return;
     }
 
     createMutation.mutate(formData);
@@ -388,7 +397,7 @@ export default function NovoRomaneio() {
               </div>
 
               {/* Pagamento */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Changed to md:grid-cols-3 */}
                 <div>
                   <Label>Forma de Pagamento *</Label>
                   <Select
@@ -408,9 +417,26 @@ export default function NovoRomaneio() {
                   </Select>
                 </div>
 
+                {(formData.forma_pagamento === "Dinheiro" ||
+                  formData.forma_pagamento === "Maquina" ||
+                  formData.forma_pagamento === "Troco P/") && (
+                  <div>
+                    <Label htmlFor="valor_pagamento">Valor (R$) *</Label>
+                    <Input
+                      id="valor_pagamento"
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_pagamento}
+                      onChange={(e) => setFormData({ ...formData, valor_pagamento: e.target.value })}
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                )}
+
                 {formData.forma_pagamento === "Troco P/" && (
                   <div>
-                    <Label htmlFor="valor_troco">Valor do Troco (R$)</Label>
+                    <Label htmlFor="valor_troco">Troco para (R$)</Label>
                     <Input
                       id="valor_troco"
                       type="number"
@@ -450,8 +476,8 @@ export default function NovoRomaneio() {
                   Item de Geladeira? *
                 </Label>
                 <RadioGroup
-                  value={(formData.item_geladeira || false).toString()} // Updated value prop to handle string values
-                  onValueChange={(value) => setFormData({ ...formData, item_geladeira: value })} // Updated to store string "true" or "false"
+                  value={(formData.item_geladeira || false).toString()}
+                  onValueChange={(value) => setFormData({ ...formData, item_geladeira: value })}
                   className="flex gap-6"
                 >
                   <div className="flex items-center space-x-2">
@@ -472,8 +498,8 @@ export default function NovoRomaneio() {
                   Buscar Receita? *
                 </Label>
                 <RadioGroup
-                  value={(formData.buscar_receita || false).toString()} // Updated value prop to handle string values
-                  onValueChange={(value) => setFormData({ ...formData, buscar_receita: value })} // Updated to store string "true" or "false"
+                  value={(formData.buscar_receita || false).toString()}
+                  onValueChange={(value) => setFormData({ ...formData, buscar_receita: value })}
                   className="flex gap-6"
                 >
                   <div className="flex items-center space-x-2">

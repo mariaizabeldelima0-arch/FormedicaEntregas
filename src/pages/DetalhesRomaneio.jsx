@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,7 +23,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft,
   User,
   MapPin,
@@ -37,7 +49,8 @@ import {
   Printer,
   Edit,
   Save,
-  X
+  X,
+  Trash2
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,10 +61,10 @@ import { toast } from "sonner";
 import ImpressaoRomaneio from "../components/ImpressaoRomaneio";
 
 const CIDADES = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre", 
-  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai", 
-  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema", 
-  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras", 
+  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
+  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
+  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
+  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
   "Bombinhas", "Clinica"
 ];
 
@@ -103,6 +116,7 @@ export default function DetalhesRomaneio() {
         endereco: data.endereco,
         cidade_regiao: data.cidade_regiao,
         forma_pagamento: data.forma_pagamento,
+        valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null,
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
         item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
         buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
@@ -116,7 +130,7 @@ export default function DetalhesRomaneio() {
       if (data.status === 'Entregue' && !romaneio.data_entrega_realizada) {
         updateData.data_entrega_realizada = new Date().toISOString();
       }
-      
+
       if (data.status !== 'Entregue' && romaneio.data_entrega_realizada) {
         updateData.data_entrega_realizada = null;
       }
@@ -141,11 +155,11 @@ export default function DetalhesRomaneio() {
       const updateData = {
         status,
       };
-      
+
       if (status === 'Entregue' && !romaneio.data_entrega_realizada) {
         updateData.data_entrega_realizada = new Date().toISOString();
       }
-      
+
       if (status !== 'Entregue' && romaneio.data_entrega_realizada) {
         updateData.data_entrega_realizada = null;
       }
@@ -165,12 +179,31 @@ export default function DetalhesRomaneio() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      await base44.entities.Romaneio.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+      toast.success('Romaneio excluído com sucesso!');
+      navigate(createPageUrl("Dashboard"));
+    },
+    onError: (error) => {
+      console.error("Erro ao excluir romaneio:", error);
+      toast.error('Erro ao excluir romaneio');
+    }
+  });
+
   const handleAlterarStatus = () => {
     if (!novoStatus) {
       toast.error('Selecione um status');
       return;
     }
     alterarStatusMutation.mutate(novoStatus);
+  };
+
+  const handleDelete = () => {
+    deleteMutation.mutate(romaneioId);
   };
 
   const handleEditStart = () => {
@@ -181,6 +214,7 @@ export default function DetalhesRomaneio() {
       endereco: romaneio.endereco,
       cidade_regiao: romaneio.cidade_regiao,
       forma_pagamento: romaneio.forma_pagamento,
+      valor_pagamento: romaneio.valor_pagamento || "",
       valor_troco: romaneio.valor_troco || "",
       item_geladeira: romaneio.item_geladeira || false,
       buscar_receita: romaneio.buscar_receita || false,
@@ -254,7 +288,7 @@ export default function DetalhesRomaneio() {
   return (
     <>
       <ImpressaoRomaneio romaneio={romaneio} />
-      
+
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header - não imprime */}
@@ -342,6 +376,31 @@ export default function DetalhesRomaneio() {
                     <Printer className="w-4 h-4 mr-2" />
                     Imprimir
                   </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir este romaneio? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Confirmar Exclusão
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </>
               ) : (
                 <>
@@ -683,9 +742,23 @@ export default function DetalhesRomaneio() {
                           </Select>
                         </div>
 
+                        {(editData.forma_pagamento === "Dinheiro" ||
+                          editData.forma_pagamento === "Maquina" ||
+                          editData.forma_pagamento === "Troco P/") && (
+                            <div>
+                              <Label>Valor (R$)</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={editData.valor_pagamento}
+                                onChange={(e) => setEditData({ ...editData, valor_pagamento: e.target.value })}
+                              />
+                            </div>
+                          )}
+
                         {editData.forma_pagamento === "Troco P/" && (
                           <div>
-                            <Label>Valor do Troco (R$)</Label>
+                            <Label>Troco para (R$)</Label>
                             <Input
                               type="number"
                               step="0.01"
@@ -781,6 +854,11 @@ export default function DetalhesRomaneio() {
                           <div>
                             <p className="text-xs text-slate-500">Pagamento</p>
                             <p className="font-semibold text-slate-900">{currentData.forma_pagamento}</p>
+                            {currentData.valor_pagamento && (
+                              <p className="text-lg text-[#457bba] font-bold mt-1">
+                                R$ {currentData.valor_pagamento.toFixed(2)}
+                              </p>
+                            )}
                             {currentData.valor_troco && (
                               <p className="text-sm text-green-600 font-bold">
                                 Troco: R$ {currentData.valor_troco.toFixed(2)}
