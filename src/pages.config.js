@@ -6,6 +6,8 @@ import DetalhesRomaneio from './pages/DetalhesRomaneio';
 import Rastreamento from './pages/Rastreamento';
 import HistoricoClientes from './pages/HistoricoClientes';
 import Relatorios from './pages/Relatorios';
+import Usuarios from './pages/Usuarios';
+import Sedex from './pages/Sedex';
 import Layout from './Layout.jsx';
 
 
@@ -18,6 +20,8 @@ export const PAGES = {
     "Rastreamento": Rastreamento,
     "HistoricoClientes": HistoricoClientes,
     "Relatorios": Relatorios,
+    "Usuarios": Usuarios,
+    "Sedex": Sedex,
 }
 
 export const pagesConfig = {

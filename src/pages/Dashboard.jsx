@@ -1,17 +1,18 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { 
-  FileText, 
-  Package, 
-  Clock, 
-  CheckCircle, 
+import {
+  FileText,
+  Package,
+  Clock,
+  CheckCircle,
   Plus,
   Search,
   CalendarIcon,
@@ -33,6 +34,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label"; // Added Label import
+import { toast } from "sonner";
+
 
 const StatusBadge = ({ status }) => {
   const config = {
@@ -45,9 +56,9 @@ const StatusBadge = ({ status }) => {
     "Voltou": { color: "bg-orange-100 text-orange-700 border-orange-300", icon: RotateCcw },
     "Cancelado": { color: "bg-gray-100 text-gray-700 border-gray-300", icon: AlertCircle },
   };
-  
+
   const { color, icon: Icon } = config[status] || config["Pendente"];
-  
+
   return (
     <Badge className={`${color} border font-medium`}>
       <Icon className="w-3 h-3 mr-1" />
@@ -65,6 +76,11 @@ export default function Dashboard() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [visualizacao, setVisualizacao] = useState("dia"); // "dia" ou "todos"
+  const [selectedRomaneios, setSelectedRomaneios] = useState([]);
+  const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState("");
+
+  const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -86,6 +102,26 @@ export default function Dashboard() {
     enabled: !!user,
     initialData: [],
   });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, status }) => {
+      const promises = ids.map(id =>
+        base44.entities.Romaneio.update(id, { status })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+      toast.success(`${selectedRomaneios.length} entrega${selectedRomaneios.length !== 1 ? 's' : ''} atualizada${selectedRomaneios.length !== 1 ? 's' : ''}!`);
+      setShowBulkStatusDialog(false);
+      setSelectedRomaneios([]);
+      setBulkStatus("");
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar entregas');
+    }
+  });
+
 
   // Filtrar romaneios
   const romaneiosFiltrados = romaneios.filter(r => {
@@ -114,7 +150,7 @@ export default function Dashboard() {
     // Busca
     if (searchTerm) {
       const termo = searchTerm.toLowerCase();
-      const match = 
+      const match =
         r.cliente_nome?.toLowerCase().includes(termo) ||
         r.numero_requisicao?.toLowerCase().includes(termo) ||
         r.atendente_nome?.toLowerCase().includes(termo) ||
@@ -149,13 +185,38 @@ export default function Dashboard() {
 
   // Dados únicos para filtros
   const atendentesUnicos = [...new Set(romaneios.map(r => ({ email: r.atendente_email, nome: r.atendente_nome })))];
-  const motoboysUnicos = [...new Set(romaneios.map(r => r.motoboy))];
-  const locaisUnicos = [...new Set(romaneios.map(r => r.cidade_regiao))].sort();
+  const motoboysUnicos = [...new Set(romaneios.map(r => r.motoboy))].filter(Boolean); // Filter out null/undefined
+  const locaisUnicos = [...new Set(romaneios.map(r => r.cidade_regiao))].filter(Boolean).sort(); // Filter out null/undefined
 
   // Datas com entregas (para destacar no calendário)
   const diasComEntregas = romaneios
     .filter(r => r.data_entrega_prevista)
     .map(r => parseISO(r.data_entrega_prevista));
+
+  const handleSelectAll = () => {
+    if (selectedRomaneios.length === romaneiosOrganizados.length) {
+      setSelectedRomaneios([]);
+    } else {
+      setSelectedRomaneios(romaneiosOrganizados.map(r => r.id));
+    }
+  };
+
+  const handleSelectRomaneio = (id) => {
+    setSelectedRomaneios(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkStatusChange = () => {
+    if (!bulkStatus) {
+      toast.error('Selecione um status');
+      return;
+    }
+    bulkUpdateMutation.mutate({
+      ids: selectedRomaneios,
+      status: bulkStatus
+    });
+  };
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -435,19 +496,43 @@ export default function Dashboard() {
             {/* Lista de Romaneios */}
             <Card className="border-none shadow-lg bg-white">
               <CardHeader className="border-b border-slate-100 pb-4">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-xl font-bold text-slate-900">
-                    {visualizacao === "dia" 
-                      ? `Entregas de ${format(selectedDate, "dd/MM/yyyy")}`
-                      : "Todos os Romaneios"}
-                  </CardTitle>
-                  {visualizacao === "dia" && (
-                    <Link to={createPageUrl(`Relatorios?data=${format(selectedDate, "yyyy-MM-dd")}`)}>
-                      <Button variant="outline" size="sm">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Relatório do Dia
+                <div className="flex justify-between items-center flex-wrap gap-4">
+                  <div className="flex items-center gap-4">
+                    <CardTitle className="text-xl font-bold text-slate-900">
+                      {visualizacao === "dia"
+                        ? `Entregas de ${format(selectedDate, "dd/MM/yyyy")}`
+                        : "Todos os Romaneios"}
+                    </CardTitle>
+                    {visualizacao === "dia" && (
+                      <Link to={createPageUrl(`Relatorios?data=${format(selectedDate, "yyyy-MM-dd")}`)}>
+                        <Button variant="outline" size="sm">
+                          <FileText className="w-4 h-4 mr-2" />
+                          Relatório do Dia
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                  {selectedRomaneios.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-sm">
+                        {selectedRomaneios.length} selecionada{selectedRomaneios.length !== 1 ? 's' : ''}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowBulkStatusDialog(true)}
+                        className="bg-[#457bba] text-white hover:bg-[#3a6ba0]"
+                      >
+                        <Clock className="w-4 h-4 mr-2" />
+                        Alterar Status
                       </Button>
-                    </Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedRomaneios([])}
+                      >
+                        Limpar Seleção
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardHeader>
@@ -463,82 +548,154 @@ export default function Dashboard() {
                     <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500 font-medium">Nenhum romaneio encontrado</p>
                     <p className="text-sm text-slate-400 mt-1">
-                      {visualizacao === "dia" 
+                      {visualizacao === "dia"
                         ? "Não há entregas agendadas para este dia"
                         : "Comece criando seu primeiro romaneio"}
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
-                    {romaneiosOrganizados.map((romaneio) => (
-                      <Link
-                        key={romaneio.id}
-                        to={createPageUrl(`DetalhesRomaneio?id=${romaneio.id}`)}
-                        className="block p-6 hover:bg-slate-50 transition-colors"
-                      >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <h3 className="font-bold text-slate-900 text-lg">
-                                #{romaneio.numero_requisicao}
-                              </h3>
-                              <StatusBadge status={romaneio.status} />
-                              {romaneio.item_geladeira && (
-                                <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300 border">
-                                  <Snowflake className="w-3 h-3 mr-1" />
-                                  Geladeira
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className="text-xs">
-                                {romaneio.periodo_entrega}
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm text-slate-600">
-                              <div className="flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                <span className="font-medium">Cliente:</span>{' '}
-                                {romaneio.cliente_nome}
+                  <>
+                    {romaneiosOrganizados.length > 0 && (
+                      <div className="p-4 border-b border-slate-100 bg-slate-50">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={selectedRomaneios.length === romaneiosOrganizados.length && romaneiosOrganizados.length > 0}
+                            onCheckedChange={handleSelectAll}
+                          />
+                          <span className="text-sm font-medium text-slate-700">
+                            Selecionar todas as entregas ({romaneiosOrganizados.length})
+                          </span>
+                        </label>
+                      </div>
+                    )}
+                    <div className="divide-y divide-slate-100">
+                      {romaneiosOrganizados.map((romaneio) => (
+                        <div
+                          key={romaneio.id}
+                          className={`p-6 hover:bg-slate-50 transition-colors ${
+                            selectedRomaneios.includes(romaneio.id) ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <Checkbox
+                              checked={selectedRomaneios.includes(romaneio.id)}
+                              onCheckedChange={() => handleSelectRomaneio(romaneio.id)}
+                              className="mt-1"
+                            />
+                            <Link
+                              to={createPageUrl(`DetalhesRomaneio?id=${romaneio.id}`)}
+                              className="flex-1"
+                            >
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    <h3 className="font-bold text-slate-900 text-lg">
+                                      #{romaneio.numero_requisicao}
+                                    </h3>
+                                    <StatusBadge status={romaneio.status} />
+                                    {romaneio.item_geladeira && (
+                                      <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300 border">
+                                        <Snowflake className="w-3 h-3 mr-1" />
+                                        Geladeira
+                                      </Badge>
+                                    )}
+                                    <Badge variant="outline" className="text-xs">
+                                      {romaneio.periodo_entrega}
+                                    </Badge>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm text-slate-600">
+                                    <div className="flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      <span className="font-medium">Cliente:</span>{' '}
+                                      {romaneio.cliente_nome}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      <span className="font-medium">Região:</span>{' '}
+                                      {romaneio.cidade_regiao}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Truck className="w-3 h-3" />
+                                      <span className="font-medium">Motoboy:</span>{' '}
+                                      {romaneio.motoboy}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      <span className="font-medium">Atendente:</span>{' '}
+                                      {romaneio.atendente_nome}
+                                    </div>
+                                  </div>
+                                  <div className="text-sm text-slate-500">
+                                    <span className="font-medium">Pagamento:</span>{' '}
+                                    {romaneio.forma_pagamento}
+                                    {romaneio.valor_troco && ` - R$ ${romaneio.valor_troco.toFixed(2)}`}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-sm font-medium text-slate-900">
+                                    {romaneio.data_entrega_prevista &&
+                                      format(parseISO(romaneio.data_entrega_prevista), "dd/MM/yyyy", { locale: ptBR })}
+                                  </div>
+                                  <div className="text-xs text-slate-400 mt-1">
+                                    {romaneio.periodo_entrega}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                <span className="font-medium">Região:</span>{' '}
-                                {romaneio.cidade_regiao}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Truck className="w-3 h-3" />
-                                <span className="font-medium">Motoboy:</span>{' '}
-                                {romaneio.motoboy}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                <span className="font-medium">Atendente:</span>{' '}
-                                {romaneio.atendente_nome}
-                              </div>
-                            </div>
-                            <div className="text-sm text-slate-500">
-                              <span className="font-medium">Pagamento:</span>{' '}
-                              {romaneio.forma_pagamento}
-                              {romaneio.valor_troco && ` - R$ ${romaneio.valor_troco.toFixed(2)}`}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium text-slate-900">
-                              {romaneio.data_entrega_prevista && 
-                                format(parseISO(romaneio.data_entrega_prevista), "dd/MM/yyyy", { locale: ptBR })}
-                            </div>
-                            <div className="text-xs text-slate-400 mt-1">
-                              {romaneio.periodo_entrega}
-                            </div>
+                            </Link>
                           </div>
                         </div>
-                      </Link>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* Dialog para Alterar Status em Lote */}
+        <Dialog open={showBulkStatusDialog} onOpenChange={setShowBulkStatusDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Alterar Status de {selectedRomaneios.length} Entrega{selectedRomaneios.length !== 1 ? 's' : ''}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Novo Status</Label>
+                <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pendente">Pendente</SelectItem>
+                    <SelectItem value="Produzindo no Laboratório">Produção</SelectItem>
+                    <SelectItem value="Preparando no Setor de Entregas">Preparando</SelectItem>
+                    <SelectItem value="A Caminho">A Caminho</SelectItem>
+                    <SelectItem value="Entregue">Entregue</SelectItem>
+                    <SelectItem value="Não Entregue">Não Entregue</SelectItem>
+                    <SelectItem value="Voltou">Voltou</SelectItem>
+                    <SelectItem value="Cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBulkStatusDialog(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleBulkStatusChange}
+                  disabled={bulkUpdateMutation.isPending || !bulkStatus}
+                  className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                >
+                  {bulkUpdateMutation.isPending ? 'Atualizando...' : 'Atualizar'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

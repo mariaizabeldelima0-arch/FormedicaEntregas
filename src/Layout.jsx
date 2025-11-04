@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -11,7 +10,10 @@ import {
   Package, 
   LogOut,
   Truck,
-  BarChart3
+  BarChart3,
+  Settings,
+  UserCog,
+  Send
 } from "lucide-react";
 import {
   Sidebar,
@@ -27,6 +29,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -48,9 +58,14 @@ export default function Layout({ children, currentPageName }) {
     },
   ] : isAtendente ? [
     {
-      title: "Dashboard",
+      title: "Entregas Moto",
       url: createPageUrl("Dashboard"),
-      icon: LayoutDashboard,
+      icon: Truck,
+    },
+    {
+      title: "Sedex/Disktenha",
+      url: createPageUrl("Sedex"),
+      icon: Send,
     },
     {
       title: "Novo Romaneio",
@@ -149,13 +164,32 @@ export default function Layout({ children, currentPageName }) {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sair
-                </button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Menu
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to={createPageUrl("Usuarios")} className="flex items-center cursor-pointer">
+                            <UserCog className="w-4 h-4 mr-2" />
+                            Usuários
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sair da Conta
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             )}
           </SidebarFooter>
