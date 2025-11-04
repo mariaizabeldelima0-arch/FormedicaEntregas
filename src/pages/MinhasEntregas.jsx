@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Package, 
   MapPin, 
@@ -23,7 +31,9 @@ import {
   Snowflake,
   Navigation,
   AlertCircle,
-  DollarSign
+  DollarSign,
+  FileText,
+  Printer
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,17 +46,32 @@ export default function MinhasEntregas() {
   const [showConcluirDialog, setShowConcluirDialog] = useState(false);
   const [showProblemaDialog, setShowProblemaDialog] = useState(false);
   const [motivoProblema, setMotivoProblema] = useState("");
+  const [filtroLocal, setFiltroLocal] = useState("todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
   });
 
+  const isAdmin = user?.tipo_usuario === 'admin' || user?.role === 'admin';
+  // const isMotoboy = user?.tipo_usuario === 'entregador'; // Not directly used in the query filter, but useful for context
+
   const { data: romaneios, isLoading } = useQuery({
     queryKey: ['minhas-entregas', user?.full_name],
     queryFn: async () => {
       if (!user) return [];
       const todos = await base44.entities.Romaneio.list('-created_date');
+      
+      // Se for admin ou o usuário específico, mostrar entregas de todos os motoboys
+      if (isAdmin || user.email === 'mariaizabeldelima0@gmail.com') { // Specific user override
+        return todos.filter(r => 
+          r.status !== 'Entregue' && 
+          r.status !== 'Cancelado'
+        );
+      }
+      
+      // Se for motoboy, filtrar apenas suas entregas
       return todos.filter(r => 
         r.motoboy === user.full_name &&
         r.status !== 'Entregue' && 
@@ -80,8 +105,19 @@ export default function MinhasEntregas() {
   const romaneiosDoDia = romaneios.filter(r => {
     if (!r.data_entrega_prevista) return false;
     const dataEntrega = parseISO(r.data_entrega_prevista);
-    return isSameDay(dataEntrega, selectedDate);
+    if (!isSameDay(dataEntrega, selectedDate)) return false;
+    
+    // Aplicar filtros
+    if (filtroLocal !== "todos" && r.cidade_regiao !== filtroLocal) return false;
+    if (filtroPeriodo !== "todos" && r.periodo_entrega !== filtroPeriodo) return false;
+    
+    return true;
   });
+
+  // Locais únicos para o filtro
+  const locaisUnicos = [...new Set(romaneios
+    .filter(r => r.data_entrega_prevista && isSameDay(parseISO(r.data_entrega_prevista), selectedDate))
+    .map(r => r.cidade_regiao))].sort();
 
   // Ordenar por local (cidade_regiao) e depois por período
   const romaneiosOrdenados = [...romaneiosDoDia].sort((a, b) => {
@@ -126,6 +162,10 @@ export default function MinhasEntregas() {
     const endereco = `${end.rua}, ${end.numero}, ${end.bairro}`;
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`;
     window.open(url, '_blank');
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   // Verificar se precisa cobrar valor
@@ -227,7 +267,7 @@ export default function MinhasEntregas() {
             <Button
               variant="outline"
               size="sm"
-              className="w-full"
+              className="w-full no-print"
               onClick={() => abrirNavegacao(romaneio)}
             >
               <Navigation className="w-4 h-4 mr-2" />
@@ -245,7 +285,7 @@ export default function MinhasEntregas() {
           {romaneio.cliente_telefone && (
             <a
               href={`tel:${romaneio.cliente_telefone}`}
-              className="flex items-center gap-2 text-sm text-[#457bba] hover:underline"
+              className="flex items-center gap-2 text-sm text-[#457bba] hover:underline no-print"
             >
               <Phone className="w-4 h-4" />
               {romaneio.cliente_telefone}
@@ -268,7 +308,7 @@ export default function MinhasEntregas() {
           )}
 
           {/* Ações */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-2 no-print">
             {romaneio.status === 'Pendente' && (
               <Button
                 className="flex-1 bg-[#457bba] hover:bg-[#3a6ba0]"
@@ -309,146 +349,223 @@ export default function MinhasEntregas() {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
-            Minhas Entregas
-          </h1>
-          <p className="text-slate-600">
-            Olá, <span className="font-semibold text-[#457bba]">{user?.full_name}</span>
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Calendário */}
-          <Card className="border-none shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg">Selecione o Dia</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                locale={ptBR}
-                className="rounded-md border"
-              />
-              <div className="mt-4 text-center">
-                <p className="text-sm font-semibold text-slate-900">
-                  {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {romaneiosDoDia.length} entrega{romaneiosDoDia.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Lista de Entregas */}
-          <div className="lg:col-span-3 space-y-6">
-            {isLoading ? (
-              <Card className="border-none shadow-lg">
-                <CardContent className="p-12 text-center">
-                  <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500">Carregando...</p>
-                </CardContent>
-              </Card>
-            ) : romaneiosDoDia.length === 0 ? (
-              <Card className="border-none shadow-lg">
-                <CardContent className="p-12 text-center">
-                  <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500 font-medium">Nenhuma entrega para este dia</p>
-                  <p className="text-sm text-slate-400 mt-1">
-                    Selecione outro dia no calendário
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              Object.entries(romaneiosPorLocal).map(([local, entregas]) => (
-                <div key={local}>
-                  <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-[#457bba]" />
-                    {local} ({entregas.length})
-                  </h2>
-                  <div className="grid grid-cols-1 gap-4">
-                    {entregas.map(romaneio => (
-                      <EntregaCard key={romaneio.id} romaneio={romaneio} />
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
+    <>
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+        }
+      `}</style>
+      
+      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex justify-between items-center no-print">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
+                Minhas Entregas
+              </h1>
+              <p className="text-slate-600">
+                Olá, <span className="font-semibold text-[#457bba]">{user?.full_name}</span>
+              </p>
+            </div>
+            <Button onClick={handlePrint} variant="outline">
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir Relatório
+            </Button>
           </div>
-        </div>
 
-        {/* Dialog Concluir */}
-        <Dialog open={showConcluirDialog} onOpenChange={setShowConcluirDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirmar Entrega</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p>Confirma que a entrega foi realizada com sucesso?</p>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowConcluirDialog(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={handleConcluir}
-                  disabled={updateStatusMutation.isPending}
-                >
-                  Confirmar Entrega
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog Problema */}
-        <Dialog open={showProblemaDialog} onOpenChange={setShowProblemaDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Reportar Problema</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Descreva o motivo da não entrega *
-                </label>
-                <Textarea
-                  value={motivoProblema}
-                  onChange={(e) => setMotivoProblema(e.target.value)}
-                  placeholder="Ex: Cliente ausente, endereço não localizado..."
-                  rows={4}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Calendário */}
+            <Card className="border-none shadow-lg no-print">
+              <CardHeader>
+                <CardTitle className="text-lg">Selecione o Dia</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  locale={ptBR}
+                  className="rounded-md border"
                 />
+                <div className="mt-4 text-center">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {romaneiosDoDia.length} entrega{romaneiosDoDia.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lista de Entregas */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Filtros - no-print */}
+              <Card className="border-none shadow-lg no-print">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg">Filtros</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Local</label>
+                      <Select value={filtroLocal} onValueChange={setFiltroLocal}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos os locais" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todos os Locais</SelectItem>
+                          {locaisUnicos.map(local => (
+                            <SelectItem key={local} value={local}>{local}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Período</label>
+                      <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos os períodos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todos os Períodos</SelectItem>
+                          <SelectItem value="Manhã">Manhã</SelectItem>
+                          <SelectItem value="Tarde">Tarde</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {(filtroLocal !== "todos" || filtroPeriodo !== "todos") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => {
+                        setFiltroLocal("todos");
+                        setFiltroPeriodo("todos");
+                      }}
+                    >
+                      Limpar Filtros
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Cabeçalho para impressão */}
+              <div className="hidden print:block mb-6">
+                <h1 className="text-2xl font-bold text-center mb-2">
+                  Relatório de Entregas - {format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}
+                </h1>
+                <p className="text-center text-sm text-slate-600">
+                  Total: {romaneiosDoDia.length} entregas
+                </p>
+                {filtroLocal !== "todos" && <p className="text-center text-sm text-slate-600">Local: {filtroLocal}</p>}
+                {filtroPeriodo !== "todos" && <p className="text-center text-sm text-slate-600">Período: {filtroPeriodo}</p>}
               </div>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowProblemaDialog(false);
-                    setMotivoProblema("");
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleProblema}
-                  disabled={updateStatusMutation.isPending}
-                >
-                  Confirmar Problema
-                </Button>
-              </div>
+
+              {isLoading ? (
+                <Card className="border-none shadow-lg">
+                  <CardContent className="p-12 text-center">
+                    <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">Carregando...</p>
+                  </CardContent>
+                </Card>
+              ) : romaneiosDoDia.length === 0 ? (
+                <Card className="border-none shadow-lg no-print">
+                  <CardContent className="p-12 text-center">
+                    <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500 font-medium">Nenhuma entrega para este dia</p>
+                    <p className="text-sm text-slate-400 mt-1">
+                      Selecione outro dia no calendário
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                Object.entries(romaneiosPorLocal).map(([local, entregas]) => (
+                  <div key={local} className="break-inside-avoid">
+                    <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-[#457bba]" />
+                      {local} ({entregas.length})
+                    </h2>
+                    <div className="grid grid-cols-1 gap-4">
+                      {entregas.map(romaneio => (
+                        <EntregaCard key={romaneio.id} romaneio={romaneio} />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+
+          {/* Dialog Concluir */}
+          <Dialog open={showConcluirDialog} onOpenChange={setShowConcluirDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirmar Entrega</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p>Confirma que a entrega foi realizada com sucesso?</p>
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowConcluirDialog(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={handleConcluir}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    Confirmar Entrega
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog Problema */}
+          <Dialog open={showProblemaDialog} onOpenChange={setShowProblemaDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reportar Problema</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Descreva o motivo da não entrega *
+                  </label>
+                  <Textarea
+                    value={motivoProblema}
+                    onChange={(e) => setMotivoProblema(e.target.value)}
+                    placeholder="Ex: Cliente ausente, endereço não localizado..."
+                    rows={4}
+                  />
+                </div>
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowProblemaDialog(false);
+                      setMotivoProblema("");
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleProblema}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    Confirmar Problema
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

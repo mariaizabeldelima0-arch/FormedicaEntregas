@@ -101,8 +101,9 @@ export default function DetalhesRomaneio() {
   const { data: romaneio, isLoading } = useQuery({
     queryKey: ['romaneio', romaneioId],
     queryFn: async () => {
-      const romaneios = await base44.entities.Romaneio.filter({ id: romaneioId });
-      return romaneios[0];
+      if (!romaneioId) return null;
+      const allRomaneios = await base44.entities.Romaneio.list();
+      return allRomaneios.find(r => r.id === romaneioId);
     },
     enabled: !!romaneioId,
   });
