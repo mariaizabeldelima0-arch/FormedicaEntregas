@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,11 +33,13 @@ import {
   AlertCircle,
   DollarSign,
   FileText,
-  Printer
+  Printer,
+  GripVertical
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function MinhasEntregas() {
   const queryClient = useQueryClient();
@@ -48,6 +50,7 @@ export default function MinhasEntregas() {
   const [motivoProblema, setMotivoProblema] = useState("");
   const [filtroLocal, setFiltroLocal] = useState("todos");
   const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
+  const [ordenacaoCustomizada, setOrdenacaoCustomizada] = useState({});
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -101,6 +104,36 @@ export default function MinhasEntregas() {
     },
   });
 
+  // Salvar ordenação customizada
+  const saveOrdenacaoMutation = useMutation({
+    mutationFn: async (ordenacao) => {
+      // Salvar no localStorage por enquanto
+      const key = `ordenacao_${user?.email}_${format(selectedDate, 'yyyy-MM-dd')}`;
+      localStorage.setItem(key, JSON.stringify(ordenacao));
+      return ordenacao;
+    },
+    onSuccess: () => {
+      // toast.success('Ordem das entregas salva!'); // Keep this silent, avoid too many toasts on drag
+    },
+  });
+
+  // Carregar ordenação salva
+  useEffect(() => {
+    if (user && selectedDate) {
+      const key = `ordenacao_${user.email}_${format(selectedDate, 'yyyy-MM-dd')}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        try {
+          setOrdenacaoCustomizada(JSON.parse(saved));
+        } catch (e) {
+          console.error("Erro ao carregar ordenação:", e);
+        }
+      } else {
+        setOrdenacaoCustomizada({});
+      }
+    }
+  }, [user, selectedDate]);
+
   // Filtrar entregas do dia selecionado
   const romaneiosDoDia = romaneios.filter(r => {
     if (!r.data_entrega_prevista) return false;
@@ -119,19 +152,61 @@ export default function MinhasEntregas() {
     .filter(r => r.data_entrega_prevista && isSameDay(parseISO(r.data_entrega_prevista), selectedDate))
     .map(r => r.cidade_regiao))].sort();
 
-  // Ordenar por local (cidade_regiao) e depois por período
-  const romaneiosOrdenados = [...romaneiosDoDia].sort((a, b) => {
-    // Primeiro por local
-    const localCompare = a.cidade_regiao.localeCompare(b.cidade_regiao);
-    if (localCompare !== 0) return localCompare;
+  // Aplicar ordenação customizada
+  const aplicarOrdenacao = (romaneiosList) => {
+    const dataKey = format(selectedDate, 'yyyy-MM-dd');
+    const ordemSalva = ordenacaoCustomizada[dataKey];
     
-    // Depois por período (Manhã antes de Tarde)
-    if (a.periodo_entrega !== b.periodo_entrega) {
-      return a.periodo_entrega === "Manhã" ? -1 : 1;
+    if (!ordemSalva || ordemSalva.length === 0) {
+      // Ordenação padrão: por local e depois por período
+      return [...romaneiosList].sort((a, b) => {
+        const localCompare = a.cidade_regiao.localeCompare(b.cidade_regiao);
+        if (localCompare !== 0) return localCompare;
+        if (a.periodo_entrega !== b.periodo_entrega) {
+          return a.periodo_entrega === "Manhã" ? -1 : 1;
+        }
+        return 0;
+      });
     }
+
+    // Ordenação customizada
+    // Filter out items not present in the current romaneiosList before sorting
+    const filteredOrdemSalva = ordemSalva.filter(id => romaneiosList.some(r => r.id === id));
     
-    return 0;
-  });
+    // Sort romaneiosList based on filteredOrdemSalva
+    const sortedRomaneios = [...romaneiosList].sort((a, b) => {
+      const indexA = filteredOrdemSalva.indexOf(a.id);
+      const indexB = filteredOrdemSalva.indexOf(b.id);
+      
+      // Items not in filteredOrdemSalva go to the end, maintaining their relative order
+      if (indexA === -1 && indexB === -1) {
+          // Fallback to default sort for items not in custom order
+          const localCompare = a.cidade_regiao.localeCompare(b.cidade_regiao);
+          if (localCompare !== 0) return localCompare;
+          if (a.periodo_entrega !== b.periodo_entrega) {
+            return a.periodo_entrega === "Manhã" ? -1 : 1;
+          }
+          return 0;
+      }
+      if (indexA === -1) return 1; // a is not in custom order, b is, so b comes first
+      if (indexB === -1) return -1; // b is not in custom order, a is, so a comes first
+      
+      return indexA - indexB;
+    });
+
+    return sortedRomaneios;
+  };
+
+  const romaneiosOrdenados = aplicarOrdenacao(romaneiosDoDia);
+
+  // Agrupar por local (using the custom-ordered list)
+  const romaneiosPorLocal = romaneiosOrdenados.reduce((acc, r) => {
+    if (!acc[r.cidade_regiao]) {
+      acc[r.cidade_regiao] = [];
+    }
+    acc[r.cidade_regiao].push(r);
+    return acc;
+  }, {});
 
   const handleIniciarEntrega = (romaneio) => {
     updateStatusMutation.mutate({ id: romaneio.id, status: 'A Caminho' });
@@ -168,6 +243,30 @@ export default function MinhasEntregas() {
     window.print();
   };
 
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+
+    // We operate on the flat romaneiosOrdenados list for reordering
+    const items = Array.from(romaneiosOrdenados);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    const dataKey = format(selectedDate, 'yyyy-MM-dd');
+    const novaOrdem = items.map(item => item.id);
+    
+    // Update local state first for immediate UI feedback
+    setOrdenacaoCustomizada(prev => ({
+      ...prev,
+      [dataKey]: novaOrdem
+    }));
+    
+    // Then save to persistent storage
+    saveOrdenacaoMutation.mutate({
+      ...ordenacaoCustomizada,
+      [dataKey]: novaOrdem
+    });
+  };
+
   // Verificar se precisa cobrar valor
   const precisaCobrar = (romaneio) => {
     return romaneio.valor_pagamento && 
@@ -178,6 +277,8 @@ export default function MinhasEntregas() {
     const configs = {
       "Pendente": { color: "bg-slate-100 text-slate-700", icon: Clock },
       "A Caminho": { color: "bg-purple-100 text-purple-700", icon: Package },
+      "Entregue": { color: "bg-green-100 text-green-700", icon: CheckCircle },
+      "Não Entregue": { color: "bg-red-100 text-red-700", icon: XCircle },
     };
     const { color, icon: Icon } = configs[status] || configs["Pendente"];
     return (
@@ -188,40 +289,37 @@ export default function MinhasEntregas() {
     );
   };
 
-  // Agrupar por local
-  const romaneiosPorLocal = romaneiosOrdenados.reduce((acc, r) => {
-    if (!acc[r.cidade_regiao]) {
-      acc[r.cidade_regiao] = [];
-    }
-    acc[r.cidade_regiao].push(r);
-    return acc;
-  }, {});
-
-  const EntregaCard = ({ romaneio }) => {
+  const EntregaCard = ({ romaneio, index, isDragging }) => {
     const deveSerCobrado = precisaCobrar(romaneio);
     
     return (
-      <Card className={`border-slate-200 hover:shadow-lg transition-shadow ${deveSerCobrado ? 'ring-2 ring-orange-400' : ''}`}>
+      <Card className={`border-slate-200 hover:shadow-lg transition-shadow ${deveSerCobrado ? 'ring-2 ring-orange-400' : ''} ${isDragging ? 'shadow-2xl' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 flex-wrap mb-2">
-                <CardTitle className="text-lg">#{romaneio.numero_requisicao}</CardTitle>
-                <StatusBadge status={romaneio.status} />
-                {romaneio.item_geladeira && (
-                  <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300">
-                    <Snowflake className="w-3 h-3 mr-1" />
-                    GELADEIRA
-                  </Badge>
-                )}
-                {deveSerCobrado && (
-                  <Badge className="bg-orange-100 text-orange-700 border-orange-400 border-2 font-bold">
-                    <DollarSign className="w-4 h-4 mr-1" />
-                    COBRAR
-                  </Badge>
-                )}
+            <div className="flex items-start gap-3 flex-1">
+              <div className="mt-1 cursor-grab active:cursor-grabbing">
+                <GripVertical className="w-5 h-5 text-slate-400" />
               </div>
-              <p className="text-sm text-slate-600 font-medium">{romaneio.cliente_nome}</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 flex-wrap mb-2">
+                  <Badge variant="outline" className="font-mono">#{index + 1}</Badge>
+                  <CardTitle className="text-lg">REQ #{romaneio.numero_requisicao}</CardTitle>
+                  <StatusBadge status={romaneio.status} />
+                  {romaneio.item_geladeira && (
+                    <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300">
+                      <Snowflake className="w-3 h-3 mr-1" />
+                      GELADEIRA
+                    </Badge>
+                  )}
+                  {deveSerCobrado && (
+                    <Badge className="bg-orange-100 text-orange-700 border-orange-400 border-2 font-bold">
+                      <DollarSign className="w-4 h-4 mr-1" />
+                      COBRAR
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-slate-600 font-medium">{romaneio.cliente_nome}</p>
+              </div>
             </div>
             <Badge variant="outline" className="text-xs">
               {romaneio.periodo_entrega}
@@ -463,6 +561,18 @@ export default function MinhasEntregas() {
                 {filtroPeriodo !== "todos" && <p className="text-center text-sm text-slate-600">Período: {filtroPeriodo}</p>}
               </div>
 
+              {/* Instrução de arrastar */}
+              {!isLoading && romaneiosDoDia.length > 0 && (
+                <Card className="border-none shadow-lg bg-blue-50 border-blue-200 no-print">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-blue-900 flex items-center gap-2">
+                      <GripVertical className="w-4 h-4" />
+                      Arraste as entregas para reorganizar sua rota
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
               {isLoading ? (
                 <Card className="border-none shadow-lg">
                   <CardContent className="p-12 text-center">
@@ -481,19 +591,54 @@ export default function MinhasEntregas() {
                   </CardContent>
                 </Card>
               ) : (
-                Object.entries(romaneiosPorLocal).map(([local, entregas]) => (
-                  <div key={local} className="break-inside-avoid">
-                    <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-[#457bba]" />
-                      {local} ({entregas.length})
-                    </h2>
-                    <div className="grid grid-cols-1 gap-4">
-                      {entregas.map(romaneio => (
-                        <EntregaCard key={romaneio.id} romaneio={romaneio} />
-                      ))}
-                    </div>
-                  </div>
-                ))
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="all-deliveries">
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-4"
+                      >
+                        {romaneiosOrdenados.map((romaneio, index) => {
+                          let header = null;
+                          if (index === 0 || romaneio.cidade_regiao !== romaneiosOrdenados[index - 1]?.cidade_regiao) {
+                            header = (
+                              <h2 className="text-xl font-bold text-slate-900 mt-6 mb-4 flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-[#457bba]" />
+                                {romaneio.cidade_regiao} ({romaneiosOrdenados.filter(r => r.cidade_regiao === romaneio.cidade_regiao).length})
+                              </h2>
+                            );
+                          }
+                          return (
+                            <React.Fragment key={romaneio.id}>
+                              {header}
+                              <Draggable
+                                key={romaneio.id}
+                                draggableId={romaneio.id}
+                                index={index}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                  >
+                                    <EntregaCard
+                                      romaneio={romaneio}
+                                      index={index}
+                                      isDragging={snapshot.isDragging}
+                                    />
+                                  </div>
+                                )}
+                              </Draggable>
+                            </React.Fragment>
+                          );
+                        })}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               )}
             </div>
           </div>

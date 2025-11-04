@@ -98,14 +98,27 @@ export default function DetalhesRomaneio() {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [novoStatus, setNovoStatus] = useState("");
 
-  const { data: romaneio, isLoading } = useQuery({
+  const { data: romaneio, isLoading, error } = useQuery({
     queryKey: ['romaneio', romaneioId],
     queryFn: async () => {
-      if (!romaneioId) return null;
-      const allRomaneios = await base44.entities.Romaneio.list();
-      return allRomaneios.find(r => r.id === romaneioId);
+      if (!romaneioId) {
+        console.error("No romaneioId provided");
+        return null;
+      }
+      console.log("Fetching romaneio with ID:", romaneioId);
+      try {
+        const allRomaneios = await base44.entities.Romaneio.list();
+        console.log("All romaneios fetched:", allRomaneios.length);
+        const found = allRomaneios.find(r => r.id === romaneioId);
+        console.log("Found romaneio:", found);
+        return found || null;
+      } catch (err) {
+        console.error("Error fetching romaneio:", err);
+        throw err;
+      }
     },
     enabled: !!romaneioId,
+    retry: 1,
   });
 
   const updateMutation = useMutation({
@@ -256,10 +269,25 @@ export default function DetalhesRomaneio() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-500">Erro ao carregar romaneio: {error.message}</p>
+        <Button onClick={() => navigate(createPageUrl("Dashboard"))} className="mt-4">
+          Voltar ao Dashboard
+        </Button>
+      </div>
+    );
+  }
+
   if (!romaneio) {
     return (
       <div className="p-8 text-center">
-        <p className="text-slate-500">Romaneio não encontrado</p>
+        <p className="text-slate-500 mb-4">Romaneio não encontrado</p>
+        <p className="text-sm text-slate-400 mb-4">ID: {romaneioId}</p>
+        <Button onClick={() => navigate(createPageUrl("Dashboard"))}>
+          Voltar ao Dashboard
+        </Button>
       </div>
     );
   }

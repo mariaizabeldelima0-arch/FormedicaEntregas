@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,6 +27,12 @@ import { Send, Plus, Search, MapPin, DollarSign, Package } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { Link } from 'react-router-dom'; // Added Link import
+
+// Helper function to create page URLs. Assumed to be a utility.
+// If your project has a specific utility for this, replace this with the actual import.
+// For this implementation, it's a simple passthrough.
+const createPageUrl = (path) => path;
 
 export default function Sedex() {
   const queryClient = useQueryClient();
@@ -450,7 +457,11 @@ export default function Sedex() {
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {entregasFiltradas.map((entrega) => (
-                      <div key={entrega.id} className="p-6 hover:bg-slate-50 transition-colors">
+                      <Link
+                        key={entrega.id}
+                        to={createPageUrl(`DetalhesSedex?id=${entrega.id}`)}
+                        className="block p-6 hover:bg-slate-50 transition-colors"
+                      >
                         <div className="flex justify-between items-start gap-4">
                           <div className="flex-1 space-y-2">
                             <div className="flex items-center gap-3 flex-wrap">
@@ -500,7 +511,7 @@ export default function Sedex() {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
