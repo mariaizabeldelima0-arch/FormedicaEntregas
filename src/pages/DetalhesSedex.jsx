@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Send, Package, MapPin, DollarSign, Edit, Save, X, Trash2 } from "lucide-react";
+import { ArrowLeft, Send, Package, MapPin, DollarSign, Edit, Save, X, Trash2, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -42,14 +43,35 @@ export default function DetalhesSedex() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(null);
 
-  const { data: entrega, isLoading } = useQuery({
+  const { data: entrega, isLoading, error } = useQuery({
     queryKey: ['entrega-sedex', entregaId],
     queryFn: async () => {
-      if (!entregaId) return null;
-      const allEntregas = await base44.entities.EntregaSedex.list();
-      return allEntregas.find(e => e.id === entregaId);
+      if (!entregaId) {
+        console.error("No entregaId provided");
+        return null;
+      }
+      console.log("Fetching entrega with ID:", entregaId);
+      try {
+        const allEntregas = await base44.entities.EntregaSedex.list();
+        console.log("Total entregas:", allEntregas.length);
+        const found = allEntregas.find(e => e.id === entregaId);
+        
+        if (!found) {
+          console.error("Entrega not found with id:", entregaId);
+          console.log("Available IDs:", allEntregas.map(e => e.id));
+        } else {
+          console.log("Found entrega:", found.numero_registro);
+        }
+        
+        return found || null;
+      } catch (err) {
+        console.error("Error fetching entrega:", err);
+        throw err;
+      }
     },
     enabled: !!entregaId,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const updateMutation = useMutation({
@@ -124,20 +146,56 @@ export default function DetalhesSedex() {
     return (
       <div className="p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-12 w-64" />
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Sedex"))}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <Skeleton className="h-12 w-64" />
+          </div>
           <Skeleton className="h-96 w-full" />
         </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardContent className="p-12 text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Erro ao Carregar Entrega</h2>
+            <p className="text-red-500 mb-4">{error.message}</p>
+            <p className="text-sm text-slate-500 mb-4">ID: {entregaId}</p>
+            <Button onClick={() => navigate(createPageUrl("Sedex"))}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!entrega) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-slate-500">Entrega não encontrada</p>
-        <Button onClick={() => navigate(createPageUrl("Sedex"))} className="mt-4">
-          Voltar
-        </Button>
+      <div className="p-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardContent className="p-12 text-center">
+            <Send className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Entrega Não Encontrada</h2>
+            <p className="text-slate-500 mb-4">A entrega que você está procurando não foi encontrada.</p>
+            <p className="text-sm text-slate-400 mb-6">ID procurado: {entregaId}</p>
+            <Button onClick={() => navigate(createPageUrl("Sedex"))}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

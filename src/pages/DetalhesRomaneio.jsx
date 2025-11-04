@@ -50,7 +50,8 @@ import {
   Edit,
   Save,
   X,
-  Trash2
+  Trash2,
+  AlertCircle // Added for error messages
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -107,10 +108,18 @@ export default function DetalhesRomaneio() {
       }
       console.log("Fetching romaneio with ID:", romaneioId);
       try {
+        // Tentar buscar diretamente primeiro
         const allRomaneios = await base44.entities.Romaneio.list();
-        console.log("All romaneios fetched:", allRomaneios.length);
+        console.log("Total romaneios:", allRomaneios.length);
         const found = allRomaneios.find(r => r.id === romaneioId);
-        console.log("Found romaneio:", found);
+
+        if (!found) {
+          console.error("Romaneio not found with id:", romaneioId);
+          console.log("Available IDs:", allRomaneios.map(r => r.id));
+        } else {
+          console.log("Found romaneio:", found.numero_requisicao);
+        }
+
         return found || null;
       } catch (err) {
         console.error("Error fetching romaneio:", err);
@@ -118,7 +127,8 @@ export default function DetalhesRomaneio() {
       }
     },
     enabled: !!romaneioId,
-    retry: 1,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const updateMutation = useMutation({
@@ -262,7 +272,16 @@ export default function DetalhesRomaneio() {
     return (
       <div className="p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-12 w-64" />
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Dashboard"))}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <Skeleton className="h-12 w-64" />
+          </div>
           <Skeleton className="h-96 w-full" />
         </div>
       </div>
@@ -271,23 +290,38 @@ export default function DetalhesRomaneio() {
 
   if (error) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-red-500">Erro ao carregar romaneio: {error.message}</p>
-        <Button onClick={() => navigate(createPageUrl("Dashboard"))} className="mt-4">
-          Voltar ao Dashboard
-        </Button>
+      <div className="p-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardContent className="p-12 text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Erro ao Carregar Romaneio</h2>
+            <p className="text-red-500 mb-4">{error.message}</p>
+            <p className="text-sm text-slate-500 mb-4">ID: {romaneioId}</p>
+            <Button onClick={() => navigate(createPageUrl("Dashboard"))}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar ao Dashboard
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!romaneio) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-slate-500 mb-4">Romaneio não encontrado</p>
-        <p className="text-sm text-slate-400 mb-4">ID: {romaneioId}</p>
-        <Button onClick={() => navigate(createPageUrl("Dashboard"))}>
-          Voltar ao Dashboard
-        </Button>
+      <div className="p-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardContent className="p-12 text-center">
+            <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Romaneio Não Encontrado</h2>
+            <p className="text-slate-500 mb-4">O romaneio que você está procurando não foi encontrado.</p>
+            <p className="text-sm text-slate-400 mb-6">ID procurado: {romaneioId}</p>
+            <Button onClick={() => navigate(createPageUrl("Dashboard"))}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar ao Dashboard
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

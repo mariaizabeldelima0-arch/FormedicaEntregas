@@ -583,7 +583,7 @@ export default function Dashboard() {
                               className="mt-1"
                             />
                             <Link
-                              to={createPageUrl(`DetalhesRomaneio?id=${romaneio.id}`)}
+                              to={`/DetalhesRomaneio?id=${romaneio.id}`}
                               className="flex-1"
                             >
                               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

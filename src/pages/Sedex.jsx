@@ -29,11 +29,6 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Link } from 'react-router-dom'; // Added Link import
 
-// Helper function to create page URLs. Assumed to be a utility.
-// If your project has a specific utility for this, replace this with the actual import.
-// For this implementation, it's a simple passthrough.
-const createPageUrl = (path) => path;
-
 export default function Sedex() {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -459,7 +454,7 @@ export default function Sedex() {
                     {entregasFiltradas.map((entrega) => (
                       <Link
                         key={entrega.id}
-                        to={createPageUrl(`DetalhesSedex?id=${entrega.id}`)}
+                        to={`/DetalhesSedex?id=${entrega.id}`}
                         className="block p-6 hover:bg-slate-50 transition-colors"
                       >
                         <div className="flex justify-between items-start gap-4">
