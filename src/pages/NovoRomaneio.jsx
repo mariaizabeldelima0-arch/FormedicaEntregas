@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,8 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { AlertCircle, Snowflake, Plus, ArrowLeft, Search, FileText } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Snowflake, Plus, ArrowLeft, Search, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -73,7 +71,7 @@ export default function NovoRomaneio() {
     endereco_index: 0,
     cidade_regiao: "",
     forma_pagamento: "",
-    valor_pagamento: "", // Added valor_pagamento
+    valor_pagamento: "",
     valor_troco: "",
     item_geladeira: "false",
     buscar_receita: "false",
@@ -84,40 +82,15 @@ export default function NovoRomaneio() {
     observacoes: "",
   });
 
-  const [clienteBloqueado, setClienteBloqueado] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [searchCliente, setSearchCliente] = useState("");
 
-  // Filtrar clientes pela busca
   const clientesFiltrados = clientes.filter(c =>
     c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
     c.telefone?.includes(searchCliente) ||
     c.cpf?.includes(searchCliente)
   );
 
-  // Verificar se cliente tem entrega pendente
-  useEffect(() => {
-    const checkClientePendente = async () => {
-      if (!formData.cliente_id) {
-        setClienteBloqueado(false);
-        return;
-      }
-
-      const romaneios = await base44.entities.Romaneio.filter({
-        cliente_id: formData.cliente_id,
-      });
-
-      const pendentes = romaneios.filter(r =>
-        r.status !== 'Entregue' && r.status !== 'Cancelado'
-      );
-
-      setClienteBloqueado(pendentes.length > 0);
-    };
-
-    checkClientePendente();
-  }, [formData.cliente_id]);
-
-  // Auto-preencher motoboy e cidade baseado na seleção
   useEffect(() => {
     if (formData.cidade_regiao) {
       let motoboySugerido = "";
@@ -133,7 +106,6 @@ export default function NovoRomaneio() {
     }
   }, [formData.cidade_regiao]);
 
-  // Auto-preencher cidade quando selecionar endereço
   useEffect(() => {
     if (selectedCliente && selectedCliente.enderecos && selectedCliente.enderecos.length > 0) {
       const endereco = selectedCliente.enderecos[formData.endereco_index];
@@ -161,7 +133,7 @@ export default function NovoRomaneio() {
         codigo_rastreio,
         item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
         buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
-        valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null, // Added valor_pagamento
+        valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null,
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
       });
     },
@@ -179,11 +151,6 @@ export default function NovoRomaneio() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (clienteBloqueado) {
-      toast.error('Este cliente possui uma entrega pendente');
-      return;
-    }
-
     if (!formData.cliente_id || !formData.numero_requisicao || !formData.cidade_regiao ||
         !formData.forma_pagamento || !formData.motoboy || !formData.periodo_entrega ||
         !formData.data_entrega_prevista || formData.item_geladeira === "" || formData.buscar_receita === "") {
@@ -191,7 +158,6 @@ export default function NovoRomaneio() {
       return;
     }
 
-    // Additional validation for valor_pagamento if the form_pagamento requires it
     const requiresValorPagamento = ["Dinheiro", "Maquina", "Troco P/"].includes(formData.forma_pagamento);
     if (requiresValorPagamento && (formData.valor_pagamento === "" || parseFloat(formData.valor_pagamento) <= 0)) {
         toast.error('Informe o valor de pagamento');
@@ -230,15 +196,6 @@ export default function NovoRomaneio() {
             <p className="text-slate-600 mt-1">Crie uma nova ordem de entrega</p>
           </div>
         </div>
-
-        {clienteBloqueado && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              Este cliente possui uma entrega pendente. Aguarde a conclusão antes de criar um novo romaneio.
-            </AlertDescription>
-          </Alert>
-        )}
 
         <form onSubmit={handleSubmit}>
           <Card className="border-none shadow-lg">
@@ -397,7 +354,7 @@ export default function NovoRomaneio() {
               </div>
 
               {/* Pagamento */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Changed to md:grid-cols-3 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Forma de Pagamento *</Label>
                   <Select
@@ -537,7 +494,7 @@ export default function NovoRomaneio() {
                 <Button
                   type="submit"
                   className="bg-[#457bba] hover:bg-[#3a6ba0]"
-                  disabled={createMutation.isPending || clienteBloqueado}
+                  disabled={createMutation.isPending}
                 >
                   {createMutation.isPending ? 'Criando...' : 'Criar Romaneio'}
                 </Button>

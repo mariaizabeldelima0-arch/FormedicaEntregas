@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Snowflake } from "lucide-react";
 
@@ -79,7 +78,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           .print-geladeira {
             background-color: #ccf0ff;
             padding: 6px;
-            border-left: 33px solid #00aaff;
+            border-left: 3px solid #00aaff;
             margin: 8px 0;
             font-weight: bold;
             text-align: center;
@@ -99,12 +98,12 @@ export default function ImpressaoRomaneio({ romaneio }) {
           }
           .print-valor-destaque {
             background-color: #ffffaa;
-            padding: 8px;
-            border: 2px solid #ffcc00;
+            padding: 10px;
+            border: 3px solid #ff6600;
             margin: 8px 0;
             font-weight: bold;
             text-align: center;
-            font-size: 14px;
+            font-size: 16px;
           }
           .print-footer {
             margin-top: 12px;
@@ -144,7 +143,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           </div>
         </div>
 
-        {/* Cliente e Endereço */}
+        {/* Cliente e Responsáveis */}
         <div className="print-grid">
           <div className="print-section">
             <div className="print-section-title">CLIENTE</div>
@@ -206,11 +205,6 @@ export default function ImpressaoRomaneio({ romaneio }) {
               {romaneio.forma_pagamento}
             </span>
           </div>
-          {romaneio.valor_pagamento && (
-            <div className="print-valor-destaque">
-              💰 VALOR: R$ {romaneio.valor_pagamento.toFixed(2)}
-            </div>
-          )}
           {romaneio.valor_troco && (
             <div className="print-row">
               <span className="print-label">Troco para:</span>
@@ -243,6 +237,13 @@ export default function ImpressaoRomaneio({ romaneio }) {
         {romaneio.buscar_receita && (
           <div className="print-receita">
             📄 BUSCAR RECEITA
+          </div>
+        )}
+
+        {/* VALOR A SER PAGO - POR ÚLTIMO EM DESTAQUE */}
+        {romaneio.valor_pagamento && (
+          <div className="print-valor-destaque">
+            💰 COBRAR NA ENTREGA: R$ {romaneio.valor_pagamento.toFixed(2)}
           </div>
         )}
 

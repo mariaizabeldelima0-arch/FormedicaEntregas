@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -21,14 +22,16 @@ import {
   XCircle,
   Snowflake,
   Navigation,
-  AlertCircle
+  AlertCircle,
+  DollarSign
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 export default function MinhasEntregas() {
   const queryClient = useQueryClient();
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedRomaneio, setSelectedRomaneio] = useState(null);
   const [showConcluirDialog, setShowConcluirDialog] = useState(false);
   const [showProblemaDialog, setShowProblemaDialog] = useState(false);
@@ -40,12 +43,12 @@ export default function MinhasEntregas() {
   });
 
   const { data: romaneios, isLoading } = useQuery({
-    queryKey: ['minhas-entregas', user?.email],
+    queryKey: ['minhas-entregas', user?.full_name],
     queryFn: async () => {
       if (!user) return [];
       const todos = await base44.entities.Romaneio.list('-created_date');
       return todos.filter(r => 
-        r.motoboy === user.full_name && 
+        r.motoboy === user.full_name &&
         r.status !== 'Entregue' && 
         r.status !== 'Cancelado'
       );
@@ -58,7 +61,7 @@ export default function MinhasEntregas() {
     mutationFn: ({ id, status, motivo }) => {
       const data = { 
         status,
-        ...(status === 'Entregue' && { data_entrega: new Date().toISOString() }),
+        ...(status === 'Entregue' && { data_entrega_realizada: new Date().toISOString() }),
         ...(motivo && { motivo_nao_entrega: motivo })
       };
       return base44.entities.Romaneio.update(id, data);
@@ -73,8 +76,29 @@ export default function MinhasEntregas() {
     },
   });
 
+  // Filtrar entregas do dia selecionado
+  const romaneiosDoDia = romaneios.filter(r => {
+    if (!r.data_entrega_prevista) return false;
+    const dataEntrega = parseISO(r.data_entrega_prevista);
+    return isSameDay(dataEntrega, selectedDate);
+  });
+
+  // Ordenar por local (cidade_regiao) e depois por período
+  const romaneiosOrdenados = [...romaneiosDoDia].sort((a, b) => {
+    // Primeiro por local
+    const localCompare = a.cidade_regiao.localeCompare(b.cidade_regiao);
+    if (localCompare !== 0) return localCompare;
+    
+    // Depois por período (Manhã antes de Tarde)
+    if (a.periodo_entrega !== b.periodo_entrega) {
+      return a.periodo_entrega === "Manhã" ? -1 : 1;
+    }
+    
+    return 0;
+  });
+
   const handleIniciarEntrega = (romaneio) => {
-    updateStatusMutation.mutate({ id: romaneio.id, status: 'Saiu para Entrega' });
+    updateStatusMutation.mutate({ id: romaneio.id, status: 'A Caminho' });
   };
 
   const handleConcluir = () => {
@@ -104,17 +128,18 @@ export default function MinhasEntregas() {
     window.open(url, '_blank');
   };
 
-  const entregas = {
-    aguardando: romaneios.filter(r => r.status === 'Aguardando'),
-    emAndamento: romaneios.filter(r => r.status === 'Saiu para Entrega'),
+  // Verificar se precisa cobrar valor
+  const precisaCobrar = (romaneio) => {
+    return romaneio.valor_pagamento && 
+           ["Dinheiro", "Maquina", "Troco P/"].includes(romaneio.forma_pagamento);
   };
 
   const StatusBadge = ({ status }) => {
     const configs = {
-      "Aguardando": { color: "bg-slate-100 text-slate-700", icon: Clock },
-      "Saiu para Entrega": { color: "bg-purple-100 text-purple-700", icon: Package },
+      "Pendente": { color: "bg-slate-100 text-slate-700", icon: Clock },
+      "A Caminho": { color: "bg-purple-100 text-purple-700", icon: Package },
     };
-    const { color, icon: Icon } = configs[status] || configs["Aguardando"];
+    const { color, icon: Icon } = configs[status] || configs["Pendente"];
     return (
       <Badge className={`${color} border`}>
         <Icon className="w-3 h-3 mr-1" />
@@ -123,186 +148,239 @@ export default function MinhasEntregas() {
     );
   };
 
-  const EntregaCard = ({ romaneio }) => (
-    <Card className="border-slate-200 hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap mb-2">
-              <CardTitle className="text-lg">#{romaneio.numero_requisicao}</CardTitle>
-              <StatusBadge status={romaneio.status} />
-              {romaneio.item_geladeira && (
-                <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300">
-                  <Snowflake className="w-3 h-3 mr-1" />
-                  GELADEIRA
-                </Badge>
-              )}
+  // Agrupar por local
+  const romaneiosPorLocal = romaneiosOrdenados.reduce((acc, r) => {
+    if (!acc[r.cidade_regiao]) {
+      acc[r.cidade_regiao] = [];
+    }
+    acc[r.cidade_regiao].push(r);
+    return acc;
+  }, {});
+
+  const EntregaCard = ({ romaneio }) => {
+    const deveSerCobrado = precisaCobrar(romaneio);
+    
+    return (
+      <Card className={`border-slate-200 hover:shadow-lg transition-shadow ${deveSerCobrado ? 'ring-2 ring-orange-400' : ''}`}>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 flex-wrap mb-2">
+                <CardTitle className="text-lg">#{romaneio.numero_requisicao}</CardTitle>
+                <StatusBadge status={romaneio.status} />
+                {romaneio.item_geladeira && (
+                  <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300">
+                    <Snowflake className="w-3 h-3 mr-1" />
+                    GELADEIRA
+                  </Badge>
+                )}
+                {deveSerCobrado && (
+                  <Badge className="bg-orange-100 text-orange-700 border-orange-400 border-2 font-bold">
+                    <DollarSign className="w-4 h-4 mr-1" />
+                    COBRAR
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-slate-600 font-medium">{romaneio.cliente_nome}</p>
             </div>
-            <p className="text-sm text-slate-600 font-medium">{romaneio.cliente_nome}</p>
+            <Badge variant="outline" className="text-xs">
+              {romaneio.periodo_entrega}
+            </Badge>
           </div>
-          <Badge variant="outline" className="text-xs">
-            {romaneio.periodo_entrega}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Endereço */}
-        <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-          <div className="flex items-start gap-2">
-            <MapPin className="w-4 h-4 text-[#457bba] mt-0.5 flex-shrink-0" />
-            <div className="text-sm">
-              <p className="font-medium text-slate-900">
-                {romaneio.endereco.rua}, {romaneio.endereco.numero}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Valor a Cobrar em Destaque */}
+          {deveSerCobrado && (
+            <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4">
+              <p className="text-xs font-bold text-orange-700 mb-1">💰 COBRAR NA ENTREGA:</p>
+              <p className="text-2xl font-bold text-orange-900">
+                R$ {romaneio.valor_pagamento.toFixed(2)}
               </p>
-              <p className="text-slate-600">{romaneio.endereco.bairro} - {romaneio.cidade_regiao}</p>
-              {romaneio.endereco.complemento && (
-                <p className="text-slate-500">{romaneio.endereco.complemento}</p>
-              )}
-              {romaneio.endereco.ponto_referencia && (
-                <p className="text-slate-500 italic">Ref: {romaneio.endereco.ponto_referencia}</p>
-              )}
-              {romaneio.endereco.aos_cuidados_de && (
-                <p className="text-slate-600 font-medium">A/C: {romaneio.endereco.aos_cuidados_de}</p>
+              {romaneio.valor_troco && (
+                <p className="text-sm text-orange-700 mt-1">
+                  Troco para: R$ {romaneio.valor_troco.toFixed(2)}
+                </p>
               )}
             </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => abrirNavegacao(romaneio)}
-          >
-            <Navigation className="w-4 h-4 mr-2" />
-            Abrir no Mapa
-          </Button>
-        </div>
-
-        {/* Informações de Pagamento */}
-        <div className="flex items-center gap-2 text-sm">
-          <CreditCard className="w-4 h-4 text-slate-500" />
-          <span className="font-medium">{romaneio.forma_pagamento}</span>
-          {romaneio.valor_troco && (
-            <span className="text-green-600 font-bold">
-              Troco: R$ {romaneio.valor_troco.toFixed(2)}
-            </span>
           )}
-        </div>
 
-        {/* Telefone */}
-        <a
-          href={`tel:${romaneio.endereco.observacoes || ''}`}
-          className="flex items-center gap-2 text-sm text-[#457bba] hover:underline"
-        >
-          <Phone className="w-4 h-4" />
-          Ligar para o cliente
-        </a>
-
-        {/* Observações */}
-        {romaneio.observacoes && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-yellow-800 mb-1">OBSERVAÇÕES:</p>
-            <p className="text-sm text-yellow-900">{romaneio.observacoes}</p>
-          </div>
-        )}
-
-        {romaneio.endereco.observacoes && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-blue-800 mb-1">OBS. DO ENDEREÇO:</p>
-            <p className="text-sm text-blue-900">{romaneio.endereco.observacoes}</p>
-          </div>
-        )}
-
-        {/* Ações */}
-        <div className="flex gap-2 pt-2">
-          {romaneio.status === 'Aguardando' && (
+          {/* Endereço */}
+          <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-[#457bba] mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-slate-900">
+                  {romaneio.endereco.rua}, {romaneio.endereco.numero}
+                </p>
+                <p className="text-slate-600">{romaneio.endereco.bairro} - {romaneio.cidade_regiao}</p>
+                {romaneio.endereco.complemento && (
+                  <p className="text-slate-500">{romaneio.endereco.complemento}</p>
+                )}
+                {romaneio.endereco.ponto_referencia && (
+                  <p className="text-slate-500 italic">Ref: {romaneio.endereco.ponto_referencia}</p>
+                )}
+                {romaneio.endereco.aos_cuidados_de && (
+                  <p className="text-slate-600 font-medium">A/C: {romaneio.endereco.aos_cuidados_de}</p>
+                )}
+              </div>
+            </div>
             <Button
-              className="flex-1 bg-[#457bba] hover:bg-[#3a6ba0]"
-              onClick={() => handleIniciarEntrega(romaneio)}
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => abrirNavegacao(romaneio)}
             >
-              Iniciar Entrega
+              <Navigation className="w-4 h-4 mr-2" />
+              Abrir no Mapa
             </Button>
+          </div>
+
+          {/* Informações de Pagamento */}
+          <div className="flex items-center gap-2 text-sm">
+            <CreditCard className="w-4 h-4 text-slate-500" />
+            <span className="font-medium">{romaneio.forma_pagamento}</span>
+          </div>
+
+          {/* Telefone */}
+          {romaneio.cliente_telefone && (
+            <a
+              href={`tel:${romaneio.cliente_telefone}`}
+              className="flex items-center gap-2 text-sm text-[#457bba] hover:underline"
+            >
+              <Phone className="w-4 h-4" />
+              {romaneio.cliente_telefone}
+            </a>
           )}
-          {romaneio.status === 'Saiu para Entrega' && (
-            <>
-              <Button
-                className="flex-1 bg-green-600 hover:bg-green-700"
-                onClick={() => {
-                  setSelectedRomaneio(romaneio);
-                  setShowConcluirDialog(true);
-                }}
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Concluir
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-                onClick={() => {
-                  setSelectedRomaneio(romaneio);
-                  setShowProblemaDialog(true);
-                }}
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                Problema
-              </Button>
-            </>
+
+          {/* Observações */}
+          {romaneio.observacoes && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-yellow-800 mb-1">OBSERVAÇÕES:</p>
+              <p className="text-sm text-yellow-900">{romaneio.observacoes}</p>
+            </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+
+          {romaneio.endereco.observacoes && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-blue-800 mb-1">OBS. DO ENDEREÇO:</p>
+              <p className="text-sm text-blue-900">{romaneio.endereco.observacoes}</p>
+            </div>
+          )}
+
+          {/* Ações */}
+          <div className="flex gap-2 pt-2">
+            {romaneio.status === 'Pendente' && (
+              <Button
+                className="flex-1 bg-[#457bba] hover:bg-[#3a6ba0]"
+                onClick={() => handleIniciarEntrega(romaneio)}
+              >
+                Iniciar Entrega
+              </Button>
+            )}
+            {romaneio.status === 'A Caminho' && (
+              <>
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  onClick={() => {
+                    setSelectedRomaneio(romaneio);
+                    setShowConcluirDialog(true);
+                  }}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Concluir
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                  onClick={() => {
+                    setSelectedRomaneio(romaneio);
+                    setShowProblemaDialog(true);
+                  }}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Problema
+                </Button>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
             Minhas Entregas
           </h1>
           <p className="text-slate-600">
-            {romaneios.length} entrega{romaneios.length !== 1 ? 's' : ''} pendente{romaneios.length !== 1 ? 's' : ''}
+            Olá, <span className="font-semibold text-[#457bba]">{user?.full_name}</span>
           </p>
         </div>
 
-        {/* Em Andamento */}
-        {entregas.emAndamento.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 mb-4">
-              🚚 Em Andamento ({entregas.emAndamento.length})
-            </h2>
-            <div className="grid grid-cols-1 gap-4">
-              {entregas.emAndamento.map(romaneio => (
-                <EntregaCard key={romaneio.id} romaneio={romaneio} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Aguardando */}
-        {entregas.aguardando.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 mb-4">
-              📦 Aguardando Início ({entregas.aguardando.length})
-            </h2>
-            <div className="grid grid-cols-1 gap-4">
-              {entregas.aguardando.map(romaneio => (
-                <EntregaCard key={romaneio.id} romaneio={romaneio} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {romaneios.length === 0 && !isLoading && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Calendário */}
           <Card className="border-none shadow-lg">
-            <CardContent className="p-12 text-center">
-              <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500 font-medium">Nenhuma entrega pendente</p>
-              <p className="text-sm text-slate-400 mt-1">
-                Você está livre no momento
-              </p>
+            <CardHeader>
+              <CardTitle className="text-lg">Selecione o Dia</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                locale={ptBR}
+                className="rounded-md border"
+              />
+              <div className="mt-4 text-center">
+                <p className="text-sm font-semibold text-slate-900">
+                  {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {romaneiosDoDia.length} entrega{romaneiosDoDia.length !== 1 ? 's' : ''}
+                </p>
+              </div>
             </CardContent>
           </Card>
-        )}
+
+          {/* Lista de Entregas */}
+          <div className="lg:col-span-3 space-y-6">
+            {isLoading ? (
+              <Card className="border-none shadow-lg">
+                <CardContent className="p-12 text-center">
+                  <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Carregando...</p>
+                </CardContent>
+              </Card>
+            ) : romaneiosDoDia.length === 0 ? (
+              <Card className="border-none shadow-lg">
+                <CardContent className="p-12 text-center">
+                  <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 font-medium">Nenhuma entrega para este dia</p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Selecione outro dia no calendário
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              Object.entries(romaneiosPorLocal).map(([local, entregas]) => (
+                <div key={local}>
+                  <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-[#457bba]" />
+                    {local} ({entregas.length})
+                  </h2>
+                  <div className="grid grid-cols-1 gap-4">
+                    {entregas.map(romaneio => (
+                      <EntregaCard key={romaneio.id} romaneio={romaneio} />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
         {/* Dialog Concluir */}
         <Dialog open={showConcluirDialog} onOpenChange={setShowConcluirDialog}>

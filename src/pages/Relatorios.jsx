@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -54,6 +55,23 @@ export default function Relatorios() {
     if (!r.data_entrega_prevista) return false;
     const dataEntrega = parseISO(r.data_entrega_prevista);
     return isSameDay(dataEntrega, parseISO(dataSelecionada));
+  });
+
+  // Agrupar por local e ordenar
+  const porLocal = romaneiosDoDia.reduce((acc, r) => {
+    if (!acc[r.cidade_regiao]) acc[r.cidade_regiao] = [];
+    acc[r.cidade_regiao].push(r);
+    return acc;
+  }, {});
+
+  // Ordenar cada local por período
+  Object.keys(porLocal).forEach(local => {
+    porLocal[local].sort((a, b) => {
+      if (a.periodo_entrega !== b.periodo_entrega) {
+        return a.periodo_entrega === "Manhã" ? -1 : 1;
+      }
+      return 0;
+    });
   });
 
   // Agrupar por status
@@ -198,6 +216,73 @@ export default function Relatorios() {
                 </CardHeader>
               </Card>
             </div>
+
+            {/* Por Local - NOVO */}
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle>Entregas por Local</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {Object.entries(porLocal).sort((a, b) => a[0].localeCompare(b[0])).map(([local, entregas]) => (
+                    <div key={local} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3 border-b pb-2">
+                        <h3 className="font-bold text-slate-900 text-lg">{local}</h3>
+                        <Badge variant="outline" className="text-base">{entregas.length}</Badge>
+                      </div>
+                      
+                      {/* Manhã */}
+                      {entregas.filter(e => e.periodo_entrega === 'Manhã').length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-sm font-semibold text-slate-700 mb-2">☀️ Manhã</p>
+                          <div className="space-y-1 pl-4">
+                            {entregas.filter(e => e.periodo_entrega === 'Manhã').map(r => (
+                              <div key={r.id} className="flex justify-between items-center text-sm py-1">
+                                <span className="text-slate-600">
+                                  #{r.numero_requisicao} - {r.cliente_nome}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  {r.valor_pagamento && ["Dinheiro", "Maquina", "Troco P/"].includes(r.forma_pagamento) && (
+                                    <Badge className="bg-orange-100 text-orange-700 text-xs">
+                                      R$ {r.valor_pagamento.toFixed(2)}
+                                    </Badge>
+                                  )}
+                                  <StatusBadge status={r.status} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Tarde */}
+                      {entregas.filter(e => e.periodo_entrega === 'Tarde').length > 0 && (
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700 mb-2">🌙 Tarde</p>
+                          <div className="space-y-1 pl-4">
+                            {entregas.filter(e => e.periodo_entrega === 'Tarde').map(r => (
+                              <div key={r.id} className="flex justify-between items-center text-sm py-1">
+                                <span className="text-slate-600">
+                                  #{r.numero_requisicao} - {r.cliente_nome}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  {r.valor_pagamento && ["Dinheiro", "Maquina", "Troco P/"].includes(r.forma_pagamento) && (
+                                    <Badge className="bg-orange-100 text-orange-700 text-xs">
+                                      R$ {r.valor_pagamento.toFixed(2)}
+                                    </Badge>
+                                  )}
+                                  <StatusBadge status={r.status} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Por Status */}
             <Card className="border-none shadow-lg">
