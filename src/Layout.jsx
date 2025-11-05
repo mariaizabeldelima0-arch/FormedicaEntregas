@@ -69,6 +69,11 @@ export default function Layout({ children, currentPageName }) {
       icon: Send,
     },
     {
+      title: "Balcão",
+      url: createPageUrl("Balcao"),
+      icon: Package,
+    },
+    {
       title: "Novo Romaneio",
       url: createPageUrl("NovoRomaneio"),
       icon: FileText,

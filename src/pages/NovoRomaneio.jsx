@@ -136,11 +136,17 @@ export default function NovoRomaneio() {
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [searchCliente, setSearchCliente] = useState("");
 
-  const clientesFiltrados = clientes.filter(c =>
-    c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
-    c.telefone?.includes(searchCliente) ||
-    c.cpf?.includes(searchCliente)
-  );
+  // Filtrar apenas clientes com endereço para romaneios
+  const clientesFiltrados = clientes.filter(c => {
+    const matchesSearch = c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
+      c.telefone?.includes(searchCliente) ||
+      c.cpf?.includes(searchCliente);
+    
+    // Apenas clientes com endereço podem ser usados para romaneios
+    const hasEndereco = c.enderecos && c.enderecos.length > 0;
+    
+    return matchesSearch && hasEndereco;
+  });
 
   // Calcular valor da entrega quando motoboy ou cidade mudar
   useEffect(() => {

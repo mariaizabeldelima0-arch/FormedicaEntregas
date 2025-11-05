@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -165,12 +166,14 @@ export default function PainelMotoboys() {
 
   // Status de pagamento da semana
   const getStatusPagamentoSemana = (motoboy) => {
-    const primeiroRomaneio = romaneios.find(r => {
+    // Find *any* romaneio for the motoboy in the current week to get the payment status.
+    // Assuming status_pagamento_motoboy is consistent for all romaneios of a motoboy in a given week.
+    const romaneioNaSemana = romaneios.find(r => {
       if (!r.data_entrega_prevista || r.motoboy !== motoboy) return false;
       const dataEntrega = parseISO(r.data_entrega_prevista);
       return dataEntrega >= weekStart && dataEntrega <= weekEnd;
     });
-    return primeiroRomaneio?.status_pagamento_motoboy || "Aguardando";
+    return romaneioNaSemana?.status_pagamento_motoboy || "Aguardando";
   };
 
   const statusPagamentoSemanaMarcio = getStatusPagamentoSemana("Marcio");
@@ -196,6 +199,7 @@ export default function PainelMotoboys() {
     const configs = {
       "Pendente": { color: "bg-slate-100 text-slate-700", icon: Clock },
       "A Caminho": { color: "bg-purple-100 text-purple-700", icon: Package },
+      // Add other statuses if needed
     };
     const { color, icon: Icon } = configs[status] || configs["Pendente"];
     return (
@@ -695,17 +699,247 @@ export default function PainelMotoboys() {
 
             {/* Aba Marcio */}
             <TabsContent value="marcio">
-              {/* Similar structure but filtered for Marcio */}
-              <div className="text-center py-12">
-                <p className="text-slate-500">Visualização detalhada para Marcio em desenvolvimento</p>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Calendário */}
+                <Card className="border-none shadow-lg no-print">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Selecione o Dia</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => date && setSelectedDate(date)}
+                      locale={ptBR}
+                      className="rounded-md border"
+                    />
+                    <div className="mt-4 text-center">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {romaneiosMarcio.length} entrega{romaneiosMarcio.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Entregas e Resumos Marcio */}
+                <div className="lg:col-span-3 space-y-6">
+                  {/* Resumo do Dia */}
+                  {Object.keys(statsMarcio).length > 0 && (
+                    <Card className="border-none shadow-lg bg-blue-50">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm text-blue-900">Resumo do Dia</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {Object.entries(statsMarcio).sort((a, b) => a[0].localeCompare(b[0])).map(([local, stats]) => (
+                          <div key={local} className="flex justify-between items-center text-sm">
+                            <span className="text-slate-700">{local}</span>
+                            <div className="text-right">
+                              <span className="font-medium text-slate-900">{stats.quantidade}x</span>
+                              <span className="text-blue-700 font-bold ml-2">R$ {stats.valor.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="pt-2 border-t-2 border-blue-300 flex justify-between items-center font-bold">
+                          <span className="text-blue-900">TOTAL DO DIA</span>
+                          <span className="text-blue-900 text-lg">R$ {totalMarcio.toFixed(2)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Resumo da Semana */}
+                  <Card className={`border-none shadow-lg ${statusPagamentoSemanaMarcio === "Pago" ? "bg-green-50" : "bg-blue-50"}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className={`text-sm ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}`}>
+                            Semana • {statusPagamentoSemanaMarcio}
+                          </CardTitle>
+                          <p className={`text-xs ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-blue-700"}`}>
+                            {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => setWeekOffset(prev => prev - 1)}
+                          >
+                            ←
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => setWeekOffset(prev => prev + 1)}
+                          >
+                            →
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-1">
+                      {weekStatsMarcio.map((stat, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span className={`w-12 ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-slate-700"}`}>{stat.dia}</span>
+                          <span className={`text-xs ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-600" : "text-slate-500"}`}>{stat.data}</span>
+                          <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-slate-600"}>{stat.quantidade}x</span>
+                          <span className={`font-bold ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-800" : "text-blue-700"}`}>R$ {stat.valor.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className={`pt-2 border-t-2 ${statusPagamentoSemanaMarcio === "Pago" ? "border-green-400" : "border-blue-300"} flex justify-between items-center font-bold text-sm`}>
+                        <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}>TOTAL</span>
+                        <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}>R$ {totalSemanaMarcio.toFixed(2)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Lista de Entregas Marcio */}
+                  {isLoading ? (
+                    <Card className="border-none shadow-lg">
+                      <CardContent className="p-12 text-center">
+                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500">Carregando entregas de Marcio...</p>
+                      </CardContent>
+                    </Card>
+                  ) : romaneiosMarcioOrdenados.length > 0 ? (
+                    <div>
+                      <h3 className="text-xl font-bold text-blue-900 mb-4">
+                        Entregas - Marcio ({romaneiosMarcioOrdenados.length})
+                      </h3>
+                      <div className="grid grid-cols-1 gap-4">
+                        {romaneiosMarcioOrdenados.map((romaneio, idx) => (
+                          <EntregaCard key={romaneio.id} romaneio={romaneio} index={idx} motoboy="Marcio" />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Card className="border-none shadow-lg">
+                      <CardContent className="p-12 text-center">
+                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500 font-medium">Nenhuma entrega para Marcio neste dia</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
             {/* Aba Bruno */}
             <TabsContent value="bruno">
-              {/* Similar structure but filtered for Bruno */}
-              <div className="text-center py-12">
-                <p className="text-slate-500">Visualização detalhada para Bruno em desenvolvimento</p>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Calendário */}
+                <Card className="border-none shadow-lg no-print">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Selecione o Dia</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => date && setSelectedDate(date)}
+                      locale={ptBR}
+                      className="rounded-md border"
+                    />
+                    <div className="mt-4 text-center">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {romaneiosBruno.length} entrega{romaneiosBruno.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Entregas e Resumos Bruno */}
+                <div className="lg:col-span-3 space-y-6">
+                  {/* Resumo do Dia */}
+                  {Object.keys(statsBruno).length > 0 && (
+                    <Card className="border-none shadow-lg bg-green-50">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm text-green-900">Resumo do Dia</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {Object.entries(statsBruno).sort((a, b) => a[0].localeCompare(b[0])).map(([local, stats]) => (
+                          <div key={local} className="flex justify-between items-center text-sm">
+                            <span className="text-slate-700">{local}</span>
+                            <div className="text-right">
+                              <span className="font-medium text-slate-900">{stats.quantidade}x</span>
+                              <span className="text-green-700 font-bold ml-2">R$ {stats.valor.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="pt-2 border-t-2 border-green-300 flex justify-between items-center font-bold">
+                          <span className="text-green-900">TOTAL DO DIA</span>
+                          <span className="text-green-900 text-lg">R$ {totalBruno.toFixed(2)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Resumo da Semana */}
+                  <Card className={`border-none shadow-lg ${statusPagamentoSemanaBruno === "Pago" ? "bg-green-50" : "bg-blue-50"}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className={`text-sm ${statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}`}>
+                            Semana • {statusPagamentoSemanaBruno}
+                          </CardTitle>
+                          <p className={`text-xs ${statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-blue-700"}`}>
+                            {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
+                          </p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-1">
+                      {weekStatsBruno.map((stat, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span className={`w-12 ${statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-slate-700"}`}>{stat.dia}</span>
+                          <span className={`text-xs ${statusPagamentoSemanaBruno === "Pago" ? "text-green-600" : "text-slate-500"}`}>{stat.data}</span>
+                          <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-slate-600"}>{stat.quantidade}x</span>
+                          <span className={`font-bold ${statusPagamentoSemanaBruno === "Pago" ? "text-green-800" : "text-blue-700"}`}>R$ {stat.valor.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className={`pt-2 border-t-2 ${statusPagamentoSemanaBruno === "Pago" ? "border-green-400" : "border-blue-300"} flex justify-between items-center font-bold text-sm`}>
+                        <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}>TOTAL</span>
+                        <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}>R$ {totalSemanaBruno.toFixed(2)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Lista de Entregas Bruno */}
+                  {isLoading ? (
+                    <Card className="border-none shadow-lg">
+                      <CardContent className="p-12 text-center">
+                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500">Carregando entregas de Bruno...</p>
+                      </CardContent>
+                    </Card>
+                  ) : romaneiosBrunoOrdenados.length > 0 ? (
+                    <div>
+                      <h3 className="text-xl font-bold text-green-900 mb-4">
+                        Entregas - Bruno ({romaneiosBrunoOrdenados.length})
+                      </h3>
+                      <div className="grid grid-cols-1 gap-4">
+                        {romaneiosBrunoOrdenados.map((romaneio, idx) => (
+                          <EntregaCard key={romaneio.id} romaneio={romaneio} index={idx} motoboy="Bruno" />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Card className="border-none shadow-lg">
+                      <CardContent className="p-12 text-center">
+                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500 font-medium">Nenhuma entrega para Bruno neste dia</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>
