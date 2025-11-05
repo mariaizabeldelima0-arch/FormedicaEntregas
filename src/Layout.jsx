@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -87,6 +88,11 @@ export default function Layout({ children, currentPageName }) {
       url: createPageUrl("Relatorios"),
       icon: BarChart3,
     },
+    ...(isAdmin ? [{
+      title: "Painel dos Motoboys",
+      url: createPageUrl("PainelMotoboys"),
+      icon: Truck,
+    }] : []),
   ] : [];
 
   const handleLogout = async () => {

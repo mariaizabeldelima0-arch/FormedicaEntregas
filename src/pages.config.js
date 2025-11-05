@@ -9,6 +9,7 @@ import Relatorios from './pages/Relatorios';
 import Usuarios from './pages/Usuarios';
 import Sedex from './pages/Sedex';
 import DetalhesSedex from './pages/DetalhesSedex';
+import PainelMotoboys from './pages/PainelMotoboys';
 import Layout from './Layout.jsx';
 
 
@@ -24,6 +25,7 @@ export const PAGES = {
     "Usuarios": Usuarios,
     "Sedex": Sedex,
     "DetalhesSedex": DetalhesSedex,
+    "PainelMotoboys": PainelMotoboys,
 }
 
 export const pagesConfig = {
