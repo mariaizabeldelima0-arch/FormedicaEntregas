@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +36,7 @@ import {
   MessageCircle,
   Edit
 } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -42,7 +45,11 @@ export default function Balcao() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showNovoDialog, setShowNovoDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [entregaEditando, setEntregaEditando] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedEntregas, setSelectedEntregas] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState("");
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -130,12 +137,12 @@ export default function Balcao() {
       };
 
       // Atualizar data_pronto quando mudar para "Pronto"
-      if (data.status === "Pronto" && !entregaEditando.data_pronto) {
+      if (data.status === "Pronto" && !data.data_pronto) {
         updateData.data_pronto = new Date().toISOString();
       }
 
       // Atualizar data_entrega quando mudar para "Entregue"
-      if (data.status === "Entregue" && !entregaEditando.data_entrega) {
+      if (data.status === "Entregue" && !data.data_entrega) {
         updateData.data_entrega = new Date().toISOString();
       }
 
@@ -149,6 +156,44 @@ export default function Balcao() {
     },
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, status }) => {
+      const promises = ids.map(id => {
+        // Find the original delivery to preserve its data
+        const entrega = entregas.find(e => e.id === id);
+        if (!entrega) return Promise.resolve(); // Skip if delivery not found
+
+        const updateData = {
+          ...entrega, // Preserve other fields from original entrega
+          status
+        };
+
+        // Update data_pronto when changing to "Pronto"
+        if (status === "Pronto" && !entrega.data_pronto) {
+          updateData.data_pronto = new Date().toISOString();
+        }
+
+        // Update data_entrega when changing to "Entregue"
+        if (status === "Entregue" && !entrega.data_entrega) {
+          updateData.data_entrega = new Date().toISOString();
+        }
+
+        return base44.entities.EntregaBalcao.update(id, updateData);
+      });
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entregas-balcao'] });
+      toast.success(`${selectedEntregas.length} entrega${selectedEntregas.length !== 1 ? 's' : ''} atualizada${selectedEntregas.length !== 1 ? 's' : ''}!`);
+      setShowBulkStatusDialog(false);
+      setSelectedEntregas([]);
+      setBulkStatus("");
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar entregas');
+    }
+  });
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.numero_registro || !formData.cliente_nome || !formData.cliente_telefone) {
@@ -159,7 +204,12 @@ export default function Balcao() {
   };
 
   const handleEdit = (entrega) => {
-    setEntregaEditando(entrega);
+    setEntregaEditando({
+      // Ensure data_cadastro is in 'yyyy-MM-dd' format for the input type="date"
+      ...entrega,
+      data_cadastro: entrega.data_cadastro ? format(parseISO(entrega.data_cadastro), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      valor_pagamento: entrega.valor_pagamento !== null ? entrega.valor_pagamento.toString() : "" // Convert to string for input
+    });
     setShowEditDialog(true);
   };
 
@@ -168,6 +218,36 @@ export default function Balcao() {
       id: entrega.id,
       data: { ...entrega, status: novoStatus }
     });
+  };
+
+  const handleBulkStatusChange = () => {
+    if (!bulkStatus) {
+      toast.error('Selecione um status');
+      return;
+    }
+    bulkUpdateMutation.mutate({
+      ids: selectedEntregas,
+      status: bulkStatus
+    });
+  };
+
+  const handleSelectAll = (entregasToSelect) => {
+    const idsToSelect = entregasToSelect.map(e => e.id);
+    const areAllSelectedInThisGroup = idsToSelect.length > 0 && idsToSelect.every(id => selectedEntregas.includes(id));
+
+    if (areAllSelectedInThisGroup) {
+      // If all in this group are already selected, deselect them
+      setSelectedEntregas(prev => prev.filter(id => !idsToSelect.includes(id)));
+    } else {
+      // Otherwise, select all in this group (and keep others selected)
+      setSelectedEntregas(prev => [...new Set([...prev, ...idsToSelect])]);
+    }
+  };
+
+  const handleSelectEntrega = (id) => {
+    setSelectedEntregas(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
   };
 
   const calcularDiasAguardando = (entrega) => {
@@ -181,15 +261,21 @@ export default function Balcao() {
     window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`, '_blank');
   };
 
-  // Filtrar entregas
+  // Filtrar entregas por data e termo de busca
   const entregasFiltradas = entregas.filter(e => {
+    const matchesDate = e.data_cadastro && isSameDay(parseISO(e.data_cadastro), selectedDate);
+    
+    if (!searchTerm) return matchesDate;
+    
     const termo = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       e.numero_registro.toLowerCase().includes(termo) ||
       e.cliente_nome.toLowerCase().includes(termo) ||
       e.cliente_telefone.includes(searchTerm) ||
       e.cliente_cpf?.includes(searchTerm)
     );
+    
+    return matchesDate && matchesSearch;
   });
 
   // Separar por status
@@ -215,11 +301,17 @@ export default function Balcao() {
   const EntregaCard = ({ entrega }) => {
     const diasAguardando = calcularDiasAguardando(entrega);
     const precisaLembrete = diasAguardando >= 10 && entrega.status === "Pronto";
+    const isSelected = selectedEntregas.includes(entrega.id);
 
     return (
-      <Card className={`border-slate-200 ${precisaLembrete ? 'ring-2 ring-red-400' : ''}`}>
+      <Card className={`border-slate-200 ${precisaLembrete ? 'ring-2 ring-red-400' : ''} ${isSelected ? 'ring-2 ring-blue-400' : ''}`}>
         <CardHeader className="pb-3">
-          <div className="flex justify-between items-start gap-4">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => handleSelectEntrega(entrega.id)}
+              className="mt-1"
+            />
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap mb-2">
                 <CardTitle className="text-lg">#{entrega.numero_registro}</CardTitle>
@@ -259,6 +351,7 @@ export default function Balcao() {
           </div>
 
           <div className="text-xs text-slate-500">
+            <p>Atendente: {entrega.atendente_nome}</p>
             <p>Cadastrado em: {format(new Date(entrega.data_cadastro), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
             {entrega.data_pronto && (
               <p>Pronto em: {format(new Date(entrega.data_pronto), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
@@ -337,89 +430,196 @@ export default function Balcao() {
             </Button>
           </div>
 
-          {/* Busca */}
-          <Card className="border-none shadow-lg">
-            <CardContent className="pt-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar por número, nome, telefone ou CPF..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Calendário */}
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg">Selecione o Dia</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  locale={ptBR}
+                  className="rounded-md border"
                 />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Estatísticas */}
-          <div className="grid grid-cols-3 gap-4">
-            <Card className="border-none shadow-md bg-blue-50">
-              <CardContent className="pt-6 text-center">
-                <p className="text-3xl font-bold text-blue-900">{entregasProduzindo.length}</p>
-                <p className="text-sm text-blue-700">Produzindo</p>
+                <div className="mt-4 text-center">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {entregasFiltradas.length} entrega{entregasFiltradas.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
               </CardContent>
             </Card>
-            <Card className="border-none shadow-md bg-green-50">
-              <CardContent className="pt-6 text-center">
-                <p className="text-3xl font-bold text-green-900">{entregasProntas.length}</p>
-                <p className="text-sm text-green-700">Prontas</p>
-              </CardContent>
-            </Card>
-            <Card className="border-none shadow-md bg-slate-50">
-              <CardContent className="pt-6 text-center">
-                <p className="text-3xl font-bold text-slate-900">{entregasEntregues.length}</p>
-                <p className="text-sm text-slate-700">Entregues</p>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Listas de Entregas */}
-          <div className="space-y-6">
-            {/* Prontas */}
-            {entregasProntas.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
-                  <Package className="w-5 h-5" />
-                  Prontas para Retirada ({entregasProntas.length})
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {entregasProntas.map(entrega => (
-                    <EntregaCard key={entrega.id} entrega={entrega} />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Conteúdo Principal */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Busca */}
+              <Card className="border-none shadow-lg">
+                <CardContent className="pt-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                      placeholder="Buscar por número, nome, telefone ou CPF..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Produzindo */}
-            {entregasProduzindo.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  Em Produção ({entregasProduzindo.length})
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {entregasProduzindo.map(entrega => (
-                    <EntregaCard key={entrega.id} entrega={entrega} />
-                  ))}
-                </div>
-              </div>
-            )}
+              {/* Ações em Lote */}
+              {selectedEntregas.length > 0 && (
+                <Card className="border-none shadow-lg bg-blue-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <Badge variant="outline" className="text-sm">
+                        {selectedEntregas.length} selecionada{selectedEntregas.length !== 1 ? 's' : ''}
+                      </Badge>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => setShowBulkStatusDialog(true)}
+                          className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                        >
+                          <Clock className="w-4 h-4 mr-2" />
+                          Alterar Status
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedEntregas([])}
+                        >
+                          Limpar Seleção
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-            {/* Entregues */}
-            {entregasEntregues.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  Entregues ({entregasEntregues.length})
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {entregasEntregues.map(entrega => (
-                    <EntregaCard key={entrega.id} entrega={entrega} />
-                  ))}
-                </div>
+              {/* Estatísticas */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card className="border-none shadow-md bg-blue-50">
+                  <CardContent className="pt-6 text-center">
+                    <p className="text-3xl font-bold text-blue-900">{entregasProduzindo.length}</p>
+                    <p className="text-sm text-blue-700">Produzindo</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-none shadow-md bg-green-50">
+                  <CardContent className="pt-6 text-center">
+                    <p className="text-3xl font-bold text-green-900">{entregasProntas.length}</p>
+                    <p className="text-sm text-green-700">Prontas</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-none shadow-md bg-slate-50">
+                  <CardContent className="pt-6 text-center">
+                    <p className="text-3xl font-bold text-slate-900">{entregasEntregues.length}</p>
+                    <p className="text-sm text-slate-700">Entregues</p>
+                  </CardContent>
+                </Card>
               </div>
-            )}
+
+              {/* Listas de Entregas */}
+              <div className="space-y-6">
+                {/* Prontas */}
+                {entregasProntas.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-bold text-green-900 flex items-center gap-2">
+                        <Package className="w-5 h-5" />
+                        Prontas para Retirada ({entregasProntas.length})
+                      </h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSelectAll(entregasProntas)}
+                      >
+                        <Checkbox
+                          checked={entregasProntas.length > 0 && entregasProntas.every(e => selectedEntregas.includes(e.id))}
+                          className="mr-2"
+                        />
+                        Selecionar Todas
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {entregasProntas.map(entrega => (
+                        <EntregaCard key={entrega.id} entrega={entrega} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Produzindo */}
+                {entregasProduzindo.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                        <Clock className="w-5 h-5" />
+                        Em Produção ({entregasProduzindo.length})
+                      </h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSelectAll(entregasProduzindo)}
+                      >
+                        <Checkbox
+                          checked={entregasProduzindo.length > 0 && entregasProduzindo.every(e => selectedEntregas.includes(e.id))}
+                          className="mr-2"
+                        />
+                        Selecionar Todas
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {entregasProduzindo.map(entrega => (
+                        <EntregaCard key={entrega.id} entrega={entrega} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Entregues */}
+                {entregasEntregues.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        Entregues ({entregasEntregues.length})
+                      </h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSelectAll(entregasEntregues)}
+                      >
+                        <Checkbox
+                          checked={entregasEntregues.length > 0 && entregasEntregues.every(e => selectedEntregas.includes(e.id))}
+                          className="mr-2"
+                        />
+                        Selecionar Todas
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {entregasEntregues.map(entrega => (
+                        <EntregaCard key={entrega.id} entrega={entrega} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {entregasFiltradas.length === 0 && (
+                  <Card className="border-none shadow-lg">
+                    <CardContent className="p-12 text-center">
+                      <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                      <p className="text-slate-500 font-medium">Nenhuma entrega encontrada para este dia</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -525,12 +725,92 @@ export default function Balcao() {
 
       {/* Dialog Editar */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Entrega</DialogTitle>
           </DialogHeader>
           {entregaEditando && (
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Número de Registro *</Label>
+                  <Input
+                    value={entregaEditando.numero_registro}
+                    onChange={(e) => setEntregaEditando({ ...entregaEditando, numero_registro: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Nome do Cliente *</Label>
+                  <Input
+                    value={entregaEditando.cliente_nome}
+                    onChange={(e) => setEntregaEditando({ ...entregaEditando, cliente_nome: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Telefone *</Label>
+                  <Input
+                    value={entregaEditando.cliente_telefone}
+                    onChange={(e) => setEntregaEditando({ ...entregaEditando, cliente_telefone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>CPF</Label>
+                  <Input
+                    value={entregaEditando.cliente_cpf || ""}
+                    onChange={(e) => setEntregaEditando({ ...entregaEditando, cliente_cpf: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Atendente *</Label>
+                  <Input
+                    value={entregaEditando.atendente_nome}
+                    onChange={(e) => setEntregaEditando({ ...entregaEditando, atendente_nome: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Data do Pedido *</Label>
+                  <Input
+                    type="date"
+                    value={entregaEditando.data_cadastro}
+                    onChange={(e) => setEntregaEditando({ ...entregaEditando, data_cadastro: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Forma de Pagamento *</Label>
+                  <Select
+                    value={entregaEditando.forma_pagamento}
+                    onValueChange={(value) => setEntregaEditando({ ...entregaEditando, forma_pagamento: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pago">Pago</SelectItem>
+                      <SelectItem value="Vai pagar na Retirada">Vai pagar na Retirada</SelectItem>
+                      <SelectItem value="Aguardando">Aguardando</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Valor (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={entregaEditando.valor_pagamento || ""}
+                    onChange={(e) => setEntregaEditando({ ...entregaEditando, valor_pagamento: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div>
                 <Label>Status</Label>
                 <Select
@@ -562,7 +842,14 @@ export default function Balcao() {
                   Cancelar
                 </Button>
                 <Button
-                  onClick={() => updateMutation.mutate({ id: entregaEditando.id, data: entregaEditando })}
+                  onClick={() => {
+                    const dataToUpdate = {
+                      ...entregaEditando,
+                      data_cadastro: new Date(entregaEditando.data_cadastro).toISOString(),
+                      valor_pagamento: entregaEditando.valor_pagamento ? parseFloat(entregaEditando.valor_pagamento) : null,
+                    };
+                    updateMutation.mutate({ id: entregaEditando.id, data: dataToUpdate });
+                  }}
                   className="bg-[#457bba] hover:bg-[#3a6ba0]"
                 >
                   Salvar
@@ -570,6 +857,45 @@ export default function Balcao() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Alterar Status em Lote */}
+      <Dialog open={showBulkStatusDialog} onOpenChange={setShowBulkStatusDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Status de {selectedEntregas.length} Entrega{selectedEntregas.length !== 1 ? 's' : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Novo Status</Label>
+              <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Produzindo">Produzindo</SelectItem>
+                  <SelectItem value="Pronto">Pronto</SelectItem>
+                  <SelectItem value="Entregue">Entregue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowBulkStatusDialog(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleBulkStatusChange}
+                disabled={bulkUpdateMutation.isPending || !bulkStatus}
+                className="bg-[#457bba] hover:bg-[#3a6ba0]"
+              >
+                {bulkUpdateMutation.isPending ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>
