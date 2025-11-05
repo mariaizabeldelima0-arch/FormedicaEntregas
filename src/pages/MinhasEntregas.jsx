@@ -20,11 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Package, 
-  MapPin, 
-  Phone, 
-  CreditCard, 
+import {
+  Package,
+  MapPin,
+  Phone,
+  CreditCard,
   Clock,
   CheckCircle,
   XCircle,
@@ -36,7 +36,7 @@ import {
   Printer,
   GripVertical
 } from "lucide-react";
-import { format, parseISO, isSameDay } from "date-fns";
+import { format, parseISO, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -51,6 +51,7 @@ export default function MinhasEntregas() {
   const [filtroLocal, setFiltroLocal] = useState("todos");
   const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
   const [ordenacaoCustomizada, setOrdenacaoCustomizada] = useState({});
+  const [weekOffset, setWeekOffset] = useState(0);
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -65,19 +66,19 @@ export default function MinhasEntregas() {
     queryFn: async () => {
       if (!user) return [];
       const todos = await base44.entities.Romaneio.list('-created_date');
-      
+
       // Se for admin ou o usuário específico, mostrar entregas de todos os motoboys
       if (isAdmin || user.email === 'mariaizabeldelima0@gmail.com') { // Specific user override
-        return todos.filter(r => 
-          r.status !== 'Entregue' && 
+        return todos.filter(r =>
+          r.status !== 'Entregue' &&
           r.status !== 'Cancelado'
         );
       }
-      
+
       // Se for motoboy, filtrar apenas suas entregas
-      return todos.filter(r => 
+      return todos.filter(r =>
         r.motoboy === user.full_name &&
-        r.status !== 'Entregue' && 
+        r.status !== 'Entregue' &&
         r.status !== 'Cancelado'
       );
     },
@@ -87,7 +88,7 @@ export default function MinhasEntregas() {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status, motivo }) => {
-      const data = { 
+      const data = {
         status,
         ...(status === 'Entregue' && { data_entrega_realizada: new Date().toISOString() }),
         ...(motivo && { motivo_nao_entrega: motivo })
@@ -139,13 +140,55 @@ export default function MinhasEntregas() {
     if (!r.data_entrega_prevista) return false;
     const dataEntrega = parseISO(r.data_entrega_prevista);
     if (!isSameDay(dataEntrega, selectedDate)) return false;
-    
+
     // Aplicar filtros
     if (filtroLocal !== "todos" && r.cidade_regiao !== filtroLocal) return false;
     if (filtroPeriodo !== "todos" && r.periodo_entrega !== filtroPeriodo) return false;
-    
+
     return true;
   });
+
+  // Calcular estatísticas do dia
+  const statsDoDia = romaneiosDoDia.reduce((acc, r) => {
+    const local = r.cidade_regiao;
+    if (!acc[local]) {
+      acc[local] = {
+        quantidade: 0,
+        valor: 0
+      };
+    }
+    acc[local].quantidade += 1;
+    acc[local].valor += r.valor_entrega || 0;
+    return acc;
+  }, {});
+
+  const totalDoDia = Object.values(statsDoDia).reduce((sum, stat) => sum + stat.valor, 0);
+
+  // Calcular estatísticas da semana
+  const currentWeek = addWeeks(startOfWeek(selectedDate, { weekStartsOn: 1 }), weekOffset);
+  const weekStart = currentWeek;
+  const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
+  const daysOfWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+  const weekStats = daysOfWeek.map(day => {
+    const romaneiosDoDiaParaEstatistica = romaneios.filter(r => {
+      if (!r.data_entrega_prevista) return false;
+      const dataEntrega = parseISO(r.data_entrega_prevista);
+      return isSameDay(dataEntrega, day) && r.status !== 'Cancelado';
+    });
+
+    const total = romaneiosDoDiaParaEstatistica.reduce((sum, r) => sum + (r.valor_entrega || 0), 0);
+
+    return {
+      dia: format(day, 'EEE', { locale: ptBR }),
+      data: format(day, 'dd/MM'),
+      valor: total,
+      quantidade: romaneiosDoDiaParaEstatistica.length
+    };
+  });
+
+  const totalDaSemana = weekStats.reduce((sum, stat) => sum + stat.valor, 0);
+
 
   // Locais únicos para o filtro
   const locaisUnicos = [...new Set(romaneios
@@ -156,7 +199,7 @@ export default function MinhasEntregas() {
   const aplicarOrdenacao = (romaneiosList) => {
     const dataKey = format(selectedDate, 'yyyy-MM-dd');
     const ordemSalva = ordenacaoCustomizada[dataKey];
-    
+
     if (!ordemSalva || ordemSalva.length === 0) {
       // Ordenação padrão: por local e depois por período
       return [...romaneiosList].sort((a, b) => {
@@ -172,25 +215,25 @@ export default function MinhasEntregas() {
     // Ordenação customizada
     // Filter out items not present in the current romaneiosList before sorting
     const filteredOrdemSalva = ordemSalva.filter(id => romaneiosList.some(r => r.id === id));
-    
+
     // Sort romaneiosList based on filteredOrdemSalva
     const sortedRomaneios = [...romaneiosList].sort((a, b) => {
       const indexA = filteredOrdemSalva.indexOf(a.id);
       const indexB = filteredOrdemSalva.indexOf(b.id);
-      
+
       // Items not in filteredOrdemSalva go to the end, maintaining their relative order
       if (indexA === -1 && indexB === -1) {
-          // Fallback to default sort for items not in custom order
-          const localCompare = a.cidade_regiao.localeCompare(b.cidade_regiao);
-          if (localCompare !== 0) return localCompare;
-          if (a.periodo_entrega !== b.periodo_entrega) {
-            return a.periodo_entrega === "Manhã" ? -1 : 1;
-          }
-          return 0;
+        // Fallback to default sort for items not in custom order
+        const localCompare = a.cidade_regiao.localeCompare(b.cidade_regiao);
+        if (localCompare !== 0) return localCompare;
+        if (a.periodo_entrega !== b.periodo_entrega) {
+          return a.periodo_entrega === "Manhã" ? -1 : 1;
+        }
+        return 0;
       }
       if (indexA === -1) return 1; // a is not in custom order, b is, so b comes first
       if (indexB === -1) return -1; // b is not in custom order, a is, so a comes first
-      
+
       return indexA - indexB;
     });
 
@@ -224,8 +267,8 @@ export default function MinhasEntregas() {
       return;
     }
     if (selectedRomaneio) {
-      updateStatusMutation.mutate({ 
-        id: selectedRomaneio.id, 
+      updateStatusMutation.mutate({
+        id: selectedRomaneio.id,
         status: 'Não Entregue',
         motivo: motivoProblema
       });
@@ -253,13 +296,13 @@ export default function MinhasEntregas() {
 
     const dataKey = format(selectedDate, 'yyyy-MM-dd');
     const novaOrdem = items.map(item => item.id);
-    
+
     // Update local state first for immediate UI feedback
     setOrdenacaoCustomizada(prev => ({
       ...prev,
       [dataKey]: novaOrdem
     }));
-    
+
     // Then save to persistent storage
     saveOrdenacaoMutation.mutate({
       ...ordenacaoCustomizada,
@@ -269,8 +312,8 @@ export default function MinhasEntregas() {
 
   // Verificar se precisa cobrar valor
   const precisaCobrar = (romaneio) => {
-    return romaneio.valor_pagamento && 
-           ["Dinheiro", "Maquina", "Troco P/"].includes(romaneio.forma_pagamento);
+    return romaneio.valor_pagamento &&
+      ["Dinheiro", "Maquina", "Troco P/"].includes(romaneio.forma_pagamento);
   };
 
   const StatusBadge = ({ status }) => {
@@ -291,7 +334,7 @@ export default function MinhasEntregas() {
 
   const EntregaCard = ({ romaneio, index, isDragging }) => {
     const deveSerCobrado = precisaCobrar(romaneio);
-    
+
     return (
       <Card className={`border-slate-200 hover:shadow-lg transition-shadow ${deveSerCobrado ? 'ring-2 ring-orange-400' : ''} ${isDragging ? 'shadow-2xl' : ''}`}>
         <CardHeader className="pb-3">
@@ -315,6 +358,11 @@ export default function MinhasEntregas() {
                     <Badge className="bg-orange-100 text-orange-700 border-orange-400 border-2 font-bold">
                       <DollarSign className="w-4 h-4 mr-1" />
                       COBRAR
+                    </Badge>
+                  )}
+                  {romaneio.valor_entrega && (
+                    <Badge className="bg-green-100 text-green-700 border-green-300 font-bold">
+                      💰 R$ {romaneio.valor_entrega.toFixed(2)}
                     </Badge>
                   )}
                 </div>
@@ -453,7 +501,7 @@ export default function MinhasEntregas() {
           .no-print { display: none !important; }
         }
       `}</style>
-      
+
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex justify-between items-center no-print">
@@ -472,29 +520,99 @@ export default function MinhasEntregas() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Calendário */}
-            <Card className="border-none shadow-lg no-print">
-              <CardHeader>
-                <CardTitle className="text-lg">Selecione o Dia</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  locale={ptBR}
-                  className="rounded-md border"
-                />
-                <div className="mt-4 text-center">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+            {/* Calendário e Resumos */}
+            <div className="space-y-6">
+              <Card className="border-none shadow-lg no-print">
+                <CardHeader>
+                  <CardTitle className="text-lg">Selecione o Dia</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    locale={ptBR}
+                    className="rounded-md border"
+                  />
+                  <div className="mt-4 text-center">
+                    <p className="text-sm font-semibold text-slate-900">
+                      {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {romaneiosDoDia.length} entrega{romaneiosDoDia.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Resumo do Dia */}
+              {Object.keys(statsDoDia).length > 0 && (
+                <Card className="border-none shadow-lg bg-green-50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-green-900">Resumo do Dia</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(statsDoDia).sort((a, b) => a[0].localeCompare(b[0])).map(([local, stats]) => (
+                      <div key={local} className="flex justify-between items-center text-sm">
+                        <span className="text-slate-700">{local}</span>
+                        <div className="text-right">
+                          <span className="font-medium text-slate-900">{stats.quantidade}x</span>
+                          <span className="text-green-700 font-bold ml-2">R$ {stats.valor.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t-2 border-green-300 flex justify-between items-center font-bold">
+                      <span className="text-green-900">TOTAL DO DIA</span>
+                      <span className="text-green-900 text-lg">R$ {totalDoDia.toFixed(2)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Resumo da Semana */}
+              <Card className="border-none shadow-lg bg-blue-50">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm text-blue-900">Semana</CardTitle>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setWeekOffset(prev => prev - 1)}
+                      >
+                        ←
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setWeekOffset(prev => prev + 1)}
+                      >
+                        →
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-700">
+                    {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
                   </p>
-                  <p className="text-xs text-slate-500">
-                    {romaneiosDoDia.length} entrega{romaneiosDoDia.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {weekStats.map((stat, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-slate-700 w-12">{stat.dia}</span>
+                      <span className="text-slate-500 text-xs">{stat.data}</span>
+                      <span className="text-slate-600">{stat.quantidade}x</span>
+                      <span className="text-blue-700 font-bold">R$ {stat.valor.toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t-2 border-blue-300 flex justify-between items-center font-bold text-sm">
+                    <span className="text-blue-900">TOTAL</span>
+                    <span className="text-blue-900">R$ {totalDaSemana.toFixed(2)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Lista de Entregas */}
             <div className="lg:col-span-3 space-y-6">
