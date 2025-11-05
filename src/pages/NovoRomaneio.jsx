@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +37,55 @@ const FORMAS_PAGAMENTO = [
 
 const MOTOBOYS = ["Marcio", "Bruno"];
 
+const VALORES_ENTREGA = {
+  "Marcio": {
+    "Clinica": 9,
+    "Nova Esperança": 11,
+    "Camboriú": 16,
+    "Tabuleiro": 11,
+    "Monte Alegre": 11,
+    "Barra": 11,
+    "Estaleiro": 16,
+    "Taquaras": 16,
+    "Laranjeiras": 16,
+    "Itajai": 19,
+    "Espinheiros": 23,
+    "Praia dos Amores": 13.50,
+    "Praia Brava": 13.50,
+    "Itapema": 27,
+    "Navegantes": 30,
+    "Penha": 52,
+    "Porto Belo": 52,
+    "Tijucas": 52,
+    "Piçarras": 52,
+    "Bombinhas": 72,
+    "BC": 9
+  },
+  "Bruno": {
+    "Clinica": 7,
+    "Nova Esperança": 9,
+    "Camboriú": 14,
+    "Tabuleiro": 9,
+    "Monte Alegre": 9,
+    "Barra": 9,
+    "Estaleiro": 14,
+    "Taquaras": 14,
+    "Laranjeiras": 14,
+    "Itajai": 17,
+    "Espinheiros": 21,
+    "Praia dos Amores": 11.50,
+    "Praia Brava": 11.50,
+    "Itapema": 25,
+    "Navegantes": 40,
+    "Penha": 50,
+    "Porto Belo": 30,
+    "Tijucas": 50,
+    "Piçarras": 50,
+    "Bombinhas": 50,
+    "BC": 9
+  }
+};
+
 const REGIOES_MARCIO = [
   "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
   "Barra", "Estaleiro", "Clinica"
@@ -73,6 +123,7 @@ export default function NovoRomaneio() {
     forma_pagamento: "",
     valor_pagamento: "",
     valor_troco: "",
+    valor_entrega: "",
     item_geladeira: "false",
     buscar_receita: "false",
     motoboy: "",
@@ -90,6 +141,14 @@ export default function NovoRomaneio() {
     c.telefone?.includes(searchCliente) ||
     c.cpf?.includes(searchCliente)
   );
+
+  // Calcular valor da entrega quando motoboy ou cidade mudar
+  useEffect(() => {
+    if (formData.motoboy && formData.cidade_regiao) {
+      const valor = VALORES_ENTREGA[formData.motoboy]?.[formData.cidade_regiao] || 0;
+      setFormData(prev => ({ ...prev, valor_entrega: valor.toString() }));
+    }
+  }, [formData.motoboy, formData.cidade_regiao]);
 
   useEffect(() => {
     if (formData.cidade_regiao) {
@@ -135,6 +194,7 @@ export default function NovoRomaneio() {
         buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
         valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null,
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
+        valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : 0,
       });
     },
     onSuccess: () => {
@@ -406,24 +466,40 @@ export default function NovoRomaneio() {
                 )}
               </div>
 
-              {/* Motoboy */}
-              <div>
-                <Label>Motoboy *</Label>
-                <Select
-                  value={formData.motoboy}
-                  onValueChange={(value) => setFormData({ ...formData, motoboy: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o motoboy" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MOTOBOYS.map(motoboy => (
-                      <SelectItem key={motoboy} value={motoboy}>
-                        {motoboy}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Motoboy e Valor da Entrega */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Motoboy *</Label>
+                  <Select
+                    value={formData.motoboy}
+                    onValueChange={(value) => setFormData({ ...formData, motoboy: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o motoboy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MOTOBOYS.map(motoboy => (
+                        <SelectItem key={motoboy} value={motoboy}>
+                          {motoboy}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="valor_entrega">Valor da Entrega (R$)</Label>
+                  <Input
+                    id="valor_entrega"
+                    type="number"
+                    step="0.01"
+                    value={formData.valor_entrega}
+                    onChange={(e) => setFormData({ ...formData, valor_entrega: e.target.value })}
+                    placeholder="0.00"
+                    className="bg-slate-50"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Valor calculado automaticamente</p>
+                </div>
               </div>
 
               {/* Item de Geladeira */}

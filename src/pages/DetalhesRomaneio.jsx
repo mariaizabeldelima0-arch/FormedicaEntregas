@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,7 +51,9 @@ import {
   Save,
   X,
   Trash2,
-  AlertCircle // Added for error messages
+  AlertCircle, // Added for error messages
+  Search, // Added for client search
+  Plus // Added for new client button
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -88,6 +90,55 @@ const STATUS_OPTIONS = [
   "Cancelado"
 ];
 
+const VALORES_ENTREGA = {
+  "Marcio": {
+    "Clinica": 9,
+    "Nova Esperança": 11,
+    "Camboriú": 16,
+    "Tabuleiro": 11,
+    "Monte Alegre": 11,
+    "Barra": 11,
+    "Estaleiro": 16,
+    "Taquaras": 16,
+    "Laranjeiras": 16,
+    "Itajai": 19,
+    "Espinheiros": 23,
+    "Praia dos Amores": 13.50,
+    "Praia Brava": 13.50,
+    "Itapema": 27,
+    "Navegantes": 30,
+    "Penha": 52,
+    "Porto Belo": 52,
+    "Tijucas": 52,
+    "Piçarras": 52,
+    "Bombinhas": 72,
+    "BC": 9
+  },
+  "Bruno": {
+    "Clinica": 7,
+    "Nova Esperança": 9,
+    "Camboriú": 14,
+    "Tabuleiro": 9,
+    "Monte Alegre": 9,
+    "Barra": 9,
+    "Estaleiro": 14,
+    "Taquaras": 14,
+    "Laranjeiras": 14,
+    "Itajai": 17,
+    "Espinheiros": 21,
+    "Praia dos Amores": 11.50,
+    "Praia Brava": 11.50,
+    "Itapema": 25,
+    "Navegantes": 40,
+    "Penha": 50,
+    "Porto Belo": 30,
+    "Tijucas": 50,
+    "Piçarras": 50,
+    "Bombinhas": 50,
+    "BC": 9
+  }
+};
+
 export default function DetalhesRomaneio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -98,6 +149,19 @@ export default function DetalhesRomaneio() {
   const [editData, setEditData] = useState(null);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [novoStatus, setNovoStatus] = useState("");
+  const [searchCliente, setSearchCliente] = useState("");
+
+  const { data: clientes, isLoading: isLoadingClientes } = useQuery({
+    queryKey: ['clientes'],
+    queryFn: () => base44.entities.Cliente.list('nome'),
+    initialData: [],
+  });
+
+  const clientesFiltrados = clientes.filter(c =>
+    c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
+    c.telefone?.includes(searchCliente) ||
+    c.cpf?.includes(searchCliente)
+  );
 
   const { data: romaneio, isLoading, error } = useQuery({
     queryKey: ['romaneio', romaneioId],
@@ -131,10 +195,19 @@ export default function DetalhesRomaneio() {
     retryDelay: 1000,
   });
 
+  // Calcular valor da entrega quando motoboy ou cidade mudar no modo de edição
+  useEffect(() => {
+    if (isEditing && editData && editData.motoboy && editData.cidade_regiao) {
+      const valor = VALORES_ENTREGA[editData.motoboy]?.[editData.cidade_regiao] || 0;
+      setEditData(prev => ({ ...prev, valor_entrega: valor }));
+    }
+  }, [isEditing, editData?.motoboy, editData?.cidade_regiao]);
+
   const updateMutation = useMutation({
     mutationFn: async (data) => {
       const updateData = {
         numero_requisicao: data.numero_requisicao,
+        cliente_id: data.cliente_id,
         cliente_nome: data.cliente_nome,
         cliente_telefone: data.cliente_telefone,
         endereco: data.endereco,
@@ -142,6 +215,7 @@ export default function DetalhesRomaneio() {
         forma_pagamento: data.forma_pagamento,
         valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null,
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
+        valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : 0, // Added valor_entrega
         item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
         buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
         motoboy: data.motoboy,
@@ -231,15 +305,36 @@ export default function DetalhesRomaneio() {
   };
 
   const handleEditStart = () => {
+    const currentClient = clientes.find(c => c.id === romaneio.cliente_id);
+    let initialEnderecoIndex = 0;
+
+    // Try to find the matching address among client's addresses
+    if (currentClient && currentClient.enderecos && romaneio.endereco) {
+      const foundIndex = currentClient.enderecos.findIndex(
+        addr =>
+          addr.rua === romaneio.endereco.rua &&
+          addr.numero === romaneio.endereco.numero &&
+          addr.bairro === romaneio.endereco.bairro &&
+          addr.cidade === romaneio.cidade_regiao
+          // Add more fields if necessary for a robust match
+      );
+      if (foundIndex !== -1) {
+        initialEnderecoIndex = foundIndex;
+      }
+    }
+
     setEditData({
       numero_requisicao: romaneio.numero_requisicao,
+      cliente_id: romaneio.cliente_id,
       cliente_nome: romaneio.cliente_nome,
       cliente_telefone: romaneio.cliente_telefone || "",
       endereco: romaneio.endereco,
+      endereco_index: initialEnderecoIndex, // Added
       cidade_regiao: romaneio.cidade_regiao,
       forma_pagamento: romaneio.forma_pagamento,
       valor_pagamento: romaneio.valor_pagamento || "",
       valor_troco: romaneio.valor_troco || "",
+      valor_entrega: romaneio.valor_entrega || "", // Added valor_entrega
       item_geladeira: romaneio.item_geladeira || false,
       buscar_receita: romaneio.buscar_receita || false,
       motoboy: romaneio.motoboy,
@@ -249,6 +344,32 @@ export default function DetalhesRomaneio() {
       observacoes: romaneio.observacoes || "",
     });
     setIsEditing(true);
+  };
+
+  const handleClienteChange = (clienteId) => {
+    const cliente = clientes.find(c => c.id === clienteId);
+    if (cliente) {
+      const firstAddress = cliente.enderecos?.[0] || {
+        rua: "",
+        numero: "",
+        bairro: "",
+        complemento: "",
+        ponto_referencia: "",
+        aos_cuidados_de: "",
+        observacoes: "",
+        cidade: "", // Assuming addresses have a city field
+      };
+      setEditData({
+        ...editData,
+        cliente_id: clienteId,
+        cliente_nome: cliente.nome,
+        cliente_telefone: cliente.telefone,
+        endereco_index: 0,
+        endereco: firstAddress,
+        cidade_regiao: firstAddress.cidade || editData.cidade_regiao, // Update city if address has one
+      });
+      setSearchCliente("");
+    }
   };
 
   const handleSaveEdit = () => {
@@ -268,7 +389,7 @@ export default function DetalhesRomaneio() {
     window.print();
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingClientes) {
     return (
       <div className="p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -347,6 +468,7 @@ export default function DetalhesRomaneio() {
   };
 
   const currentData = isEditing ? editData : romaneio;
+  const currentClientData = isEditing ? clientes.find(c => c.id === editData?.cliente_id) : null;
 
   return (
     <>
@@ -555,6 +677,12 @@ export default function DetalhesRomaneio() {
                             </p>
                           </div>
                         )}
+                        {romaneio.valor_entrega > 0 && (
+                          <div>
+                            <p className="text-sm text-slate-500">Valor da Entrega</p>
+                            <p className="text-lg font-bold text-green-600">R$ {romaneio.valor_entrega.toFixed(2)}</p>
+                          </div>
+                        )}
                       </>
                     )}
                   </CardContent>
@@ -570,22 +698,53 @@ export default function DetalhesRomaneio() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {isEditing ? (
-                      <>
-                        <div>
-                          <Label>Nome do Cliente</Label>
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                           <Input
-                            value={editData.cliente_nome}
-                            onChange={(e) => setEditData({ ...editData, cliente_nome: e.target.value })}
+                            placeholder="Buscar cliente por nome, CPF ou telefone..."
+                            value={searchCliente}
+                            onChange={(e) => setSearchCliente(e.target.value)}
+                            className="pl-10"
                           />
                         </div>
-                        <div>
-                          <Label>Telefone</Label>
-                          <Input
-                            value={editData.cliente_telefone || ""}
-                            onChange={(e) => setEditData({ ...editData, cliente_telefone: e.target.value })}
-                          />
+                        {searchCliente && clientesFiltrados.length > 0 && (
+                          <Card className="max-h-60 overflow-y-auto">
+                            <CardContent className="p-0">
+                              {clientesFiltrados.slice(0, 5).map(c => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => handleClienteChange(c.id)}
+                                  className="w-full text-left p-3 hover:bg-slate-50 border-b last:border-b-0"
+                                >
+                                  <div className="font-medium text-slate-900">{c.nome}</div>
+                                  <div className="text-sm text-slate-600">
+                                    {c.telefone}
+                                    {c.cpf && ` • ${c.cpf}`}
+                                  </div>
+                                </button>
+                              ))}
+                            </CardContent>
+                          </Card>
+                        )}
+                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-900">{editData.cliente_nome}</p>
+                            <p className="text-sm text-slate-600">{editData.cliente_telefone}</p>
+                          </div>
                         </div>
-                      </>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(createPageUrl("Clientes"))}
+                          className="w-full"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Cadastrar Novo Cliente
+                        </Button>
+                      </div>
                     ) : (
                       <>
                         <div>
@@ -613,6 +772,35 @@ export default function DetalhesRomaneio() {
                   <CardContent className="space-y-3">
                     {isEditing ? (
                       <>
+                        {currentClientData && currentClientData.enderecos?.length > 0 && (
+                          <div>
+                            <Label>Selecione o Endereço *</Label>
+                            <Select
+                              value={editData.endereco_index?.toString() || "0"}
+                              onValueChange={(value) => {
+                                const endereco = currentClientData.enderecos[parseInt(value)];
+                                setEditData({
+                                  ...editData,
+                                  endereco_index: parseInt(value),
+                                  endereco: endereco,
+                                  cidade_regiao: endereco?.cidade || editData.cidade_regiao
+                                });
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione um endereço salvo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {currentClientData.enderecos.map((end, idx) => (
+                                  <SelectItem key={idx} value={idx.toString()}>
+                                    {end.cidade && `${end.cidade} - `}
+                                    {end.rua}, {end.numero} - {end.bairro}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label>Rua</Label>
@@ -864,6 +1052,20 @@ export default function DetalhesRomaneio() {
                               ))}
                             </SelectContent>
                           </Select>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="valor_entrega_edit">Valor da Entrega (R$)</Label>
+                          <Input
+                            id="valor_entrega_edit"
+                            type="number"
+                            step="0.01"
+                            value={editData.valor_entrega}
+                            onChange={(e) => setEditData({ ...editData, valor_entrega: e.target.value })}
+                            placeholder="0.00"
+                            className="bg-slate-50"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">Calculado automaticamente</p>
                         </div>
 
                         <div>

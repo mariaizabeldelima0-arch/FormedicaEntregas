@@ -117,7 +117,7 @@ export default function DetalhesSedex() {
       cidade_destino: entrega.cidade_destino || "",
       tipo_entrega: entrega.tipo_entrega,
       status_pagamento: entrega.status_pagamento,
-      valor_entrega: entrega.valor_entrega || "",
+      valor_entrega: entrega.valor_entrega ? entrega.valor_entrega.toFixed(2) : "", // Ensure two decimal places for display in input
       data_postagem: entrega.data_postagem,
       codigo_rastreio: entrega.codigo_rastreio || "",
       observacoes: entrega.observacoes || "",
@@ -129,6 +129,13 @@ export default function DetalhesSedex() {
     if (!editData.numero_registro || !editData.cliente_nome || !editData.tipo_entrega) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
+    }
+    if (editData.tipo_entrega === "Disktenha") {
+      const valor = parseFloat(editData.valor_entrega);
+      if (isNaN(valor) || valor <= 0) {
+        toast.error('Para entregas "Disktenha", o valor da entrega é obrigatório e deve ser maior que zero.');
+        return;
+      }
     }
     updateMutation.mutate(editData);
   };
@@ -353,6 +360,18 @@ export default function DetalhesSedex() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {editData.tipo_entrega === "Disktenha" && (
+                      <div>
+                        <Label>Valor da Entrega (R$) *</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editData.valor_entrega}
+                          onChange={(e) => setEditData({ ...editData, valor_entrega: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>
@@ -475,17 +494,6 @@ export default function DetalhesSedex() {
                         placeholder="Ex: BR123456789BR"
                       />
                     </div>
-                    {editData.tipo_entrega === "Disktenha" && (
-                      <div>
-                        <Label>Valor da Entrega (R$)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={editData.valor_entrega}
-                          onChange={(e) => setEditData({ ...editData, valor_entrega: e.target.value })}
-                        />
-                      </div>
-                    )}
                   </>
                 ) : (
                   <>
