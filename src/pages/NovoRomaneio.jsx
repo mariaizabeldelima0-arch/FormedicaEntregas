@@ -39,6 +39,7 @@ const MOTOBOYS = ["Marcio", "Bruno"];
 
 const VALORES_ENTREGA = {
   "Marcio": {
+    "BC": 9,
     "Clinica": 9,
     "Nova Esperança": 11,
     "Camboriú": 16,
@@ -58,10 +59,10 @@ const VALORES_ENTREGA = {
     "Porto Belo": 52,
     "Tijucas": 52,
     "Piçarras": 52,
-    "Bombinhas": 72,
-    "BC": 9
+    "Bombinhas": 72
   },
   "Bruno": {
+    "BC": 7,
     "Clinica": 7,
     "Nova Esperança": 9,
     "Camboriú": 14,
@@ -81,8 +82,7 @@ const VALORES_ENTREGA = {
     "Porto Belo": 30,
     "Tijucas": 50,
     "Piçarras": 50,
-    "Bombinhas": 50,
-    "BC": 9
+    "Bombinhas": 50
   }
 };
 

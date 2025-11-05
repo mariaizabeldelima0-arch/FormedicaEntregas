@@ -76,10 +76,12 @@ export default function DetalhesSedex() {
 
   const updateMutation = useMutation({
     mutationFn: async (data) => {
-      return base44.entities.EntregaSedex.update(entregaId, {
+      // Se mudar de Disktenha para outro tipo, remover o valor
+      const updateData = {
         ...data,
-        valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : null,
-      });
+        valor_entrega: data.tipo_entrega === "Disktenha" && data.valor_entrega ? parseFloat(data.valor_entrega) : null,
+      };
+      return base44.entities.EntregaSedex.update(entregaId, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entrega-sedex', entregaId] });

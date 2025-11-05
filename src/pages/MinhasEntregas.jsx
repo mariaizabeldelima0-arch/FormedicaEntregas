@@ -36,7 +36,7 @@ import {
   Printer,
   GripVertical
 } from "lucide-react";
-import { format, parseISO, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from "date-fns";
+import { format, parseISO, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -164,10 +164,18 @@ export default function MinhasEntregas() {
 
   const totalDoDia = Object.values(statsDoDia).reduce((sum, stat) => sum + stat.valor, 0);
 
-  // Calcular estatísticas da semana
-  const currentWeek = addWeeks(startOfWeek(selectedDate, { weekStartsOn: 1 }), weekOffset);
-  const weekStart = currentWeek;
-  const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
+  // Calcular estatísticas da semana (Terça a Segunda)
+  const getTuesdayStartOfWeek = (date) => {
+    // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    // weekStartsOn: 2 makes Tuesday the start of the week for `startOfWeek`
+    const start = startOfWeek(date, { weekStartsOn: 2 });
+    return start;
+  };
+
+  const currentWeekStart = addWeeks(getTuesdayStartOfWeek(selectedDate), weekOffset);
+  const weekStart = currentWeekStart;
+  const weekEnd = addDays(currentWeekStart, 6); // 6 days from Tuesday = Monday
+
   const daysOfWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
   const weekStats = daysOfWeek.map(day => {
@@ -188,6 +196,14 @@ export default function MinhasEntregas() {
   });
 
   const totalDaSemana = weekStats.reduce((sum, stat) => sum + stat.valor, 0);
+
+  // Status de pagamento da semana (apenas o primeiro dia com romaneios, ou padrão)
+  const primeiroRomaneioDaSemana = romaneios.find(r => {
+    if (!r.data_entrega_prevista) return false;
+    const dataEntrega = parseISO(r.data_entrega_prevista);
+    return dataEntrega >= weekStart && dataEntrega <= weekEnd;
+  });
+  const statusPagamentoSemana = primeiroRomaneioDaSemana?.status_pagamento_motoboy || "Aguardando";
 
 
   // Locais únicos para o filtro
@@ -569,11 +585,18 @@ export default function MinhasEntregas() {
                 </Card>
               )}
 
-              {/* Resumo da Semana */}
-              <Card className="border-none shadow-lg bg-blue-50">
+              {/* Resumo da Semana (Terça a Segunda) */}
+              <Card className={`border-none shadow-lg ${statusPagamentoSemana === "Pago" ? "bg-green-50" : "bg-blue-50"}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm text-blue-900">Semana</CardTitle>
+                    <div>
+                      <CardTitle className={`text-sm ${statusPagamentoSemana === "Pago" ? "text-green-900" : "text-blue-900"}`}>
+                        Semana • {statusPagamentoSemana}
+                      </CardTitle>
+                      <p className={`text-xs ${statusPagamentoSemana === "Pago" ? "text-green-700" : "text-blue-700"}`}>
+                        {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
+                      </p>
+                    </div>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -593,22 +616,19 @@ export default function MinhasEntregas() {
                       </Button>
                     </div>
                   </div>
-                  <p className="text-xs text-blue-700">
-                    {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
-                  </p>
                 </CardHeader>
                 <CardContent className="space-y-1">
                   {weekStats.map((stat, idx) => (
                     <div key={idx} className="flex justify-between items-center text-xs">
-                      <span className="text-slate-700 w-12">{stat.dia}</span>
-                      <span className="text-slate-500 text-xs">{stat.data}</span>
-                      <span className="text-slate-600">{stat.quantidade}x</span>
-                      <span className="text-blue-700 font-bold">R$ {stat.valor.toFixed(2)}</span>
+                      <span className={`w-12 ${statusPagamentoSemana === "Pago" ? "text-green-700" : "text-slate-700"}`}>{stat.dia}</span>
+                      <span className={`text-xs ${statusPagamentoSemana === "Pago" ? "text-green-600" : "text-slate-500"}`}>{stat.data}</span>
+                      <span className={statusPagamentoSemana === "Pago" ? "text-green-700" : "text-slate-600"}>{stat.quantidade}x</span>
+                      <span className={`font-bold ${statusPagamentoSemana === "Pago" ? "text-green-800" : "text-blue-700"}`}>R$ {stat.valor.toFixed(2)}</span>
                     </div>
                   ))}
-                  <div className="pt-2 border-t-2 border-blue-300 flex justify-between items-center font-bold text-sm">
-                    <span className="text-blue-900">TOTAL</span>
-                    <span className="text-blue-900">R$ {totalDaSemana.toFixed(2)}</span>
+                  <div className={`pt-2 border-t-2 ${statusPagamentoSemana === "Pago" ? "border-green-400" : "border-blue-300"} flex justify-between items-center font-bold text-sm`}>
+                    <span className={statusPagamentoSemana === "Pago" ? "text-green-900" : "text-blue-900"}>TOTAL</span>
+                    <span className={statusPagamentoSemana === "Pago" ? "text-green-900" : "text-blue-900"}>R$ {totalDaSemana.toFixed(2)}</span>
                   </div>
                 </CardContent>
               </Card>

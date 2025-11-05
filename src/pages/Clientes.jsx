@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,7 +34,7 @@ const CIDADES = [
   "Bombinhas", "Clinica"
 ];
 
-const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
+const ClienteForm = ({ cliente, onSuccess, onCancel, onUpdate, isUpdating }) => {
   const [formData, setFormData] = useState(cliente || {
     nome: "",
     cpf: "",
@@ -54,18 +55,17 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      if (cliente?.id) {
-        return base44.entities.Cliente.update(cliente.id, data);
-      }
+      // This mutation is now only for creating new clients.
+      // Updates are handled by the parent component via the onUpdate prop.
       return base44.entities.Cliente.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clientes'] });
-      toast.success(cliente ? 'Cliente atualizado!' : 'Cliente cadastrado!');
-      onSuccess();
+      toast.success('Cliente cadastrado!');
+      onSuccess(); // Calls parent's handleClose for creation
     },
     onError: () => {
-      toast.error('Erro ao salvar cliente');
+      toast.error('Erro ao cadastrar cliente');
     }
   });
 
@@ -75,7 +75,14 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
       toast.error('Preencha nome e telefone');
       return;
     }
-    saveMutation.mutate(formData);
+    
+    if (cliente?.id) {
+      // If client object exists (we are editing), call the parent's update handler
+      onUpdate(formData);
+    } else {
+      // Otherwise, create a new client
+      saveMutation.mutate(formData);
+    }
   };
 
   const addEndereco = () => {
@@ -262,9 +269,9 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
         <Button 
           type="submit" 
           className="bg-[#457bba] hover:bg-[#3a6ba0]"
-          disabled={saveMutation.isPending}
+          disabled={cliente?.id ? isUpdating : saveMutation.isPending}
         >
-          {saveMutation.isPending ? 'Salvando...' : cliente ? 'Atualizar' : 'Cadastrar'}
+          {cliente?.id ? (isUpdating ? 'Atualizando...' : 'Atualizar') : (saveMutation.isPending ? 'Cadastrando...' : 'Cadastrar')}
         </Button>
       </div>
     </form>
@@ -277,11 +284,61 @@ export default function Clientes() {
   const [editingCliente, setEditingCliente] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const queryClient = useQueryClient(); // Ensure queryClient is available in the parent
+
   const { data: clientes, isLoading } = useQuery({
     queryKey: ['clientes'],
     queryFn: () => base44.entities.Cliente.list('-created_date'),
     initialData: [],
   });
+
+  // New mutation for updating clients and their associated romaneios
+  const updateClienteMutation = useMutation({
+    mutationFn: async (data) => {
+      if (!editingCliente?.id) {
+        throw new Error("Cliente não selecionado para atualização.");
+      }
+      const updatedClient = await base44.entities.Cliente.update(editingCliente.id, data);
+      
+      // Atualizar romaneios que usam endereços deste cliente
+      const romaneios = await base44.entities.Romaneio.list();
+      const romaneiosDoCliente = romaneios.filter(r => r.cliente_id === editingCliente.id);
+      
+      // Atualizar cada romaneio com o novo endereço correspondente
+      for (const romaneio of romaneiosDoCliente) {
+        // Encontrar o índice do endereço no romaneio com base no endereço ORIGINAL (editingCliente)
+        // This logic assumes a unique match based on rua, numero, bairro.
+        // A more robust solution might involve an address ID.
+        const enderecoIndex = editingCliente.enderecos.findIndex(end =>
+          end.rua === romaneio.endereco.rua &&
+          end.numero === romaneio.endereco.numero &&
+          end.bairro === romaneio.endereco.bairro
+        );
+        
+        if (enderecoIndex !== -1 && data.enderecos && data.enderecos[enderecoIndex]) {
+          // Atualizar o romaneio com o novo endereço da `data`
+          await base44.entities.Romaneio.update(romaneio.id, {
+            endereco: data.enderecos[enderecoIndex],
+            cidade_regiao: data.enderecos[enderecoIndex].cidade || romaneio.cidade_regiao
+          });
+        }
+      }
+      
+      return updatedClient;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clientes'] });
+      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+      toast.success('Cliente atualizado com sucesso!');
+      setDialogOpen(false); // Replaced setShowEditDialog
+      setEditingCliente(null); // Replaced setEditData
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar cliente:", error);
+      toast.error('Erro ao atualizar cliente');
+    }
+  });
+
 
   const filteredClientes = clientes.filter(c => 
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -320,7 +377,7 @@ export default function Clientes() {
             <DialogTrigger asChild>
               <Button 
                 className="bg-[#457bba] hover:bg-[#3a6ba0]"
-                onClick={() => setEditingCliente(null)}
+                onClick={() => setEditingCliente(null)} // Clear editingCliente when opening for new
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Cliente
@@ -334,8 +391,10 @@ export default function Clientes() {
               </DialogHeader>
               <ClienteForm 
                 cliente={editingCliente}
-                onSuccess={handleClose}
+                onSuccess={handleClose} // This onSuccess is now specifically for successful *creation*
                 onCancel={handleClose}
+                onUpdate={(data) => updateClienteMutation.mutate(data)} // This handles updates, triggering the new mutation
+                isUpdating={updateClienteMutation.isPending} // Pass pending status for button
               />
             </DialogContent>
           </Dialog>

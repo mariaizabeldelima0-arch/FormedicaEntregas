@@ -51,9 +51,10 @@ import {
   Save,
   X,
   Trash2,
-  AlertCircle, // Added for error messages
-  Search, // Added for client search
-  Plus // Added for new client button
+  AlertCircle,
+  Search,
+  Plus,
+  DollarSign // Added for payment status
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -92,6 +93,7 @@ const STATUS_OPTIONS = [
 
 const VALORES_ENTREGA = {
   "Marcio": {
+    "BC": 9,
     "Clinica": 9,
     "Nova Esperança": 11,
     "Camboriú": 16,
@@ -111,10 +113,10 @@ const VALORES_ENTREGA = {
     "Porto Belo": 52,
     "Tijucas": 52,
     "Piçarras": 52,
-    "Bombinhas": 72,
-    "BC": 9
+    "Bombinhas": 72
   },
   "Bruno": {
+    "BC": 7,
     "Clinica": 7,
     "Nova Esperança": 9,
     "Camboriú": 14,
@@ -134,8 +136,7 @@ const VALORES_ENTREGA = {
     "Porto Belo": 30,
     "Tijucas": 50,
     "Piçarras": 50,
-    "Bombinhas": 50,
-    "BC": 9
+    "Bombinhas": 50
   }
 };
 
@@ -156,6 +157,13 @@ export default function DetalhesRomaneio() {
     queryFn: () => base44.entities.Cliente.list('nome'),
     initialData: [],
   });
+
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const isAdmin = user?.tipo_usuario === 'admin' || user?.role === 'admin';
 
   const clientesFiltrados = clientes.filter(c =>
     c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
@@ -290,6 +298,29 @@ export default function DetalhesRomaneio() {
       console.error("Erro ao excluir romaneio:", error);
       toast.error('Erro ao excluir romaneio');
     }
+  });
+
+  const updateStatusPagamentoMutation = useMutation({
+    mutationFn: async (status) => {
+      return base44.entities.Romaneio.update(romaneioId, {
+        status_pagamento_motoboy: status
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+      toast.success('Status de pagamento atualizado!');
+    },
+  });
+
+  const updateConfirmacoesMutation = useMutation({
+    mutationFn: async (data) => {
+      return base44.entities.Romaneio.update(romaneioId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      toast.success('Informações atualizadas!');
+    },
   });
 
   const handleAlterarStatus = () => {
@@ -1180,6 +1211,68 @@ export default function DetalhesRomaneio() {
                             <p className="font-semibold text-green-900">
                               {format(parseISO(romaneio.data_entrega_realizada), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                             </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {/* Status Pagamento Motoboy - apenas para admin */}
+                    {!isEditing && isAdmin && (
+                      <div>
+                        <Label>Pagamento Motoboy</Label>
+                        <Select
+                          value={romaneio.status_pagamento_motoboy || "Aguardando"}
+                          onValueChange={(value) => updateStatusPagamentoMutation.mutate(value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Aguardando">Aguardando</SelectItem>
+                            <SelectItem value="Pago">Pago</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Status Pagamento Motoboy - apenas visualização para motoboy */}
+                    {!isEditing && !isAdmin && (
+                      <div className="flex items-start gap-3">
+                        <DollarSign className="w-5 h-5 text-slate-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-slate-500">Pagamento</p>
+                          <Badge className={romaneio.status_pagamento_motoboy === "Pago" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}>
+                            {romaneio.status_pagamento_motoboy || "Aguardando"}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Confirmações - apenas display mode e para admin */}
+                    {!isEditing && isAdmin && (
+                      <>
+                        <div>
+                          <Label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={romaneio.pagamento_recebido || false}
+                              onChange={(e) => updateConfirmacoesMutation.mutate({ pagamento_recebido: e.target.checked })}
+                              className="rounded border-slate-300"
+                            />
+                            <span>Pagamento Recebido</span>
+                          </Label>
+                        </div>
+
+                        {romaneio.buscar_receita && (
+                          <div>
+                            <Label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={romaneio.receita_recebida || false}
+                                onChange={(e) => updateConfirmacoesMutation.mutate({ receita_recebida: e.target.checked })}
+                                className="rounded border-slate-300"
+                              />
+                              <span>Receita Recebida</span>
+                            </Label>
                           </div>
                         )}
                       </>

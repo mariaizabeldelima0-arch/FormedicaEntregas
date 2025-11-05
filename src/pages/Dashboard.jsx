@@ -602,6 +602,11 @@ export default function Dashboard() {
                                     <Badge variant="outline" className="text-xs">
                                       {romaneio.periodo_entrega}
                                     </Badge>
+                                    {romaneio.valor_entrega && (
+                                      <Badge className="bg-purple-100 text-purple-700 border-purple-300 border">
+                                        Taxa: R$ {romaneio.valor_entrega.toFixed(2)}
+                                      </Badge>
+                                    )}
                                   </div>
                                   <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm text-slate-600">
                                     <div className="flex items-center gap-1">
