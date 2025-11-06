@@ -40,8 +40,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger, // Added DialogTrigger import
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label"; // Added Label import
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 
@@ -104,9 +105,9 @@ export default function Dashboard() {
   });
 
   const bulkUpdateMutation = useMutation({
-    mutationFn: async ({ ids, status }) => {
+    mutationFn: async ({ ids, data }) => {
       const promises = ids.map(id =>
-        base44.entities.Romaneio.update(id, { status })
+        base44.entities.Romaneio.update(id, data)
       );
       return Promise.all(promises);
     },
@@ -214,7 +215,18 @@ export default function Dashboard() {
     }
     bulkUpdateMutation.mutate({
       ids: selectedRomaneios,
-      status: bulkStatus
+      data: { status: bulkStatus }
+    });
+  };
+
+  const handleBulkConfirmacoes = (tipo, valor) => {
+    const updateData = {};
+    if (tipo === 'pagamento') updateData.pagamento_recebido = valor;
+    if (tipo === 'receita') updateData.receita_recebida = valor;
+    
+    bulkUpdateMutation.mutate({
+      ids: selectedRomaneios,
+      data: updateData
     });
   };
 
@@ -301,7 +313,7 @@ export default function Dashboard() {
             {/* Stats Cards - Clicáveis */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <button
-                onClick={() => setFiltroStatus(filtroStatus === "todos" ? "todos" : "todos")}
+                onClick={() => setFiltroStatus("todos")}
                 className="text-left"
               >
                 <Card className={`border-none shadow-md hover:shadow-xl transition-shadow bg-white ${filtroStatus === "todos" ? "ring-2 ring-[#457bba]" : ""}`}>
@@ -599,12 +611,34 @@ export default function Dashboard() {
                                         Geladeira
                                       </Badge>
                                     )}
+                                    {romaneio.buscar_receita && (
+                                      <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 border">
+                                        <FileText className="w-3 h-3 mr-1" />
+                                        Reter Receita
+                                      </Badge>
+                                    )}
+                                    {romaneio.status === 'Entregue' && romaneio.buscar_receita && !romaneio.receita_recebida && (
+                                      <Badge className="bg-red-100 text-red-700 border-red-400 border-2 font-bold animate-pulse">
+                                        <AlertCircle className="w-3 h-3 mr-1" />
+                                        RECEITA NÃO RETIRADA
+                                      </Badge>
+                                    )}
                                     <Badge variant="outline" className="text-xs">
                                       {romaneio.periodo_entrega}
                                     </Badge>
                                     {romaneio.valor_entrega && (
                                       <Badge className="bg-purple-100 text-purple-700 border-purple-300 border">
                                         Taxa: R$ {romaneio.valor_entrega.toFixed(2)}
+                                      </Badge>
+                                    )}
+                                    {romaneio.pagamento_recebido && (
+                                      <Badge className="bg-green-100 text-green-700">
+                                        ✓ Pago
+                                      </Badge>
+                                    )}
+                                    {romaneio.receita_recebida && (
+                                      <Badge className="bg-blue-100 text-blue-700">
+                                        ✓ Receita
                                       </Badge>
                                     )}
                                   </div>
@@ -701,6 +735,59 @@ export default function Dashboard() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Dialogs para Confirmações em Lote */}
+        {selectedRomaneios.length > 0 && (
+          <div className="flex gap-2 mt-4 justify-end">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  Marcar Pagamento
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Marcar Pagamento Recebido</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <p>Marcar {selectedRomaneios.length} entrega(s) como:</p>
+                  <div className="flex gap-3">
+                    <Button onClick={() => handleBulkConfirmacoes('pagamento', true)} className="flex-1 bg-[#457bba] hover:bg-[#3a6ba0]">
+                      Pagamento Recebido
+                    </Button>
+                    <Button onClick={() => handleBulkConfirmacoes('pagamento', false)} variant="outline" className="flex-1">
+                      Não Recebido
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  Marcar Receita
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Marcar Receita Recebida</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <p>Marcar {selectedRomaneios.length} entrega(s) como:</p>
+                  <div className="flex gap-3">
+                    <Button onClick={() => handleBulkConfirmacoes('receita', true)} className="flex-1 bg-[#457bba] hover:bg-[#3a6ba0]">
+                      Receita Recebida
+                    </Button>
+                    <Button onClick={() => handleBulkConfirmacoes('receita', false)} variant="outline" className="flex-1">
+                      Não Recebida
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </div>
     </div>
   );

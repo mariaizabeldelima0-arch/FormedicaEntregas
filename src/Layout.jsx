@@ -4,11 +4,11 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Package, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Package,
   LogOut,
   Truck,
   BarChart3,
@@ -47,15 +47,62 @@ export default function Layout({ children, currentPageName }) {
     retry: false,
   });
 
-  const isAtendente = user?.tipo_usuario === 'atendente' || user?.tipo_usuario === 'admin';
+  const isAtendente = user?.tipo_usuario === 'atendente' || user?.tipo_usuario === 'admin' || user?.tipo_usuario === 'balcao';
   const isEntregador = user?.tipo_usuario === 'entregador';
   const isAdmin = user?.tipo_usuario === 'admin' || user?.role === 'admin';
+  const isBalcao = user?.tipo_usuario === 'balcao';
 
   const navigationItems = isEntregador ? [
     {
       title: "Minhas Entregas",
       url: createPageUrl("MinhasEntregas"),
       icon: Package,
+    },
+  ] : isBalcao ? [
+    {
+      title: "Balcão",
+      url: createPageUrl("Balcao"),
+      icon: Package,
+    },
+    {
+      title: "Novo Romaneio",
+      url: createPageUrl("NovoRomaneio"),
+      icon: FileText,
+    },
+    {
+      title: "Entregas Moto",
+      url: createPageUrl("Dashboard"),
+      icon: Truck,
+    },
+    {
+      title: "Sedex/Disktenha",
+      url: createPageUrl("Sedex"),
+      icon: Send,
+    },
+    {
+      title: "Clientes",
+      url: createPageUrl("Clientes"),
+      icon: Users,
+    },
+    {
+      title: "Histórico de Clientes",
+      url: createPageUrl("HistoricoClientes"),
+      icon: BarChart3,
+    },
+    {
+      title: "Relatórios",
+      url: createPageUrl("Relatorios"),
+      icon: BarChart3,
+    },
+    {
+      title: "Receitas",
+      url: createPageUrl("Receitas"),
+      icon: FileText,
+    },
+    {
+      title: "Pagamentos",
+      url: createPageUrl("Pagamentos"),
+      icon: BarChart3,
     },
   ] : isAtendente ? [
     {
@@ -68,11 +115,11 @@ export default function Layout({ children, currentPageName }) {
       url: createPageUrl("Sedex"),
       icon: Send,
     },
-    {
+    ...(isAdmin ? [{
       title: "Balcão",
       url: createPageUrl("Balcao"),
       icon: Package,
-    },
+    }] : []),
     {
       title: "Novo Romaneio",
       url: createPageUrl("NovoRomaneio"),
@@ -91,6 +138,16 @@ export default function Layout({ children, currentPageName }) {
     {
       title: "Relatórios",
       url: createPageUrl("Relatorios"),
+      icon: BarChart3,
+    },
+    {
+      title: "Receitas",
+      url: createPageUrl("Receitas"),
+      icon: FileText,
+    },
+    {
+      title: "Pagamentos",
+      url: createPageUrl("Pagamentos"),
       icon: BarChart3,
     },
     ...(isAdmin ? [{
@@ -127,7 +184,7 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </div>
           </SidebarHeader>
-          
+
           <SidebarContent className="p-3">
             <SidebarGroup>
               <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2">
@@ -137,11 +194,11 @@ export default function Layout({ children, currentPageName }) {
                 <SidebarMenu>
                   {navigationItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        asChild 
+                      <SidebarMenuButton
+                        asChild
                         className={`rounded-lg mb-1 transition-all duration-200 ${
-                          location.pathname === item.url 
-                            ? 'bg-[#457bba] text-white hover:bg-[#3a6ba0]' 
+                          location.pathname === item.url
+                            ? 'bg-[#457bba] text-white hover:bg-[#3a6ba0]'
                             : 'hover:bg-slate-100 text-slate-700'
                         }`}
                       >
@@ -175,7 +232,7 @@ export default function Layout({ children, currentPageName }) {
                     </p>
                   </div>
                 </div>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="w-full justify-start">

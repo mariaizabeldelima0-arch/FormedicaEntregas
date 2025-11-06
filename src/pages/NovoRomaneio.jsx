@@ -182,6 +182,20 @@ export default function NovoRomaneio() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
+      // Verificar se o número de registro já existe
+      const allRomaneios = await base44.entities.Romaneio.list();
+      const allSedex = await base44.entities.EntregaSedex.list();
+      const allBalcao = await base44.entities.EntregaBalcao.list();
+      
+      const numeroJaExiste = 
+        allRomaneios.some(r => r.numero_requisicao === data.numero_requisicao) ||
+        allSedex.some(s => s.numero_registro === data.numero_requisicao) ||
+        allBalcao.some(b => b.numero_registro === data.numero_requisicao);
+      
+      if (numeroJaExiste) {
+        throw new Error('Este número de registro já está em uso. Por favor, use outro número.');
+      }
+
       const cliente = clientes.find(c => c.id === data.cliente_id);
       const endereco = cliente.enderecos[data.endereco_index];
 
@@ -201,6 +215,9 @@ export default function NovoRomaneio() {
         valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null,
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
         valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : 0,
+        pagamento_recebido: false,
+        receita_recebida: false,
+        imagens: [],
       });
     },
     onSuccess: () => {
@@ -209,7 +226,7 @@ export default function NovoRomaneio() {
       navigate(createPageUrl("Dashboard"));
     },
     onError: (error) => {
-      toast.error('Erro ao criar romaneio');
+      toast.error(error.message || 'Erro ao criar romaneio');
       console.error(error);
     }
   });
