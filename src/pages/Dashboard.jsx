@@ -40,7 +40,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger, // Added DialogTrigger import
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -81,6 +81,11 @@ export default function Dashboard() {
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [bulkStatus, setBulkStatus] = useState("");
 
+  const [showBulkPagamentoDialog, setShowBulkPagamentoDialog] = useState(false);
+  const [showBulkReceitaDialog, setShowBulkReceitaDialog] = useState(false);
+  const [bulkPagamentoStatus, setBulkPagamentoStatus] = useState("");
+  const [bulkReceitaStatus, setBulkReceitaStatus] = useState("");
+
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -114,9 +119,14 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['romaneios'] });
       toast.success(`${selectedRomaneios.length} entrega${selectedRomaneios.length !== 1 ? 's' : ''} atualizada${selectedRomaneios.length !== 1 ? 's' : ''}!`);
+      // Reset all bulk dialog states
       setShowBulkStatusDialog(false);
       setSelectedRomaneios([]);
       setBulkStatus("");
+      setShowBulkPagamentoDialog(false);
+      setBulkPagamentoStatus("");
+      setShowBulkReceitaDialog(false);
+      setBulkReceitaStatus("");
     },
     onError: () => {
       toast.error('Erro ao atualizar entregas');
@@ -219,14 +229,25 @@ export default function Dashboard() {
     });
   };
 
-  const handleBulkConfirmacoes = (tipo, valor) => {
-    const updateData = {};
-    if (tipo === 'pagamento') updateData.pagamento_recebido = valor;
-    if (tipo === 'receita') updateData.receita_recebida = valor;
-    
+  const handleBulkPagamento = () => {
+    if (!bulkPagamentoStatus) {
+      toast.error('Selecione uma opção');
+      return;
+    }
     bulkUpdateMutation.mutate({
       ids: selectedRomaneios,
-      data: updateData
+      data: { pagamento_recebido: bulkPagamentoStatus === "sim" }
+    });
+  };
+
+  const handleBulkReceita = () => {
+    if (!bulkReceitaStatus) {
+      toast.error('Selecione uma opção');
+      return;
+    }
+    bulkUpdateMutation.mutate({
+      ids: selectedRomaneios,
+      data: { receita_recebida: bulkReceitaStatus === "sim" }
     });
   };
 
@@ -720,7 +741,10 @@ export default function Dashboard() {
               <div className="flex justify-end gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => setShowBulkStatusDialog(false)}
+                  onClick={() => {
+                    setShowBulkStatusDialog(false);
+                    setBulkStatus("");
+                  }}
                 >
                   Cancelar
                 </Button>
@@ -739,55 +763,111 @@ export default function Dashboard() {
         {/* Dialogs para Confirmações em Lote */}
         {selectedRomaneios.length > 0 && (
           <div className="flex gap-2 mt-4 justify-end">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline">
-                  Marcar Pagamento
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Marcar Pagamento Recebido</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <p>Marcar {selectedRomaneios.length} entrega(s) como:</p>
-                  <div className="flex gap-3">
-                    <Button onClick={() => handleBulkConfirmacoes('pagamento', true)} className="flex-1 bg-[#457bba] hover:bg-[#3a6ba0]">
-                      Pagamento Recebido
-                    </Button>
-                    <Button onClick={() => handleBulkConfirmacoes('pagamento', false)} variant="outline" className="flex-1">
-                      Não Recebido
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowBulkPagamentoDialog(true)}
+            >
+              Marcar Pagamento
+            </Button>
 
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline">
-                  Marcar Receita
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Marcar Receita Recebida</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <p>Marcar {selectedRomaneios.length} entrega(s) como:</p>
-                  <div className="flex gap-3">
-                    <Button onClick={() => handleBulkConfirmacoes('receita', true)} className="flex-1 bg-[#457bba] hover:bg-[#3a6ba0]">
-                      Receita Recebida
-                    </Button>
-                    <Button onClick={() => handleBulkConfirmacoes('receita', false)} variant="outline" className="flex-1">
-                      Não Recebida
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowBulkReceitaDialog(true)}
+            >
+              Marcar Receita
+            </Button>
           </div>
         )}
+
+        {/* Dialog Pagamento Recebido */}
+        <Dialog open={showBulkPagamentoDialog} onOpenChange={setShowBulkPagamentoDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pagamento Recebido</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-slate-600">
+                Marcar {selectedRomaneios.length} entrega(s) como:
+              </p>
+              <div>
+                <Label>Pagamento foi recebido? *</Label>
+                <Select value={bulkPagamentoStatus} onValueChange={setBulkPagamentoStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma opção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sim">Sim - Pagamento Recebido</SelectItem>
+                    <SelectItem value="nao">Não - Pagamento Não Recebido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowBulkPagamentoDialog(false);
+                    setBulkPagamentoStatus("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleBulkPagamento}
+                  disabled={bulkUpdateMutation.isPending || !bulkPagamentoStatus}
+                  className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                >
+                  {bulkUpdateMutation.isPending ? 'Confirmando...' : 'Confirmar'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog Receita Recebida */}
+        <Dialog open={showBulkReceitaDialog} onOpenChange={setShowBulkReceitaDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Receita Recebida</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-slate-600">
+                Marcar {selectedRomaneios.length} entrega(s) como:
+              </p>
+              <div>
+                <Label>Receita foi recebida? *</Label>
+                <Select value={bulkReceitaStatus} onValueChange={setBulkReceitaStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma opção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sim">Sim - Receita Recebida</SelectItem>
+                    <SelectItem value="nao">Não - Receita Não Recebida</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowBulkReceitaDialog(false);
+                    setBulkReceitaStatus("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleBulkReceita}
+                  disabled={bulkUpdateMutation.isPending || !bulkReceitaStatus}
+                  className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                >
+                  {bulkUpdateMutation.isPending ? 'Confirmando...' : 'Confirmar'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

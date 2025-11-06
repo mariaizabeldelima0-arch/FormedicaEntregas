@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label"; // Added import
+import { Input } from "@/components/ui/input"; // Added import
 import {
   Package,
   MapPin,
@@ -34,7 +36,10 @@ import {
   DollarSign,
   FileText,
   Printer,
-  GripVertical
+  GripVertical,
+  Upload, // Added import
+  X, // Added import
+  Image as ImageIcon // Added import
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,6 +57,10 @@ export default function MinhasEntregas() {
   const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
   const [ordenacaoCustomizada, setOrdenacaoCustomizada] = useState({});
   const [weekOffset, setWeekOffset] = useState(0);
+  const [showImageDialog, setShowImageDialog] = useState(false); // New state
+  const [selectedFiles, setSelectedFiles] = useState([]); // New state
+  const [imagemTipo, setImagemTipo] = useState(""); // New state
+  const [romaneioParaImagem, setRomaneioParaImagem] = useState(null); // New state
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -104,6 +113,38 @@ export default function MinhasEntregas() {
       setMotivoProblema("");
     },
   });
+
+  // New mutation for image uploads
+  const uploadImagesMutation = useMutation({
+    mutationFn: async ({ romaneioId, files, tipo }) => {
+      const uploadPromises = files.map(async (file) => {
+        // Ensure the file object passed to UploadFile is correct
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        return { url: file_url, tipo };
+      });
+
+      const novasImagens = await Promise.all(uploadPromises);
+      const romaneio = romaneios.find(r => r.id === romaneioId);
+      const imagensAtuais = romaneio.imagens || [];
+
+      return base44.entities.Romaneio.update(romaneioId, {
+        imagens: [...imagensAtuais, ...novasImagens]
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['minhas-entregas'] });
+      toast.success('Imagens anexadas com sucesso!');
+      setShowImageDialog(false);
+      setSelectedFiles([]);
+      setImagemTipo("");
+      setRomaneioParaImagem(null);
+    },
+    onError: (error) => {
+      console.error("Erro ao anexar imagens:", error);
+      toast.error('Erro ao anexar imagens');
+    }
+  });
+
 
   // Salvar ordenação customizada
   const saveOrdenacaoMutation = useMutation({
@@ -332,6 +373,30 @@ export default function MinhasEntregas() {
       ["Dinheiro", "Maquina", "Troco P/"].includes(romaneio.forma_pagamento);
   };
 
+  // New handlers for image upload dialog
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles(files);
+  };
+
+  const handleUploadImages = () => {
+    if (!imagemTipo) {
+      toast.error('Selecione o tipo da imagem');
+      return;
+    }
+    if (selectedFiles.length === 0) {
+      toast.error('Selecione pelo menos uma imagem');
+      return;
+    }
+    if (romaneioParaImagem) {
+      uploadImagesMutation.mutate({
+        romaneioId: romaneioParaImagem.id,
+        files: selectedFiles,
+        tipo: imagemTipo
+      });
+    }
+  };
+
   const StatusBadge = ({ status }) => {
     const configs = {
       "Pendente": { color: "bg-slate-100 text-slate-700", icon: Clock },
@@ -469,6 +534,35 @@ export default function MinhasEntregas() {
             </div>
           )}
 
+          {/* Seção de Imagens */}
+          {romaneio.imagens && romaneio.imagens.length > 0 && (
+            <div className="bg-slate-50 rounded-lg p-3">
+              <p className="text-xs font-semibold text-slate-700 mb-2">Imagens Anexadas:</p>
+              <div className="grid grid-cols-3 gap-2">
+                {romaneio.imagens.map((img, idx) => (
+                  <div key={idx} className="relative">
+                    <img
+                      src={img.url}
+                      alt={`Imagem ${idx + 1}`}
+                      className="w-full h-16 object-cover rounded border border-slate-200"
+                      onClick={() => window.open(img.url, '_blank')} // Open image in new tab
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <Badge
+                      className={`absolute top-1 left-1 text-xs ${
+                        img.tipo === 'pagamento'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}
+                    >
+                      {img.tipo === 'pagamento' ? 'Pag' : 'Rec'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Ações */}
           <div className="flex gap-2 pt-2 no-print">
             {romaneio.status === 'Pendente' && (
@@ -503,6 +597,20 @@ export default function MinhasEntregas() {
                   Problema
                 </Button>
               </>
+            )}
+            {/* New Upload Button */}
+            {(romaneio.status === 'A Caminho' || romaneio.status === 'Pendente') && (
+              <Button
+                variant="outline"
+                size="icon" // changed to icon size for a smaller button
+                onClick={() => {
+                  setRomaneioParaImagem(romaneio);
+                  setShowImageDialog(true);
+                }}
+                className="no-print"
+              >
+                <Upload className="w-4 h-4" />
+              </Button>
             )}
           </div>
         </CardContent>
@@ -780,6 +888,67 @@ export default function MinhasEntregas() {
               )}
             </div>
           </div>
+
+          {/* Dialog para Upload de Imagens */}
+          <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Anexar Imagens</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="image-type">Tipo de Imagem *</Label>
+                  <Select value={imagemTipo} onValueChange={setImagemTipo}>
+                    <SelectTrigger id="image-type">
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pagamento">Comprovante de Pagamento</SelectItem>
+                      <SelectItem value="receita">Receita Médica</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="image-files">Selecione as Imagens *</Label>
+                  <Input
+                    id="image-files"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="cursor-pointer"
+                  />
+                  {selectedFiles.length > 0 && (
+                    <p className="text-sm text-slate-600 mt-2">
+                      {selectedFiles.length} arquivo(s) selecionado(s)
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowImageDialog(false);
+                      setSelectedFiles([]);
+                      setImagemTipo("");
+                      setRomaneioParaImagem(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleUploadImages}
+                    disabled={uploadImagesMutation.isPending || !imagemTipo || selectedFiles.length === 0}
+                    className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                  >
+                    {uploadImagesMutation.isPending ? 'Enviando...' : 'Anexar'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Dialog Concluir */}
           <Dialog open={showConcluirDialog} onOpenChange={setShowConcluirDialog}>
