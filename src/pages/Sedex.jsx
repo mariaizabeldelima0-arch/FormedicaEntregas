@@ -62,7 +62,21 @@ export default function Sedex() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => {
+    mutationFn: async (data) => {
+      // Verificar duplicação de número
+      const allRomaneios = await base44.entities.Romaneio.list();
+      const allSedex = await base44.entities.EntregaSedex.list();
+      const allBalcao = await base44.entities.EntregaBalcao.list();
+      
+      const numeroJaExiste = 
+        allRomaneios.some(r => r.numero_requisicao === data.numero_registro) ||
+        allSedex.some(s => s.numero_registro === data.numero_registro) ||
+        allBalcao.some(b => b.numero_registro === data.numero_registro);
+      
+      if (numeroJaExiste) {
+        throw new Error('Este número de registro já está em uso. Por favor, use outro número.');
+      }
+
       return base44.entities.EntregaSedex.create({
         ...data,
         atendente_nome: user?.nome_atendente || user?.full_name,
@@ -76,8 +90,8 @@ export default function Sedex() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: () => {
-      toast.error('Erro ao cadastrar entrega');
+    onError: (error) => {
+      toast.error(error.message || 'Erro ao cadastrar entrega');
     }
   });
 

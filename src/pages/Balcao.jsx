@@ -308,13 +308,13 @@ export default function Balcao() {
 
   // Filtrar entregas por data e termo de busca
   const entregasFiltradas = entregas.filter(e => {
-    // Se não visualizar todas, filtrar por data
+    // Sempre filtrar por data quando não está em visualizar todas
     if (!visualizarTodas) {
       const matchesDate = e.data_cadastro && isSameDay(parseISO(e.data_cadastro), selectedDate);
       if (!matchesDate) return false;
     }
     
-    // Filtro de status
+    // Filtro de status - IMPORTANTE: aplicar DEPOIS do filtro de data
     if (filtroStatus !== "todos" && e.status !== filtroStatus) return false;
 
     // Busca
@@ -332,7 +332,7 @@ export default function Balcao() {
     return true;
   });
 
-  // Separar por status
+  // Separar por status (DEPOIS de aplicar todos os filtros incluindo data)
   const entregasProduzindo = entregasFiltradas.filter(e => e.status === "Produzindo");
   const entregasProntas = entregasFiltradas.filter(e => e.status === "Pronto");
   const entregasEntregues = entregasFiltradas.filter(e => e.status === "Entregue");

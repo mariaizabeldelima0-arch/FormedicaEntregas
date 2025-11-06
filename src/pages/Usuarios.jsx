@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -68,6 +69,7 @@ export default function Usuarios() {
       admin: { color: "bg-purple-100 text-purple-700 border-purple-300", label: "Admin" },
       atendente: { color: "bg-blue-100 text-blue-700 border-blue-300", label: "Atendente" },
       entregador: { color: "bg-green-100 text-green-700 border-green-300", label: "Motoboy" },
+      balcao: { color: "bg-orange-100 text-orange-700 border-orange-300", label: "Balcão" }, // New badge type
     };
     const { color, label } = config[tipo] || config.atendente;
     return <Badge className={`${color} border`}>{label}</Badge>;
@@ -198,6 +200,12 @@ export default function Usuarios() {
                                       <div className="flex items-center gap-2">
                                         <UserCog className="w-4 h-4 text-green-600" />
                                         Motoboy (Visualizar Entregas)
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="balcao">
+                                      <div className="flex items-center gap-2">
+                                        <UserCog className="w-4 h-4 text-orange-600" />
+                                        Balcão (Gerenciar Balcão e Romaneios)
                                       </div>
                                     </SelectItem>
                                   </SelectContent>

@@ -54,7 +54,9 @@ import {
   AlertCircle,
   Search,
   Plus,
-  DollarSign // Added for payment status
+  DollarSign, // Added for payment status
+  Upload, // Added for image upload
+  Image as ImageIcon // Renamed to ImageIcon to avoid conflict with Image component if any
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -151,6 +153,10 @@ export default function DetalhesRomaneio() {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [novoStatus, setNovoStatus] = useState("");
   const [searchCliente, setSearchCliente] = useState("");
+  const [uploadingImages, setUploadingImages] = useState(false); // New state
+  const [imagemTipo, setImagemTipo] = useState(""); // New state
+  const [showImageDialog, setShowImageDialog] = useState(false); // New state
+  const [selectedFiles, setSelectedFiles] = useState([]); // New state
 
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
     queryKey: ['clientes'],
@@ -323,6 +329,50 @@ export default function DetalhesRomaneio() {
     },
   });
 
+  const uploadImagesMutation = useMutation({
+    mutationFn: async ({ files, tipo }) => {
+      const uploadPromises = files.map(async (file) => {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        return { url: file_url, tipo };
+      });
+      
+      const novasImagens = await Promise.all(uploadPromises);
+      const imagensAtuais = romaneio.imagens || [];
+      
+      return base44.entities.Romaneio.update(romaneio.id, {
+        ...romaneio,
+        imagens: [...imagensAtuais, ...novasImagens]
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      toast.success('Imagens anexadas com sucesso!');
+      setShowImageDialog(false);
+      setSelectedFiles([]);
+      setImagemTipo("");
+    },
+    onError: () => {
+      toast.error('Erro ao anexar imagens');
+    }
+  });
+
+  const removeImageMutation = useMutation({
+    mutationFn: async (imageUrl) => {
+      const imagensAtualizadas = romaneio.imagens.filter(img => img.url !== imageUrl);
+      return base44.entities.Romaneio.update(romaneio.id, {
+        ...romaneio,
+        imagens: imagensAtualizadas
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      toast.success('Imagem removida!');
+    },
+    onError: () => {
+      toast.error('Erro ao remover imagem');
+    }
+  });
+
   const handleAlterarStatus = () => {
     if (!novoStatus) {
       toast.error('Selecione um status');
@@ -418,6 +468,23 @@ export default function DetalhesRomaneio() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles(files);
+  };
+
+  const handleUploadImages = () => {
+    if (!imagemTipo) {
+      toast.error('Selecione o tipo da imagem');
+      return;
+    }
+    if (selectedFiles.length === 0) {
+      toast.error('Selecione pelo menos uma imagem');
+      return;
+    }
+    uploadImagesMutation.mutate({ files: selectedFiles, tipo: imagemTipo });
   };
 
   if (isLoading || isLoadingClientes) {
@@ -963,6 +1030,71 @@ export default function DetalhesRomaneio() {
                   </CardContent>
                 </Card>
 
+                {/* Seção de Imagens */}
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="border-b border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-xl flex items-center gap-2">
+                        <ImageIcon className="w-5 h-5 text-[#457bba]" />
+                        Imagens Anexadas
+                      </CardTitle>
+                      <Button
+                        onClick={() => setShowImageDialog(true)}
+                        size="sm"
+                        className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Anexar Imagens
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    {!romaneio.imagens || romaneio.imagens.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500">
+                        <ImageIcon className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                        <p>Nenhuma imagem anexada</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {romaneio.imagens.map((img, idx) => (
+                          <div key={idx} className="relative group">
+                            <img
+                              src={img.url}
+                              alt={`Imagem ${idx + 1}`}
+                              className="w-full h-32 object-cover rounded-lg border-2 border-slate-200"
+                            />
+                            <Badge
+                              className={`absolute top-2 left-2 ${
+                                img.tipo === 'pagamento'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-blue-100 text-blue-700'
+                              }`}
+                            >
+                              {img.tipo === 'pagamento' ? 'Pagamento' : 'Receita'}
+                            </Badge>
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                              onClick={() => removeImageMutation.mutate(img.url)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                            <a
+                              href={img.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="absolute bottom-2 right-2 bg-white/90 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <ImageIcon className="w-4 h-4 text-slate-700" />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Motivo Não Entrega */}
                 {romaneio.status === 'Não Entregue' && romaneio.motivo_nao_entrega && (
                   <Card className="border-none shadow-lg border-l-4 border-l-red-500 bg-red-50">
@@ -1298,6 +1430,65 @@ export default function DetalhesRomaneio() {
           </div>
         </div>
       </div>
+
+      {/* Dialog para Upload de Imagens */}
+      <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Anexar Imagens</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Tipo de Imagem *</Label>
+              <Select value={imagemTipo} onValueChange={setImagemTipo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pagamento">Comprovante de Pagamento</SelectItem>
+                  <SelectItem value="receita">Receita Médica</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Selecione as Imagens *</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+                className="cursor-pointer"
+              />
+              {selectedFiles.length > 0 && (
+                <p className="text-sm text-slate-600 mt-2">
+                  {selectedFiles.length} arquivo(s) selecionado(s)
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowImageDialog(false);
+                  setSelectedFiles([]);
+                  setImagemTipo("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleUploadImages}
+                disabled={uploadImagesMutation.isPending || !imagemTipo || selectedFiles.length === 0}
+                className="bg-[#457bba] hover:bg-[#3a6ba0]"
+              >
+                {uploadImagesMutation.isPending ? 'Enviando...' : 'Anexar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
