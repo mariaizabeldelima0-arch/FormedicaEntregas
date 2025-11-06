@@ -24,6 +24,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Package,
   Search,
   Plus,
@@ -34,7 +45,9 @@ import {
   User,
   CreditCard,
   MessageCircle,
-  Edit
+  Edit,
+  Trash2,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { format, differenceInDays, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -50,6 +63,8 @@ export default function Balcao() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedEntregas, setSelectedEntregas] = useState([]);
   const [bulkStatus, setBulkStatus] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("todos"); // Novo filtro
+  const [visualizarTodas, setVisualizarTodas] = useState(false); // Novo toggle
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -80,6 +95,20 @@ export default function Balcao() {
 
   const criarMutation = useMutation({
     mutationFn: async (data) => {
+      // Verificar duplicação de número
+      const allRomaneios = await base44.entities.Romaneio.list();
+      const allSedex = await base44.entities.EntregaSedex.list();
+      const allBalcao = await base44.entities.EntregaBalcao.list();
+      
+      const numeroJaExiste = 
+        allRomaneios.some(r => r.numero_requisicao === data.numero_registro) ||
+        allSedex.some(s => s.numero_registro === data.numero_registro) ||
+        allBalcao.some(b => b.numero_registro === data.numero_registro);
+      
+      if (numeroJaExiste) {
+        throw new Error('Este número de registro já está em uso. Por favor, use outro número.');
+      }
+
       // Criar ou atualizar cliente
       let clienteId = null;
       const clienteExistente = clientes.find(c => 
@@ -107,6 +136,9 @@ export default function Balcao() {
         status: "Produzindo",
         data_cadastro: new Date().toISOString(),
         valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null,
+        buscar_receita: false,
+        receita_recebida: false,
+        imagens: [],
       });
     },
     onSuccess: () => {
@@ -124,8 +156,8 @@ export default function Balcao() {
         observacoes: "",
       });
     },
-    onError: () => {
-      toast.error('Erro ao cadastrar entrega');
+    onError: (error) => {
+      toast.error(error.message || 'Erro ao cadastrar entrega');
     }
   });
 
@@ -191,6 +223,19 @@ export default function Balcao() {
     },
     onError: () => {
       toast.error('Erro ao atualizar entregas');
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      await base44.entities.EntregaBalcao.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entregas-balcao'] });
+      toast.success('Entrega excluída com sucesso!');
+    },
+    onError: () => {
+      toast.error('Erro ao excluir entrega');
     }
   });
 
@@ -263,19 +308,28 @@ export default function Balcao() {
 
   // Filtrar entregas por data e termo de busca
   const entregasFiltradas = entregas.filter(e => {
-    const matchesDate = e.data_cadastro && isSameDay(parseISO(e.data_cadastro), selectedDate);
+    // Se não visualizar todas, filtrar por data
+    if (!visualizarTodas) {
+      const matchesDate = e.data_cadastro && isSameDay(parseISO(e.data_cadastro), selectedDate);
+      if (!matchesDate) return false;
+    }
     
-    if (!searchTerm) return matchesDate;
+    // Filtro de status
+    if (filtroStatus !== "todos" && e.status !== filtroStatus) return false;
+
+    // Busca
+    if (searchTerm) {
+      const termo = searchTerm.toLowerCase();
+      const matchesSearch = (
+        e.numero_registro.toLowerCase().includes(termo) ||
+        e.cliente_nome.toLowerCase().includes(termo) ||
+        e.cliente_telefone.includes(searchTerm) ||
+        e.cliente_cpf?.includes(searchTerm)
+      );
+      if (!matchesSearch) return false;
+    }
     
-    const termo = searchTerm.toLowerCase();
-    const matchesSearch = (
-      e.numero_registro.toLowerCase().includes(termo) ||
-      e.cliente_nome.toLowerCase().includes(termo) ||
-      e.cliente_telefone.includes(searchTerm) ||
-      e.cliente_cpf?.includes(searchTerm)
-    );
-    
-    return matchesDate && matchesSearch;
+    return true;
   });
 
   // Separar por status
@@ -406,6 +460,34 @@ export default function Balcao() {
             >
               <Edit className="w-4 h-4" />
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-300 text-red-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir a entrega #{entrega.numero_registro}? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteMutation.mutate(entrega.id)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Confirmar Exclusão
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardContent>
       </Card>
@@ -437,20 +519,35 @@ export default function Balcao() {
                 <CardTitle className="text-lg">Selecione o Dia</CardTitle>
               </CardHeader>
               <CardContent>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  locale={ptBR}
-                  className="rounded-md border"
-                />
-                <div className="mt-4 text-center">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {entregasFiltradas.length} entrega{entregasFiltradas.length !== 1 ? 's' : ''}
-                  </p>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="visualizar-todas"
+                      checked={visualizarTodas}
+                      onCheckedChange={(checked) => setVisualizarTodas(checked)}
+                    />
+                    <Label htmlFor="visualizar-todas" className="cursor-pointer text-sm">
+                      Visualizar todas as entregas
+                    </Label>
+                  </div>
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    locale={ptBR}
+                    className="rounded-md border"
+                    disabled={visualizarTodas}
+                  />
+                  {!visualizarTodas && (
+                    <div className="mt-4 text-center">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {entregasFiltradas.length} entrega{entregasFiltradas.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -502,27 +599,52 @@ export default function Balcao() {
                 </Card>
               )}
 
-              {/* Estatísticas */}
+              {/* Estatísticas - Agora Clicáveis */}
               <div className="grid grid-cols-3 gap-4">
-                <Card className="border-none shadow-md bg-blue-50">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-3xl font-bold text-blue-900">{entregasProduzindo.length}</p>
-                    <p className="text-sm text-blue-700">Produzindo</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-none shadow-md bg-green-50">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-3xl font-bold text-green-900">{entregasProntas.length}</p>
-                    <p className="text-sm text-green-700">Prontas</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-none shadow-md bg-slate-50">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-3xl font-bold text-slate-900">{entregasEntregues.length}</p>
-                    <p className="text-sm text-slate-700">Entregues</p>
-                  </CardContent>
-                </Card>
+                <button
+                  onClick={() => setFiltroStatus("Produzindo")}
+                  className={`text-left rounded-lg ${filtroStatus === "Produzindo" ? 'ring-2 ring-blue-500' : ''}`}
+                >
+                  <Card className={`border-none shadow-md ${filtroStatus === "Produzindo" ? 'bg-blue-100' : 'bg-blue-50'} cursor-pointer hover:shadow-lg transition-all`}>
+                    <CardContent className="pt-6 text-center">
+                      <p className="text-3xl font-bold text-blue-900">{entregasProduzindo.length}</p>
+                      <p className="text-sm text-blue-700">Produzindo</p>
+                    </CardContent>
+                  </Card>
+                </button>
+                <button
+                  onClick={() => setFiltroStatus("Pronto")}
+                  className={`text-left rounded-lg ${filtroStatus === "Pronto" ? 'ring-2 ring-green-500' : ''}`}
+                >
+                  <Card className={`border-none shadow-md ${filtroStatus === "Pronto" ? 'bg-green-100' : 'bg-green-50'} cursor-pointer hover:shadow-lg transition-all`}>
+                    <CardContent className="pt-6 text-center">
+                      <p className="text-3xl font-bold text-green-900">{entregasProntas.length}</p>
+                      <p className="text-sm text-green-700">Prontas</p>
+                    </CardContent>
+                  </Card>
+                </button>
+                <button
+                  onClick={() => setFiltroStatus("Entregue")}
+                  className={`text-left rounded-lg ${filtroStatus === "Entregue" ? 'ring-2 ring-slate-500' : ''}`}
+                >
+                  <Card className={`border-none shadow-md ${filtroStatus === "Entregue" ? 'bg-slate-100' : 'bg-slate-50'} cursor-pointer hover:shadow-lg transition-all`}>
+                    <CardContent className="pt-6 text-center">
+                      <p className="text-3xl font-bold text-slate-900">{entregasEntregues.length}</p>
+                      <p className="text-sm text-slate-700">Entregues</p>
+                    </CardContent>
+                  </Card>
+                </button>
               </div>
+              {filtroStatus !== "todos" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFiltroStatus("todos")}
+                  className="w-full"
+                >
+                  Limpar Filtro de Status
+                </Button>
+              )}
 
               {/* Listas de Entregas */}
               <div className="space-y-6">

@@ -11,6 +11,8 @@ import Sedex from './pages/Sedex';
 import DetalhesSedex from './pages/DetalhesSedex';
 import PainelMotoboys from './pages/PainelMotoboys';
 import Balcao from './pages/Balcao';
+import Receitas from './pages/Receitas';
+import Pagamentos from './pages/Pagamentos';
 import Layout from './Layout.jsx';
 
 
@@ -28,6 +30,8 @@ export const PAGES = {
     "DetalhesSedex": DetalhesSedex,
     "PainelMotoboys": PainelMotoboys,
     "Balcao": Balcao,
+    "Receitas": Receitas,
+    "Pagamentos": Pagamentos,
 }
 
 export const pagesConfig = {
