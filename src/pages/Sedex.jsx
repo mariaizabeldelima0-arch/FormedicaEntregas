@@ -156,6 +156,9 @@ export default function Sedex() {
     sedex: entregasFiltradas.filter(e => e.tipo_entrega === 'Sedex').length,
     pac: entregasFiltradas.filter(e => e.tipo_entrega === 'PAC').length,
     disktenha: entregasFiltradas.filter(e => e.tipo_entrega === 'Disktenha').length,
+    valorDisktenha: entregasFiltradas
+      .filter(e => e.tipo_entrega === 'Disktenha' && e.valor_entrega)
+      .reduce((sum, e) => sum + e.valor_entrega, 0),
   };
 
   const TipoBadge = ({ tipo }) => {
@@ -377,7 +380,7 @@ export default function Sedex() {
           )}
 
           <div className={`${!visualizarTodas ? "lg:col-span-3" : "lg:col-span-4"} space-y-6`}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <Card className="border-none shadow-md">
                 <CardHeader className="pb-3">
                   <p className="text-sm text-slate-500 font-medium">Total</p>
@@ -400,6 +403,12 @@ export default function Sedex() {
                 <CardHeader className="pb-3">
                   <p className="text-sm text-slate-500 font-medium">Disktenha</p>
                   <p className="text-3xl font-bold text-purple-600">{stats.disktenha}</p>
+                </CardHeader>
+              </Card>
+              <Card className="border-none shadow-md bg-gradient-to-br from-green-50 to-green-100">
+                <CardHeader className="pb-3">
+                  <p className="text-sm text-green-700 font-medium">Total Disktenha</p>
+                  <p className="text-2xl font-bold text-green-700">R$ {stats.valorDisktenha.toFixed(2)}</p>
                 </CardHeader>
               </Card>
             </div>
