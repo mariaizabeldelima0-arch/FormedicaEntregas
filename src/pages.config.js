@@ -13,6 +13,7 @@ import PainelMotoboys from './pages/PainelMotoboys';
 import Balcao from './pages/Balcao';
 import Receitas from './pages/Receitas';
 import Pagamentos from './pages/Pagamentos';
+import PlanilhaDiaria from './pages/PlanilhaDiaria';
 import Layout from './Layout.jsx';
 
 
@@ -32,6 +33,7 @@ export const PAGES = {
     "Balcao": Balcao,
     "Receitas": Receitas,
     "Pagamentos": Pagamentos,
+    "PlanilhaDiaria": PlanilhaDiaria,
 }
 
 export const pagesConfig = {

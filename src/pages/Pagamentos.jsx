@@ -10,11 +10,13 @@ import { DollarSign, Search, CreditCard, Package } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Pagamentos() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
   const [visualizarTodos, setVisualizarTodos] = useState(false);
+  const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
 
   const { data: romaneios, isLoading } = useQuery({
     queryKey: ['romaneios-pagamentos'],
@@ -38,6 +40,9 @@ export default function Pagamentos() {
       if (!isSameDay(dataEntrega, selectedDate)) return false;
     }
 
+    // Filtro de motoboy
+    if (filtroMotoboy !== "todos" && r.motoboy !== filtroMotoboy) return false;
+
     // Busca
     if (searchTerm) {
       const termo = searchTerm.toLowerCase();
@@ -51,9 +56,25 @@ export default function Pagamentos() {
     return true;
   });
 
+  // Motoboys únicos
+  const motoboysUnicos = [...new Set(romaneios.map(r => r.motoboy).filter(Boolean))];
+
   // Separar por status de pagamento
   const pagamentosPendentes = romaneiosFiltrados.filter(r => !r.pagamento_recebido);
   const pagamentosRecebidos = romaneiosFiltrados.filter(r => r.pagamento_recebido);
+
+  // Calcular totais por forma de pagamento
+  const totaisPorForma = pagamentosRecebidos.reduce((acc, r) => {
+    if (r.valor_pagamento && (r.forma_pagamento === "Dinheiro" || r.forma_pagamento === "Maquina")) {
+      const forma = r.forma_pagamento;
+      if (!acc[forma]) acc[forma] = 0;
+      acc[forma] += r.valor_pagamento;
+    }
+    return acc;
+  }, {});
+
+  const totalDinheiro = totaisPorForma["Dinheiro"] || 0;
+  const totalCartao = totaisPorForma["Maquina"] || 0;
 
   const StatusPagamentoBadge = ({ recebido }) => {
     return recebido ? (
@@ -119,9 +140,9 @@ export default function Pagamentos() {
 
           {/* Lista */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Busca */}
+            {/* Busca e Filtros */}
             <Card className="border-none shadow-lg">
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
@@ -131,11 +152,22 @@ export default function Pagamentos() {
                     className="pl-10"
                   />
                 </div>
+                <Select value={filtroMotoboy} onValueChange={setFiltroMotoboy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por Motoboy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os Motoboys</SelectItem>
+                    {motoboysUnicos.map(m => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardContent>
             </Card>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="border-none shadow-md bg-yellow-50">
                 <CardContent className="pt-6 text-center">
                   <p className="text-3xl font-bold text-yellow-900">{pagamentosPendentes.length}</p>
@@ -146,6 +178,18 @@ export default function Pagamentos() {
                 <CardContent className="pt-6 text-center">
                   <p className="text-3xl font-bold text-green-900">{pagamentosRecebidos.length}</p>
                   <p className="text-sm text-green-700">Recebidos</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md bg-blue-50">
+                <CardContent className="pt-6 text-center">
+                  <p className="text-xl font-bold text-blue-900">R$ {totalDinheiro.toFixed(2)}</p>
+                  <p className="text-sm text-blue-700">Dinheiro</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md bg-purple-50">
+                <CardContent className="pt-6 text-center">
+                  <p className="text-xl font-bold text-purple-900">R$ {totalCartao.toFixed(2)}</p>
+                  <p className="text-sm text-purple-700">Cartão</p>
                 </CardContent>
               </Card>
             </div>
@@ -177,6 +221,11 @@ export default function Pagamentos() {
                               {romaneio.valor_pagamento && (
                                 <Badge className="bg-yellow-100 text-yellow-700 border-yellow-400 border-2 font-bold">
                                   R$ {romaneio.valor_pagamento.toFixed(2)}
+                                </Badge>
+                              )}
+                              {romaneio.motoboy && (
+                                <Badge variant="outline">
+                                  {romaneio.motoboy}
                                 </Badge>
                               )}
                             </div>
@@ -226,6 +275,11 @@ export default function Pagamentos() {
                               {romaneio.valor_pagamento && (
                                 <Badge className="bg-green-100 text-green-700">
                                   R$ {romaneio.valor_pagamento.toFixed(2)}
+                                </Badge>
+                              )}
+                              {romaneio.motoboy && (
+                                <Badge variant="outline">
+                                  {romaneio.motoboy}
                                 </Badge>
                               )}
                             </div>
