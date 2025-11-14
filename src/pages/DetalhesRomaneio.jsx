@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -71,7 +70,7 @@ const CIDADES = [
   "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
   "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
   "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
-  "Bombinhas", "Clinica"
+  "Bombinhas", "Clinica", "Outro"
 ];
 
 const FORMAS_PAGAMENTO = [
@@ -153,10 +152,11 @@ export default function DetalhesRomaneio() {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [novoStatus, setNovoStatus] = useState("");
   const [searchCliente, setSearchCliente] = useState("");
-  const [uploadingImages, setUploadingImages] = useState(false); // New state
-  const [imagemTipo, setImagemTipo] = useState(""); // New state
-  const [showImageDialog, setShowImageDialog] = useState(false); // New state
-  const [selectedFiles, setSelectedFiles] = useState([]); // New state
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [imagemTipo, setImagemTipo] = useState("");
+  const [showImageDialog, setShowImageDialog] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [selectedClientes, setSelectedClientes] = useState([]);
 
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
     queryKey: ['clientes'],
@@ -171,11 +171,16 @@ export default function DetalhesRomaneio() {
 
   const isAdmin = user?.tipo_usuario === 'admin' || user?.role === 'admin';
 
-  const clientesFiltrados = clientes.filter(c =>
-    c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
-    c.telefone?.includes(searchCliente) ||
-    c.cpf?.includes(searchCliente)
-  );
+  const clientesFiltrados = clientes.filter(c => {
+    const matchesSearch = c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
+      c.telefone?.includes(searchCliente) ||
+      c.cpf?.includes(searchCliente);
+    
+    const hasEndereco = c.enderecos && c.enderecos.length > 0;
+    const notSelected = !selectedClientes.find(sc => sc.id === c.id);
+    
+    return matchesSearch && hasEndereco && notSelected;
+  });
 
   const { data: romaneio, isLoading, error } = useQuery({
     queryKey: ['romaneio', romaneioId],
@@ -219,17 +224,27 @@ export default function DetalhesRomaneio() {
 
   const updateMutation = useMutation({
     mutationFn: async (data) => {
+      if (!data.endereco_selecionado) {
+        throw new Error('Selecione um endereço para entrega');
+      }
+
+      const clientesNomes = selectedClientes.map(c => c.nome).join(", ");
+      const clientesTelefones = selectedClientes.map(c => c.telefone).join(", ");
+      
+      const cidadeFinal = data.cidade_regiao === "Outro" ? data.cidade_outro : data.cidade_regiao;
+
       const updateData = {
         numero_requisicao: data.numero_requisicao,
-        cliente_id: data.cliente_id,
-        cliente_nome: data.cliente_nome,
-        cliente_telefone: data.cliente_telefone,
-        endereco: data.endereco,
-        cidade_regiao: data.cidade_regiao,
+        cliente_id: selectedClientes[0].id,
+        clientes_ids: selectedClientes.map(c => c.id),
+        cliente_nome: clientesNomes,
+        cliente_telefone: clientesTelefones,
+        endereco: data.endereco_selecionado,
+        cidade_regiao: cidadeFinal,
         forma_pagamento: data.forma_pagamento,
         valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null,
         valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
-        valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : 0, // Added valor_entrega
+        valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : 0,
         item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
         buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
         motoboy: data.motoboy,
@@ -386,36 +401,19 @@ export default function DetalhesRomaneio() {
   };
 
   const handleEditStart = () => {
-    const currentClient = clientes.find(c => c.id === romaneio.cliente_id);
-    let initialEnderecoIndex = 0;
-
-    // Try to find the matching address among client's addresses
-    if (currentClient && currentClient.enderecos && romaneio.endereco) {
-      const foundIndex = currentClient.enderecos.findIndex(
-        addr =>
-          addr.rua === romaneio.endereco.rua &&
-          addr.numero === romaneio.endereco.numero &&
-          addr.bairro === romaneio.endereco.bairro &&
-          addr.cidade === romaneio.cidade_regiao
-          // Add more fields if necessary for a robust match
-      );
-      if (foundIndex !== -1) {
-        initialEnderecoIndex = foundIndex;
-      }
-    }
+    const clientesIds = romaneio.clientes_ids || [romaneio.cliente_id];
+    const clientesIniciais = clientes.filter(c => clientesIds.includes(c.id));
+    setSelectedClientes(clientesIniciais);
 
     setEditData({
       numero_requisicao: romaneio.numero_requisicao,
-      cliente_id: romaneio.cliente_id,
-      cliente_nome: romaneio.cliente_nome,
-      cliente_telefone: romaneio.cliente_telefone || "",
-      endereco: romaneio.endereco,
-      endereco_index: initialEnderecoIndex, // Added
+      endereco_selecionado: romaneio.endereco,
       cidade_regiao: romaneio.cidade_regiao,
+      cidade_outro: CIDADES.slice(0, -1).includes(romaneio.cidade_regiao) ? "" : romaneio.cidade_regiao,
       forma_pagamento: romaneio.forma_pagamento,
       valor_pagamento: romaneio.valor_pagamento || "",
       valor_troco: romaneio.valor_troco || "",
-      valor_entrega: romaneio.valor_entrega || "", // Added valor_entrega
+      valor_entrega: romaneio.valor_entrega || "",
       item_geladeira: romaneio.item_geladeira || false,
       buscar_receita: romaneio.buscar_receita || false,
       motoboy: romaneio.motoboy,
@@ -427,43 +425,62 @@ export default function DetalhesRomaneio() {
     setIsEditing(true);
   };
 
-  const handleClienteChange = (clienteId) => {
-    const cliente = clientes.find(c => c.id === clienteId);
-    if (cliente) {
-      const firstAddress = cliente.enderecos?.[0] || {
-        rua: "",
-        numero: "",
-        bairro: "",
-        complemento: "",
-        ponto_referencia: "",
-        aos_cuidados_de: "",
-        observacoes: "",
-        cidade: "", // Assuming addresses have a city field
-      };
-      setEditData({
-        ...editData,
-        cliente_id: clienteId,
-        cliente_nome: cliente.nome,
-        cliente_telefone: cliente.telefone,
-        endereco_index: 0,
-        endereco: firstAddress,
-        cidade_regiao: firstAddress.cidade || editData.cidade_regiao, // Update city if address has one
-      });
-      setSearchCliente("");
+  const handleAddCliente = (cliente) => {
+    setSelectedClientes([...selectedClientes, cliente]);
+    setSearchCliente("");
+  };
+
+  const handleRemoveCliente = (clienteId) => {
+    setSelectedClientes(selectedClientes.filter(c => c.id !== clienteId));
+    if (editData.endereco_selecionado) {
+      const enderecoClienteRemovido = selectedClientes
+        .find(c => c.id === clienteId)
+        ?.enderecos?.some(e => JSON.stringify(e) === JSON.stringify(editData.endereco_selecionado));
+      
+      if (enderecoClienteRemovido) {
+        setEditData({ ...editData, endereco_selecionado: null });
+      }
     }
   };
 
   const handleSaveEdit = () => {
-    if (!editData.numero_requisicao || !editData.cliente_nome) {
-      toast.error('Preencha todos os campos obrigatórios');
+    if (selectedClientes.length === 0) {
+      toast.error('Selecione pelo menos um cliente');
       return;
     }
+
+    if (!editData.numero_requisicao) {
+      toast.error('Informe o número da requisição');
+      return;
+    }
+
+    if (!editData.cidade_regiao) {
+      toast.error('Selecione a cidade/região');
+      return;
+    }
+
+    if (editData.cidade_regiao === "Outro" && !editData.cidade_outro) {
+      toast.error('Informe o nome da outra cidade');
+      return;
+    }
+
+    if (!editData.forma_pagamento) {
+      toast.error('Selecione a forma de pagamento');
+      return;
+    }
+
+    if (!editData.endereco_selecionado) {
+      toast.error('Selecione um endereço para entrega');
+      return;
+    }
+
     updateMutation.mutate(editData);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditData(null);
+    setSelectedClientes([]);
   };
 
   const handlePrint = () => {
@@ -566,7 +583,6 @@ export default function DetalhesRomaneio() {
   };
 
   const currentData = isEditing ? editData : romaneio;
-  const currentClientData = isEditing ? clientes.find(c => c.id === editData?.cliente_id) : null;
 
   return (
     <>
@@ -797,6 +813,7 @@ export default function DetalhesRomaneio() {
                   <CardContent className="space-y-3">
                     {isEditing ? (
                       <div className="space-y-3">
+                        <Label>Cliente(s) *</Label>
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                           <Input
@@ -813,7 +830,7 @@ export default function DetalhesRomaneio() {
                                 <button
                                   key={c.id}
                                   type="button"
-                                  onClick={() => handleClienteChange(c.id)}
+                                  onClick={() => handleAddCliente(c)}
                                   className="w-full text-left p-3 hover:bg-slate-50 border-b last:border-b-0"
                                 >
                                   <div className="font-medium text-slate-900">{c.nome}</div>
@@ -826,12 +843,26 @@ export default function DetalhesRomaneio() {
                             </CardContent>
                           </Card>
                         )}
-                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="flex-1">
-                            <p className="font-medium text-slate-900">{editData.cliente_nome}</p>
-                            <p className="text-sm text-slate-600">{editData.cliente_telefone}</p>
+                        {selectedClientes.length > 0 && (
+                          <div className="space-y-2">
+                            {selectedClientes.map((cliente) => (
+                              <div key={cliente.id} className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="flex-1">
+                                  <p className="font-medium text-slate-900">{cliente.nome}</p>
+                                  <p className="text-sm text-slate-600">{cliente.telefone}</p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveCliente(cliente.id)}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
                           </div>
-                        </div>
+                        )}
                         <Button
                           type="button"
                           variant="outline"
@@ -870,110 +901,65 @@ export default function DetalhesRomaneio() {
                   <CardContent className="space-y-3">
                     {isEditing ? (
                       <>
-                        {currentClientData && currentClientData.enderecos?.length > 0 && (
+                        {selectedClientes.length > 0 && (
                           <div>
-                            <Label>Selecione o Endereço *</Label>
-                            <Select
-                              value={editData.endereco_index?.toString() || "0"}
-                              onValueChange={(value) => {
-                                const endereco = currentClientData.enderecos[parseInt(value)];
-                                setEditData({
-                                  ...editData,
-                                  endereco_index: parseInt(value),
-                                  endereco: endereco,
-                                  cidade_regiao: endereco?.cidade || editData.cidade_regiao
-                                });
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione um endereço salvo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {currentClientData.enderecos.map((end, idx) => (
-                                  <SelectItem key={idx} value={idx.toString()}>
-                                    {end.cidade && `${end.cidade} - `}
-                                    {end.rua}, {end.numero} - {end.bairro}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Label>Selecione o Endereço de Entrega *</Label>
+                            <p className="text-xs text-slate-500 mb-2">Escolha apenas um endereço para esta entrega</p>
+                            <div className="space-y-2 mt-2">
+                              {selectedClientes.map((cliente) => (
+                                <div key={cliente.id}>
+                                  <p className="font-semibold text-slate-900 mb-2 text-sm">
+                                    {cliente.nome}
+                                  </p>
+                                  {cliente.enderecos && cliente.enderecos.map((endereco, endIdx) => {
+                                    const enderecoKey = `${cliente.id}-${endIdx}`;
+                                    const isSelected = editData.endereco_selecionado && 
+                                      JSON.stringify(editData.endereco_selecionado) === JSON.stringify(endereco);
+                                    
+                                    return (
+                                      <button
+                                        key={enderecoKey}
+                                        type="button"
+                                        onClick={() => {
+                                          const cidadeEndereco = endereco.cidade;
+                                          const cidadeExiste = CIDADES.slice(0, -1).includes(cidadeEndereco);
+                                          
+                                          setEditData({ 
+                                            ...editData, 
+                                            endereco_selecionado: endereco,
+                                            cidade_regiao: cidadeExiste ? cidadeEndereco : "Outro",
+                                            cidade_outro: cidadeExiste ? "" : cidadeEndereco || ""
+                                          });
+                                        }}
+                                        className={`w-full text-left p-4 rounded-lg border-2 transition-all mb-2 ${
+                                          isSelected
+                                            ? 'border-[#457bba] bg-blue-50'
+                                            : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                                        }`}
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="text-sm text-slate-700">
+                                            <p className="font-medium">{endereco.rua}, {endereco.numero}</p>
+                                            <p>{endereco.bairro} - {endereco.cidade || editData.cidade_regiao}</p>
+                                            {endereco.complemento && (
+                                              <p className="text-slate-500">Complemento: {endereco.complemento}</p>
+                                            )}
+                                            {endereco.ponto_referencia && (
+                                              <p className="text-slate-500 italic">Ref: {endereco.ponto_referencia}</p>
+                                            )}
+                                          </div>
+                                          {isSelected && (
+                                            <Badge className="bg-[#457bba] text-white">Selecionado</Badge>
+                                          )}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label>Rua</Label>
-                            <Input
-                              value={editData.endereco.rua}
-                              onChange={(e) => setEditData({
-                                ...editData,
-                                endereco: { ...editData.endereco, rua: e.target.value }
-                              })}
-                            />
-                          </div>
-                          <div>
-                            <Label>Número</Label>
-                            <Input
-                              value={editData.endereco.numero}
-                              onChange={(e) => setEditData({
-                                ...editData,
-                                endereco: { ...editData.endereco, numero: e.target.value }
-                              })}
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label>Bairro</Label>
-                            <Input
-                              value={editData.endereco.bairro}
-                              onChange={(e) => setEditData({
-                                ...editData,
-                                endereco: { ...editData.endereco, bairro: e.target.value }
-                              })}
-                            />
-                          </div>
-                          <div>
-                            <Label>Complemento</Label>
-                            <Input
-                              value={editData.endereco.complemento || ""}
-                              onChange={(e) => setEditData({
-                                ...editData,
-                                endereco: { ...editData.endereco, complemento: e.target.value }
-                              })}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Ponto de Referência</Label>
-                          <Input
-                            value={editData.endereco.ponto_referencia || ""}
-                            onChange={(e) => setEditData({
-                              ...editData,
-                              endereco: { ...editData.endereco, ponto_referencia: e.target.value }
-                            })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Aos Cuidados De</Label>
-                          <Input
-                            value={editData.endereco.aos_cuidados_de || ""}
-                            onChange={(e) => setEditData({
-                              ...editData,
-                              endereco: { ...editData.endereco, aos_cuidados_de: e.target.value }
-                            })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Observações do Endereço</Label>
-                          <Textarea
-                            value={editData.endereco.observacoes || ""}
-                            onChange={(e) => setEditData({
-                              ...editData,
-                              endereco: { ...editData.endereco, observacoes: e.target.value }
-                            })}
-                            rows={2}
-                          />
-                        </div>
                       </>
                     ) : (
                       <>
@@ -1136,6 +1122,18 @@ export default function DetalhesRomaneio() {
                             </SelectContent>
                           </Select>
                         </div>
+
+                        {editData.cidade_regiao === "Outro" && (
+                          <div>
+                            <Label htmlFor="cidade_outro_edit">Nome da Cidade *</Label>
+                            <Input
+                              id="cidade_outro_edit"
+                              value={editData.cidade_outro || ""}
+                              onChange={(e) => setEditData({ ...editData, cidade_outro: e.target.value })}
+                              placeholder="Digite o nome da cidade"
+                            />
+                          </div>
+                        )}
 
                         <div>
                           <Label>Forma de Pagamento</Label>
