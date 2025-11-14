@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,7 +26,7 @@ import { Send, Plus, Search, MapPin, DollarSign, Package } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { Link } from 'react-router-dom'; // Added Link import
+import { Link } from 'react-router-dom';
 
 export default function Sedex() {
   const queryClient = useQueryClient();
@@ -36,6 +35,7 @@ export default function Sedex() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroLocal, setFiltroLocal] = useState("todos");
+  const [visualizarTodas, setVisualizarTodas] = useState(false);
 
   const [formData, setFormData] = useState({
     numero_registro: "",
@@ -63,15 +63,12 @@ export default function Sedex() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      // Verificar duplicação de número
       const allRomaneios = await base44.entities.Romaneio.list();
       const allSedex = await base44.entities.EntregaSedex.list();
-      const allBalcao = await base44.entities.EntregaBalcao.list();
       
       const numeroJaExiste = 
         allRomaneios.some(r => r.numero_requisicao === data.numero_registro) ||
-        allSedex.some(s => s.numero_registro === data.numero_registro) ||
-        allBalcao.some(b => b.numero_registro === data.numero_registro);
+        allSedex.some(s => s.numero_registro === data.numero_registro);
       
       if (numeroJaExiste) {
         throw new Error('Este número de registro já está em uso. Por favor, use outro número.');
@@ -126,21 +123,19 @@ export default function Sedex() {
     createMutation.mutate(formData);
   };
 
-  // Filtrar entregas
   const entregasFiltradas = entregas.filter(e => {
-    // Filtro de data
-    if (e.data_postagem) {
-      const dataPostagem = parseISO(e.data_postagem);
-      if (!isSameDay(dataPostagem, selectedDate)) return false;
+    if (!visualizarTodas) {
+      if (e.data_postagem) {
+        const dataPostagem = parseISO(e.data_postagem);
+        if (!isSameDay(dataPostagem, selectedDate)) return false;
+      } else {
+        return false;
+      }
     }
 
-    // Filtro de tipo
     if (filtroTipo !== "todos" && e.tipo_entrega !== filtroTipo) return false;
-
-    // Filtro de local
     if (filtroLocal !== "todos" && e.cidade_destino !== filtroLocal) return false;
 
-    // Busca
     if (searchTerm) {
       const termo = searchTerm.toLowerCase();
       const match = 
@@ -154,10 +149,8 @@ export default function Sedex() {
     return true;
   });
 
-  // Locais únicos para filtro
   const locaisUnicos = [...new Set(entregas.map(e => e.cidade_destino).filter(Boolean))].sort();
 
-  // Stats
   const stats = {
     total: entregasFiltradas.length,
     sedex: entregasFiltradas.filter(e => e.tipo_entrega === 'Sedex').length,
@@ -197,185 +190,193 @@ export default function Sedex() {
               Gerencie entregas via Sedex, PAC e Disktenha
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-[#457bba] hover:bg-[#3a6ba0]">
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Entrega
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Cadastrar Nova Entrega</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+          <div className="flex gap-3">
+            <Button
+              variant={visualizarTodas ? "default" : "outline"}
+              onClick={() => setVisualizarTodas(!visualizarTodas)}
+              className={visualizarTodas ? "bg-[#457bba] hover:bg-[#3a6ba0]" : ""}
+            >
+              {visualizarTodas ? "Mostrar por Dia" : "Mostrar Todas"}
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#457bba] hover:bg-[#3a6ba0]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Entrega
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Cadastrar Nova Entrega</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Número de Registro *</Label>
+                      <Input
+                        value={formData.numero_registro}
+                        onChange={(e) => setFormData({ ...formData, numero_registro: e.target.value })}
+                        placeholder="Ex: REG-001"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Data de Postagem *</Label>
+                      <Input
+                        type="date"
+                        value={formData.data_postagem}
+                        onChange={(e) => setFormData({ ...formData, data_postagem: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <Label>Número de Registro *</Label>
+                    <Label>Cliente *</Label>
                     <Input
-                      value={formData.numero_registro}
-                      onChange={(e) => setFormData({ ...formData, numero_registro: e.target.value })}
-                      placeholder="Ex: REG-001"
+                      value={formData.cliente_nome}
+                      onChange={(e) => setFormData({ ...formData, cliente_nome: e.target.value })}
+                      placeholder="Nome do cliente"
                       required
                     />
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Destinatário</Label>
+                      <Input
+                        value={formData.destinatario}
+                        onChange={(e) => setFormData({ ...formData, destinatario: e.target.value })}
+                        placeholder="Nome do destinatário"
+                      />
+                    </div>
+                    <div>
+                      <Label>Cidade de Destino</Label>
+                      <Input
+                        value={formData.cidade_destino}
+                        onChange={(e) => setFormData({ ...formData, cidade_destino: e.target.value })}
+                        placeholder="Cidade"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Tipo de Entrega *</Label>
+                      <Select
+                        value={formData.tipo_entrega}
+                        onValueChange={(value) => setFormData({ ...formData, tipo_entrega: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Sedex">Sedex</SelectItem>
+                          <SelectItem value="PAC">PAC</SelectItem>
+                          <SelectItem value="Disktenha">Disktenha</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Status de Pagamento *</Label>
+                      <Select
+                        value={formData.status_pagamento}
+                        onValueChange={(value) => setFormData({ ...formData, status_pagamento: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pago">Pago</SelectItem>
+                          <SelectItem value="Aguardando">Aguardando</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {formData.tipo_entrega === "Disktenha" && (
+                    <div>
+                      <Label>Valor da Entrega (R$) *</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={formData.valor_entrega}
+                        onChange={(e) => setFormData({ ...formData, valor_entrega: e.target.value })}
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                  )}
+
                   <div>
-                    <Label>Data de Postagem *</Label>
+                    <Label>Código de Rastreio</Label>
                     <Input
-                      type="date"
-                      value={formData.data_postagem}
-                      onChange={(e) => setFormData({ ...formData, data_postagem: e.target.value })}
-                      required
+                      value={formData.codigo_rastreio}
+                      onChange={(e) => setFormData({ ...formData, codigo_rastreio: e.target.value })}
+                      placeholder="Ex: BR123456789BR"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <Label>Cliente *</Label>
-                  <Input
-                    value={formData.cliente_nome}
-                    onChange={(e) => setFormData({ ...formData, cliente_nome: e.target.value })}
-                    placeholder="Nome do cliente"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Destinatário</Label>
+                    <Label>Atendente</Label>
                     <Input
-                      value={formData.destinatario}
-                      onChange={(e) => setFormData({ ...formData, destinatario: e.target.value })}
-                      placeholder="Nome do destinatário"
+                      value={user?.nome_atendente || user?.full_name || ""}
+                      disabled
+                      className="bg-slate-100"
                     />
                   </div>
+
                   <div>
-                    <Label>Cidade de Destino</Label>
-                    <Input
-                      value={formData.cidade_destino}
-                      onChange={(e) => setFormData({ ...formData, cidade_destino: e.target.value })}
-                      placeholder="Cidade"
+                    <Label>Observações</Label>
+                    <Textarea
+                      value={formData.observacoes}
+                      onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                      placeholder="Observações adicionais"
+                      rows={3}
                     />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tipo de Entrega *</Label>
-                    <Select
-                      value={formData.tipo_entrega}
-                      onValueChange={(value) => setFormData({ ...formData, tipo_entrega: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Sedex">Sedex</SelectItem>
-                        <SelectItem value="PAC">PAC</SelectItem>
-                        <SelectItem value="Disktenha">Disktenha</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={createMutation.isPending} className="bg-[#457bba] hover:bg-[#3a6ba0]">
+                      {createMutation.isPending ? 'Cadastrando...' : 'Cadastrar'}
+                    </Button>
                   </div>
-                  <div>
-                    <Label>Status de Pagamento *</Label>
-                    <Select
-                      value={formData.status_pagamento}
-                      onValueChange={(value) => setFormData({ ...formData, status_pagamento: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Pago">Pago</SelectItem>
-                        <SelectItem value="Aguardando">Aguardando</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {formData.tipo_entrega === "Disktenha" && (
-                  <div>
-                    <Label>Valor da Entrega (R$) *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData.valor_entrega}
-                      onChange={(e) => setFormData({ ...formData, valor_entrega: e.target.value })}
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <Label>Código de Rastreio</Label>
-                  <Input
-                    value={formData.codigo_rastreio}
-                    onChange={(e) => setFormData({ ...formData, codigo_rastreio: e.target.value })}
-                    placeholder="Ex: BR123456789BR"
-                  />
-                </div>
-
-                <div>
-                  <Label>Atendente</Label>
-                  <Input
-                    value={user?.nome_atendente || user?.full_name || ""}
-                    disabled
-                    className="bg-slate-100"
-                  />
-                </div>
-
-                <div>
-                  <Label>Observações</Label>
-                  <Textarea
-                    value={formData.observacoes}
-                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                    placeholder="Observações adicionais"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending} className="bg-[#457bba] hover:bg-[#3a6ba0]">
-                    {createMutation.isPending ? 'Cadastrando...' : 'Cadastrar'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Calendário */}
-          <Card className="border-none shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg">Selecione a Data</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                locale={ptBR}
-                className="rounded-md border"
-              />
-              <div className="mt-4 text-center">
-                <p className="text-sm font-semibold text-slate-900">
-                  {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {entregasFiltradas.length} entrega{entregasFiltradas.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {!visualizarTodas && (
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg">Selecione a Data</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  locale={ptBR}
+                  className="rounded-md border"
+                />
+                <div className="mt-4 text-center">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {entregasFiltradas.length} entrega{entregasFiltradas.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Lista e Filtros */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Stats */}
+          <div className={`${!visualizarTodas ? "lg:col-span-3" : "lg:col-span-4"} space-y-6`}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="border-none shadow-md">
                 <CardHeader className="pb-3">
@@ -403,7 +404,6 @@ export default function Sedex() {
               </Card>
             </div>
 
-            {/* Busca e Filtros */}
             <Card className="border-none shadow-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg">Buscar e Filtrar</CardTitle>
@@ -445,11 +445,13 @@ export default function Sedex() {
               </CardContent>
             </Card>
 
-            {/* Lista */}
             <Card className="border-none shadow-lg">
               <CardHeader>
                 <CardTitle>
-                  Entregas de {format(selectedDate, "dd/MM/yyyy")}
+                  {visualizarTodas 
+                    ? "Todas as Entregas" 
+                    : `Entregas de ${format(selectedDate, "dd/MM/yyyy")}`
+                  }
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">

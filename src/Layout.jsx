@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -47,62 +46,15 @@ export default function Layout({ children, currentPageName }) {
     retry: false,
   });
 
-  const isAtendente = user?.tipo_usuario === 'atendente' || user?.tipo_usuario === 'admin' || user?.tipo_usuario === 'balcao';
+  const isAtendente = user?.tipo_usuario === 'atendente' || user?.tipo_usuario === 'admin';
   const isEntregador = user?.tipo_usuario === 'entregador';
   const isAdmin = user?.tipo_usuario === 'admin' || user?.role === 'admin';
-  const isBalcao = user?.tipo_usuario === 'balcao';
 
   const navigationItems = isEntregador ? [
     {
       title: "Minhas Entregas",
       url: createPageUrl("MinhasEntregas"),
       icon: Package,
-    },
-  ] : isBalcao ? [
-    {
-      title: "Balcão",
-      url: createPageUrl("Balcao"),
-      icon: Package,
-    },
-    {
-      title: "Novo Romaneio",
-      url: createPageUrl("NovoRomaneio"),
-      icon: FileText,
-    },
-    {
-      title: "Entregas Moto",
-      url: createPageUrl("Dashboard"),
-      icon: Truck,
-    },
-    {
-      title: "Sedex/Disktenha",
-      url: createPageUrl("Sedex"),
-      icon: Send,
-    },
-    {
-      title: "Clientes",
-      url: createPageUrl("Clientes"),
-      icon: Users,
-    },
-    {
-      title: "Histórico de Clientes",
-      url: createPageUrl("HistoricoClientes"),
-      icon: BarChart3,
-    },
-    {
-      title: "Relatórios",
-      url: createPageUrl("Relatorios"),
-      icon: BarChart3,
-    },
-    {
-      title: "Receitas",
-      url: createPageUrl("Receitas"),
-      icon: FileText,
-    },
-    {
-      title: "Pagamentos",
-      url: createPageUrl("Pagamentos"),
-      icon: BarChart3,
     },
   ] : isAtendente ? [
     {
@@ -115,11 +67,6 @@ export default function Layout({ children, currentPageName }) {
       url: createPageUrl("Sedex"),
       icon: Send,
     },
-    ...(isAdmin ? [{
-      title: "Balcão",
-      url: createPageUrl("Balcao"),
-      icon: Package,
-    }] : []),
     {
       title: "Novo Romaneio",
       url: createPageUrl("NovoRomaneio"),
