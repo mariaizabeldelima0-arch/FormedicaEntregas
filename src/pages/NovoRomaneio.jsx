@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,18 +14,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Snowflake, Plus, ArrowLeft, Search, FileText } from "lucide-react";
+import { Snowflake, Plus, ArrowLeft, Search, FileText, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const CIDADES = [
   "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
   "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
   "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
   "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
-  "Bombinhas", "Clinica"
+  "Bombinhas", "Clinica", "Outro"
 ];
 
 const FORMAS_PAGAMENTO = [
@@ -117,9 +117,10 @@ export default function NovoRomaneio() {
 
   const [formData, setFormData] = useState({
     numero_requisicao: "",
-    cliente_id: "",
+    clientes_ids: [],
     endereco_index: 0,
     cidade_regiao: "",
+    cidade_outro: "",
     forma_pagamento: "",
     valor_pagamento: "",
     valor_troco: "",
@@ -133,31 +134,29 @@ export default function NovoRomaneio() {
     observacoes: "",
   });
 
-  const [selectedCliente, setSelectedCliente] = useState(null);
+  const [selectedClientes, setSelectedClientes] = useState([]);
   const [searchCliente, setSearchCliente] = useState("");
 
-  // Filtrar apenas clientes com endereço para romaneios
   const clientesFiltrados = clientes.filter(c => {
     const matchesSearch = c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
       c.telefone?.includes(searchCliente) ||
       c.cpf?.includes(searchCliente);
     
-    // Apenas clientes com endereço podem ser usados para romaneios
     const hasEndereco = c.enderecos && c.enderecos.length > 0;
+    const notSelected = !selectedClientes.find(sc => sc.id === c.id);
     
-    return matchesSearch && hasEndereco;
+    return matchesSearch && hasEndereco && notSelected;
   });
 
-  // Calcular valor da entrega quando motoboy ou cidade mudar
   useEffect(() => {
-    if (formData.motoboy && formData.cidade_regiao) {
+    if (formData.motoboy && formData.cidade_regiao && formData.cidade_regiao !== "Outro") {
       const valor = VALORES_ENTREGA[formData.motoboy]?.[formData.cidade_regiao] || 0;
       setFormData(prev => ({ ...prev, valor_entrega: valor.toString() }));
     }
   }, [formData.motoboy, formData.cidade_regiao]);
 
   useEffect(() => {
-    if (formData.cidade_regiao) {
+    if (formData.cidade_regiao && formData.cidade_regiao !== "Outro") {
       let motoboySugerido = "";
       if (REGIOES_MARCIO.includes(formData.cidade_regiao)) {
         motoboySugerido = "Marcio";
@@ -171,43 +170,39 @@ export default function NovoRomaneio() {
     }
   }, [formData.cidade_regiao]);
 
-  useEffect(() => {
-    if (selectedCliente && selectedCliente.enderecos && selectedCliente.enderecos.length > 0) {
-      const endereco = selectedCliente.enderecos[formData.endereco_index];
-      if (endereco.cidade && endereco.cidade !== formData.cidade_regiao) {
-        setFormData(prev => ({ ...prev, cidade_regiao: endereco.cidade }));
-      }
-    }
-  }, [selectedCliente, formData.endereco_index]);
-
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      // Verificar se o número de registro já existe
       const allRomaneios = await base44.entities.Romaneio.list();
       const allSedex = await base44.entities.EntregaSedex.list();
-      const allBalcao = await base44.entities.EntregaBalcao.list();
       
       const numeroJaExiste = 
         allRomaneios.some(r => r.numero_requisicao === data.numero_requisicao) ||
-        allSedex.some(s => s.numero_registro === data.numero_requisicao) ||
-        allBalcao.some(b => b.numero_registro === data.numero_requisicao);
+        allSedex.some(s => s.numero_registro === data.numero_requisicao);
       
       if (numeroJaExiste) {
-        throw new Error('Este número de registro já está em uso. Por favor, use outro número.');
+        throw new Error(`Já existe um romaneio com o número "${data.numero_requisicao}". Por favor, use outro número.`);
       }
 
-      const cliente = clientes.find(c => c.id === data.cliente_id);
-      const endereco = cliente.enderecos[data.endereco_index];
+      const clientesNomes = selectedClientes.map(c => c.nome).join(", ");
+      const clientesTelefones = selectedClientes.map(c => c.telefone).join(", ");
+      
+      const todosEnderecos = selectedClientes.map(c => c.enderecos[0]);
 
       const codigo_rastreio = Math.random().toString(36).substring(2, 10).toUpperCase();
 
+      const cidadeFinal = data.cidade_regiao === "Outro" ? data.cidade_outro : data.cidade_regiao;
+
       return base44.entities.Romaneio.create({
         ...data,
-        cliente_nome: cliente.nome,
-        cliente_telefone: cliente.telefone,
+        cliente_id: selectedClientes[0].id,
+        clientes_ids: selectedClientes.map(c => c.id),
+        cliente_nome: clientesNomes,
+        cliente_telefone: clientesTelefones,
         atendente_nome: user.nome_atendente || user.full_name,
         atendente_email: user.email,
-        endereco: endereco,
+        endereco: todosEnderecos[0],
+        enderecos_adicionais: todosEnderecos.slice(1),
+        cidade_regiao: cidadeFinal,
         status: "Pendente",
         codigo_rastreio,
         item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
@@ -234,10 +229,53 @@ export default function NovoRomaneio() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.cliente_id || !formData.numero_requisicao || !formData.cidade_regiao ||
-        !formData.forma_pagamento || !formData.motoboy || !formData.periodo_entrega ||
-        !formData.data_entrega_prevista || formData.item_geladeira === "" || formData.buscar_receita === "") {
-      toast.error('Preencha todos os campos obrigatórios');
+    if (selectedClientes.length === 0) {
+      toast.error('Selecione pelo menos um cliente');
+      return;
+    }
+
+    if (!formData.numero_requisicao) {
+      toast.error('Informe o número da requisição');
+      return;
+    }
+
+    if (!formData.cidade_regiao) {
+      toast.error('Selecione a cidade/região');
+      return;
+    }
+
+    if (formData.cidade_regiao === "Outro" && !formData.cidade_outro) {
+      toast.error('Informe o nome da outra cidade');
+      return;
+    }
+
+    if (!formData.forma_pagamento) {
+      toast.error('Selecione a forma de pagamento');
+      return;
+    }
+
+    if (!formData.motoboy) {
+      toast.error('Selecione o motoboy');
+      return;
+    }
+
+    if (!formData.periodo_entrega) {
+      toast.error('Selecione o período de entrega');
+      return;
+    }
+
+    if (!formData.data_entrega_prevista) {
+      toast.error('Informe a data de entrega prevista');
+      return;
+    }
+
+    if (formData.item_geladeira === "") {
+      toast.error('Informe se é item de geladeira');
+      return;
+    }
+
+    if (formData.buscar_receita === "") {
+      toast.error('Informe se precisa buscar receita');
       return;
     }
 
@@ -250,15 +288,13 @@ export default function NovoRomaneio() {
     createMutation.mutate(formData);
   };
 
-  const handleClienteChange = (clienteId) => {
-    const cliente = clientes.find(c => c.id === clienteId);
-    setSelectedCliente(cliente);
-    setFormData({
-      ...formData,
-      cliente_id: clienteId,
-      endereco_index: 0,
-    });
+  const handleAddCliente = (cliente) => {
+    setSelectedClientes([...selectedClientes, cliente]);
     setSearchCliente("");
+  };
+
+  const handleRemoveCliente = (clienteId) => {
+    setSelectedClientes(selectedClientes.filter(c => c.id !== clienteId));
   };
 
   return (
@@ -286,10 +322,9 @@ export default function NovoRomaneio() {
               <CardTitle>Informações do Romaneio</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Cliente com Busca */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Cliente *</Label>
+                  <Label>Cliente(s) *</Label>
                   <div className="space-y-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -307,7 +342,7 @@ export default function NovoRomaneio() {
                             <button
                               key={c.id}
                               type="button"
-                              onClick={() => handleClienteChange(c.id)}
+                              onClick={() => handleAddCliente(c)}
                               className="w-full text-left p-3 hover:bg-slate-50 border-b last:border-b-0"
                             >
                               <div className="font-medium text-slate-900">{c.nome}</div>
@@ -320,23 +355,24 @@ export default function NovoRomaneio() {
                         </CardContent>
                       </Card>
                     )}
-                    {selectedCliente && (
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex-1">
-                          <p className="font-medium text-slate-900">{selectedCliente.nome}</p>
-                          <p className="text-sm text-slate-600">{selectedCliente.telefone}</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedCliente(null);
-                            setFormData({ ...formData, cliente_id: "", endereco_index: 0 });
-                          }}
-                        >
-                          Alterar
-                        </Button>
+                    {selectedClientes.length > 0 && (
+                      <div className="space-y-2">
+                        {selectedClientes.map((cliente) => (
+                          <div key={cliente.id} className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="flex-1">
+                              <p className="font-medium text-slate-900">{cliente.nome}</p>
+                              <p className="text-sm text-slate-600">{cliente.telefone}</p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveCliente(cliente.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     )}
                     <Button
@@ -364,30 +400,32 @@ export default function NovoRomaneio() {
                 </div>
               </div>
 
-              {/* Endereço */}
-              {selectedCliente && selectedCliente.enderecos && selectedCliente.enderecos.length > 0 && (
+              {selectedClientes.length > 0 && (
                 <div>
-                  <Label>Endereço de Entrega *</Label>
-                  <Select
-                    value={formData.endereco_index.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, endereco_index: parseInt(value) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedCliente.enderecos.map((end, idx) => (
-                        <SelectItem key={idx} value={idx.toString()}>
-                          {end.cidade && `${end.cidade} - `}
-                          {end.rua}, {end.numero} - {end.bairro}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Endereços de Entrega</Label>
+                  <div className="space-y-3 mt-2">
+                    {selectedClientes.map((cliente, idx) => (
+                      <Card key={cliente.id} className="bg-slate-50">
+                        <CardContent className="p-4">
+                          <p className="font-semibold text-slate-900 mb-2">
+                            {cliente.nome}
+                          </p>
+                          {cliente.enderecos && cliente.enderecos.length > 0 && (
+                            <div className="text-sm text-slate-700">
+                              <p>{cliente.enderecos[0].rua}, {cliente.enderecos[0].numero}</p>
+                              <p>{cliente.enderecos[0].bairro} - {cliente.enderecos[0].cidade || formData.cidade_regiao}</p>
+                              {cliente.enderecos[0].complemento && (
+                                <p className="text-slate-500">Complemento: {cliente.enderecos[0].complemento}</p>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Cidade, Período e Data */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Cidade/Região *</Label>
@@ -407,6 +445,19 @@ export default function NovoRomaneio() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {formData.cidade_regiao === "Outro" && (
+                  <div>
+                    <Label htmlFor="cidade_outro">Nome da Cidade *</Label>
+                    <Input
+                      id="cidade_outro"
+                      value={formData.cidade_outro}
+                      onChange={(e) => setFormData({ ...formData, cidade_outro: e.target.value })}
+                      placeholder="Digite o nome da cidade"
+                      required
+                    />
+                  </div>
+                )}
 
                 <div>
                   <Label>Período de Entrega *</Label>
@@ -436,7 +487,6 @@ export default function NovoRomaneio() {
                 </div>
               </div>
 
-              {/* Pagamento */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Forma de Pagamento *</Label>
@@ -489,7 +539,6 @@ export default function NovoRomaneio() {
                 )}
               </div>
 
-              {/* Motoboy e Valor da Entrega */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Motoboy *</Label>
@@ -525,7 +574,6 @@ export default function NovoRomaneio() {
                 </div>
               </div>
 
-              {/* Item de Geladeira */}
               <div className="bg-cyan-50 border-2 border-cyan-200 rounded-lg p-4">
                 <Label className="text-base font-semibold flex items-center gap-2 mb-3">
                   <Snowflake className="w-5 h-5 text-cyan-600" />
@@ -547,7 +595,6 @@ export default function NovoRomaneio() {
                 </RadioGroup>
               </div>
 
-              {/* Buscar Receita */}
               <div className={`border-2 rounded-lg p-4 ${formData.buscar_receita === "true" || formData.buscar_receita === true ? 'bg-yellow-50 border-yellow-400' : 'bg-slate-50 border-slate-200'}`}>
                 <Label className="text-base font-semibold flex items-center gap-2 mb-3">
                   <FileText className="w-5 h-5 text-yellow-600" />
@@ -569,7 +616,6 @@ export default function NovoRomaneio() {
                 </RadioGroup>
               </div>
 
-              {/* Observações */}
               <div>
                 <Label htmlFor="observacoes">Observações</Label>
                 <Textarea
@@ -581,7 +627,6 @@ export default function NovoRomaneio() {
                 />
               </div>
 
-              {/* Botões */}
               <div className="flex justify-end gap-3 pt-4">
                 <Button
                   type="button"
