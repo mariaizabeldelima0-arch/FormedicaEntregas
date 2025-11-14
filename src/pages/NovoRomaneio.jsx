@@ -118,7 +118,7 @@ export default function NovoRomaneio() {
   const [formData, setFormData] = useState({
     numero_requisicao: "",
     clientes_ids: [],
-    endereco_index: 0,
+    endereco_selecionado: null,
     cidade_regiao: "",
     cidade_outro: "",
     forma_pagamento: "",
@@ -183,10 +183,12 @@ export default function NovoRomaneio() {
         throw new Error(`Já existe um romaneio com o número "${data.numero_requisicao}". Por favor, use outro número.`);
       }
 
+      if (!data.endereco_selecionado) {
+        throw new Error('Selecione um endereço para entrega');
+      }
+
       const clientesNomes = selectedClientes.map(c => c.nome).join(", ");
       const clientesTelefones = selectedClientes.map(c => c.telefone).join(", ");
-      
-      const todosEnderecos = selectedClientes.map(c => c.enderecos[0]);
 
       const codigo_rastreio = Math.random().toString(36).substring(2, 10).toUpperCase();
 
@@ -200,8 +202,7 @@ export default function NovoRomaneio() {
         cliente_telefone: clientesTelefones,
         atendente_nome: user.nome_atendente || user.full_name,
         atendente_email: user.email,
-        endereco: todosEnderecos[0],
-        enderecos_adicionais: todosEnderecos.slice(1),
+        endereco: data.endereco_selecionado,
         cidade_regiao: cidadeFinal,
         status: "Pendente",
         codigo_rastreio,
@@ -283,6 +284,11 @@ export default function NovoRomaneio() {
     if (requiresValorPagamento && (formData.valor_pagamento === "" || parseFloat(formData.valor_pagamento) <= 0)) {
         toast.error('Informe o valor de pagamento');
         return;
+    }
+
+    if (!formData.endereco_selecionado) {
+      toast.error('Selecione um endereço para entrega');
+      return;
     }
 
     createMutation.mutate(formData);
@@ -402,25 +408,49 @@ export default function NovoRomaneio() {
 
               {selectedClientes.length > 0 && (
                 <div>
-                  <Label>Endereços de Entrega</Label>
-                  <div className="space-y-3 mt-2">
-                    {selectedClientes.map((cliente, idx) => (
-                      <Card key={cliente.id} className="bg-slate-50">
-                        <CardContent className="p-4">
-                          <p className="font-semibold text-slate-900 mb-2">
-                            {cliente.nome}
-                          </p>
-                          {cliente.enderecos && cliente.enderecos.length > 0 && (
-                            <div className="text-sm text-slate-700">
-                              <p>{cliente.enderecos[0].rua}, {cliente.enderecos[0].numero}</p>
-                              <p>{cliente.enderecos[0].bairro} - {cliente.enderecos[0].cidade || formData.cidade_regiao}</p>
-                              {cliente.enderecos[0].complemento && (
-                                <p className="text-slate-500">Complemento: {cliente.enderecos[0].complemento}</p>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
+                  <Label>Selecione o Endereço de Entrega *</Label>
+                  <p className="text-xs text-slate-500 mb-2">Escolha apenas um endereço para esta entrega</p>
+                  <div className="space-y-2 mt-2">
+                    {selectedClientes.map((cliente) => (
+                      <div key={cliente.id}>
+                        <p className="font-semibold text-slate-900 mb-2 text-sm">
+                          {cliente.nome}
+                        </p>
+                        {cliente.enderecos && cliente.enderecos.map((endereco, endIdx) => {
+                          const enderecoKey = `${cliente.id}-${endIdx}`;
+                          const isSelected = formData.endereco_selecionado && 
+                            JSON.stringify(formData.endereco_selecionado) === JSON.stringify(endereco);
+                          
+                          return (
+                            <button
+                              key={enderecoKey}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, endereco_selecionado: endereco })}
+                              className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                                isSelected
+                                  ? 'border-[#457bba] bg-blue-50'
+                                  : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-sm text-slate-700">
+                                  <p className="font-medium">{endereco.rua}, {endereco.numero}</p>
+                                  <p>{endereco.bairro} - {endereco.cidade || formData.cidade_regiao}</p>
+                                  {endereco.complemento && (
+                                    <p className="text-slate-500">Complemento: {endereco.complemento}</p>
+                                  )}
+                                  {endereco.ponto_referencia && (
+                                    <p className="text-slate-500 italic">Ref: {endereco.ponto_referencia}</p>
+                                  )}
+                                </div>
+                                {isSelected && (
+                                  <Badge className="bg-[#457bba] text-white">Selecionado</Badge>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     ))}
                   </div>
                 </div>
