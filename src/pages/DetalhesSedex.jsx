@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,7 +25,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Send, Package, MapPin, DollarSign, Edit, Save, X, Trash2, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  Package,
+  MapPin,
+  DollarSign,
+  User,
+  Calendar,
+  FileText,
+  Edit,
+  Save,
+  X,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -46,67 +59,38 @@ export default function DetalhesSedex() {
   const { data: entrega, isLoading, error } = useQuery({
     queryKey: ['entrega-sedex', entregaId],
     queryFn: async () => {
-      if (!entregaId) {
-        console.error("No entregaId provided");
-        return null;
-      }
-      console.log("Fetching entrega with ID:", entregaId);
-      try {
-        const allEntregas = await base44.entities.EntregaSedex.list();
-        console.log("Total entregas:", allEntregas.length);
-        const found = allEntregas.find(e => e.id === entregaId);
-        
-        if (!found) {
-          console.error("Entrega not found with id:", entregaId);
-          console.log("Available IDs:", allEntregas.map(e => e.id));
-        } else {
-          console.log("Found entrega:", found.numero_registro);
-        }
-        
-        return found || null;
-      } catch (err) {
-        console.error("Error fetching entrega:", err);
-        throw err;
-      }
+      if (!entregaId) return null;
+      const all = await base44.entities.EntregaSedex.list();
+      return all.find(e => e.id === entregaId) || null;
     },
     enabled: !!entregaId,
-    retry: 2,
-    retryDelay: 1000,
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data) => {
-      // Se mudar de Disktenha para outro tipo, remover o valor
-      const updateData = {
-        ...data,
-        valor_entrega: data.tipo_entrega === "Disktenha" && data.valor_entrega ? parseFloat(data.valor_entrega) : null,
-      };
-      return base44.entities.EntregaSedex.update(entregaId, updateData);
-    },
+    mutationFn: (data) => base44.entities.EntregaSedex.update(entregaId, {
+      ...data,
+      valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : null,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entrega-sedex', entregaId] });
       queryClient.invalidateQueries({ queryKey: ['entregas-sedex'] });
-      toast.success('Entrega atualizada com sucesso!');
+      toast.success('Entrega atualizada!');
       setIsEditing(false);
       setEditData(null);
     },
-    onError: (error) => {
-      console.error("Erro ao atualizar entrega:", error);
+    onError: () => {
       toast.error('Erro ao atualizar entrega');
     }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      await base44.entities.EntregaSedex.delete(id);
-    },
+    mutationFn: () => base44.entities.EntregaSedex.delete(entregaId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entregas-sedex'] });
-      toast.success('Entrega excluída com sucesso!');
+      toast.success('Entrega excluída!');
       navigate(createPageUrl("Sedex"));
     },
-    onError: (error) => {
-      console.error("Erro ao excluir entrega:", error);
+    onError: () => {
       toast.error('Erro ao excluir entrega');
     }
   });
@@ -115,90 +99,48 @@ export default function DetalhesSedex() {
     setEditData({
       numero_registro: entrega.numero_registro,
       cliente_nome: entrega.cliente_nome,
-      destinatario: entrega.destinatario || "",
-      cidade_destino: entrega.cidade_destino || "",
       tipo_entrega: entrega.tipo_entrega,
       status_pagamento: entrega.status_pagamento,
-      valor_entrega: entrega.valor_entrega ? entrega.valor_entrega.toFixed(2) : "", // Ensure two decimal places for display in input
+      valor_entrega: entrega.valor_entrega || "",
       data_postagem: entrega.data_postagem,
       codigo_rastreio: entrega.codigo_rastreio || "",
       observacoes: entrega.observacoes || "",
+      destinatario: entrega.destinatario || "",
+      cidade_destino: entrega.cidade_destino || "",
     });
     setIsEditing(true);
   };
 
-  const handleSaveEdit = () => {
+  const handleSave = () => {
     if (!editData.numero_registro || !editData.cliente_nome || !editData.tipo_entrega) {
-      toast.error('Preencha todos os campos obrigatórios');
+      toast.error('Preencha os campos obrigatórios');
       return;
     }
-    if (editData.tipo_entrega === "Disktenha") {
-      const valor = parseFloat(editData.valor_entrega);
-      if (isNaN(valor) || valor <= 0) {
-        toast.error('Para entregas "Disktenha", o valor da entrega é obrigatório e deve ser maior que zero.');
-        return;
-      }
+    if (editData.tipo_entrega === "Disktenha" && (!editData.valor_entrega || parseFloat(editData.valor_entrega) <= 0)) {
+      toast.error('Informe o valor da entrega para Disktenha');
+      return;
     }
     updateMutation.mutate(editData);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditData(null);
-  };
-
-  const handleDelete = () => {
-    deleteMutation.mutate(entregaId);
   };
 
   if (isLoading) {
     return (
       <div className="p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate(createPageUrl("Sedex"))}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <Skeleton className="h-12 w-64" />
-          </div>
+          <Skeleton className="h-12 w-64" />
           <Skeleton className="h-96 w-full" />
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !entrega) {
     return (
       <div className="p-8">
         <Card className="max-w-2xl mx-auto">
           <CardContent className="p-12 text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Erro ao Carregar Entrega</h2>
-            <p className="text-red-500 mb-4">{error.message}</p>
-            <p className="text-sm text-slate-500 mb-4">ID: {entregaId}</p>
-            <Button onClick={() => navigate(createPageUrl("Sedex"))}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!entrega) {
-    return (
-      <div className="p-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="p-12 text-center">
-            <Send className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Entrega Não Encontrada</h2>
-            <p className="text-slate-500 mb-4">A entrega que você está procurando não foi encontrada.</p>
-            <p className="text-sm text-slate-400 mb-6">ID procurado: {entregaId}</p>
             <Button onClick={() => navigate(createPageUrl("Sedex"))}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
@@ -217,8 +159,8 @@ export default function DetalhesSedex() {
     };
     const { color, icon: Icon } = config[tipo] || config["Sedex"];
     return (
-      <Badge className={`${color} border text-base px-3 py-1`}>
-        <Icon className="w-4 h-4 mr-2" />
+      <Badge className={`${color} border`}>
+        <Icon className="w-3 h-3 mr-1" />
         {tipo}
       </Badge>
     );
@@ -234,7 +176,6 @@ export default function DetalhesSedex() {
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
@@ -245,13 +186,18 @@ export default function DetalhesSedex() {
           </Button>
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-slate-900">
-              Entrega #{entrega.numero_registro}
+              {entrega.tipo_entrega} #{entrega.numero_registro}
             </h1>
             <p className="text-slate-600 mt-1">
-              Cadastrado em {format(new Date(entrega.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              Criado em {format(new Date(entrega.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
             </p>
           </div>
-          {!isEditing && <TipoBadge tipo={entrega.tipo_entrega} />}
+          {!isEditing && (
+            <>
+              <TipoBadge tipo={entrega.tipo_entrega} />
+              <StatusPagamentoBadge status={entrega.status_pagamento} />
+            </>
+          )}
           <div className="flex gap-2">
             {!isEditing ? (
               <>
@@ -270,16 +216,16 @@ export default function DetalhesSedex() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Tem certeza que deseja excluir esta entrega? Esta ação não pode ser desfeita.
+                        Tem certeza que deseja excluir esta entrega?
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={handleDelete}
+                        onClick={() => deleteMutation.mutate()}
                         className="bg-red-600 hover:bg-red-700"
                       >
-                        Confirmar Exclusão
+                        Confirmar
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -287,13 +233,13 @@ export default function DetalhesSedex() {
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={handleCancelEdit}>
+                <Button variant="outline" onClick={() => { setIsEditing(false); setEditData(null); }}>
                   <X className="w-4 h-4 mr-2" />
                   Cancelar
                 </Button>
                 <Button
                   className="bg-green-600 hover:bg-green-700"
-                  onClick={handleSaveEdit}
+                  onClick={handleSave}
                   disabled={updateMutation.isPending}
                 >
                   <Save className="w-4 h-4 mr-2" />
@@ -304,14 +250,14 @@ export default function DetalhesSedex() {
           </div>
         </div>
 
-        {/* Conteúdo */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coluna Principal */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Informações Principais */}
             <Card className="border-none shadow-lg">
               <CardHeader>
-                <CardTitle>Informações da Entrega</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#457bba]" />
+                  Informações da Entrega
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isEditing ? (
@@ -324,11 +270,24 @@ export default function DetalhesSedex() {
                       />
                     </div>
                     <div>
-                      <Label>Data de Postagem *</Label>
+                      <Label>Cliente *</Label>
                       <Input
-                        type="date"
-                        value={editData.data_postagem}
-                        onChange={(e) => setEditData({ ...editData, data_postagem: e.target.value })}
+                        value={editData.cliente_nome}
+                        onChange={(e) => setEditData({ ...editData, cliente_nome: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Destinatário</Label>
+                      <Input
+                        value={editData.destinatario}
+                        onChange={(e) => setEditData({ ...editData, destinatario: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Cidade de Destino</Label>
+                      <Input
+                        value={editData.cidade_destino}
+                        onChange={(e) => setEditData({ ...editData, cidade_destino: e.target.value })}
                       />
                     </div>
                     <div>
@@ -364,16 +323,38 @@ export default function DetalhesSedex() {
                     </div>
                     {editData.tipo_entrega === "Disktenha" && (
                       <div>
-                        <Label>Valor da Entrega (R$) *</Label>
+                        <Label>Valor (R$) *</Label>
                         <Input
                           type="number"
                           step="0.01"
                           value={editData.valor_entrega}
                           onChange={(e) => setEditData({ ...editData, valor_entrega: e.target.value })}
-                          placeholder="0.00"
                         />
                       </div>
                     )}
+                    <div>
+                      <Label>Data de Postagem *</Label>
+                      <Input
+                        type="date"
+                        value={editData.data_postagem}
+                        onChange={(e) => setEditData({ ...editData, data_postagem: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Código de Rastreio</Label>
+                      <Input
+                        value={editData.codigo_rastreio}
+                        onChange={(e) => setEditData({ ...editData, codigo_rastreio: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Observações</Label>
+                      <Textarea
+                        value={editData.observacoes}
+                        onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
+                        rows={3}
+                      />
+                    </div>
                   </>
                 ) : (
                   <>
@@ -382,145 +363,80 @@ export default function DetalhesSedex() {
                       <p className="text-lg font-bold text-slate-900">#{entrega.numero_registro}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">Data de Postagem</p>
-                      <p className="text-lg font-semibold text-slate-900">
-                        {format(parseISO(entrega.data_postagem), "dd/MM/yyyy", { locale: ptBR })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500">Tipo</p>
-                      <TipoBadge tipo={entrega.tipo_entrega} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500">Status de Pagamento</p>
-                      <StatusPagamentoBadge status={entrega.status_pagamento} />
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Cliente e Destinatário */}
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle>Cliente e Destinatário</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isEditing ? (
-                  <>
-                    <div>
-                      <Label>Cliente *</Label>
-                      <Input
-                        value={editData.cliente_nome}
-                        onChange={(e) => setEditData({ ...editData, cliente_nome: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Destinatário</Label>
-                      <Input
-                        value={editData.destinatario}
-                        onChange={(e) => setEditData({ ...editData, destinatario: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Cidade de Destino</Label>
-                      <Input
-                        value={editData.cidade_destino}
-                        onChange={(e) => setEditData({ ...editData, cidade_destino: e.target.value })}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
                       <p className="text-sm text-slate-500">Cliente</p>
-                      <p className="text-xl font-bold text-slate-900">{currentData.cliente_nome}</p>
+                      <p className="text-lg font-semibold text-slate-900">{entrega.cliente_nome}</p>
                     </div>
-                    {currentData.destinatario && (
+                    {entrega.destinatario && (
                       <div>
                         <p className="text-sm text-slate-500">Destinatário</p>
-                        <p className="text-lg font-semibold text-slate-900">{currentData.destinatario}</p>
+                        <p className="text-slate-700">{entrega.destinatario}</p>
                       </div>
                     )}
-                    {currentData.cidade_destino && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-[#457bba]" />
-                        <div>
-                          <p className="text-sm text-slate-500">Cidade de Destino</p>
-                          <p className="font-semibold text-slate-900">{currentData.cidade_destino}</p>
-                        </div>
+                    {entrega.cidade_destino && (
+                      <div className="flex items-center gap-2 text-slate-700">
+                        <MapPin className="w-4 h-4" />
+                        {entrega.cidade_destino}
+                      </div>
+                    )}
+                    {entrega.codigo_rastreio && (
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <p className="text-xs text-slate-500 mb-1">Código de Rastreio</p>
+                        <p className="font-mono font-bold text-slate-900">{entrega.codigo_rastreio}</p>
+                      </div>
+                    )}
+                    {entrega.observacoes && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-sm text-yellow-900">{entrega.observacoes}</p>
                       </div>
                     )}
                   </>
                 )}
               </CardContent>
             </Card>
-
-            {/* Observações */}
-            {(isEditing || entrega.observacoes) && (
-              <Card className="border-none shadow-lg">
-                <CardHeader>
-                  <CardTitle>Observações</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isEditing ? (
-                    <Textarea
-                      value={editData.observacoes}
-                      onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
-                      placeholder="Observações adicionais"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="text-slate-700">{currentData.observacoes || "Nenhuma observação"}</p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </div>
 
-          {/* Coluna Lateral */}
           <div className="space-y-6">
-            {/* Rastreio e Valor */}
             <Card className="border-none shadow-lg">
               <CardHeader>
                 <CardTitle>Detalhes</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {isEditing ? (
+                {!isEditing && (
                   <>
-                    <div>
-                      <Label>Código de Rastreio</Label>
-                      <Input
-                        value={editData.codigo_rastreio}
-                        onChange={(e) => setEditData({ ...editData, codigo_rastreio: e.target.value })}
-                        placeholder="Ex: BR123456789BR"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {currentData.codigo_rastreio && (
+                    <div className="flex items-start gap-3">
+                      <Send className="w-5 h-5 text-slate-500 mt-0.5" />
                       <div>
-                        <p className="text-sm text-slate-500 mb-2">Código de Rastreio</p>
-                        <div className="bg-slate-100 rounded-lg p-3">
-                          <p className="font-mono font-bold text-slate-900">{currentData.codigo_rastreio}</p>
-                        </div>
+                        <p className="text-xs text-slate-500">Tipo</p>
+                        <TipoBadge tipo={entrega.tipo_entrega} />
                       </div>
-                    )}
-                    {currentData.valor_entrega && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <p className="text-sm text-green-700 mb-1">Valor da Entrega</p>
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-5 h-5 text-green-700" />
-                          <p className="text-2xl font-bold text-green-900">
-                            R$ {currentData.valor_entrega.toFixed(2)}
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <DollarSign className="w-5 h-5 text-slate-500 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-slate-500">Pagamento</p>
+                        <StatusPagamentoBadge status={entrega.status_pagamento} />
+                        {entrega.valor_entrega && (
+                          <p className="text-lg font-bold text-green-600 mt-1">
+                            R$ {entrega.valor_entrega.toFixed(2)}
                           </p>
-                        </div>
+                        )}
                       </div>
-                    )}
-                    <div>
-                      <p className="text-sm text-slate-500">Atendente</p>
-                      <p className="font-semibold text-slate-900">{entrega.atendente_nome}</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-5 h-5 text-slate-500 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-slate-500">Data de Postagem</p>
+                        <p className="font-semibold text-slate-900">
+                          {entrega.data_postagem && format(parseISO(entrega.data_postagem), "dd/MM/yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <User className="w-5 h-5 text-slate-500 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-slate-500">Atendente</p>
+                        <p className="font-semibold text-slate-900">{entrega.atendente_nome}</p>
+                      </div>
                     </div>
                   </>
                 )}
