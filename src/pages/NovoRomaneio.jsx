@@ -425,7 +425,17 @@ export default function NovoRomaneio() {
                             <button
                               key={enderecoKey}
                               type="button"
-                              onClick={() => setFormData({ ...formData, endereco_selecionado: endereco })}
+                              onClick={() => {
+                                const cidadeEndereco = endereco.cidade;
+                                const cidadeExiste = CIDADES.slice(0, -1).includes(cidadeEndereco);
+                                
+                                setFormData({ 
+                                  ...formData, 
+                                  endereco_selecionado: endereco,
+                                  cidade_regiao: cidadeExiste ? cidadeEndereco : "Outro",
+                                  cidade_outro: cidadeExiste ? "" : cidadeEndereco || ""
+                                });
+                              }}
                               className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                                 isSelected
                                   ? 'border-[#457bba] bg-blue-50'
