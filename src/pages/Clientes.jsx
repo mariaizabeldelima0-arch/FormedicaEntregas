@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,6 +39,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel, onUpdate, isUpdating }) => 
     cpf: "",
     telefone: "",
     enderecos: [{
+      cep: "",
       cidade: "",
       rua: "",
       numero: "",
@@ -55,14 +55,12 @@ const ClienteForm = ({ cliente, onSuccess, onCancel, onUpdate, isUpdating }) => 
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      // This mutation is now only for creating new clients.
-      // Updates are handled by the parent component via the onUpdate prop.
       return base44.entities.Cliente.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clientes'] });
       toast.success('Cliente cadastrado!');
-      onSuccess(); // Calls parent's handleClose for creation
+      onSuccess();
     },
     onError: () => {
       toast.error('Erro ao cadastrar cliente');
@@ -77,10 +75,8 @@ const ClienteForm = ({ cliente, onSuccess, onCancel, onUpdate, isUpdating }) => 
     }
     
     if (cliente?.id) {
-      // If client object exists (we are editing), call the parent's update handler
       onUpdate(formData);
     } else {
-      // Otherwise, create a new client
       saveMutation.mutate(formData);
     }
   };
@@ -91,6 +87,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel, onUpdate, isUpdating }) => 
       enderecos: [
         ...formData.enderecos,
         {
+          cep: "",
           cidade: "",
           rua: "",
           numero: "",
@@ -178,23 +175,33 @@ const ClienteForm = ({ cliente, onSuccess, onCancel, onUpdate, isUpdating }) => 
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div>
-                <Label>Cidade/Região *</Label>
-                <Select
-                  value={endereco.cidade}
-                  onValueChange={(value) => updateEndereco(index, 'cidade', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a cidade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CIDADES.map(cidade => (
-                      <SelectItem key={cidade} value={cidade}>
-                        {cidade}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <Label>CEP</Label>
+                  <Input
+                    value={endereco.cep || ""}
+                    onChange={(e) => updateEndereco(index, 'cep', e.target.value)}
+                    placeholder="00000-000"
+                  />
+                </div>
+                <div>
+                  <Label>Cidade/Região *</Label>
+                  <Select
+                    value={endereco.cidade}
+                    onValueChange={(value) => updateEndereco(index, 'cidade', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a cidade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CIDADES.map(cidade => (
+                        <SelectItem key={cidade} value={cidade}>
+                          {cidade}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="md:col-span-2">
@@ -284,7 +291,7 @@ export default function Clientes() {
   const [editingCliente, setEditingCliente] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const queryClient = useQueryClient(); // Ensure queryClient is available in the parent
+  const queryClient = useQueryClient();
 
   const { data: clientes, isLoading } = useQuery({
     queryKey: ['clientes'],
@@ -292,7 +299,6 @@ export default function Clientes() {
     initialData: [],
   });
 
-  // New mutation for updating clients and their associated romaneios
   const updateClienteMutation = useMutation({
     mutationFn: async (data) => {
       if (!editingCliente?.id) {
@@ -300,15 +306,10 @@ export default function Clientes() {
       }
       const updatedClient = await base44.entities.Cliente.update(editingCliente.id, data);
       
-      // Atualizar romaneios que usam endereços deste cliente
       const romaneios = await base44.entities.Romaneio.list();
       const romaneiosDoCliente = romaneios.filter(r => r.cliente_id === editingCliente.id);
       
-      // Atualizar cada romaneio com o novo endereço correspondente
       for (const romaneio of romaneiosDoCliente) {
-        // Encontrar o índice do endereço no romaneio com base no endereço ORIGINAL (editingCliente)
-        // This logic assumes a unique match based on rua, numero, bairro.
-        // A more robust solution might involve an address ID.
         const enderecoIndex = editingCliente.enderecos.findIndex(end =>
           end.rua === romaneio.endereco.rua &&
           end.numero === romaneio.endereco.numero &&
@@ -316,7 +317,6 @@ export default function Clientes() {
         );
         
         if (enderecoIndex !== -1 && data.enderecos && data.enderecos[enderecoIndex]) {
-          // Atualizar o romaneio com o novo endereço da `data`
           await base44.entities.Romaneio.update(romaneio.id, {
             endereco: data.enderecos[enderecoIndex],
             cidade_regiao: data.enderecos[enderecoIndex].cidade || romaneio.cidade_regiao
@@ -330,8 +330,8 @@ export default function Clientes() {
       queryClient.invalidateQueries({ queryKey: ['clientes'] });
       queryClient.invalidateQueries({ queryKey: ['romaneios'] });
       toast.success('Cliente atualizado com sucesso!');
-      setDialogOpen(false); // Replaced setShowEditDialog
-      setEditingCliente(null); // Replaced setEditData
+      setDialogOpen(false);
+      setEditingCliente(null);
     },
     onError: (error) => {
       console.error("Erro ao atualizar cliente:", error);
@@ -377,7 +377,7 @@ export default function Clientes() {
             <DialogTrigger asChild>
               <Button 
                 className="bg-[#457bba] hover:bg-[#3a6ba0]"
-                onClick={() => setEditingCliente(null)} // Clear editingCliente when opening for new
+                onClick={() => setEditingCliente(null)}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Cliente
@@ -391,10 +391,10 @@ export default function Clientes() {
               </DialogHeader>
               <ClienteForm 
                 cliente={editingCliente}
-                onSuccess={handleClose} // This onSuccess is now specifically for successful *creation*
+                onSuccess={handleClose}
                 onCancel={handleClose}
-                onUpdate={(data) => updateClienteMutation.mutate(data)} // This handles updates, triggering the new mutation
-                isUpdating={updateClienteMutation.isPending} // Pass pending status for button
+                onUpdate={(data) => updateClienteMutation.mutate(data)}
+                isUpdating={updateClienteMutation.isPending}
               />
             </DialogContent>
           </Dialog>
@@ -446,6 +446,7 @@ export default function Clientes() {
                             <div key={idx} className="flex items-start gap-2 text-sm text-slate-600">
                               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                               <span>
+                                {end.cep && `${end.cep} - `}
                                 {end.cidade && `${end.cidade} - `}
                                 {end.rua}, {end.numero} - {end.bairro}
                                 {end.complemento && ` (${end.complemento})`}
