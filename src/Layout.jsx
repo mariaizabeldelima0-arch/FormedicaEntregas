@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -132,8 +131,7 @@ export default function Layout({ children, currentPageName }) {
                 <Truck className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-slate-900 text-lg">Sistema de Entregas</h2>
-                <p className="text-xs text-slate-500">Gestão de Romaneios</p>
+                <h2 className="font-bold text-slate-900 text-lg">Formédica Entregas</h2>
               </div>
             </div>
           </SidebarHeader>
@@ -220,7 +218,7 @@ export default function Layout({ children, currentPageName }) {
           <header className="bg-white border-b border-slate-200 px-6 py-4 lg:hidden">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors" />
-              <h1 className="text-xl font-bold text-slate-900">Sistema de Entregas</h1>
+              <h1 className="text-xl font-bold text-slate-900">Formédica Entregas</h1>
             </div>
           </header>
 
