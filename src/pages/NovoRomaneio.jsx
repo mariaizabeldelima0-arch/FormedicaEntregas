@@ -310,7 +310,7 @@ export default function NovoRomaneio() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(createPageUrl("Dashboard"))}
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
@@ -671,7 +671,7 @@ export default function NovoRomaneio() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate(-1)}
+                  onClick={() => navigate(createPageUrl("Dashboard"))}
                 >
                   Cancelar
                 </Button>
