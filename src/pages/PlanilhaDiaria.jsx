@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, FileText, Filter } from "lucide-react";
+import { CheckCircle, XCircle, FileText, Filter, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function PlanilhaDiaria() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -165,6 +167,7 @@ export default function PlanilhaDiaria() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-100 border-b-2 border-slate-300">
                     <tr>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-700">Ver</th>
                       <th className="px-3 py-3 text-left font-semibold text-slate-700">Cidade</th>
                       <th className="px-3 py-3 text-left font-semibold text-slate-700">Cliente</th>
                       <th className="px-3 py-3 text-left font-semibold text-slate-700">Contato</th>
@@ -182,13 +185,13 @@ export default function PlanilhaDiaria() {
                   <tbody className="divide-y divide-slate-200">
                     {isLoading ? (
                       <tr>
-                        <td colSpan="12" className="p-12 text-center text-slate-500">
+                        <td colSpan="13" className="p-12 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : romaneiosOrdenados.length === 0 ? (
                       <tr>
-                        <td colSpan="12" className="p-12 text-center text-slate-500">
+                        <td colSpan="13" className="p-12 text-center text-slate-500">
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
@@ -197,6 +200,14 @@ export default function PlanilhaDiaria() {
                         const isEditing = editandoId === romaneio.id;
                         return (
                           <tr key={romaneio.id} className="hover:bg-slate-50">
+                            <td className="px-3 py-3">
+                              <Link 
+                                to={createPageUrl(`DetalhesRomaneio?id=${romaneio.id}`)}
+                                className="text-[#457bba] hover:text-[#3a6ba0] inline-flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Link>
+                            </td>
                             <td className="px-3 py-3 text-slate-700 font-medium">{romaneio.cidade_regiao}</td>
                             <td className="px-3 py-3 text-slate-700">{romaneio.cliente_nome}</td>
                             <td className="px-3 py-3 text-slate-600 text-xs">{romaneio.cliente_telefone}</td>
