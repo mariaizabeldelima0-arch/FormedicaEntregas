@@ -364,7 +364,7 @@ export default function Clientes() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => navigate(createPageUrl("Dashboard"))}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
