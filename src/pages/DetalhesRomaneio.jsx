@@ -512,7 +512,7 @@ export default function DetalhesRomaneio() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => navigate(createPageUrl("Dashboard"))}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -533,9 +533,9 @@ export default function DetalhesRomaneio() {
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Erro ao Carregar Romaneio</h2>
             <p className="text-red-500 mb-4">{error.message}</p>
             <p className="text-sm text-slate-500 mb-4">ID: {romaneioId}</p>
-            <Button onClick={() => navigate(createPageUrl("Dashboard"))}>
+            <Button onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao Dashboard
+              Voltar
             </Button>
           </CardContent>
         </Card>
@@ -552,9 +552,9 @@ export default function DetalhesRomaneio() {
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Romaneio Não Encontrado</h2>
             <p className="text-slate-500 mb-4">O romaneio que você está procurando não foi encontrado.</p>
             <p className="text-sm text-slate-400 mb-6">ID procurado: {romaneioId}</p>
-            <Button onClick={() => navigate(createPageUrl("Dashboard"))}>
+            <Button onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao Dashboard
+              Voltar
             </Button>
           </CardContent>
         </Card>
@@ -595,7 +595,7 @@ export default function DetalhesRomaneio() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => navigate(createPageUrl("Dashboard"))}
+              onClick={() => navigate(-1)}
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
