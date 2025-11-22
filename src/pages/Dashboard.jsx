@@ -106,6 +106,8 @@ export default function Dashboard() {
     },
     enabled: !!user,
     initialData: [],
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const bulkUpdateMutation = useMutation({
