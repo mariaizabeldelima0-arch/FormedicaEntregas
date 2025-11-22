@@ -180,7 +180,7 @@ export default function DetalhesSedex() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate(createPageUrl("Sedex"))}
+            onClick={() => navigate(-1)}
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
