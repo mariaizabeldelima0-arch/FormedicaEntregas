@@ -9,8 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, FileText, Filter, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { CheckCircle, XCircle, FileText, Filter } from "lucide-react";
 
 export default function PlanilhaDiaria() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -166,7 +165,6 @@ export default function PlanilhaDiaria() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-100 border-b-2 border-slate-300">
                     <tr>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-700">Ver</th>
                       <th className="px-3 py-3 text-left font-semibold text-slate-700">Cidade</th>
                       <th className="px-3 py-3 text-left font-semibold text-slate-700">Cliente</th>
                       <th className="px-3 py-3 text-left font-semibold text-slate-700">Contato</th>
@@ -199,13 +197,6 @@ export default function PlanilhaDiaria() {
                         const isEditing = editandoId === romaneio.id;
                         return (
                           <tr key={romaneio.id} className="hover:bg-slate-50">
-                            <td className="px-3 py-3 text-center">
-                              <Link to={`/DetalhesRomaneio?id=${romaneio.id}`} target="_blank">
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                  <ExternalLink className="w-4 h-4 text-[#457bba]" />
-                                </Button>
-                              </Link>
-                            </td>
                             <td className="px-3 py-3 text-slate-700 font-medium">{romaneio.cidade_regiao}</td>
                             <td className="px-3 py-3 text-slate-700">{romaneio.cliente_nome}</td>
                             <td className="px-3 py-3 text-slate-600 text-xs">{romaneio.cliente_telefone}</td>
