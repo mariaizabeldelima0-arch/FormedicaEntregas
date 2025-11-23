@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,13 +30,36 @@ import { toast } from "sonner";
 import { Link } from 'react-router-dom';
 
 export default function Sedex() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  // Parse URL params para restaurar estado
+  const urlParams = new URLSearchParams(location.search);
+  
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const dataParam = urlParams.get('data');
+    return dataParam ? new Date(dataParam) : new Date();
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [filtroLocal, setFiltroLocal] = useState("todos");
-  const [visualizarTodas, setVisualizarTodas] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || "");
+  const [filtroTipo, setFiltroTipo] = useState(urlParams.get('tipo') || "todos");
+  const [filtroLocal, setFiltroLocal] = useState(urlParams.get('local') || "todos");
+  const [visualizarTodas, setVisualizarTodas] = useState(urlParams.get('todas') === 'true');
+
+  // Atualizar URL quando estado mudar
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (!visualizarTodas) {
+      params.set('data', format(selectedDate, 'yyyy-MM-dd'));
+    }
+    params.set('todas', visualizarTodas.toString());
+    if (filtroTipo !== "todos") params.set('tipo', filtroTipo);
+    if (filtroLocal !== "todos") params.set('local', filtroLocal);
+    if (searchTerm) params.set('busca', searchTerm);
+    
+    navigate(`?${params.toString()}`, { replace: true });
+  }, [selectedDate, filtroTipo, filtroLocal, searchTerm, visualizarTodas]);
 
   const [formData, setFormData] = useState({
     numero_registro: "",
