@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function Relatorios() {
@@ -414,8 +414,8 @@ export default function Relatorios() {
                           <p className="text-sm font-semibold text-slate-700 mb-2">☀️ Manhã</p>
                           <div className="space-y-1 pl-4">
                             {entregas.filter(e => e.periodo_entrega === 'Manhã').map(r => (
-                              <div key={r.id} className="flex justify-between items-center text-sm py-1">
-                                <span className="text-slate-600">
+                              <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between items-center text-sm py-1 hover:bg-slate-50 rounded px-2 transition-colors">
+                                <span className="text-slate-600 hover:text-[#457bba]">
                                   #{r.numero_requisicao} - {r.cliente_nome}
                                 </span>
                                 <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ export default function Relatorios() {
                                   )}
                                   <StatusBadge status={r.status} />
                                 </div>
-                              </div>
+                              </Link>
                             ))}
                           </div>
                         </div>
@@ -438,8 +438,8 @@ export default function Relatorios() {
                           <p className="text-sm font-semibold text-slate-700 mb-2">🌙 Tarde</p>
                           <div className="space-y-1 pl-4">
                             {entregas.filter(e => e.periodo_entrega === 'Tarde').map(r => (
-                              <div key={r.id} className="flex justify-between items-center text-sm py-1">
-                                <span className="text-slate-600">
+                              <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between items-center text-sm py-1 hover:bg-slate-50 rounded px-2 transition-colors">
+                                <span className="text-slate-600 hover:text-[#457bba]">
                                   #{r.numero_requisicao} - {r.cliente_nome}
                                 </span>
                                 <div className="flex items-center gap-2">
@@ -450,7 +450,7 @@ export default function Relatorios() {
                                   )}
                                   <StatusBadge status={r.status} />
                                 </div>
-                              </div>
+                              </Link>
                             ))}
                           </div>
                         </div>
@@ -479,9 +479,9 @@ export default function Relatorios() {
                         </div>
                         <div className="space-y-2">
                           {entregas.map(r => (
-                            <div key={r.id} className="text-sm text-slate-600">
+                            <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="block text-sm text-slate-600 hover:text-[#457bba] hover:bg-slate-50 rounded px-2 py-1 transition-colors">
                               #{r.numero_requisicao} - {r.cliente_nome}
-                            </div>
+                            </Link>
                           ))}
                         </div>
                       </div>
@@ -506,12 +506,12 @@ export default function Relatorios() {
                       </div>
                       <div className="space-y-2">
                         {entregas.map(r => (
-                          <div key={r.id} className="flex justify-between text-sm">
-                            <span className="text-slate-600">
+                          <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between text-sm hover:bg-slate-50 rounded px-2 py-1 transition-colors">
+                            <span className="text-slate-600 hover:text-[#457bba]">
                               #{r.numero_requisicao} - {r.cliente_nome}
                             </span>
                             <StatusBadge status={r.status} />
-                          </div>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -534,12 +534,12 @@ export default function Relatorios() {
                     </div>
                     <div className="space-y-2">
                       {porPeriodo.manha.map(r => (
-                        <div key={r.id} className="flex justify-between text-sm">
-                          <span className="text-slate-600">
+                        <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between text-sm hover:bg-slate-50 rounded px-2 py-1 transition-colors">
+                          <span className="text-slate-600 hover:text-[#457bba]">
                             #{r.numero_requisicao} - {r.cliente_nome}
                           </span>
                           <StatusBadge status={r.status} />
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </div>
@@ -551,12 +551,12 @@ export default function Relatorios() {
                     </div>
                     <div className="space-y-2">
                       {porPeriodo.tarde.map(r => (
-                        <div key={r.id} className="flex justify-between text-sm">
-                          <span className="text-slate-600">
+                        <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between text-sm hover:bg-slate-50 rounded px-2 py-1 transition-colors">
+                          <span className="text-slate-600 hover:text-[#457bba]">
                             #{r.numero_requisicao} - {r.cliente_nome}
                           </span>
                           <StatusBadge status={r.status} />
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </div>
