@@ -405,30 +405,38 @@ export default function Sedex() {
 
           <div className={`${!visualizarTodas ? "lg:col-span-3" : "lg:col-span-4"} space-y-6`}>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <Card className="border-none shadow-md">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-slate-500 font-medium">Total</p>
-                  <p className="text-3xl font-bold text-slate-900">{stats.total}</p>
-                </CardHeader>
-              </Card>
-              <Card className="border-none shadow-md">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-slate-500 font-medium">Sedex</p>
-                  <p className="text-3xl font-bold text-red-600">{stats.sedex}</p>
-                </CardHeader>
-              </Card>
-              <Card className="border-none shadow-md">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-slate-500 font-medium">PAC</p>
-                  <p className="text-3xl font-bold text-blue-600">{stats.pac}</p>
-                </CardHeader>
-              </Card>
-              <Card className="border-none shadow-md">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-slate-500 font-medium">Disktenha</p>
-                  <p className="text-3xl font-bold text-purple-600">{stats.disktenha}</p>
-                </CardHeader>
-              </Card>
+              <button onClick={() => setFiltroTipo("todos")} className="text-left">
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroTipo === "todos" ? "ring-2 ring-[#457bba]" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <p className="text-sm text-slate-500 font-medium">Total</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.total}</p>
+                  </CardHeader>
+                </Card>
+              </button>
+              <button onClick={() => setFiltroTipo(filtroTipo === "Sedex" ? "todos" : "Sedex")} className="text-left">
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroTipo === "Sedex" ? "ring-2 ring-red-600" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <p className="text-sm text-slate-500 font-medium">Sedex</p>
+                    <p className="text-3xl font-bold text-red-600">{stats.sedex}</p>
+                  </CardHeader>
+                </Card>
+              </button>
+              <button onClick={() => setFiltroTipo(filtroTipo === "PAC" ? "todos" : "PAC")} className="text-left">
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroTipo === "PAC" ? "ring-2 ring-blue-600" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <p className="text-sm text-slate-500 font-medium">PAC</p>
+                    <p className="text-3xl font-bold text-blue-600">{stats.pac}</p>
+                  </CardHeader>
+                </Card>
+              </button>
+              <button onClick={() => setFiltroTipo(filtroTipo === "Disktenha" ? "todos" : "Disktenha")} className="text-left">
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroTipo === "Disktenha" ? "ring-2 ring-purple-600" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <p className="text-sm text-slate-500 font-medium">Disktenha</p>
+                    <p className="text-3xl font-bold text-purple-600">{stats.disktenha}</p>
+                  </CardHeader>
+                </Card>
+              </button>
               <Card className="border-none shadow-md bg-gradient-to-br from-green-50 to-green-100">
                 <CardHeader className="pb-3">
                   <p className="text-sm text-green-700 font-medium">Total Disktenha</p>
@@ -451,21 +459,10 @@ export default function Sedex() {
                     className="pl-10"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos os Tipos</SelectItem>
-                      <SelectItem value="Sedex">Sedex</SelectItem>
-                      <SelectItem value="PAC">PAC</SelectItem>
-                      <SelectItem value="Disktenha">Disktenha</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div>
                   <Select value={filtroLocal} onValueChange={setFiltroLocal}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Local" />
+                      <SelectValue placeholder="Filtrar por Local" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos os Locais</SelectItem>
@@ -475,6 +472,18 @@ export default function Sedex() {
                     </SelectContent>
                   </Select>
                 </div>
+                {(filtroLocal !== "todos" || searchTerm) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFiltroLocal("todos");
+                      setSearchTerm("");
+                    }}
+                  >
+                    Limpar Filtros
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
