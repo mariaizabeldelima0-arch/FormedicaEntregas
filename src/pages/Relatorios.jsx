@@ -1,11 +1,17 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   ArrowLeft,
   FileText,
@@ -15,7 +21,8 @@ import {
   Clock,
   AlertCircle,
   RotateCcw,
-  Printer
+  Printer,
+  Search
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,6 +35,24 @@ export default function Relatorios() {
   const dataParam = urlParams.get('data');
   
   const [dataSelecionada, setDataSelecionada] = useState(dataParam || format(new Date(), "yyyy-MM-dd"));
+  const [filtroStatus, setFiltroStatus] = useState(urlParams.get('status') || "todos");
+  const [filtroLocal, setFiltroLocal] = useState(urlParams.get('local') || "todos");
+  const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || "todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState(urlParams.get('periodo') || "todos");
+  const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || "");
+
+  // Atualizar URL quando estado mudar
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('data', dataSelecionada);
+    if (filtroStatus !== "todos") params.set('status', filtroStatus);
+    if (filtroLocal !== "todos") params.set('local', filtroLocal);
+    if (filtroMotoboy !== "todos") params.set('motoboy', filtroMotoboy);
+    if (filtroPeriodo !== "todos") params.set('periodo', filtroPeriodo);
+    if (searchTerm) params.set('busca', searchTerm);
+    
+    navigate(`?${params.toString()}`, { replace: true });
+  }, [dataSelecionada, filtroStatus, filtroLocal, filtroMotoboy, filtroPeriodo, searchTerm]);
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -50,12 +75,44 @@ export default function Relatorios() {
     initialData: [],
   });
 
-  // Filtrar romaneios por data
+  // Filtrar romaneios por data e filtros
   const romaneiosDoDia = romaneios.filter(r => {
     if (!r.data_entrega_prevista) return false;
     const dataEntrega = parseISO(r.data_entrega_prevista);
-    return isSameDay(dataEntrega, parseISO(dataSelecionada));
+    if (!isSameDay(dataEntrega, parseISO(dataSelecionada))) return false;
+
+    // Filtro de status
+    if (filtroStatus !== "todos" && r.status !== filtroStatus) return false;
+
+    // Filtro de local
+    if (filtroLocal !== "todos" && r.cidade_regiao !== filtroLocal) return false;
+
+    // Filtro de motoboy
+    if (filtroMotoboy !== "todos" && r.motoboy !== filtroMotoboy) return false;
+
+    // Filtro de período
+    if (filtroPeriodo !== "todos" && r.periodo_entrega !== filtroPeriodo) return false;
+
+    // Busca
+    if (searchTerm) {
+      const termo = searchTerm.toLowerCase();
+      const match =
+        r.cliente_nome?.toLowerCase().includes(termo) ||
+        r.numero_requisicao?.toLowerCase().includes(termo) ||
+        r.motoboy?.toLowerCase().includes(termo);
+      if (!match) return false;
+    }
+
+    return true;
   });
+
+  // Dados únicos para filtros
+  const locaisUnicos = [...new Set(romaneios
+    .filter(r => r.data_entrega_prevista && isSameDay(parseISO(r.data_entrega_prevista), parseISO(dataSelecionada)))
+    .map(r => r.cidade_regiao))].filter(Boolean).sort();
+  const motoboysUnicos = [...new Set(romaneios
+    .filter(r => r.data_entrega_prevista && isSameDay(parseISO(r.data_entrega_prevista), parseISO(dataSelecionada)))
+    .map(r => r.motoboy))].filter(Boolean);
 
   // Agrupar por local e ordenar
   const porLocal = romaneiosDoDia.reduce((acc, r) => {
@@ -160,18 +217,118 @@ export default function Relatorios() {
             </Button>
           </div>
 
-          {/* Seletor de Data - Não imprime */}
+          {/* Seletor de Data e Filtros - Não imprime */}
           <Card className="border-none shadow-lg no-print">
             <CardHeader>
-              <CardTitle>Selecione a Data</CardTitle>
+              <CardTitle>Filtros e Busca</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Input
-                type="date"
-                value={dataSelecionada}
-                onChange={(e) => setDataSelecionada(e.target.value)}
-                className="max-w-xs"
-              />
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">Data</label>
+                <Input
+                  type="date"
+                  value={dataSelecionada}
+                  onChange={(e) => setDataSelecionada(e.target.value)}
+                  className="max-w-xs"
+                />
+              </div>
+
+              {/* Busca */}
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">Buscar</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Input
+                    placeholder="Buscar por cliente, requisição ou motoboy..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* Filtros */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Status</label>
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="Pendente">Pendente</SelectItem>
+                      <SelectItem value="Produzindo no Laboratório">Produção</SelectItem>
+                      <SelectItem value="Preparando no Setor de Entregas">Preparando</SelectItem>
+                      <SelectItem value="A Caminho">A Caminho</SelectItem>
+                      <SelectItem value="Entregue">Entregue</SelectItem>
+                      <SelectItem value="Não Entregue">Não Entregue</SelectItem>
+                      <SelectItem value="Voltou">Voltou</SelectItem>
+                      <SelectItem value="Cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Local</label>
+                  <Select value={filtroLocal} onValueChange={setFiltroLocal}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Local" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {locaisUnicos.map(l => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Motoboy</label>
+                  <Select value={filtroMotoboy} onValueChange={setFiltroMotoboy}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Motoboy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {motoboysUnicos.map(m => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Período</label>
+                  <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="Manhã">Manhã</SelectItem>
+                      <SelectItem value="Tarde">Tarde</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {(filtroStatus !== "todos" || filtroLocal !== "todos" || filtroMotoboy !== "todos" || filtroPeriodo !== "todos" || searchTerm) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFiltroStatus("todos");
+                    setFiltroLocal("todos");
+                    setFiltroMotoboy("todos");
+                    setFiltroPeriodo("todos");
+                    setSearchTerm("");
+                  }}
+                >
+                  Limpar Filtros
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -186,35 +343,55 @@ export default function Relatorios() {
               </CardHeader>
             </Card>
 
-            {/* Resumo Geral */}
+            {/* Resumo Geral - Clicáveis */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="border-none shadow-md">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-slate-500 font-medium">Total</p>
-                  <p className="text-3xl font-bold text-slate-900">{romaneiosDoDia.length}</p>
-                </CardHeader>
-              </Card>
+              <button
+                onClick={() => setFiltroStatus("todos")}
+                className="text-left"
+              >
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroStatus === "todos" ? "ring-2 ring-[#457bba]" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <p className="text-sm text-slate-500 font-medium">Total</p>
+                    <p className="text-3xl font-bold text-slate-900">{romaneiosDoDia.length}</p>
+                  </CardHeader>
+                </Card>
+              </button>
 
-              <Card className="border-none shadow-md">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-slate-500 font-medium">Entregues</p>
-                  <p className="text-3xl font-bold text-green-600">{porStatus.entregues.length}</p>
-                </CardHeader>
-              </Card>
+              <button
+                onClick={() => setFiltroStatus(filtroStatus === "Entregue" ? "todos" : "Entregue")}
+                className="text-left"
+              >
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroStatus === "Entregue" ? "ring-2 ring-green-600" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <p className="text-sm text-slate-500 font-medium">Entregues</p>
+                    <p className="text-3xl font-bold text-green-600">{porStatus.entregues.length}</p>
+                  </CardHeader>
+                </Card>
+              </button>
 
-              <Card className="border-none shadow-md">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-slate-500 font-medium">A Caminho</p>
-                  <p className="text-3xl font-bold text-purple-600">{porStatus.aCaminho.length}</p>
-                </CardHeader>
-              </Card>
+              <button
+                onClick={() => setFiltroStatus(filtroStatus === "A Caminho" ? "todos" : "A Caminho")}
+                className="text-left"
+              >
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroStatus === "A Caminho" ? "ring-2 ring-purple-600" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <p className="text-sm text-slate-500 font-medium">A Caminho</p>
+                    <p className="text-3xl font-bold text-purple-600">{porStatus.aCaminho.length}</p>
+                  </CardHeader>
+                </Card>
+              </button>
 
-              <Card className="border-none shadow-md">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-slate-500 font-medium">Pendente</p>
-                  <p className="text-3xl font-bold text-slate-600">{porStatus.pendente.length}</p>
-                </CardHeader>
-              </Card>
+              <button
+                onClick={() => setFiltroStatus(filtroStatus === "Pendente" ? "todos" : "Pendente")}
+                className="text-left"
+              >
+                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroStatus === "Pendente" ? "ring-2 ring-slate-600" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <p className="text-sm text-slate-500 font-medium">Pendente</p>
+                    <p className="text-3xl font-bold text-slate-600">{porStatus.pendente.length}</p>
+                  </CardHeader>
+                </Card>
+              </button>
             </div>
 
             {/* Por Local - NOVO */}
