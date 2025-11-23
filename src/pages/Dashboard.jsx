@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,24 +69,48 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function Dashboard() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [filtroAtendente, setFiltroAtendente] = useState("todos");
-  const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
-  const [filtroLocal, setFiltroLocal] = useState("todos");
-  const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [visualizacao, setVisualizacao] = useState("dia"); // "dia" ou "todos"
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+
+  // Parse URL params para restaurar estado
+  const urlParams = new URLSearchParams(location.search);
+  
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const dataParam = urlParams.get('data');
+    return dataParam ? new Date(dataParam) : new Date();
+  });
+  const [filtroAtendente, setFiltroAtendente] = useState(urlParams.get('atendente') || "todos");
+  const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || "todos");
+  const [filtroLocal, setFiltroLocal] = useState(urlParams.get('local') || "todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState(urlParams.get('periodo') || "todos");
+  const [filtroStatus, setFiltroStatus] = useState(urlParams.get('status') || "todos");
+  const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || "");
+  const [visualizacao, setVisualizacao] = useState(urlParams.get('view') || "dia");
   const [selectedRomaneios, setSelectedRomaneios] = useState([]);
   const [showBulkStatusDialog, setShowBulkStatusDialog] = useState(false);
   const [bulkStatus, setBulkStatus] = useState("");
-
   const [showBulkPagamentoDialog, setShowBulkPagamentoDialog] = useState(false);
   const [showBulkReceitaDialog, setShowBulkReceitaDialog] = useState(false);
   const [bulkPagamentoStatus, setBulkPagamentoStatus] = useState("");
   const [bulkReceitaStatus, setBulkReceitaStatus] = useState("");
 
-  const queryClient = useQueryClient();
+  // Atualizar URL quando estado mudar
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (visualizacao === "dia") {
+      params.set('data', format(selectedDate, 'yyyy-MM-dd'));
+    }
+    params.set('view', visualizacao);
+    if (filtroAtendente !== "todos") params.set('atendente', filtroAtendente);
+    if (filtroMotoboy !== "todos") params.set('motoboy', filtroMotoboy);
+    if (filtroLocal !== "todos") params.set('local', filtroLocal);
+    if (filtroPeriodo !== "todos") params.set('periodo', filtroPeriodo);
+    if (filtroStatus !== "todos") params.set('status', filtroStatus);
+    if (searchTerm) params.set('busca', searchTerm);
+    
+    navigate(`?${params.toString()}`, { replace: true });
+  }, [selectedDate, visualizacao, filtroAtendente, filtroMotoboy, filtroLocal, filtroPeriodo, filtroStatus, searchTerm]);
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -14,13 +15,33 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function PlanilhaDiaria() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
-  const [visualizarTodas, setVisualizarTodas] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+
+  // Parse URL params para restaurar estado
+  const urlParams = new URLSearchParams(location.search);
+  
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const dataParam = urlParams.get('data');
+    return dataParam ? new Date(dataParam) : new Date();
+  });
+  const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || "todos");
+  const [visualizarTodas, setVisualizarTodas] = useState(urlParams.get('todas') === 'true');
   const [editandoId, setEditandoId] = useState(null);
   const [editData, setEditData] = useState({});
 
-  const queryClient = useQueryClient();
+  // Atualizar URL quando estado mudar
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (!visualizarTodas) {
+      params.set('data', format(selectedDate, 'yyyy-MM-dd'));
+    }
+    params.set('todas', visualizarTodas.toString());
+    if (filtroMotoboy !== "todos") params.set('motoboy', filtroMotoboy);
+    
+    navigate(`?${params.toString()}`, { replace: true });
+  }, [selectedDate, filtroMotoboy, visualizarTodas]);
 
   const { data: romaneios, isLoading } = useQuery({
     queryKey: ['romaneios-planilha'],
