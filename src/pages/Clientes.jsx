@@ -299,6 +299,7 @@ export default function Clientes() {
     initialData: [],
     refetchOnMount: 'always',
     staleTime: 0,
+    gcTime: 0,
   });
 
   const updateClienteMutation = useMutation({

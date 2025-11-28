@@ -33,6 +33,9 @@ export default function Usuarios() {
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
     initialData: [],
+    refetchOnMount: 'always',
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const updateMutation = useMutation({
