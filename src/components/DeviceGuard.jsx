@@ -54,10 +54,26 @@ const getDeviceName = () => {
 };
 
 export default function DeviceGuard({ children, onStatusChange }) {
-  const [status, setStatus] = useState('loading'); // loading, authorized, pending, blocked
+  const [status, setStatus] = useState(() => {
+    // Verificar se já foi autorizado recentemente (cache de 30 minutos)
+    const cached = localStorage.getItem('device_auth_status');
+    const cachedTime = localStorage.getItem('device_auth_time');
+    if (cached === 'authorized' && cachedTime) {
+      const elapsed = Date.now() - parseInt(cachedTime);
+      if (elapsed < 30 * 60 * 1000) { // 30 minutos
+        return 'authorized';
+      }
+    }
+    return 'loading';
+  });
   const [mensagem, setMensagem] = useState('');
 
   useEffect(() => {
+    // Se já está autorizado pelo cache, não verificar novamente
+    if (status === 'authorized') {
+      return;
+    }
+
     const verificarDispositivo = async () => {
       try {
         const fingerprint = generateFingerprint();
@@ -75,12 +91,19 @@ export default function DeviceGuard({ children, onStatusChange }) {
 
         if (data.autorizado) {
           setStatus('authorized');
+          // Salvar no cache
+          localStorage.setItem('device_auth_status', 'authorized');
+          localStorage.setItem('device_auth_time', Date.now().toString());
         } else if (data.aguardando_aprovacao) {
           setStatus('pending');
           setMensagem(data.mensagem);
+          localStorage.removeItem('device_auth_status');
+          localStorage.removeItem('device_auth_time');
         } else {
           setStatus('blocked');
           setMensagem(data.mensagem);
+          localStorage.removeItem('device_auth_status');
+          localStorage.removeItem('device_auth_time');
         }
 
         if (onStatusChange) {
@@ -95,7 +118,7 @@ export default function DeviceGuard({ children, onStatusChange }) {
     };
 
     verificarDispositivo();
-  }, []);
+  }, [status]);
 
   if (status === 'loading') {
     return (
