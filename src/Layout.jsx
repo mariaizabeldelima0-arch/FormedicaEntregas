@@ -104,7 +104,7 @@ export default function Layout({ children, currentPageName }) {
       url: createPageUrl("PlanilhaDiaria"),
       icon: BarChart3,
     },
-    ...(isAdmin && user?.role === 'admin' ? [{
+    ...(user?.tipo_usuario === 'admin' ? [{
       title: "Painel dos Motoboys",
       url: createPageUrl("PainelMotoboys"),
       icon: Truck,
