@@ -14,6 +14,7 @@ import Balcao from './pages/Balcao';
 import Receitas from './pages/Receitas';
 import Pagamentos from './pages/Pagamentos';
 import PlanilhaDiaria from './pages/PlanilhaDiaria';
+import Dispositivos from './pages/Dispositivos';
 import __Layout from './Layout.jsx';
 
 
@@ -34,6 +35,7 @@ export const PAGES = {
     "Receitas": Receitas,
     "Pagamentos": Pagamentos,
     "PlanilhaDiaria": PlanilhaDiaria,
+    "Dispositivos": Dispositivos,
 }
 
 export const pagesConfig = {
