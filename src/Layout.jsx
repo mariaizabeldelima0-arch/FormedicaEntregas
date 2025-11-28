@@ -163,15 +163,22 @@ export default function Layout({ children, currentPageName }) {
                       <SidebarMenuButton
                         asChild
                         className={`rounded-lg mb-1 transition-all duration-200 ${
-                          location.pathname === item.url
+                          location.pathname.includes(item.url.replace('/', ''))
                             ? 'bg-[#457bba] text-white hover:bg-[#3a6ba0]'
                             : 'hover:bg-slate-100 text-slate-700'
                         }`}
                       >
-                        <Link to={item.url} className="flex items-center gap-3 px-3 py-2.5">
+                        <a 
+                          href={item.url} 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.location.href = item.url;
+                          }}
+                          className="flex items-center gap-3 px-3 py-2.5"
+                        >
                           <item.icon className="w-4 h-4" />
                           <span className="font-medium">{item.title}</span>
-                        </Link>
+                        </a>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
