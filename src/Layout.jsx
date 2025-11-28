@@ -42,6 +42,13 @@ import DeviceGuard from "@/components/DeviceGuard";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  const queryClient = useQueryClient();
+
+  // Invalida todas as queries quando a rota muda
+  useEffect(() => {
+    queryClient.invalidateQueries();
+  }, [location.pathname, queryClient]);
+
   const { data: user } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
