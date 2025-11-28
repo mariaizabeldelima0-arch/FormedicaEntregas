@@ -47,8 +47,9 @@ export default function PlanilhaDiaria() {
     queryKey: ['romaneios-planilha'],
     queryFn: () => base44.entities.Romaneio.list('-data_entrega_prevista'),
     initialData: [],
-    refetchOnMount: true,
+    refetchOnMount: 'always',
     staleTime: 0,
+    gcTime: 0,
   });
 
   const updateMutation = useMutation({

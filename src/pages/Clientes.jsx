@@ -297,6 +297,8 @@ export default function Clientes() {
     queryKey: ['clientes'],
     queryFn: () => base44.entities.Cliente.list('-created_date'),
     initialData: [],
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const updateClienteMutation = useMutation({

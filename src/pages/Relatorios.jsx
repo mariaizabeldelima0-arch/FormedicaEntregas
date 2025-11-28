@@ -73,8 +73,9 @@ export default function Relatorios() {
     },
     enabled: !!user,
     initialData: [],
-    refetchOnMount: true,
+    refetchOnMount: 'always',
     staleTime: 0,
+    gcTime: 0,
   });
 
   // Filtrar romaneios por data e filtros

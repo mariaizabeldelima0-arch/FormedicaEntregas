@@ -113,8 +113,9 @@ export default function NovoRomaneio() {
     queryKey: ['clientes'],
     queryFn: () => base44.entities.Cliente.list('nome'),
     initialData: [],
-    refetchOnMount: true,
+    refetchOnMount: 'always',
     staleTime: 0,
+    gcTime: 0,
   });
 
   const [formData, setFormData] = useState({

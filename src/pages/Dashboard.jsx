@@ -133,8 +133,9 @@ export default function Dashboard() {
     initialData: [],
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    refetchOnMount: 'always',
     staleTime: 0,
+    gcTime: 0,
   });
 
   const bulkUpdateMutation = useMutation({
