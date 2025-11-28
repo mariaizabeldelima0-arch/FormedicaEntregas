@@ -22,6 +22,13 @@ export default function Usuarios() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const isAdmin = currentUser?.tipo_usuario === 'admin';
+
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
@@ -111,34 +118,36 @@ export default function Usuarios() {
                     </div>
                     <div className="space-y-2">
                       {getTipoBadge(usuario.tipo_usuario)}
-                      <Select
-                        value={usuario.tipo_usuario || ""}
-                        onValueChange={(value) => handleUpdateTipo(usuario.id, value)}
-                      >
-                        <SelectTrigger className="w-64">
-                          <SelectValue placeholder="Definir tipo de usuário" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">
-                            <div className="flex items-center gap-2">
-                              <UserCog className="w-4 h-4 text-red-600" />
-                              Administrador (Acesso Total)
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="atendente">
-                            <div className="flex items-center gap-2">
-                              <UserCog className="w-4 h-4 text-blue-600" />
-                              Atendente (Criar e Ver Romaneios)
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="entregador">
-                            <div className="flex items-center gap-2">
-                              <UserCog className="w-4 h-4 text-green-600" />
-                              Motoboy (Visualizar Entregas)
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {isAdmin && (
+                        <Select
+                          value={usuario.tipo_usuario || ""}
+                          onValueChange={(value) => handleUpdateTipo(usuario.id, value)}
+                        >
+                          <SelectTrigger className="w-64">
+                            <SelectValue placeholder="Definir tipo de usuário" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">
+                              <div className="flex items-center gap-2">
+                                <UserCog className="w-4 h-4 text-red-600" />
+                                Administrador (Acesso Total)
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="atendente">
+                              <div className="flex items-center gap-2">
+                                <UserCog className="w-4 h-4 text-blue-600" />
+                                Atendente (Criar e Ver Romaneios)
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="entregador">
+                              <div className="flex items-center gap-2">
+                                <UserCog className="w-4 h-4 text-green-600" />
+                                Motoboy (Visualizar Entregas)
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </div>
                 </div>
