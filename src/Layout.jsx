@@ -13,7 +13,8 @@ import {
   BarChart3,
   Settings,
   UserCog,
-  Send
+  Send,
+  Smartphone
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import DeviceGuard from "@/components/DeviceGuard";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -106,6 +108,11 @@ export default function Layout({ children, currentPageName }) {
       title: "Painel dos Motoboys",
       url: createPageUrl("PainelMotoboys"),
       icon: Truck,
+    },
+    {
+      title: "Dispositivos",
+      url: createPageUrl("Dispositivos"),
+      icon: Smartphone,
     }] : []),
   ] : [];
 
@@ -114,6 +121,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   return (
+    <DeviceGuard>
     <SidebarProvider>
       <style>{`
         :root {
@@ -228,5 +236,6 @@ export default function Layout({ children, currentPageName }) {
         </main>
       </div>
     </SidebarProvider>
+    </DeviceGuard>
   );
 }
