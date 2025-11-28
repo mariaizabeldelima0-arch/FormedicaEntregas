@@ -123,12 +123,7 @@ export default function DeviceGuard({ children, onStatusChange }) {
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <Card className="w-full max-w-md border-none shadow-xl">
-          <CardContent className="p-12 text-center">
-            <Smartphone className="w-16 h-16 text-[#457bba] mx-auto mb-4 animate-pulse" />
-            <p className="text-slate-600 font-medium">Verificando dispositivo...</p>
-          </CardContent>
-        </Card>
+        <div className="w-6 h-6 border-2 border-[#457bba] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
