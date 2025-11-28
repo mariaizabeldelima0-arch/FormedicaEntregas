@@ -75,6 +75,8 @@ export default function Balcao() {
     queryKey: ['entregas-balcao'],
     queryFn: () => base44.entities.EntregaBalcao.list('-data_cadastro'),
     initialData: [],
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   const { data: clientes } = useQuery({

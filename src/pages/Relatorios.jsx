@@ -73,6 +73,8 @@ export default function Relatorios() {
     },
     enabled: !!user,
     initialData: [],
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   // Filtrar romaneios por data e filtros

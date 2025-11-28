@@ -83,6 +83,8 @@ export default function Sedex() {
     queryKey: ['entregas-sedex'],
     queryFn: () => base44.entities.EntregaSedex.list('-data_postagem'),
     initialData: [],
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   const createMutation = useMutation({
