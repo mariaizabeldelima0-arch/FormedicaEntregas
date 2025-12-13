@@ -1,9 +1,2 @@
-import { base44 } from './base44Client';
-
-
-export const Query = base44.entities.Query;
-
-
-
-// auth sdk:
-export const User = base44.auth;
+// Arquivo temporário - as entidades agora são gerenciadas diretamente via Supabase
+export const entities = {};
