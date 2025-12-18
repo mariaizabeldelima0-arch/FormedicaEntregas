@@ -1,695 +1,1191 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Snowflake, Plus, ArrowLeft, Search, FileText, X } from "lucide-react";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { theme } from '@/lib/theme';
+import { supabase } from '@/api/supabaseClient';
 
-const CIDADES = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
-  "Barra", "Estaleiro", "Taquaras", "Laranjeiras", "Itajai",
-  "Espinheiros", "Praia dos Amores", "Praia Brava", "Itapema",
-  "Navegantes", "Penha", "Porto Belo", "Tijucas", "Piçarras",
-  "Bombinhas", "Clinica", "Outro"
-];
-
-const FORMAS_PAGAMENTO = [
-  "Pago", "Dinheiro", "Maquina", "Troco P/", "Via na Pasta",
-  "Só Entregar", "Aguardando", "Pix - Aguardando", "Link - Aguardando",
-  "Boleto", "Pagar MP"
-];
-
-const MOTOBOYS = ["Marcio", "Bruno"];
-
+// Tabela de valores por região e motoboy
 const VALORES_ENTREGA = {
-  "Marcio": {
-    "BC": 9,
-    "Clinica": 9,
-    "Nova Esperança": 11,
-    "Camboriú": 16,
-    "Tabuleiro": 11,
-    "Monte Alegre": 11,
-    "Barra": 11,
-    "Estaleiro": 16,
-    "Taquaras": 16,
-    "Laranjeiras": 16,
-    "Itajai": 19,
-    "Espinheiros": 23,
-    "Praia dos Amores": 13.50,
-    "Praia Brava": 13.50,
-    "Itapema": 27,
-    "Navegantes": 30,
-    "Penha": 52,
-    "Porto Belo": 52,
-    "Tijucas": 52,
-    "Piçarras": 52,
-    "Bombinhas": 72
+  Marcio: {
+    'BC': 9,
+    'NOVA ESPERANÇA': 11,
+    'CAMBORIÚ': 16,
+    'TABULEIRO': 11,
+    'MONTE ALEGRE': 11,
+    'BARRA': 11,
+    'ESTALEIRO': 16,
+    'TAQUARAS': 16,
+    'LARANJEIRAS': 16,
+    'ITAJAI': 19,
+    'ESPINHEIROS': 23,
+    'PRAIA DOS AMORES': 13.50,
+    'PRAIA BRAVA': 13.50,
+    'ITAPEMA': 27,
+    'NAVEGANTES': 30,
+    'PENHA': 52,
+    'PORTO BELO': 52,
+    'TIJUCAS': 52,
+    'PIÇARRAS': 52,
+    'BOMBINHAS': 72,
+    'CLINICA': 9
   },
-  "Bruno": {
-    "BC": 7,
-    "Clinica": 7,
-    "Nova Esperança": 9,
-    "Camboriú": 14,
-    "Tabuleiro": 9,
-    "Monte Alegre": 9,
-    "Barra": 9,
-    "Estaleiro": 14,
-    "Taquaras": 14,
-    "Laranjeiras": 14,
-    "Itajai": 17,
-    "Espinheiros": 21,
-    "Praia dos Amores": 11.50,
-    "Praia Brava": 11.50,
-    "Itapema": 25,
-    "Navegantes": 40,
-    "Penha": 50,
-    "Porto Belo": 30,
-    "Tijucas": 50,
-    "Piçarras": 50,
-    "Bombinhas": 50
+  Bruno: {
+    'BC': 7,
+    'NOVA ESPERANÇA': 9,
+    'CAMBORIÚ': 14,
+    'TABULEIRO': 9,
+    'MONTE ALEGRE': 9,
+    'BARRA': 9,
+    'ESTALEIRO': 14,
+    'TAQUARAS': 14,
+    'LARANJEIRAS': 14,
+    'ITAJAI': 17,
+    'ESPINHEIROS': 21,
+    'PRAIA DOS AMORES': 11.50,
+    'PRAIA BRAVA': 11.50,
+    'ITAPEMA': 25,
+    'NAVEGANTES': 40,
+    'PENHA': 50,
+    'PORTO BELO': 30,
+    'TIJUCAS': 50,
+    'PIÇARRAS': 50,
+    'BOMBINHAS': 50,
+    'CLINICA': 7
   }
 };
 
-const REGIOES_MARCIO = [
-  "BC", "Nova Esperança", "Camboriú", "Tabuleiro", "Monte Alegre",
-  "Barra", "Estaleiro", "Clinica"
+// Motoboy automático por região
+const MOTOBOY_POR_REGIAO = {
+  'BC': 'Marcio',
+  'NOVA ESPERANÇA': 'Marcio',
+  'CAMBORIÚ': 'Marcio',
+  'TABULEIRO': 'Marcio',
+  'MONTE ALEGRE': 'Marcio',
+  'BARRA': 'Marcio',
+  'ESTALEIRO': 'Marcio',
+  'CLINICA': 'Marcio',
+  'TAQUARAS': 'Bruno',
+  'LARANJEIRAS': 'Bruno',
+  'ITAJAI': 'Bruno',
+  'ESPINHEIROS': 'Bruno',
+  'PRAIA DOS AMORES': 'Bruno',
+  'PRAIA BRAVA': 'Bruno',
+  'ITAPEMA': 'Bruno',
+  'NAVEGANTES': 'Bruno',
+  'PENHA': 'Bruno',
+  'PORTO BELO': 'Bruno',
+  'TIJUCAS': 'Bruno',
+  'PIÇARRAS': 'Bruno',
+  'BOMBINHAS': 'Bruno'
+};
+
+const REGIOES = [
+  'BC', 'NOVA ESPERANÇA', 'CAMBORIÚ', 'TABULEIRO', 'MONTE ALEGRE', 
+  'BARRA', 'ESTALEIRO', 'TAQUARAS', 'LARANJEIRAS', 'ITAJAI', 
+  'ESPINHEIROS', 'PRAIA DOS AMORES', 'PRAIA BRAVA', 'ITAPEMA', 
+  'NAVEGANTES', 'PENHA', 'PORTO BELO', 'TIJUCAS', 'PIÇARRAS', 
+  'BOMBINHAS', 'CLINICA', 'OUTRO'
 ];
 
-const REGIOES_BRUNO = [
-  "Taquaras", "Laranjeiras", "Itajai", "Espinheiros", "Praia dos Amores",
-  "Praia Brava", "Itapema", "Navegantes", "Penha", "Porto Belo",
-  "Tijucas", "Piçarras", "Bombinhas"
+const FORMAS_PAGAMENTO = [
+  'Pago', 'Dinheiro', 'Maquina', 'Troco P/', 'Via na Pasta',
+  'Só Entregar', 'Aguardando', 'Pix - Aguardando',
+  'Link - Aguardando', 'Boleto', 'Pagar MP'
 ];
+
+// Mapeamento de cidades/bairros para regiões
+const MAPEAMENTO_REGIOES = {
+  'balneário camboriú': {
+    'centro': 'BC',
+    'estados': 'BC',
+    'pioneiros': 'BC',
+    'nova esperança': 'NOVA ESPERANÇA',
+    'nações': 'BC',
+    'barra': 'BARRA',
+    'barra sul': 'BARRA',
+    'estaleiro': 'ESTALEIRO',
+    'estaleirinho': 'ESTALEIRO',
+    'taquaras': 'TAQUARAS',
+    'laranjeiras': 'LARANJEIRAS',
+    'praia dos amores': 'PRAIA DOS AMORES',
+    'praia brava': 'PRAIA BRAVA',
+    'default': 'BC'
+  },
+  'camboriú': {
+    'default': 'CAMBORIÚ'
+  },
+  'itajaí': {
+    'default': 'ITAJAI'
+  },
+  'itapema': {
+    'default': 'ITAPEMA'
+  },
+  'navegantes': {
+    'default': 'NAVEGANTES'
+  },
+  'penha': {
+    'default': 'PENHA'
+  },
+  'porto belo': {
+    'default': 'PORTO BELO'
+  },
+  'tijucas': {
+    'default': 'TIJUCAS'
+  },
+  'piçarras': {
+    'default': 'PIÇARRAS'
+  },
+  'bombinhas': {
+    'default': 'BOMBINHAS'
+  }
+};
+
+// Função para detectar região automaticamente
+const detectarRegiao = (cidade, bairro) => {
+  const cidadeLower = cidade?.toLowerCase().trim() || '';
+  const bairroLower = bairro?.toLowerCase().trim() || '';
+
+  // Buscar por cidade
+  if (MAPEAMENTO_REGIOES[cidadeLower]) {
+    const mapa = MAPEAMENTO_REGIOES[cidadeLower];
+    // Tentar encontrar por bairro específico
+    if (bairroLower && mapa[bairroLower]) {
+      return mapa[bairroLower];
+    }
+    // Usar região padrão da cidade
+    return mapa.default;
+  }
+
+  return '';
+};
 
 export default function NovoRomaneio() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const dataParam = urlParams.get('data');
-
-  const { data: user } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: clientes } = useQuery({
-    queryKey: ['clientes'],
-    queryFn: () => base44.entities.Cliente.list('nome'),
-    initialData: [],
-    refetchOnMount: 'always',
-    staleTime: 0,
-    gcTime: 0,
+  const [loading, setLoading] = useState(false);
+  const [buscarCliente, setBuscarCliente] = useState('');
+  const [clientesSugestoes, setClientesSugestoes] = useState([]);
+  const [showCadastroCliente, setShowCadastroCliente] = useState(false);
+  
+  const [clienteEnderecos, setClienteEnderecos] = useState([]);
+  const [showNovoEndereco, setShowNovoEndereco] = useState(false);
+  const [novoEndereco, setNovoEndereco] = useState({
+    logradouro: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    cep: ''
   });
 
   const [formData, setFormData] = useState({
-    numero_requisicao: "",
-    clientes_ids: [],
-    endereco_selecionado: null,
-    cidade_regiao: "",
-    cidade_outro: "",
-    forma_pagamento: "",
-    valor_pagamento: "",
-    valor_troco: "",
-    valor_entrega: "",
-    item_geladeira: "false",
-    buscar_receita: "false",
-    motoboy: "",
-    motoboy_email: "",
-    periodo_entrega: "Tarde",
-    data_entrega_prevista: dataParam || format(new Date(), "yyyy-MM-dd"),
-    observacoes: "",
+    cliente_id: '',
+    cliente_nome: '',
+    numero_requisicao: '',
+    endereco_id: '', // ID do endereço selecionado
+    endereco: '', // Texto livre para novo endereço
+    regiao: '',
+    outra_cidade: '',
+    data_entrega: new Date().toISOString().split('T')[0],
+    periodo: 'Tarde',
+    forma_pagamento: '',
+    motoboy: '',
+    valor_entrega: 0,
+    item_geladeira: false,
+    buscar_receita: false,
+    observacoes: ''
   });
 
-  const [selectedClientes, setSelectedClientes] = useState([]);
-  const [searchCliente, setSearchCliente] = useState("");
+  const [errors, setErrors] = useState({});
 
-  const clientesFiltrados = clientes.filter(c => {
-    const matchesSearch = c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
-      c.telefone?.includes(searchCliente) ||
-      c.cpf?.includes(searchCliente);
-    
-    const hasEndereco = c.enderecos && c.enderecos.length > 0;
-    const notSelected = !selectedClientes.find(sc => sc.id === c.id);
-    
-    return matchesSearch && hasEndereco && notSelected;
-  });
-
-  useEffect(() => {
-    if (formData.motoboy && formData.cidade_regiao && formData.cidade_regiao !== "Outro") {
-      const valor = VALORES_ENTREGA[formData.motoboy]?.[formData.cidade_regiao] || 0;
-      setFormData(prev => ({ ...prev, valor_entrega: valor.toString() }));
+  // Buscar clientes
+  const handleBuscarCliente = async (termo) => {
+    setBuscarCliente(termo);
+    if (termo.length < 2) {
+      setClientesSugestoes([]);
+      return;
     }
-  }, [formData.motoboy, formData.cidade_regiao]);
 
-  useEffect(() => {
-    if (formData.cidade_regiao && formData.cidade_regiao !== "Outro") {
-      let motoboySugerido = "";
-      if (REGIOES_MARCIO.includes(formData.cidade_regiao)) {
-        motoboySugerido = "Marcio";
-      } else if (REGIOES_BRUNO.includes(formData.cidade_regiao)) {
-        motoboySugerido = "Bruno";
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .ilike('nome', `%${termo}%`)
+        .limit(5);
+
+      if (error) throw error;
+      setClientesSugestoes(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+    }
+  };
+
+  // Selecionar cliente
+  const selecionarCliente = (cliente) => {
+    console.log('Cliente selecionado:', cliente);
+    console.log('Vai buscar endereços agora...');
+
+    setFormData({
+      ...formData,
+      cliente_id: cliente.id,
+      cliente_nome: cliente.nome,
+      endereco_id: '',
+      endereco: ''
+    });
+    setBuscarCliente(cliente.nome);
+    setClientesSugestoes([]);
+
+    // Buscar endereços do cliente imediatamente
+    carregarEnderecosCliente(cliente.id);
+  };
+
+  // Carregar endereços do cliente
+  const carregarEnderecosCliente = async (clienteId) => {
+    console.log('Buscando endereços para cliente ID:', clienteId);
+    try {
+      const { data, error } = await supabase
+        .from('enderecos')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .order('is_principal', { ascending: false });
+
+      console.log('Endereços encontrados:', data);
+      console.log('Erro ao buscar endereços:', error);
+
+      if (error) throw error;
+      setClienteEnderecos(data || []);
+
+      // Se só tem um endereço, seleciona automaticamente
+      if (data && data.length === 1) {
+        console.log('Selecionando endereço automaticamente:', data[0]);
+        selecionarEndereco(data[0]);
       }
+    } catch (error) {
+      console.error('Erro ao buscar endereços:', error);
+      setClienteEnderecos([]);
+    }
+  };
 
-      if (motoboySugerido && !formData.motoboy) {
-        setFormData(prev => ({ ...prev, motoboy: motoboySugerido }));
+  // Selecionar endereço
+  const selecionarEndereco = (endereco) => {
+    console.log('Selecionando endereço:', endereco);
+
+    setFormData(prevFormData => ({
+      ...prevFormData,
+      endereco_id: endereco.id,
+      endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`,
+      regiao: endereco.regiao || ''
+    }));
+
+    setShowNovoEndereco(false);
+
+    // Atualizar região e calcular valor
+    if (endereco.regiao) {
+      handleRegiaoChange(endereco.regiao);
+    }
+  };
+
+  // Calcular valor automaticamente
+  const calcularValor = (regiao, motoboy) => {
+    if (regiao === 'OUTRO' || !regiao || !motoboy) return 0;
+    return VALORES_ENTREGA[motoboy]?.[regiao] || 0;
+  };
+
+  // Atualizar região
+  const handleRegiaoChange = (regiao) => {
+    console.log('Mudando região para:', regiao);
+
+    setFormData(prevFormData => {
+      const motoboy = regiao === 'OUTRO' ? prevFormData.motoboy : (MOTOBOY_POR_REGIAO[regiao] || 'Marcio');
+      const valor = calcularValor(regiao, motoboy);
+
+      console.log('Novo motoboy:', motoboy, 'Novo valor:', valor);
+
+      return {
+        ...prevFormData,
+        regiao,
+        motoboy,
+        valor_entrega: valor
+      };
+    });
+  };
+
+  // Atualizar motoboy
+  const handleMotoboyChange = (motoboy) => {
+    const valor = calcularValor(formData.regiao, motoboy);
+    setFormData({
+      ...formData,
+      motoboy,
+      valor_entrega: valor
+    });
+  };
+
+  // Validar formulário
+  const validarFormulario = () => {
+    const novosErros = {};
+
+    if (!formData.cliente_id) novosErros.cliente = 'Selecione um cliente';
+    if (!formData.numero_requisicao) novosErros.requisicao = 'Número de requisição obrigatório';
+
+    // Validar endereço
+    if (!formData.endereco_id) {
+      // Se não tem endereço cadastrado selecionado, validar novo endereço
+      if (!novoEndereco.logradouro || !novoEndereco.numero || !novoEndereco.bairro || !novoEndereco.cidade) {
+        novosErros.endereco = 'Preencha todos os campos do endereço';
       }
     }
-  }, [formData.cidade_regiao]);
 
-  const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const allRomaneios = await base44.entities.Romaneio.list();
-      const allSedex = await base44.entities.EntregaSedex.list();
-      
-      const numeroJaExiste = 
-        allRomaneios.some(r => r.numero_requisicao === data.numero_requisicao) ||
-        allSedex.some(s => s.numero_registro === data.numero_requisicao);
-      
-      if (numeroJaExiste) {
-        throw new Error(`Já existe um romaneio com o número "${data.numero_requisicao}". Por favor, use outro número.`);
-      }
+    if (!formData.regiao) novosErros.regiao = 'Selecione a região';
+    if (formData.regiao === 'OUTRO' && !formData.outra_cidade) novosErros.outra_cidade = 'Informe a cidade';
+    if (!formData.data_entrega) novosErros.data = 'Data obrigatória';
+    if (!formData.forma_pagamento) novosErros.pagamento = 'Forma de pagamento obrigatória';
+    if (!formData.motoboy) novosErros.motoboy = 'Selecione o motoboy';
 
-      if (!data.endereco_selecionado) {
-        throw new Error('Selecione um endereço para entrega');
-      }
+    setErrors(novosErros);
+    return Object.keys(novosErros).length === 0;
+  };
 
-      const clientesNomes = selectedClientes.map(c => c.nome).join(", ");
-      const clientesTelefones = selectedClientes.map(c => c.telefone).join(", ");
-
-      const codigo_rastreio = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-      const cidadeFinal = data.cidade_regiao === "Outro" ? data.cidade_outro : data.cidade_regiao;
-
-      return base44.entities.Romaneio.create({
-        ...data,
-        cliente_id: selectedClientes[0].id,
-        clientes_ids: selectedClientes.map(c => c.id),
-        cliente_nome: clientesNomes,
-        cliente_telefone: clientesTelefones,
-        atendente_nome: user.nome_atendente || user.full_name,
-        atendente_email: user.email,
-        endereco: data.endereco_selecionado,
-        cidade_regiao: cidadeFinal,
-        status: "Pendente",
-        codigo_rastreio,
-        item_geladeira: data.item_geladeira === "true" || data.item_geladeira === true,
-        buscar_receita: data.buscar_receita === "true" || data.buscar_receita === true,
-        valor_pagamento: data.valor_pagamento ? parseFloat(data.valor_pagamento) : null,
-        valor_troco: data.valor_troco ? parseFloat(data.valor_troco) : null,
-        valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : 0,
-        pagamento_recebido: false,
-        receita_recebida: false,
-        imagens: [],
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
-      toast.success('Romaneio criado com sucesso!');
-      navigate(createPageUrl("Dashboard"));
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Erro ao criar romaneio');
-      console.error(error);
-    }
-  });
-
-  const handleSubmit = (e) => {
+  // Salvar romaneio
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (selectedClientes.length === 0) {
-      toast.error('Selecione pelo menos um cliente');
+    if (!validarFormulario()) {
+      toast.error('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
-    if (!formData.numero_requisicao) {
-      toast.error('Informe o número da requisição');
-      return;
-    }
+    setLoading(true);
+    const toastId = toast.loading('Criando romaneio...');
 
-    if (!formData.cidade_regiao) {
-      toast.error('Selecione a cidade/região');
-      return;
-    }
+    try {
+      // Verificar se número de requisição já existe
+      const { data: existe } = await supabase
+        .from('entregas')
+        .select('id')
+        .eq('requisicao', formData.numero_requisicao)
+        .maybeSingle();
 
-    if (formData.cidade_regiao === "Outro" && !formData.cidade_outro) {
-      toast.error('Informe o nome da outra cidade');
-      return;
-    }
-
-    if (!formData.forma_pagamento) {
-      toast.error('Selecione a forma de pagamento');
-      return;
-    }
-
-    if (!formData.motoboy) {
-      toast.error('Selecione o motoboy');
-      return;
-    }
-
-    if (!formData.periodo_entrega) {
-      toast.error('Selecione o período de entrega');
-      return;
-    }
-
-    if (!formData.data_entrega_prevista) {
-      toast.error('Informe a data de entrega prevista');
-      return;
-    }
-
-    if (formData.item_geladeira === "") {
-      toast.error('Informe se é item de geladeira');
-      return;
-    }
-
-    if (formData.buscar_receita === "") {
-      toast.error('Informe se precisa buscar receita');
-      return;
-    }
-
-    const requiresValorPagamento = ["Dinheiro", "Maquina", "Troco P/"].includes(formData.forma_pagamento);
-    if (requiresValorPagamento && (formData.valor_pagamento === "" || parseFloat(formData.valor_pagamento) <= 0)) {
-        toast.error('Informe o valor de pagamento');
+      if (existe) {
+        toast.error('Já existe um romaneio com esse número de requisição!', { id: toastId });
+        setLoading(false);
         return;
+      }
+
+      // Se não tem endereço selecionado, criar novo endereço no banco
+      let enderecoIdFinal = formData.endereco_id;
+      let enderecoTexto = formData.endereco;
+
+      if (!formData.endereco_id && novoEndereco.logradouro) {
+        const enderecoCompleto = `${novoEndereco.logradouro}, ${novoEndereco.numero}${novoEndereco.complemento ? ' - ' + novoEndereco.complemento : ''} - ${novoEndereco.bairro}, ${novoEndereco.cidade} - SC`;
+
+        const { data: novoEnd, error: endError } = await supabase
+          .from('enderecos')
+          .insert([{
+            cliente_id: formData.cliente_id,
+            logradouro: novoEndereco.logradouro,
+            numero: novoEndereco.numero,
+            complemento: novoEndereco.complemento || null,
+            bairro: novoEndereco.bairro,
+            cidade: novoEndereco.cidade,
+            estado: 'SC',
+            cep: novoEndereco.cep || null,
+            regiao: formData.regiao,
+            is_principal: false,
+            endereco_completo: enderecoCompleto
+          }])
+          .select()
+          .single();
+
+        if (endError) {
+          console.error('Erro ao criar endereço:', endError);
+        } else {
+          enderecoIdFinal = novoEnd.id;
+          enderecoTexto = enderecoCompleto;
+        }
+      }
+
+      // Buscar ID do motoboy pelo nome
+      let motoboyId = null;
+      if (formData.motoboy) {
+        const { data: motoboy } = await supabase
+          .from('motoboys')
+          .select('id')
+          .eq('nome', formData.motoboy)
+          .maybeSingle();
+
+        motoboyId = motoboy?.id || null;
+      }
+
+      // Criar entrega
+      const { data, error } = await supabase
+        .from('entregas')
+        .insert([{
+          cliente_id: formData.cliente_id,
+          endereco_id: enderecoIdFinal || null,
+          requisicao: formData.numero_requisicao,
+          endereco_destino: enderecoTexto,
+          regiao: formData.regiao,
+          outra_cidade: formData.regiao === 'OUTRO' ? formData.outra_cidade : null,
+          tipo: 'moto',
+          data_criacao: new Date().toISOString(),
+          data_entrega: formData.data_entrega,
+          periodo: formData.periodo,
+          status: 'Produzindo no Laboratório',
+          motoboy_id: motoboyId,
+          forma_pagamento: formData.forma_pagamento,
+          valor: formData.valor_entrega,
+          item_geladeira: formData.item_geladeira,
+          buscar_receita: formData.buscar_receita,
+          observacoes: formData.observacoes
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Romaneio criado com sucesso!', { id: toastId });
+
+      // Aguardar um pouco antes de navegar para o usuário ver o toast
+      setTimeout(() => navigate('/'), 800);
+    } catch (error) {
+      console.error('Erro ao criar romaneio:', error);
+      toast.error('Erro ao criar romaneio: ' + error.message, { id: toastId });
+    } finally {
+      setLoading(false);
     }
-
-    if (!formData.endereco_selecionado) {
-      toast.error('Selecione um endereço para entrega');
-      return;
-    }
-
-    createMutation.mutate(formData);
-  };
-
-  const handleAddCliente = (cliente) => {
-    setSelectedClientes([...selectedClientes, cliente]);
-    setSearchCliente("");
-  };
-
-  const handleRemoveCliente = (clienteId) => {
-    setSelectedClientes(selectedClientes.filter(c => c.id !== clienteId));
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
+    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: theme.colors.primary,
+            fontSize: '0.875rem',
+            cursor: 'pointer',
+            marginBottom: '1rem'
+          }}
+        >
+          ← Voltar
+        </button>
+        <h1 style={{ 
+          fontSize: '1.875rem', 
+          fontWeight: '700',
+          color: theme.colors.text,
+          marginBottom: '0.25rem'
+        }}>
+          Novo Romaneio
+        </h1>
+        <p style={{ color: theme.colors.textLight, fontSize: '0.875rem' }}>
+          Crie uma nova ordem de entrega
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        {/* Informações do Romaneio */}
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '0.5rem',
+          border: `1px solid ${theme.colors.border}`,
+          marginBottom: '1.5rem'
+        }}>
+          <h3 style={{
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: theme.colors.text,
+            marginBottom: '1.5rem'
+          }}>
+            Informações do Romaneio
+          </h3>
+
+          {/* Cliente */}
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: theme.colors.text,
+              marginBottom: '0.5rem'
+            }}>
+              Cliente(s) *
+            </label>
+            <input
+              type="text"
+              value={buscarCliente}
+              onChange={(e) => handleBuscarCliente(e.target.value)}
+              placeholder="Buscar cliente por nome, CPF ou telefone..."
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: `1px solid ${errors.cliente ? theme.colors.danger : theme.colors.border}`,
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}
+            />
+            {clientesSugestoes.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                zIndex: 10,
+                background: 'white',
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '0.375rem',
+                marginTop: '0.25rem',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}>
+                {clientesSugestoes.map(cliente => (
+                  <div
+                    key={cliente.id}
+                    onClick={() => selecionarCliente(cliente)}
+                    style={{
+                      padding: '0.75rem',
+                      cursor: 'pointer',
+                      borderBottom: `1px solid ${theme.colors.border}`
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = theme.colors.background}
+                    onMouseLeave={(e) => e.target.style.background = 'white'}
+                  >
+                    <p style={{ fontWeight: '500', margin: 0 }}>{cliente.nome}</p>
+                    <p style={{ fontSize: '0.75rem', color: theme.colors.textLight, margin: 0 }}>
+                      {cliente.telefone}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {buscarCliente.length >= 2 && clientesSugestoes.length === 0 && (
+              <button
+                type="button"
+                onClick={() => setShowCadastroCliente(true)}
+                style={{
+                  marginTop: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  background: theme.colors.primary,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                + Cadastrar Novo Cliente
+              </button>
+            )}
+            {errors.cliente && (
+              <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                {errors.cliente}
+              </p>
+            )}
+          </div>
+
+          {/* Endereço de Entrega */}
+          {formData.cliente_id && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Endereço de Entrega *
+              </label>
+
+              {!showNovoEndereco && clienteEnderecos.length > 0 ? (
+                <div>
+                  <select
+                    value={formData.endereco_id}
+                    onChange={(e) => {
+                      const enderecoSelecionado = clienteEnderecos.find(end => end.id === e.target.value);
+                      if (enderecoSelecionado) {
+                        selecionarEndereco(enderecoSelecionado);
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `1px solid ${errors.endereco ? theme.colors.danger : theme.colors.border}`,
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      marginBottom: '0.5rem'
+                    }}
+                  >
+                    <option value="">Selecione um endereço</option>
+                    {clienteEnderecos.map(endereco => (
+                      <option key={endereco.id} value={endereco.id}>
+                        {endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}, ${endereco.cidade}`}
+                        {endereco.is_principal ? ' (Principal)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowNovoEndereco(true)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: 'white',
+                      color: theme.colors.primary,
+                      border: `1px solid ${theme.colors.primary}`,
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Usar outro endereço
+                  </button>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '1rem',
+                  background: theme.colors.background,
+                  borderRadius: '0.375rem',
+                  border: `1px solid ${theme.colors.border}`
+                }}>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '1rem' }}>
+                    Novo Endereço
+                  </h4>
+
+                  {/* Grid: Logradouro e Número */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                        Rua/Logradouro *
+                      </label>
+                      <input
+                        type="text"
+                        value={novoEndereco.logradouro}
+                        onChange={(e) => setNovoEndereco({...novoEndereco, logradouro: e.target.value})}
+                        placeholder="Ex: Rua das Flores"
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: `1px solid ${theme.colors.border}`,
+                          borderRadius: '0.375rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                        Número *
+                      </label>
+                      <input
+                        type="text"
+                        value={novoEndereco.numero}
+                        onChange={(e) => setNovoEndereco({...novoEndereco, numero: e.target.value})}
+                        placeholder="123"
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: `1px solid ${theme.colors.border}`,
+                          borderRadius: '0.375rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Complemento */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                      Complemento
+                    </label>
+                    <input
+                      type="text"
+                      value={novoEndereco.complemento}
+                      onChange={(e) => setNovoEndereco({...novoEndereco, complemento: e.target.value})}
+                      placeholder="Ex: Apto 101, Casa 2"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: `1px solid ${theme.colors.border}`,
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+
+                  {/* Grid: Bairro e Cidade */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                        Bairro *
+                      </label>
+                      <input
+                        type="text"
+                        value={novoEndereco.bairro}
+                        onChange={(e) => {
+                          const novoBairro = e.target.value;
+                          setNovoEndereco({...novoEndereco, bairro: novoBairro});
+                          // Detectar região automaticamente
+                          const regiaoDetectada = detectarRegiao(novoEndereco.cidade, novoBairro);
+                          if (regiaoDetectada) {
+                            handleRegiaoChange(regiaoDetectada);
+                          }
+                        }}
+                        placeholder="Ex: Centro"
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: `1px solid ${theme.colors.border}`,
+                          borderRadius: '0.375rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                        Cidade *
+                      </label>
+                      <input
+                        type="text"
+                        value={novoEndereco.cidade}
+                        onChange={(e) => {
+                          const novaCidade = e.target.value;
+                          setNovoEndereco({...novoEndereco, cidade: novaCidade});
+                          // Detectar região automaticamente
+                          const regiaoDetectada = detectarRegiao(novaCidade, novoEndereco.bairro);
+                          if (regiaoDetectada) {
+                            handleRegiaoChange(regiaoDetectada);
+                          }
+                        }}
+                        placeholder="Ex: Balneário Camboriú"
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: `1px solid ${theme.colors.border}`,
+                          borderRadius: '0.375rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* CEP */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                      CEP
+                    </label>
+                    <input
+                      type="text"
+                      value={novoEndereco.cep}
+                      onChange={(e) => setNovoEndereco({...novoEndereco, cep: e.target.value})}
+                      placeholder="88330-000"
+                      style={{
+                        width: '200px',
+                        padding: '0.5rem',
+                        border: `1px solid ${theme.colors.border}`,
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+
+                  {clienteEnderecos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNovoEndereco(false);
+                        setNovoEndereco({ logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', cep: '' });
+                      }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: 'white',
+                        color: theme.colors.textLight,
+                        border: `1px solid ${theme.colors.border}`,
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ← Voltar aos endereços cadastrados
+                    </button>
+                  )}
+                </div>
+              )}
+              {errors.endereco && (
+                <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  {errors.endereco}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Número da Requisição */}
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: theme.colors.text,
+              marginBottom: '0.5rem'
+            }}>
+              Número da Requisição *
+            </label>
+            <input
+              type="text"
+              value={formData.numero_requisicao}
+              onChange={(e) => setFormData({...formData, numero_requisicao: e.target.value})}
+              placeholder="Ex: REQ-001"
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: `1px solid ${errors.requisicao ? theme.colors.danger : theme.colors.border}`,
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}
+            />
+            {errors.requisicao && (
+              <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                {errors.requisicao}
+              </p>
+            )}
+          </div>
+
+          {/* Grid: Região e Data */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Cidade/Região *
+              </label>
+              <select
+                value={formData.regiao}
+                onChange={(e) => handleRegiaoChange(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <option value="">Selecione a cidade</option>
+                {REGIOES.map(regiao => (
+                  <option key={regiao} value={regiao}>{regiao}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Data de Entrega *
+              </label>
+              <input
+                type="date"
+                value={formData.data_entrega}
+                onChange={(e) => setFormData({...formData, data_entrega: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Outra Cidade (se OUTRO) */}
+          {formData.regiao === 'OUTRO' && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Nome da Cidade *
+              </label>
+              <input
+                type="text"
+                value={formData.outra_cidade}
+                onChange={(e) => setFormData({...formData, outra_cidade: e.target.value})}
+                placeholder="Digite o nome da cidade"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${errors.outra_cidade ? theme.colors.danger : theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem'
+                }}
+              />
+            </div>
+          )}
+
+          {/* Grid: Período e Forma de Pagamento */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Período de Entrega *
+              </label>
+              <select
+                value={formData.periodo}
+                onChange={(e) => setFormData({...formData, periodo: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <option value="Manhã">Manhã</option>
+                <option value="Tarde">Tarde</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Forma de Pagamento *
+              </label>
+              <select
+                value={formData.forma_pagamento}
+                onChange={(e) => setFormData({...formData, forma_pagamento: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${errors.pagamento ? theme.colors.danger : theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <option value="">Selecione</option>
+                {FORMAS_PAGAMENTO.map(forma => (
+                  <option key={forma} value={forma}>{forma}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Grid: Motoboy e Valor */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Motoboy *
+              </label>
+              <select
+                value={formData.motoboy}
+                onChange={(e) => handleMotoboyChange(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <option value="">Selecione o motoboy</option>
+                <option value="Marcio">Marcio</option>
+                <option value="Bruno">Bruno</option>
+              </select>
+              <p style={{ fontSize: '0.75rem', color: theme.colors.textLight, marginTop: '0.25rem' }}>
+                Valor calculado automaticamente
+              </p>
+            </div>
+
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Valor da Entrega (R$)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.valor_entrega}
+                onChange={(e) => setFormData({...formData, valor_entrega: parseFloat(e.target.value) || 0})}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: theme.colors.primary
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Item de Geladeira */}
+          <div style={{
+            padding: '1rem',
+            background: formData.item_geladeira ? '#fef3c7' : theme.colors.background,
+            borderRadius: '0.375rem',
+            marginBottom: '1rem'
+          }}>
+            <label style={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: theme.colors.text,
+              marginBottom: '0.5rem'
+            }}>
+              Item de Geladeira? *
+            </label>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="geladeira"
+                  checked={formData.item_geladeira === true}
+                  onChange={() => setFormData({...formData, item_geladeira: true})}
+                />
+                <span style={{ fontSize: '0.875rem' }}>Sim</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="geladeira"
+                  checked={formData.item_geladeira === false}
+                  onChange={() => setFormData({...formData, item_geladeira: false})}
+                />
+                <span style={{ fontSize: '0.875rem' }}>Não</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Buscar Receita */}
+          <div style={{
+            padding: '1rem',
+            background: formData.buscar_receita ? '#fef3c7' : theme.colors.background,
+            borderRadius: '0.375rem',
+            marginBottom: '1rem'
+          }}>
+            <label style={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: theme.colors.text,
+              marginBottom: '0.5rem'
+            }}>
+              Buscar Receita? *
+            </label>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="receita"
+                  checked={formData.buscar_receita === true}
+                  onChange={() => setFormData({...formData, buscar_receita: true})}
+                />
+                <span style={{ fontSize: '0.875rem' }}>Sim</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="receita"
+                  checked={formData.buscar_receita === false}
+                  onChange={() => setFormData({...formData, buscar_receita: false})}
+                />
+                <span style={{ fontSize: '0.875rem' }}>Não</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Observações */}
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
-              Novo Romaneio
-            </h1>
-            <p className="text-slate-600 mt-1">Crie uma nova ordem de entrega</p>
+            <label style={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: theme.colors.text,
+              marginBottom: '0.5rem'
+            }}>
+              Observações
+            </label>
+            <textarea
+              value={formData.observacoes}
+              onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+              placeholder="Informações adicionais sobre a entrega"
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                resize: 'vertical'
+              }}
+            />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <Card className="border-none shadow-lg">
-            <CardHeader>
-              <CardTitle>Informações do Romaneio</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Cliente(s) *</Label>
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                      <Input
-                        placeholder="Buscar cliente por nome, CPF ou telefone..."
-                        value={searchCliente}
-                        onChange={(e) => setSearchCliente(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    {searchCliente && clientesFiltrados.length > 0 && (
-                      <Card className="max-h-60 overflow-y-auto">
-                        <CardContent className="p-0">
-                          {clientesFiltrados.slice(0, 5).map(c => (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => handleAddCliente(c)}
-                              className="w-full text-left p-3 hover:bg-slate-50 border-b last:border-b-0"
-                            >
-                              <div className="font-medium text-slate-900">{c.nome}</div>
-                              <div className="text-sm text-slate-600">
-                                {c.telefone}
-                                {c.cpf && ` • ${c.cpf}`}
-                              </div>
-                            </button>
-                          ))}
-                        </CardContent>
-                      </Card>
-                    )}
-                    {selectedClientes.length > 0 && (
-                      <div className="space-y-2">
-                        {selectedClientes.map((cliente) => (
-                          <div key={cliente.id} className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="flex-1">
-                              <p className="font-medium text-slate-900">{cliente.nome}</p>
-                              <p className="text-sm text-slate-600">{cliente.telefone}</p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveCliente(cliente.id)}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(createPageUrl("Clientes"))}
-                      className="w-full"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Cadastrar Novo Cliente
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="numero_requisicao">Número da Requisição *</Label>
-                  <Input
-                    id="numero_requisicao"
-                    value={formData.numero_requisicao}
-                    onChange={(e) => setFormData({ ...formData, numero_requisicao: e.target.value })}
-                    placeholder="Ex: REQ-001"
-                    required
-                  />
-                </div>
-              </div>
-
-              {selectedClientes.length > 0 && (
-                <div>
-                  <Label>Selecione o Endereço de Entrega *</Label>
-                  <p className="text-xs text-slate-500 mb-2">Escolha apenas um endereço para esta entrega</p>
-                  <div className="space-y-2 mt-2">
-                    {selectedClientes.map((cliente) => (
-                      <div key={cliente.id}>
-                        <p className="font-semibold text-slate-900 mb-2 text-sm">
-                          {cliente.nome}
-                        </p>
-                        {cliente.enderecos && cliente.enderecos.map((endereco, endIdx) => {
-                          const enderecoKey = `${cliente.id}-${endIdx}`;
-                          const isSelected = formData.endereco_selecionado && 
-                            JSON.stringify(formData.endereco_selecionado) === JSON.stringify(endereco);
-                          
-                          return (
-                            <button
-                              key={enderecoKey}
-                              type="button"
-                              onClick={() => {
-                                const cidadeEndereco = endereco.cidade;
-                                const cidadeExiste = CIDADES.slice(0, -1).includes(cidadeEndereco);
-                                
-                                setFormData({ 
-                                  ...formData, 
-                                  endereco_selecionado: endereco,
-                                  cidade_regiao: cidadeExiste ? cidadeEndereco : "Outro",
-                                  cidade_outro: cidadeExiste ? "" : cidadeEndereco || ""
-                                });
-                              }}
-                              className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                                isSelected
-                                  ? 'border-[#457bba] bg-blue-50'
-                                  : 'border-slate-200 bg-slate-50 hover:border-slate-300'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="text-sm text-slate-700">
-                                  <p className="font-medium">{endereco.rua}, {endereco.numero}</p>
-                                  <p>{endereco.bairro} - {endereco.cidade || formData.cidade_regiao}</p>
-                                  {endereco.complemento && (
-                                    <p className="text-slate-500">Complemento: {endereco.complemento}</p>
-                                  )}
-                                  {endereco.ponto_referencia && (
-                                    <p className="text-slate-500 italic">Ref: {endereco.ponto_referencia}</p>
-                                  )}
-                                </div>
-                                {isSelected && (
-                                  <Badge className="bg-[#457bba] text-white">Selecionado</Badge>
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label>Cidade/Região *</Label>
-                  <Select
-                    value={formData.cidade_regiao}
-                    onValueChange={(value) => setFormData({ ...formData, cidade_regiao: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a cidade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CIDADES.map(cidade => (
-                        <SelectItem key={cidade} value={cidade}>
-                          {cidade}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {formData.cidade_regiao === "Outro" && (
-                  <div>
-                    <Label htmlFor="cidade_outro">Nome da Cidade *</Label>
-                    <Input
-                      id="cidade_outro"
-                      value={formData.cidade_outro}
-                      onChange={(e) => setFormData({ ...formData, cidade_outro: e.target.value })}
-                      placeholder="Digite o nome da cidade"
-                      required
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <Label>Período de Entrega *</Label>
-                  <Select
-                    value={formData.periodo_entrega}
-                    onValueChange={(value) => setFormData({ ...formData, periodo_entrega: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o período" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Manhã">Manhã</SelectItem>
-                      <SelectItem value="Tarde">Tarde</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="data_entrega_prevista">Data de Entrega *</Label>
-                  <Input
-                    id="data_entrega_prevista"
-                    type="date"
-                    value={formData.data_entrega_prevista}
-                    onChange={(e) => setFormData({ ...formData, data_entrega_prevista: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label>Forma de Pagamento *</Label>
-                  <Select
-                    value={formData.forma_pagamento}
-                    onValueChange={(value) => setFormData({ ...formData, forma_pagamento: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FORMAS_PAGAMENTO.map(forma => (
-                        <SelectItem key={forma} value={forma}>
-                          {forma}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {(formData.forma_pagamento === "Dinheiro" ||
-                  formData.forma_pagamento === "Maquina" ||
-                  formData.forma_pagamento === "Troco P/") && (
-                  <div>
-                    <Label htmlFor="valor_pagamento">Valor (R$) *</Label>
-                    <Input
-                      id="valor_pagamento"
-                      type="number"
-                      step="0.01"
-                      value={formData.valor_pagamento}
-                      onChange={(e) => setFormData({ ...formData, valor_pagamento: e.target.value })}
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
-                )}
-
-                {formData.forma_pagamento === "Troco P/" && (
-                  <div>
-                    <Label htmlFor="valor_troco">Troco para (R$)</Label>
-                    <Input
-                      id="valor_troco"
-                      type="number"
-                      step="0.01"
-                      value={formData.valor_troco}
-                      onChange={(e) => setFormData({ ...formData, valor_troco: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Motoboy *</Label>
-                  <Select
-                    value={formData.motoboy}
-                    onValueChange={(value) => setFormData({ ...formData, motoboy: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o motoboy" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MOTOBOYS.map(motoboy => (
-                        <SelectItem key={motoboy} value={motoboy}>
-                          {motoboy}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="valor_entrega">Valor da Entrega (R$)</Label>
-                  <Input
-                    id="valor_entrega"
-                    type="number"
-                    step="0.01"
-                    value={formData.valor_entrega}
-                    onChange={(e) => setFormData({ ...formData, valor_entrega: e.target.value })}
-                    placeholder="0.00"
-                    className="bg-slate-50"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">Valor calculado automaticamente</p>
-                </div>
-              </div>
-
-              <div className="bg-cyan-50 border-2 border-cyan-200 rounded-lg p-4">
-                <Label className="text-base font-semibold flex items-center gap-2 mb-3">
-                  <Snowflake className="w-5 h-5 text-cyan-600" />
-                  Item de Geladeira? *
-                </Label>
-                <RadioGroup
-                  value={(formData.item_geladeira || false).toString()}
-                  onValueChange={(value) => setFormData({ ...formData, item_geladeira: value })}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="true" id="geladeira-sim" />
-                    <Label htmlFor="geladeira-sim" className="cursor-pointer">Sim</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="false" id="geladeira-nao" />
-                    <Label htmlFor="geladeira-nao" className="cursor-pointer">Não</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className={`border-2 rounded-lg p-4 ${formData.buscar_receita === "true" || formData.buscar_receita === true ? 'bg-yellow-50 border-yellow-400' : 'bg-slate-50 border-slate-200'}`}>
-                <Label className="text-base font-semibold flex items-center gap-2 mb-3">
-                  <FileText className="w-5 h-5 text-yellow-600" />
-                  Buscar Receita? *
-                </Label>
-                <RadioGroup
-                  value={(formData.buscar_receita || false).toString()}
-                  onValueChange={(value) => setFormData({ ...formData, buscar_receita: value })}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="true" id="receita-sim" />
-                    <Label htmlFor="receita-sim" className="cursor-pointer">Sim</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="false" id="receita-nao" />
-                    <Label htmlFor="receita-nao" className="cursor-pointer">Não</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div>
-                <Label htmlFor="observacoes">Observações</Label>
-                <Textarea
-                  id="observacoes"
-                  value={formData.observacoes}
-                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                  placeholder="Informações adicionais sobre a entrega"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate(-1)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-[#457bba] hover:bg-[#3a6ba0]"
-                  disabled={createMutation.isPending}
-                >
-                  {createMutation.isPending ? 'Criando...' : 'Criar Romaneio'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </form>
-      </div>
+        {/* Botões */}
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'white',
+              color: theme.colors.text,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '0.375rem',
+              fontSize: '0.9375rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: loading ? theme.colors.textLight : theme.colors.primary,
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.375rem',
+              fontSize: '0.9375rem',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {loading ? 'Criando...' : 'Criar Romaneio'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

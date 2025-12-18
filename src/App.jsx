@@ -1,9 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import Login from '@/pages/Login';
 import EntregasMoto from '@/pages/EntregasMoto';
+import NovoRomaneio from '@/pages/NovoRomaneio';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -52,7 +54,7 @@ function AppRoutes() {
               <Routes>
                 <Route path="/" element={<EntregasMoto />} />
                 <Route path="/sedex" element={<div style={{padding: '2rem'}}>Sedex/Disktenha - Em construção</div>} />
-                <Route path="/novo-romaneio" element={<div style={{padding: '2rem'}}>Novo Romaneio - Em construção</div>} />
+                <Route path="/novo-romaneio" element={<NovoRomaneio />} />
                 <Route path="/clientes" element={<div style={{padding: '2rem'}}>Clientes - Em construção</div>} />
                 <Route path="/historico-clientes" element={<div style={{padding: '2rem'}}>Histórico - Em construção</div>} />
                 <Route path="/relatorios" element={<div style={{padding: '2rem'}}>Relatórios - Em construção</div>} />
@@ -75,6 +77,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <AppRoutes />
+        <Toaster position="top-right" richColors />
         <style>{`
           @keyframes spin {
             to { transform: rotate(360deg); }
