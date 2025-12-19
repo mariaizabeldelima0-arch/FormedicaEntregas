@@ -720,9 +720,10 @@ export default function NovoRomaneio() {
                         value={novoEndereco.bairro}
                         onChange={(e) => {
                           const novoBairro = e.target.value;
-                          setNovoEndereco({...novoEndereco, bairro: novoBairro});
-                          // Detectar região automaticamente
-                          const regiaoDetectada = detectarRegiao(novoEndereco.cidade, novoBairro);
+                          const novoEnderecoAtualizado = {...novoEndereco, bairro: novoBairro};
+                          setNovoEndereco(novoEnderecoAtualizado);
+                          // Detectar região automaticamente com os valores atualizados
+                          const regiaoDetectada = detectarRegiao(novoEnderecoAtualizado.cidade, novoBairro);
                           if (regiaoDetectada) {
                             handleRegiaoChange(regiaoDetectada);
                           }
@@ -746,9 +747,10 @@ export default function NovoRomaneio() {
                         value={novoEndereco.cidade}
                         onChange={(e) => {
                           const novaCidade = e.target.value;
-                          setNovoEndereco({...novoEndereco, cidade: novaCidade});
-                          // Detectar região automaticamente
-                          const regiaoDetectada = detectarRegiao(novaCidade, novoEndereco.bairro);
+                          const novoEnderecoAtualizado = {...novoEndereco, cidade: novaCidade};
+                          setNovoEndereco(novoEnderecoAtualizado);
+                          // Detectar região automaticamente com os valores atualizados
+                          const regiaoDetectada = detectarRegiao(novaCidade, novoEnderecoAtualizado.bairro);
                           if (regiaoDetectada) {
                             handleRegiaoChange(regiaoDetectada);
                           }
