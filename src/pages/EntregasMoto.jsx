@@ -177,8 +177,11 @@ export default function EntregasMoto() {
   const entregasFiltradas = entregas.filter(entrega => {
     // Filtro de data (se viewMode === 'day')
     if (viewMode === 'day') {
+      if (!entrega.data_entrega) {
+        return false; // Ignora entregas sem data no modo 'day'
+      }
       const entregaDate = new Date(entrega.data_entrega);
-      if (entregaDate.toDateString() !== selectedDate.toDateString()) {
+      if (isNaN(entregaDate.getTime()) || entregaDate.toDateString() !== selectedDate.toDateString()) {
         return false;
       }
     }
@@ -315,21 +318,69 @@ export default function EntregasMoto() {
             }}>
               Entregas Moto
             </h1>
-            <button
-              onClick={() => navigate('/novo-romaneio')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: theme.colors.primary,
-                color: 'white',
-                border: 'none',
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              {/* Botões Dia/Todas */}
+              <div style={{
+                display: 'inline-flex',
+                background: theme.colors.background,
                 borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              + Novo Romaneio
-            </button>
+                padding: '0.25rem'
+              }}>
+                <button
+                  onClick={() => setViewMode('day')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: viewMode === 'day' ? '#457bba' : 'transparent',
+                    color: viewMode === 'day' ? 'white' : theme.colors.textLight,
+                    border: 'none',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    boxShadow: viewMode === 'day' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Dia
+                </button>
+                <button
+                  onClick={() => {
+                    setViewMode('all');
+                    setFiltroStatus('');
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: viewMode === 'all' ? '#457bba' : 'transparent',
+                    color: viewMode === 'all' ? 'white' : theme.colors.textLight,
+                    border: 'none',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    boxShadow: viewMode === 'all' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Todas
+                </button>
+              </div>
+
+              <button
+                onClick={() => navigate('/novo-romaneio')}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: theme.colors.primary,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                + Novo Romaneio
+              </button>
+            </div>
           </div>
         </div>
 
@@ -410,36 +461,157 @@ export default function EntregasMoto() {
             Buscar e Filtrar
           </h3>
 
-          <div style={{ marginBottom: '1rem', position: 'relative' }}>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por cliente, requisição ou telefone..."
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem 0.75rem 2.5rem',
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem'
-              }}
-            />
-            <div style={{
-              position: 'absolute',
-              left: '0.75rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: theme.colors.textLight
-            }}>
-              <Icons.search />
-            </div>
-          </div>
-
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '1rem'
+            display: 'flex',
+            gap: '1.5rem',
+            flexDirection: window.innerWidth < 1024 ? 'column' : 'row'
           }}>
+            {/* Calendário Compacto */}
+            <div style={{ flexShrink: 0, width: window.innerWidth >= 1024 ? '280px' : '100%' }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '1rem'
+                }}>
+                  <button
+                    onClick={() => {
+                      const newDate = new Date(currentMonthDate);
+                      newDate.setMonth(newDate.getMonth() - 1);
+                      setCurrentMonthDate(newDate);
+                    }}
+                    style={{
+                      padding: '0.5rem',
+                      background: 'white',
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      color: theme.colors.text
+                    }}
+                  >
+                    <Icons.chevronLeft />
+                  </button>
+                  <h4 style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: theme.colors.text,
+                    margin: 0,
+                    textTransform: 'capitalize'
+                  }}>
+                    {formatMonthYear(currentMonthDate)}
+                  </h4>
+                  <button
+                    onClick={() => {
+                      const newDate = new Date(currentMonthDate);
+                      newDate.setMonth(newDate.getMonth() + 1);
+                      setCurrentMonthDate(newDate);
+                    }}
+                    style={{
+                      padding: '0.5rem',
+                      background: 'white',
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      color: theme.colors.text
+                    }}
+                  >
+                    <Icons.chevronRight />
+                  </button>
+                </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gap: '0.25rem'
+                }}>
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        textAlign: 'center',
+                        fontSize: '0.625rem',
+                        fontWeight: '600',
+                        color: theme.colors.textLight,
+                        padding: '0.25rem'
+                      }}
+                    >
+                      {day}
+                    </div>
+                  ))}
+
+                  {getDaysInMonth(currentMonthDate).map((dayInfo, index) => (
+                    <div
+                      key={index}
+                      onClick={() => {
+                        if (dayInfo.isCurrentMonth) {
+                          setSelectedDate(dayInfo.date);
+                          setViewMode('day');
+                        }
+                      }}
+                      style={{
+                        aspectRatio: '1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: dayInfo.isSelected ? '600' : '400',
+                        color: dayInfo.isSelected ? 'white' : dayInfo.isCurrentMonth ? theme.colors.text : theme.colors.textLight,
+                        background: dayInfo.isSelected ? theme.colors.primary : 'transparent',
+                        border: dayInfo.isSelected ? 'none' : `1px solid ${theme.colors.border}`,
+                        borderRadius: '0.25rem',
+                        cursor: dayInfo.isCurrentMonth ? 'pointer' : 'default',
+                        opacity: dayInfo.isCurrentMonth ? 1 : 0.4,
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (dayInfo.isCurrentMonth && !dayInfo.isSelected) {
+                          e.currentTarget.style.background = theme.colors.background;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!dayInfo.isSelected) {
+                          e.currentTarget.style.background = 'transparent';
+                        }
+                      }}
+                    >
+                      {dayInfo.day}
+                    </div>
+                  ))}
+                </div>
+            </div>
+
+            {/* Filtros */}
+            <div style={{ flex: 1 }}>
+              <div style={{ marginBottom: '1rem', position: 'relative' }}>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar por cliente, requisição ou telefone..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem 0.75rem 2.5rem',
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem'
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: theme.colors.textLight
+                }}>
+                  <Icons.search />
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '1rem'
+              }}>
             <select
               value={filtros.motoboy}
               onChange={(e) => setFiltros({...filtros, motoboy: e.target.value})}
@@ -495,10 +667,14 @@ export default function EntregasMoto() {
               <option value="Manhã">Manhã</option>
               <option value="Tarde">Tarde</option>
             </select>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Calendário */}
+
+        {/* Calendário antigo - remover */}
+        {false && (
         <div style={{
           background: 'white',
           padding: '1.5rem',
@@ -719,6 +895,7 @@ export default function EntregasMoto() {
             </div>
           )}
         </div>
+        )}
 
         {/* Lista de Entregas */}
         <div style={{
@@ -733,13 +910,16 @@ export default function EntregasMoto() {
             alignItems: 'center',
             marginBottom: '1.5rem'
           }}>
-            <h3 style={{
-              fontSize: '1.125rem',
-              fontWeight: '600',
-              color: theme.colors.text,
-              margin: 0
-            }}>
-              Entregas {viewMode === 'day' ? `de ${formatDate(selectedDate)}` : ''}
+            <h3
+              key={viewMode === 'day' ? `day-${selectedDate.toDateString()}` : 'all'}
+              style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: theme.colors.text,
+                margin: 0
+              }}
+            >
+              {viewMode === 'day' ? `Entregas de ${formatDate(selectedDate)}` : 'Todas as Entregas'}
             </h3>
           </div>
 

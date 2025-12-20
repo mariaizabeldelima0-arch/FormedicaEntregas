@@ -373,45 +373,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Calendário */}
-          {visualizacao === "dia" && (
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg">Selecione a Data</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  locale={ptBR}
-                  className="rounded-md border"
-                  modifiers={{
-                    hasDelivery: diasComEntregas
-                  }}
-                  modifiersStyles={{
-                    hasDelivery: {
-                      fontWeight: 'bold',
-                      textDecoration: 'underline',
-                      color: '#457bba'
-                    }
-                  }}
-                />
-                <div className="mt-4 text-center">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {stats.total} entrega{stats.total !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Stats e Filtros */}
-          <div className={`${visualizacao === "dia" ? "lg:col-span-3" : "lg:col-span-4"} space-y-6`}>
+        <div className="space-y-6">
             {/* Stats Cards - Clicáveis */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <button
@@ -505,19 +467,54 @@ export default function Dashboard() {
                 <CardTitle className="text-lg">Buscar e Filtrar</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Busca */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    placeholder="Buscar por cliente, requisição, atendente ou telefone..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                {/* Calendário e Busca */}
+                <div className="flex flex-col lg:flex-row gap-4">
+                  {/* Calendário - apenas quando visualização é "dia" */}
+                  {visualizacao === "dia" && (
+                    <div className="flex-shrink-0">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && setSelectedDate(date)}
+                        locale={ptBR}
+                        className="rounded-md border"
+                        modifiers={{
+                          hasDelivery: diasComEntregas
+                        }}
+                        modifiersStyles={{
+                          hasDelivery: {
+                            fontWeight: 'bold',
+                            textDecoration: 'underline',
+                            color: '#457bba'
+                          }
+                        }}
+                      />
+                      <div className="mt-2 text-center">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {stats.total} entrega{stats.total !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-                {/* Filtros */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {/* Busca e Filtros */}
+                  <div className="flex-1 space-y-4">
+                    {/* Busca */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <Input
+                        placeholder="Buscar por cliente, requisição, atendente ou telefone..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+
+                    {/* Filtros */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   <Select value={filtroStatus} onValueChange={setFiltroStatus}>
                     <SelectTrigger>
                       <SelectValue placeholder="Status" />
@@ -586,24 +583,26 @@ export default function Dashboard() {
                       <SelectItem value="Tarde">Tarde</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+                    </div>
 
-                {(filtroAtendente !== "todos" || filtroMotoboy !== "todos" || filtroLocal !== "todos" || filtroPeriodo !== "todos" || filtroStatus !== "todos" || searchTerm) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFiltroAtendente("todos");
-                      setFiltroMotoboy("todos");
-                      setFiltroLocal("todos");
-                      setFiltroPeriodo("todos");
-                      setFiltroStatus("todos");
-                      setSearchTerm("");
-                    }}
-                  >
-                    Limpar Filtros
-                  </Button>
-                )}
+                    {(filtroAtendente !== "todos" || filtroMotoboy !== "todos" || filtroLocal !== "todos" || filtroPeriodo !== "todos" || filtroStatus !== "todos" || searchTerm) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFiltroAtendente("todos");
+                          setFiltroMotoboy("todos");
+                          setFiltroLocal("todos");
+                          setFiltroPeriodo("todos");
+                          setFiltroStatus("todos");
+                          setSearchTerm("");
+                        }}
+                      >
+                        Limpar Filtros
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -802,7 +801,6 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
-          </div>
         </div>
 
         {/* Dialog para Alterar Status em Lote */}
