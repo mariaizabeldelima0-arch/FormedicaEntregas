@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, User, Phone, MapPin, Trash2, Edit, ArrowLeft, CreditCard, Mail } from "lucide-react";
+import {
+  Plus,
+  User,
+  Phone,
+  MapPin,
+  Trash2,
+  Edit,
+  ArrowLeft,
+  CreditCard,
+  Mail,
+  FileText,
+  Package,
+  Calendar,
+  DollarSign,
+  Search,
+  CheckCircle,
+  Clock
+} from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -397,6 +415,26 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
   );
 };
 
+const StatusBadge = ({ status }) => {
+  const configs = {
+    "Produzindo no Laboratório": { color: "bg-blue-100 text-blue-700", icon: Package },
+    "Preparando no Setor de Entregas": { color: "bg-yellow-100 text-yellow-700", icon: Package },
+    "A Caminho": { color: "bg-purple-100 text-purple-700", icon: Package },
+    "Entregue": { color: "bg-green-100 text-green-700", icon: CheckCircle },
+    "Não Entregue": { color: "bg-red-100 text-red-700", icon: Clock },
+    "Cancelado": { color: "bg-gray-100 text-gray-700", icon: Clock },
+    "Pendente": { color: "bg-slate-100 text-slate-700", icon: Clock },
+    "Voltou": { color: "bg-orange-100 text-orange-700", icon: Clock },
+  };
+  const { color, icon: Icon } = configs[status] || configs["Pendente"];
+  return (
+    <Badge className={color}>
+      <Icon className="w-3 h-3 mr-1" />
+      {status}
+    </Badge>
+  );
+};
+
 export default function Clientes() {
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -406,6 +444,13 @@ export default function Clientes() {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clienteToDelete, setClienteToDelete] = useState(null);
+
+  // Estados para ficha do cliente (master-detail)
+  const [clienteSelecionado, setClienteSelecionado] = useState(null);
+  const [entregasCliente, setEntregasCliente] = useState([]);
+  const [loadingEntregas, setLoadingEntregas] = useState(false);
+  const [buscaEntregas, setBuscaEntregas] = useState("");
+  const [filtroStatusEntrega, setFiltroStatusEntrega] = useState("todas");
 
   const loadClientes = async () => {
     setLoading(true);
@@ -421,6 +466,11 @@ export default function Clientes() {
 
       if (error) throw error;
       setClientes(data || []);
+
+      // Selecionar o primeiro cliente automaticamente se não houver nenhum selecionado
+      if (data && data.length > 0 && !clienteSelecionado) {
+        handleSelectCliente(data[0]);
+      }
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
       toast.error('Erro ao carregar clientes');
@@ -440,14 +490,14 @@ export default function Clientes() {
     c.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEdit = (cliente) => {
+  const handleEdit = (cliente, e) => {
+    e?.stopPropagation();
     setEditingCliente(cliente);
     setDialogOpen(true);
   };
 
   const handleClose = () => {
     setDialogOpen(false);
-    // Limpar o estado após o dialog começar a fechar
     setTimeout(() => {
       setEditingCliente(null);
     }, 100);
@@ -456,6 +506,40 @@ export default function Clientes() {
   const handleSuccess = () => {
     handleClose();
     loadClientes();
+  };
+
+  // Selecionar cliente e carregar entregas
+  const handleSelectCliente = async (cliente) => {
+    setClienteSelecionado(cliente);
+    setBuscaEntregas("");
+    setFiltroStatusEntrega("todas");
+    await loadEntregasCliente(cliente.id);
+  };
+
+  // Carregar entregas do cliente
+  const loadEntregasCliente = async (clienteId) => {
+    setLoadingEntregas(true);
+    try {
+      const { data, error } = await supabase
+        .from('entregas')
+        .select(`
+          *,
+          cliente:clientes(id, nome, telefone),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
+          motoboy:motoboys(id, nome)
+        `)
+        .eq('cliente_id', clienteId)
+        .order('data_entrega', { ascending: false });
+
+      if (error) throw error;
+      setEntregasCliente(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar entregas:', error);
+      toast.error('Erro ao carregar histórico de entregas');
+      setEntregasCliente([]);
+    } finally {
+      setLoadingEntregas(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -497,6 +581,13 @@ export default function Clientes() {
       toast.success('Cliente excluído com sucesso!', { id: toastId });
       setDeleteDialogOpen(false);
       setClienteToDelete(null);
+
+      // Se o cliente excluído era o selecionado, limpar seleção
+      if (clienteSelecionado?.id === clienteToDelete.id) {
+        setClienteSelecionado(null);
+        setEntregasCliente([]);
+      }
+
       loadClientes();
     } catch (error) {
       console.error('Erro ao excluir cliente:', error);
@@ -504,16 +595,38 @@ export default function Clientes() {
     }
   };
 
-  const confirmDelete = (cliente) => {
+  const confirmDelete = (cliente, e) => {
+    e?.stopPropagation();
     setClienteToDelete(cliente);
     setDeleteDialogOpen(true);
   };
 
+  // Filtrar entregas
+  const entregasFiltradas = entregasCliente.filter(e => {
+    if (filtroStatusEntrega !== "todas" && e.status !== filtroStatusEntrega) return false;
+    if (buscaEntregas) {
+      const termo = buscaEntregas.toLowerCase();
+      return e.requisicao?.toLowerCase().includes(termo) ||
+             e.observacoes?.toLowerCase().includes(termo);
+    }
+    return true;
+  });
+
+  // Calcular estatísticas
+  const totalEntregas = entregasCliente.length;
+  const entregasEntregues = entregasCliente.filter(e => e.status === 'Entregue').length;
+  const entregasEmAndamento = entregasCliente.filter(e =>
+    e.status !== 'Entregue' &&
+    e.status !== 'Cancelado' &&
+    e.status !== 'Não Entregue'
+  ).length;
+
   return (
-    <div style={{ padding: '2rem', background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="icon"
@@ -522,8 +635,8 @@ export default function Clientes() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>
-              <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#1e293b' }}>Clientes</h1>
-              <p style={{ color: '#64748b', marginTop: '0.25rem' }}>Gerencie sua base de clientes</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Clientes</h1>
+              <p className="text-slate-600 mt-1">Gerencie sua base de clientes</p>
             </div>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -559,121 +672,311 @@ export default function Clientes() {
           </Dialog>
         </div>
 
-        <Card style={{ border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-          <CardHeader>
-            <Input
-              placeholder="Buscar por nome, CPF, telefone ou e-mail..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ maxWidth: '400px' }}
-            />
-          </CardHeader>
-          <CardContent style={{ padding: 0 }}>
-            {loading ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-                Carregando clientes...
+        {/* Layout Master-Detail */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* COLUNA ESQUERDA - Lista de Clientes */}
+          <Card className="border-none shadow-lg">
+            <CardHeader>
+              <CardTitle>Lista de Clientes</CardTitle>
+              <div className="relative mt-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Input
+                  placeholder="Buscar cliente..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            ) : filteredClientes.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-                {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
-              </div>
-            ) : (
-              <div>
-                {filteredClientes.map((cliente) => (
-                  <div
-                    key={cliente.id}
-                    style={{
-                      padding: '1.5rem',
-                      borderBottom: '1px solid #f1f5f9',
-                      transition: 'background 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <div style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <User className="w-6 h-6" style={{ color: 'white' }} />
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-6 text-center text-slate-500">
+                  Carregando clientes...
+                </div>
+              ) : filteredClientes.length === 0 ? (
+                <div className="p-6 text-center text-slate-500">
+                  {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+                  {filteredClientes.map((cliente) => (
+                    <div
+                      key={cliente.id}
+                      onClick={() => handleSelectCliente(cliente)}
+                      className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${
+                        clienteSelecionado?.id === cliente.id ? 'bg-blue-50 border-l-4 border-[#457bba]' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#457bba] to-[#890d5d] flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-slate-900 truncate">
+                            {cliente.nome}
+                          </h3>
+                          <div className="flex items-center gap-1 text-sm text-slate-600 mt-1">
+                            <Phone className="w-3 h-3" />
+                            {cliente.telefone}
                           </div>
-                          <div>
-                            <h3 style={{ fontWeight: 700, color: '#1e293b', fontSize: '1.125rem' }}>
-                              {cliente.nome}
-                            </h3>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <Phone className="w-3 h-3" />
-                                {cliente.telefone}
-                              </div>
-                              {cliente.cpf && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  <CreditCard className="w-3 h-3" />
-                                  {cliente.cpf}
-                                </div>
-                              )}
-                              {cliente.email && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  <Mail className="w-3 h-3" />
-                                  {cliente.email}
-                                </div>
-                              )}
-                            </div>
+                          {/* Botões de ação inline */}
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => handleEdit(cliente, e)}
+                              className="h-7 text-xs"
+                            >
+                              <Edit className="w-3 h-3 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => confirmDelete(cliente, e)}
+                              className="h-7 text-xs text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Excluir
+                            </Button>
                           </div>
                         </div>
-                        {cliente.enderecos && cliente.enderecos.length > 0 && (
-                          <div style={{ marginLeft: '60px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {cliente.enderecos.map((end, idx) => (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#64748b' }}>
-                                <MapPin className="w-4 h-4" style={{ marginTop: '2px', flexShrink: 0 }} />
-                                <span>
-                                  {end.cep && `${end.cep} - `}
-                                  {end.regiao && `${end.regiao} - `}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* COLUNA DIREITA - Ficha do Cliente */}
+          <div className="lg:col-span-2 space-y-6">
+            {clienteSelecionado ? (
+              <>
+                {/* SEÇÃO SUPERIOR - Cabeçalho Roxo Degradê */}
+                <Card className="border-none shadow-lg overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-[#457bba] to-[#890d5d] text-white">
+                    <CardTitle className="text-2xl flex items-center gap-3">
+                      <User className="w-8 h-8" />
+                      <div>
+                        <div>{clienteSelecionado.nome}</div>
+                        <div className="text-sm font-normal opacity-90 mt-1">
+                          {clienteSelecionado.telefone}
+                        </div>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+
+                {/* SEÇÃO INTERMEDIÁRIA - Endereços e Estatísticas */}
+                <Card className="border-none shadow-lg">
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Lado Esquerdo - Endereços */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <MapPin className="w-5 h-5 text-[#f59e0b]" />
+                          <h3 className="font-semibold text-slate-900">Endereços</h3>
+                        </div>
+                        {clienteSelecionado.enderecos && clienteSelecionado.enderecos.length > 0 ? (
+                          <div className="space-y-3">
+                            {clienteSelecionado.enderecos.map((end, idx) => (
+                              <div key={idx} className="p-3 bg-slate-50 rounded-lg text-sm">
+                                <div className="font-medium text-slate-900">
                                   {end.logradouro}, {end.numero}
-                                  {end.bairro && ` - ${end.bairro}`}
-                                  {end.cidade && ` - ${end.cidade}`}
-                                  {end.complemento && ` (${end.complemento})`}
-                                  {end.is_principal && <span style={{ fontWeight: 600, color: '#457bba' }}> • Principal</span>}
-                                </span>
+                                </div>
+                                {end.complemento && (
+                                  <div className="text-slate-600">{end.complemento}</div>
+                                )}
+                                <div className="text-slate-600">
+                                  {end.bairro && `${end.bairro} - `}
+                                  {end.cidade}
+                                </div>
+                                {end.cep && (
+                                  <div className="text-slate-500">CEP: {end.cep}</div>
+                                )}
+                                {end.regiao && (
+                                  <div className="mt-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {end.regiao}
+                                    </Badge>
+                                  </div>
+                                )}
+                                {end.is_principal && (
+                                  <div className="mt-2">
+                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                      Endereço Principal
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
+                        ) : (
+                          <p className="text-slate-500 text-sm">Nenhum endereço cadastrado</p>
                         )}
+
+                        {/* Informações adicionais */}
+                        <div className="mt-4 space-y-2">
+                          {clienteSelecionado.cpf && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <CreditCard className="w-4 h-4 text-slate-400" />
+                              <span className="text-slate-600">CPF: {clienteSelecionado.cpf}</span>
+                            </div>
+                          )}
+                          {clienteSelecionado.email && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail className="w-4 h-4 text-slate-400" />
+                              <span className="text-slate-600">{clienteSelecionado.email}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(cliente)}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Editar
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => confirmDelete(cliente)}
-                          style={{ color: '#ef4444', borderColor: '#fee2e2' }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+
+                      {/* Lado Direito - Estatísticas */}
+                      <div>
+                        <h3 className="font-semibold text-slate-900 mb-4">Estatísticas de Entregas</h3>
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                            <div className="text-3xl font-bold text-[#457bba]">{totalEntregas}</div>
+                            <div className="text-xs text-slate-600 mt-1">Total de Entregas</div>
+                          </div>
+                          <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                            <div className="text-3xl font-bold text-green-600">{entregasEntregues}</div>
+                            <div className="text-xs text-slate-600 mt-1">Entregues</div>
+                          </div>
+                          <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                            <div className="text-3xl font-bold text-purple-600">{entregasEmAndamento}</div>
+                            <div className="text-xs text-slate-600 mt-1">Em Andamento</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  </CardContent>
+                </Card>
+
+                {/* SEÇÃO INFERIOR - Histórico de Entregas */}
+                <Card className="border-none shadow-lg">
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-[#457bba]" />
+                        Histórico de Entregas
+                      </CardTitle>
+                      <div className="text-sm text-slate-500">
+                        {entregasFiltradas.length} entregas
+                      </div>
+                    </div>
+                    {/* Barra de busca interna */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <Input
+                          placeholder="Buscar por requisição..."
+                          value={buscaEntregas}
+                          onChange={(e) => setBuscaEntregas(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      <Select value={filtroStatusEntrega} onValueChange={setFiltroStatusEntrega}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filtrar por status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todas">Todos os Status</SelectItem>
+                          <SelectItem value="Pendente">Pendente</SelectItem>
+                          <SelectItem value="Produzindo no Laboratório">Produção</SelectItem>
+                          <SelectItem value="A Caminho">A Caminho</SelectItem>
+                          <SelectItem value="Entregue">Entregue</SelectItem>
+                          <SelectItem value="Não Entregue">Não Entregue</SelectItem>
+                          <SelectItem value="Voltou">Voltou</SelectItem>
+                          <SelectItem value="Cancelado">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {loadingEntregas ? (
+                      <div className="p-6 text-center text-slate-500">
+                        Carregando histórico...
+                      </div>
+                    ) : entregasFiltradas.length === 0 ? (
+                      <div className="p-12 text-center">
+                        <Package className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500">
+                          {buscaEntregas || filtroStatusEntrega !== "todas"
+                            ? 'Nenhuma entrega encontrada com os filtros aplicados'
+                            : 'Nenhuma entrega encontrada para este cliente'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
+                        {entregasFiltradas.map((entrega) => (
+                          <div
+                            key={entrega.id}
+                            onClick={() => navigate(`/detalhes-romaneio?id=${entrega.id}`)}
+                            className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                          >
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <span className="font-bold text-slate-900">
+                                    #{entrega.requisicao}
+                                  </span>
+                                  <StatusBadge status={entrega.status} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
+                                  {entrega.motoboy?.nome && (
+                                    <div>
+                                      <span className="font-medium">Motoboy:</span> {entrega.motoboy.nome}
+                                    </div>
+                                  )}
+                                  {entrega.regiao && (
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {entrega.regiao}
+                                    </div>
+                                  )}
+                                  {entrega.data_entrega && (
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {new Date(entrega.data_entrega).toLocaleDateString('pt-BR')}
+                                    </div>
+                                  )}
+                                  {entrega.valor && (
+                                    <div className="flex items-center gap-1">
+                                      <DollarSign className="w-3 h-3" />
+                                      R$ {entrega.valor.toFixed(2)}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card className="border-none shadow-lg">
+                <CardContent className="p-12 text-center">
+                  <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    Selecione um Cliente
+                  </h3>
+                  <p className="text-slate-600">
+                    Escolha um cliente da lista para visualizar sua ficha completa e histórico de entregas
+                  </p>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
+      {/* Dialog de confirmação de exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

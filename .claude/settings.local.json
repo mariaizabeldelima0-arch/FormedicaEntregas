@@ -7,7 +7,10 @@
       "Bash(git push)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nCorrige detecção automática de região no formulário de novo endereço\n\n- Resolve problema de setState assíncrono que impedia a detecção\n- Agora passa valores atualizados diretamente para detectarRegiao\\(\\)\n- Funciona corretamente ao digitar cidade ou bairro\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npm install:*)",
-      "Bash(npm run migrate:*)"
+      "Bash(npm run migrate:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

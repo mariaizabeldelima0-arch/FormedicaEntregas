@@ -87,11 +87,6 @@ export default function Layout({ children, currentPageName }) {
       icon: Users,
     },
     {
-      title: "Histórico de Clientes",
-      url: createPageUrl("HistoricoClientes"),
-      icon: BarChart3,
-    },
-    {
       title: "Relatórios",
       url: createPageUrl("Relatorios"),
       icon: BarChart3,
