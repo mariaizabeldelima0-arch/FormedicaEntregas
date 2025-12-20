@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,8 @@ import {
   Truck,
   Snowflake,
   AlertCircle,
-  RotateCcw
+  RotateCcw,
+  Pencil
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -114,20 +115,69 @@ export default function Dashboard() {
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return null;
+
+      // Buscar dados completos do usuário na tabela usuarios
+      const { data } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('email', authUser.email)
+        .single();
+
+      return data;
+    },
   });
 
   const { data: romaneios, isLoading } = useQuery({
-    queryKey: ['romaneios', user?.email],
+    queryKey: ['entregas', user?.email],
     queryFn: async () => {
       if (!user) return [];
-      if (user.tipo_usuario === 'admin' || user.role === 'admin') {
-        return base44.entities.Romaneio.list('-data_entrega_prevista');
+
+      // Buscar entregas com JOIN de motoboy e cliente
+      let query = supabase
+        .from('entregas')
+        .select(`
+          *,
+          cliente:clientes(nome, telefone, cpf),
+          motoboy:motoboys(nome),
+          atendente:usuarios!entregas_atendente_id_fkey(nome, email)
+        `)
+        .order('data_entrega', { ascending: false });
+
+      // Se não for admin, filtrar por atendente
+      if (user.tipo !== 'Admin') {
+        query = query.eq('atendente_id', user.id);
       }
-      return base44.entities.Romaneio.filter(
-        { atendente_email: user.email },
-        '-data_entrega_prevista'
-      );
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Erro ao buscar entregas:', error);
+        return [];
+      }
+
+      // Transformar dados para o formato esperado pelo Dashboard
+      return (data || []).map(entrega => ({
+        id: entrega.id,
+        numero_requisicao: entrega.requisicao,
+        cliente_nome: entrega.cliente?.nome || '',
+        cliente_telefone: entrega.cliente?.telefone || '',
+        data_entrega_prevista: entrega.data_entrega,
+        periodo_entrega: entrega.periodo,
+        cidade_regiao: entrega.regiao,
+        status: entrega.status,
+        motoboy: entrega.motoboy?.nome || null,
+        atendente_nome: entrega.atendente?.nome || '',
+        atendente_email: entrega.atendente?.email || '',
+        valor_entrega: entrega.valor,
+        forma_pagamento: entrega.forma_pagamento,
+        item_geladeira: entrega.item_geladeira,
+        buscar_receita: entrega.buscar_receita,
+        observacoes: entrega.observacoes,
+        endereco: entrega.endereco_destino
+      }));
     },
     enabled: !!user,
     initialData: [],
@@ -140,13 +190,15 @@ export default function Dashboard() {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ ids, data }) => {
-      const promises = ids.map(id =>
-        base44.entities.Romaneio.update(id, data)
-      );
-      return Promise.all(promises);
+      const { error } = await supabase
+        .from('entregas')
+        .update(data)
+        .in('id', ids);
+
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
       toast.success(`${selectedRomaneios.length} entrega${selectedRomaneios.length !== 1 ? 's' : ''} atualizada${selectedRomaneios.length !== 1 ? 's' : ''}!`);
       // Reset all bulk dialog states
       setShowBulkStatusDialog(false);
@@ -730,6 +782,17 @@ export default function Dashboard() {
                                   </div>
                                 </div>
                               </div>
+                            </Link>
+                            <Link to={`/editar-romaneio?id=${romaneio.id}`}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Pencil className="w-3 h-3" />
+                                Editar
+                              </Button>
                             </Link>
                           </div>
                         </div>

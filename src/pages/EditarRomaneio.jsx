@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
@@ -221,9 +221,13 @@ const detectarRegiao = (cidade, bairro) => {
   return '';
 };
 
-export default function NovoRomaneio() {
+export default function EditarRomaneio() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const entregaId = searchParams.get('id');
+
   const [loading, setLoading] = useState(false);
+  const [loadingEntrega, setLoadingEntrega] = useState(true);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
   const [showCadastroCliente, setShowCadastroCliente] = useState(false);
@@ -271,6 +275,74 @@ export default function NovoRomaneio() {
       }
     }
   }, [novoEndereco.cidade, novoEndereco.bairro, showNovoEndereco]);
+
+  // Carregar dados da entrega ao montar o componente
+  useEffect(() => {
+    if (!entregaId) {
+      toast.error('ID da entrega não fornecido');
+      navigate('/');
+      return;
+    }
+
+    async function carregarEntrega() {
+      try {
+        setLoadingEntrega(true);
+
+        const { data: entrega, error } = await supabase
+          .from('entregas')
+          .select(`
+            *,
+            cliente:clientes(id, nome, telefone),
+            endereco:enderecos(id, endereco_completo, logradouro, numero, complemento, bairro, cidade, cep, regiao),
+            motoboy:motoboys(id, nome)
+          `)
+          .eq('id', entregaId)
+          .single();
+
+        if (error) throw error;
+
+        if (!entrega) {
+          toast.error('Entrega não encontrada');
+          navigate('/');
+          return;
+        }
+
+        // Preencher formulário com dados da entrega
+        setFormData({
+          cliente_id: entrega.cliente_id,
+          cliente_nome: entrega.cliente?.nome || '',
+          numero_requisicao: entrega.requisicao,
+          endereco_id: entrega.endereco_id || '',
+          endereco: entrega.endereco?.endereco_completo || entrega.endereco_destino || '',
+          regiao: entrega.regiao || '',
+          outra_cidade: entrega.outra_cidade || '',
+          data_entrega: entrega.data_entrega || '',
+          periodo: entrega.periodo || 'Tarde',
+          forma_pagamento: entrega.forma_pagamento || '',
+          motoboy: entrega.motoboy?.nome || '',
+          valor_entrega: entrega.valor || 0,
+          item_geladeira: entrega.item_geladeira || false,
+          buscar_receita: entrega.buscar_receita || false,
+          observacoes: entrega.observacoes || ''
+        });
+
+        setBuscarCliente(entrega.cliente?.nome || '');
+
+        // Carregar endereços do cliente
+        if (entrega.cliente_id) {
+          await carregarEnderecosCliente(entrega.cliente_id);
+        }
+
+        setLoadingEntrega(false);
+      } catch (error) {
+        console.error('Erro ao carregar entrega:', error);
+        toast.error('Erro ao carregar dados da entrega');
+        setLoadingEntrega(false);
+      }
+    }
+
+    carregarEntrega();
+  }, [entregaId, navigate]);
 
   // Buscar clientes
   const handleBuscarCliente = async (termo) => {
@@ -528,7 +600,7 @@ export default function NovoRomaneio() {
     return Object.keys(novosErros).length === 0;
   };
 
-  // Salvar romaneio
+  // Salvar alterações do romaneio
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -538,14 +610,15 @@ export default function NovoRomaneio() {
     }
 
     setLoading(true);
-    const toastId = toast.loading('Criando romaneio...');
+    const toastId = toast.loading('Salvando alterações...');
 
     try {
-      // Verificar se número de requisição já existe
+      // Verificar se número de requisição já existe (mas ignorar o próprio registro)
       const { data: existe } = await supabase
         .from('entregas')
         .select('id')
         .eq('requisicao', formData.numero_requisicao)
+        .neq('id', entregaId)
         .maybeSingle();
 
       if (existe) {
@@ -615,34 +688,32 @@ export default function NovoRomaneio() {
         motoboyId = motoboy?.id || null;
       }
 
-      // Criar entrega
+      // Atualizar entrega
       const { data, error } = await supabase
         .from('entregas')
-        .insert([{
+        .update({
           cliente_id: formData.cliente_id,
           endereco_id: enderecoIdFinal || null,
           requisicao: formData.numero_requisicao,
           endereco_destino: enderecoTexto,
           regiao: formData.regiao,
           outra_cidade: formData.regiao === 'OUTRO' ? formData.outra_cidade : null,
-          tipo: 'moto',
-          data_criacao: new Date().toISOString(),
           data_entrega: formData.data_entrega,
           periodo: formData.periodo,
-          status: 'Produzindo no Laboratório',
           motoboy_id: motoboyId,
           forma_pagamento: formData.forma_pagamento,
           valor: formData.valor_entrega,
           item_geladeira: formData.item_geladeira,
           buscar_receita: formData.buscar_receita,
           observacoes: formData.observacoes
-        }])
+        })
+        .eq('id', entregaId)
         .select()
         .single();
 
       if (error) throw error;
 
-      toast.success('Romaneio criado com sucesso!', { id: toastId });
+      toast.success('Romaneio atualizado com sucesso!', { id: toastId });
 
       // Aguardar um pouco antes de navegar para o usuário ver o toast
       setTimeout(() => navigate('/'), 800);
@@ -653,6 +724,23 @@ export default function NovoRomaneio() {
       setLoading(false);
     }
   };
+
+  if (loadingEntrega) {
+    return (
+      <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+        <div style={{
+          width: '50px',
+          height: '50px',
+          border: '4px solid #e2e8f0',
+          borderTop: '4px solid #457bba',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          margin: '2rem auto'
+        }} />
+        <p style={{ color: theme.colors.textLight }}>Carregando dados da entrega...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
@@ -676,10 +764,10 @@ export default function NovoRomaneio() {
           color: theme.colors.text,
           marginBottom: '0.25rem'
         }}>
-          Novo Romaneio
+          Editar Romaneio
         </h1>
         <p style={{ color: theme.colors.textLight, fontSize: '0.875rem' }}>
-          Crie uma nova ordem de entrega
+          Edite as informações da ordem de entrega
         </p>
       </div>
 
@@ -1644,7 +1732,7 @@ export default function NovoRomaneio() {
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            {loading ? 'Criando...' : 'Criar Romaneio'}
+            {loading ? 'Salvando...' : 'Salvar Alterações'}
           </button>
         </div>
       </form>
