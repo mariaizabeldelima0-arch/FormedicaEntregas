@@ -588,8 +588,8 @@ export default function DetalhesRomaneio() {
     <>
       <ImpressaoRomaneio romaneio={romaneio} />
 
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-        <div className="max-w-4xl mx-auto space-y-6">
+      <div className="p-6 md:p-12 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+        <div className="max-w-6xl mx-auto space-y-8">
           {/* Header - não imprime */}
           <div className="flex items-center gap-4 no-print">
             <Button
@@ -662,14 +662,14 @@ export default function DetalhesRomaneio() {
               {!isEditing ? (
                 <>
                   <Button
-                    variant="outline"
+                    className="bg-[#457bba] hover:bg-[#3a6ba0] text-white"
                     onClick={handleEditStart}
                   >
                     <Edit className="w-4 h-4 mr-2" />
-                    Editar
+                    Editar Romaneio
                   </Button>
                   <Button
-                    className="bg-[#457bba] hover:bg-[#3a6ba0]"
+                    className="bg-[#890d5d] hover:bg-[#6e0a4a] text-white"
                     onClick={handlePrint}
                   >
                     <Printer className="w-4 h-4 mr-2" />
@@ -677,16 +677,23 @@ export default function DetalhesRomaneio() {
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+                      <Button variant="outline" className="border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600">
                         <Trash2 className="w-4 h-4 mr-2" />
                         Excluir
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="max-w-md">
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir este romaneio? Esta ação não pode ser desfeita.
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="p-3 bg-red-100 rounded-full">
+                            <AlertCircle className="w-6 h-6 text-red-600" />
+                          </div>
+                          <AlertDialogTitle className="text-xl">Confirmar Exclusão</AlertDialogTitle>
+                        </div>
+                        <AlertDialogDescription className="text-base">
+                          Tem certeza que deseja excluir permanentemente o romaneio <strong className="text-slate-900">#{romaneio.numero_requisicao}</strong> do cliente <strong className="text-slate-900">{romaneio.cliente_nome}</strong>?
+                          <br /><br />
+                          <span className="text-red-600 font-semibold">Esta ação não pode ser desfeita.</span>
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -695,7 +702,7 @@ export default function DetalhesRomaneio() {
                           onClick={handleDelete}
                           className="bg-red-600 hover:bg-red-700"
                         >
-                          Confirmar Exclusão
+                          {excluirMutation.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -729,9 +736,9 @@ export default function DetalhesRomaneio() {
               {/* Coluna Principal */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Informações Básicas */}
-                <Card className="border-none shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                <Card className="border-l-4 border-l-[#457bba] shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-blue-50/30 to-transparent">
+                    <CardTitle className="flex items-center gap-2 text-lg">
                       <FileText className="w-5 h-5 text-[#457bba]" />
                       Informações do Romaneio
                     </CardTitle>
@@ -803,10 +810,10 @@ export default function DetalhesRomaneio() {
                 </Card>
 
                 {/* Cliente */}
-                <Card className="border-none shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="w-5 h-5 text-[#457bba]" />
+                <Card className="border-l-4 border-l-[#10b981] shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-green-50/30 to-transparent">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <User className="w-5 h-5 text-[#10b981]" />
                       Cliente
                     </CardTitle>
                   </CardHeader>
@@ -891,10 +898,10 @@ export default function DetalhesRomaneio() {
                 </Card>
 
                 {/* Endereço */}
-                <Card className="border-none shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-[#457bba]" />
+                <Card className="border-l-4 border-l-[#f59e0b] shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-amber-50/30 to-transparent">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <MapPin className="w-5 h-5 text-[#f59e0b]" />
                       Endereço de Entrega
                     </CardTitle>
                   </CardHeader>
@@ -1097,9 +1104,12 @@ export default function DetalhesRomaneio() {
               {/* Coluna Lateral */}
               <div className="space-y-6">
                 {/* Informações */}
-                <Card className="border-none shadow-lg">
-                  <CardHeader>
-                    <CardTitle>Informações</CardTitle>
+                <Card className="border-l-4 border-l-[#8b5cf6] shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-purple-50/30 to-transparent">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Package className="w-5 h-5 text-[#8b5cf6]" />
+                      Informações
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {isEditing ? (
