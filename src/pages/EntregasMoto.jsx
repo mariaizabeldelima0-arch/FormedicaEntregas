@@ -2,6 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 // Ícones SVG
 const Icons = {
@@ -53,23 +71,47 @@ const Icons = {
       <polyline points="9 18 15 12 9 6"/>
     </svg>
   ),
+  eye: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ),
+  edit: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  ),
+  trash: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+    </svg>
+  ),
 };
 
 export default function EntregasMoto() {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState('day'); // 'day' ou 'all'
+  const [viewMode, setViewMode] = useState('day');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   const [entregas, setEntregas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState(''); // '' = todos, 'Produzindo no Laboratório', 'A Caminho', 'Entregue'
+  const [filtroStatus, setFiltroStatus] = useState('');
   const [filtros, setFiltros] = useState({
     motoboy: '',
     regiao: '',
     periodo: ''
   });
-  
+
+  // Estados para modals
+  const [detalhesOpen, setDetalhesOpen] = useState(false);
+  const [entregaSelecionada, setEntregaSelecionada] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [entregaParaExcluir, setEntregaParaExcluir] = useState(null);
+
   // Função para gerar dias do mês
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -78,325 +120,206 @@ export default function EntregasMoto() {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-    
+
     const days = [];
-    
-    // Dias do mês anterior
+
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push({ day: '', isCurrentMonth: false });
     }
-    
-    // Dias do mês atual
+
     for (let i = 1; i <= daysInMonth; i++) {
       const dayDate = new Date(year, month, i);
-      days.push({ 
-        day: i, 
+      days.push({
+        day: i,
         isCurrentMonth: true,
-        isSelected: i === selectedDate.getDate() && 
-                   month === selectedDate.getMonth() && 
+        isSelected: i === selectedDate.getDate() &&
+                   month === selectedDate.getMonth() &&
                    year === selectedDate.getFullYear(),
         date: dayDate
       });
     }
-    
+
     return days;
   };
-  
-  const monthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-                     'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-  
-  const weekDays = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-  
-  const currentMonth = monthNames[currentMonthDate.getMonth()];
-  const currentYear = currentMonthDate.getFullYear();
-  
-  const previousMonth = () => {
-    setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1));
-  };
-  
-  const nextMonth = () => {
-    setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1));
-  };
-  
-  const selectDay = (date) => {
-    setSelectedDate(date);
-  };
 
-  const formatDate = (date) => {
-    const day = date.getDate();
-    const month = monthNames[date.getMonth()];
-    const year = date.getFullYear();
-    return `${day}/${date.getMonth() + 1}/${year}`;
-  };
-
-  // Buscar entregas do Supabase
-  const buscarEntregas = async () => {
+  // Carregar entregas
+  const loadEntregas = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-
-      // Query base - buscar entregas com informações de clientes e motoboys
       let query = supabase
         .from('entregas')
         .select(`
           *,
-          cliente:clientes(nome, telefone),
-          endereco:enderecos(endereco_completo, cidade, bairro),
-          motoboy:motoboys(nome)
+          cliente:clientes(id, nome, telefone),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
+          motoboy:motoboys(id, nome)
         `)
-        .order('created_at', { ascending: false });
-
-      // Filtrar por data se viewMode = 'day'
-      if (viewMode === 'day') {
-        const dateStr = selectedDate.toISOString().split('T')[0];
-        query = query.eq('data_entrega', dateStr);
-      }
+        .eq('tipo', 'moto')
+        .order('data_entrega', { ascending: true });
 
       const { data, error } = await query;
 
       if (error) throw error;
       setEntregas(data || []);
     } catch (error) {
-      console.error('Erro ao buscar entregas:', error);
-      setEntregas([]);
+      console.error('Erro ao carregar entregas:', error);
+      toast.error('Erro ao carregar entregas');
     } finally {
       setLoading(false);
     }
   };
 
-  // Buscar entregas quando mudar a data ou viewMode
   useEffect(() => {
-    buscarEntregas();
-  }, [selectedDate, viewMode]);
+    loadEntregas();
+  }, []);
 
-  // Calcular estatísticas
-  const calcularEstatisticas = () => {
-    const total = entregas.length;
-    const producao = entregas.filter(e => e.status === 'Produzindo no Laboratório').length;
-    const caminho = entregas.filter(e => e.status === 'A Caminho').length;
-    const entregues = entregas.filter(e => e.status === 'Entregue').length;
-
-    return { total, producao, caminho, entregues };
-  };
-
-  const stats = calcularEstatisticas();
-
-  // Filtrar entregas (busca + filtros)
+  // Filtrar entregas
   const entregasFiltradas = entregas.filter(entrega => {
-    // Filtro de busca
-    if (searchTerm) {
-      const termo = searchTerm.toLowerCase();
-      const cliente = entrega.cliente?.nome?.toLowerCase() || '';
-      const requisicao = entrega.requisicao?.toLowerCase() || '';
-      const telefone = entrega.cliente?.telefone?.toLowerCase() || '';
-
-      if (!cliente.includes(termo) && !requisicao.includes(termo) && !telefone.includes(termo)) {
+    // Filtro de data (se viewMode === 'day')
+    if (viewMode === 'day') {
+      const entregaDate = new Date(entrega.data_entrega);
+      if (entregaDate.toDateString() !== selectedDate.toDateString()) {
         return false;
       }
     }
 
-    // Filtro de status (via cards)
-    if (filtroStatus && entrega.status !== filtroStatus) return false;
+    // Filtro de status
+    if (filtroStatus && entrega.status !== filtroStatus) {
+      return false;
+    }
 
-    // Outros filtros
-    if (filtros.motoboy && entrega.motoboy?.nome !== filtros.motoboy) return false;
-    if (filtros.regiao && entrega.regiao !== filtros.regiao) return false;
-    if (filtros.periodo && entrega.periodo !== filtros.periodo) return false;
+    // Filtro de busca
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchCliente = entrega.cliente?.nome?.toLowerCase().includes(searchLower);
+      const matchRequisicao = entrega.requisicao?.toLowerCase().includes(searchLower);
+      const matchTelefone = entrega.cliente?.telefone?.includes(searchTerm);
+
+      if (!matchCliente && !matchRequisicao && !matchTelefone) {
+        return false;
+      }
+    }
+
+    // Filtros adicionais
+    if (filtros.motoboy && entrega.motoboy?.nome !== filtros.motoboy) {
+      return false;
+    }
+
+    if (filtros.regiao && entrega.regiao !== filtros.regiao) {
+      return false;
+    }
+
+    if (filtros.periodo && entrega.periodo !== filtros.periodo) {
+      return false;
+    }
 
     return true;
   });
 
+  // Estatísticas
+  const stats = {
+    total: entregasFiltradas.length,
+    producao: entregasFiltradas.filter(e => e.status === 'Produzindo no Laboratório').length,
+    caminho: entregasFiltradas.filter(e => e.status === 'A Caminho').length,
+    entregues: entregasFiltradas.filter(e => e.status === 'Entregue').length,
+  };
+
+  // Formatação de data
+  const formatDate = (date) => {
+    return new Intl.DateTimeFormat('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date);
+  };
+
+  const formatMonthYear = (date) => {
+    return new Intl.DateTimeFormat('pt-BR', {
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
+  };
+
+  // Mudar status da entrega
+  const handleMudarStatus = async (entrega, novoStatus) => {
+    const toastId = toast.loading('Alterando status...');
+
+    try {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ status: novoStatus })
+        .eq('id', entrega.id);
+
+      if (error) throw error;
+
+      toast.success('Status alterado com sucesso!', { id: toastId });
+      loadEntregas();
+      setDetalhesOpen(false);
+    } catch (error) {
+      console.error('Erro ao alterar status:', error);
+      toast.error('Erro ao alterar status', { id: toastId });
+    }
+  };
+
+  // Excluir entrega
+  const handleExcluir = async () => {
+    if (!entregaParaExcluir) return;
+
+    const toastId = toast.loading('Excluindo entrega...');
+
+    try {
+      const { error } = await supabase
+        .from('entregas')
+        .delete()
+        .eq('id', entregaParaExcluir.id);
+
+      if (error) throw error;
+
+      toast.success('Entrega excluída com sucesso!', { id: toastId });
+      setDeleteDialogOpen(false);
+      setEntregaParaExcluir(null);
+      setDetalhesOpen(false);
+      loadEntregas();
+    } catch (error) {
+      console.error('Erro ao excluir entrega:', error);
+      toast.error('Erro ao excluir entrega', { id: toastId });
+    }
+  };
+
+  const confirmarExclusao = (entrega) => {
+    setEntregaParaExcluir(entrega);
+    setDeleteDialogOpen(true);
+  };
+
+  const visualizarDetalhes = (entrega) => {
+    setEntregaSelecionada(entrega);
+    setDetalhesOpen(true);
+  };
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: theme.colors.background }}>
-      {/* Calendário Lateral */}
-      <div style={{
-        width: '320px',
-        background: 'white',
-        borderRight: `1px solid ${theme.colors.border}`,
-        padding: '1.5rem',
-        overflowY: 'auto'
-      }}>
-        <h3 style={{
-          fontSize: '0.875rem',
-          fontWeight: '600',
-          color: theme.colors.text,
-          marginBottom: '1rem'
-        }}>
-          Selecione um dado
-        </h3>
-        
-        {/* Navegação do Calendário */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1rem'
-        }}>
-          <button onClick={previousMonth} style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0.25rem',
-            color: theme.colors.text
-          }}>
-            <Icons.chevronLeft />
-          </button>
-          <span style={{ fontSize: '0.875rem', fontWeight: '500', textTransform: 'capitalize' }}>
-            {monthNames[currentMonthDate.getMonth()]} de {currentMonthDate.getFullYear()}
-          </span>
-          <button onClick={nextMonth} style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0.25rem',
-            color: theme.colors.text
-          }}>
-            <Icons.chevronRight />
-          </button>
-        </div>
-        
-        {/* Grade do Calendário */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: '0.25rem',
-          marginBottom: '0.5rem'
-        }}>
-          {weekDays.map(day => (
-            <div key={day} style={{
-              textAlign: 'center',
-              fontSize: '0.75rem',
-              color: theme.colors.textLight,
-              padding: '0.25rem'
-            }}>
-              {day}
-            </div>
-          ))}
-        </div>
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: '0.25rem'
-        }}>
-          {getDaysInMonth(currentMonthDate).map((dayObj, idx) => (
-            <button
-              key={idx}
-              disabled={!dayObj.isCurrentMonth}
-              onClick={() => dayObj.isCurrentMonth && selectDay(dayObj.date)}
-              style={{
-                padding: '0.5rem',
-                border: 'none',
-                background: dayObj.isSelected ? theme.colors.primary : 'transparent',
-                color: dayObj.isSelected ? 'white' : 
-                       dayObj.isCurrentMonth ? theme.colors.text : theme.colors.textLight,
-                borderRadius: '0.25rem',
-                cursor: dayObj.isCurrentMonth ? 'pointer' : 'default',
-                fontSize: '0.875rem',
-                fontWeight: dayObj.isSelected ? '600' : '400'
-              }}
-            >
-              {dayObj.day}
-            </button>
-          ))}
-        </div>
-        
-        <div style={{
-          marginTop: '1.5rem',
-          textAlign: 'center',
-          padding: '1rem',
-          background: theme.colors.background,
-          borderRadius: '0.5rem'
-        }}>
-          <p style={{ fontSize: '0.875rem', fontWeight: '600', color: theme.colors.text }}>
-            {selectedDate.getDate()} de {monthNames[selectedDate.getMonth()]}
-          </p>
-          <p style={{ fontSize: '0.75rem', color: theme.colors.textLight }}>
-            {viewMode === 'day' ? entregas.length : 'Todos'} {entregas.length === 1 ? 'entrega' : 'entregas'}
-          </p>
-        </div>
-        
-        {/* Relatório do Dia */}
-        <button
-          style={{
-            width: '100%',
-            marginTop: '1rem',
-            padding: '0.75rem',
-            background: 'white',
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: theme.colors.text,
-            cursor: 'pointer',
+    <div style={{ padding: '2rem', background: theme.colors.background, minHeight: '100vh' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <Icons.clipboard />
-          Relatório do Dia
-        </button>
-      </div>
-      
-      {/* Conteúdo Principal */}
-      <div style={{ flex: 1, padding: '2rem' }}>
-        <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ 
-              fontSize: '1.875rem', 
+            marginBottom: '1rem'
+          }}>
+            <h1 style={{
+              fontSize: '2rem',
               fontWeight: '700',
-              color: theme.colors.text,
-              marginBottom: '0.25rem'
+              color: theme.colors.text
             }}>
               Entregas Moto
             </h1>
-            <p style={{ color: theme.colors.textLight, fontSize: '0.875rem' }}>
-              Olá, mariaizabeldelima0
-            </p>
-          </div>
-          
-          {/* Botões Por Dia / Todos / Novo Romaneio */}
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
-              onClick={() => setViewMode('day')}
-              style={{
-                padding: '0.625rem 1.25rem',
-                background: viewMode === 'day' ? theme.colors.primary : 'white',
-                color: viewMode === 'day' ? 'white' : theme.colors.text,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              <Icons.calendar />
-              Por Dia
-            </button>
-            <button
-              onClick={() => setViewMode('all')}
-              style={{
-                padding: '0.625rem 1.25rem',
-                background: viewMode === 'all' ? theme.colors.primary : 'white',
-                color: viewMode === 'all' ? 'white' : theme.colors.text,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                cursor: 'pointer'
-              }}
-            >
-              Todos
-            </button>
             <button
               onClick={() => navigate('/novo-romaneio')}
               style={{
-                padding: '0.625rem 1.25rem',
-                background: theme.colors.secondary,
+                padding: '0.75rem 1.5rem',
+                background: theme.colors.primary,
                 color: 'white',
                 border: 'none',
                 borderRadius: '0.375rem',
@@ -486,8 +409,7 @@ export default function EntregasMoto() {
           }}>
             Buscar e Filtrar
           </h3>
-          
-          {/* Campo de Busca */}
+
           <div style={{ marginBottom: '1rem', position: 'relative' }}>
             <input
               type="text"
@@ -512,14 +434,12 @@ export default function EntregasMoto() {
               <Icons.search />
             </div>
           </div>
-          
-          {/* Filtros */}
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: '1rem'
           }}>
-            {/* Filtro de Motoboy */}
             <select
               value={filtros.motoboy}
               onChange={(e) => setFiltros({...filtros, motoboy: e.target.value})}
@@ -538,7 +458,6 @@ export default function EntregasMoto() {
               <option value="Bruno">Bruno</option>
             </select>
 
-            {/* Filtro de Região */}
             <select
               value={filtros.regiao}
               onChange={(e) => setFiltros({...filtros, regiao: e.target.value})}
@@ -552,15 +471,13 @@ export default function EntregasMoto() {
                 cursor: 'pointer'
               }}
             >
-              <option value="">Todos os Locais</option>
+              <option value="">Todas Regiões</option>
               <option value="BC">BC</option>
               <option value="ITAJAI">Itajaí</option>
-              <option value="CAMBORIÚ">Camboriú</option>
-              <option value="PRAIA BRAVA">Praia Brava</option>
               <option value="ITAPEMA">Itapema</option>
+              <option value="NAVEGANTES">Navegantes</option>
             </select>
 
-            {/* Filtro de Período */}
             <select
               value={filtros.periodo}
               onChange={(e) => setFiltros({...filtros, periodo: e.target.value})}
@@ -574,11 +491,233 @@ export default function EntregasMoto() {
                 cursor: 'pointer'
               }}
             >
-              <option value="">Todos os Períodos</option>
+              <option value="">Todos Períodos</option>
               <option value="Manhã">Manhã</option>
               <option value="Tarde">Tarde</option>
             </select>
           </div>
+        </div>
+
+        {/* Calendário */}
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '0.5rem',
+          border: `1px solid ${theme.colors.border}`,
+          marginBottom: '1.5rem'
+        }}>
+          {/* Header do Calendário */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Icons.calendar />
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: theme.colors.text,
+                margin: 0
+              }}>
+                Calendário
+              </h3>
+            </div>
+            <div style={{
+              display: 'inline-flex',
+              background: theme.colors.background,
+              borderRadius: '0.375rem',
+              padding: '0.25rem'
+            }}>
+              <button
+                onClick={() => setViewMode('day')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: viewMode === 'day' ? 'white' : 'transparent',
+                  border: 'none',
+                  borderRadius: '0.25rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  color: viewMode === 'day' ? theme.colors.primary : theme.colors.textLight,
+                  boxShadow: viewMode === 'day' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+                }}
+              >
+                Dia
+              </button>
+              <button
+                onClick={() => setViewMode('month')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: viewMode === 'month' ? 'white' : 'transparent',
+                  border: 'none',
+                  borderRadius: '0.25rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  color: viewMode === 'month' ? theme.colors.primary : theme.colors.textLight,
+                  boxShadow: viewMode === 'month' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+                }}
+              >
+                Mês
+              </button>
+            </div>
+          </div>
+
+          {/* Navegação do mês */}
+          {viewMode === 'month' && (
+            <>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem'
+              }}>
+                <button
+                  onClick={() => {
+                    const newDate = new Date(currentMonthDate);
+                    newDate.setMonth(newDate.getMonth() - 1);
+                    setCurrentMonthDate(newDate);
+                  }}
+                  style={{
+                    padding: '0.5rem',
+                    background: 'white',
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    color: theme.colors.text
+                  }}
+                >
+                  <Icons.chevronLeft />
+                </button>
+                <h4 style={{
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  color: theme.colors.text,
+                  margin: 0,
+                  textTransform: 'capitalize'
+                }}>
+                  {formatMonthYear(currentMonthDate)}
+                </h4>
+                <button
+                  onClick={() => {
+                    const newDate = new Date(currentMonthDate);
+                    newDate.setMonth(newDate.getMonth() + 1);
+                    setCurrentMonthDate(newDate);
+                  }}
+                  style={{
+                    padding: '0.5rem',
+                    background: 'white',
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    color: theme.colors.text
+                  }}
+                >
+                  <Icons.chevronRight />
+                </button>
+              </div>
+
+              {/* Grid do Calendário */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: '0.5rem'
+              }}>
+                {/* Cabeçalho dos dias da semana */}
+                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                  <div
+                    key={day}
+                    style={{
+                      textAlign: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      color: theme.colors.textLight,
+                      padding: '0.5rem'
+                    }}
+                  >
+                    {day}
+                  </div>
+                ))}
+
+                {/* Dias do mês */}
+                {getDaysInMonth(currentMonthDate).map((dayInfo, index) => (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      if (dayInfo.isCurrentMonth) {
+                        setSelectedDate(dayInfo.date);
+                        setViewMode('day');
+                      }
+                    }}
+                    style={{
+                      aspectRatio: '1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.875rem',
+                      fontWeight: dayInfo.isSelected ? '600' : '400',
+                      color: dayInfo.isCurrentMonth ? theme.colors.text : theme.colors.textLight,
+                      background: dayInfo.isSelected ? theme.colors.primary : 'transparent',
+                      border: dayInfo.isSelected ? 'none' : `1px solid ${theme.colors.border}`,
+                      borderRadius: '0.375rem',
+                      cursor: dayInfo.isCurrentMonth ? 'pointer' : 'default',
+                      opacity: dayInfo.isCurrentMonth ? 1 : 0.4,
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (dayInfo.isCurrentMonth && !dayInfo.isSelected) {
+                        e.currentTarget.style.background = theme.colors.background;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!dayInfo.isSelected) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    {dayInfo.day}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Visualização de dia único */}
+          {viewMode === 'day' && (
+            <div style={{
+              padding: '1rem',
+              background: theme.colors.background,
+              borderRadius: '0.375rem',
+              textAlign: 'center'
+            }}>
+              <p style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: theme.colors.primary,
+                margin: 0,
+                textTransform: 'capitalize'
+              }}>
+                {formatDate(selectedDate)}
+              </p>
+              <button
+                onClick={() => setViewMode('month')}
+                style={{
+                  marginTop: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  background: 'white',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  color: theme.colors.text
+                }}
+              >
+                Ver Calendário Completo
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Lista de Entregas */}
@@ -586,8 +725,7 @@ export default function EntregasMoto() {
           background: 'white',
           padding: '1.5rem',
           borderRadius: '0.5rem',
-          border: `1px solid ${theme.colors.border}`,
-          marginBottom: '1rem'
+          border: `1px solid ${theme.colors.border}`
         }}>
           <div style={{
             display: 'flex',
@@ -596,33 +734,15 @@ export default function EntregasMoto() {
             marginBottom: '1.5rem'
           }}>
             <h3 style={{
-              fontSize: '1rem',
+              fontSize: '1.125rem',
               fontWeight: '600',
               color: theme.colors.text,
               margin: 0
             }}>
-              Entregas de {formatDate(selectedDate)}
+              Entregas {viewMode === 'day' ? `de ${formatDate(selectedDate)}` : ''}
             </h3>
-            <button
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'white',
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              <Icons.clipboard />
-              Relatório do Dia
-            </button>
           </div>
-          
+
           {loading ? (
             <div style={{
               padding: '3rem 2rem',
@@ -659,9 +779,7 @@ export default function EntregasMoto() {
               }}>
                 {searchTerm || Object.values(filtros).some(f => f)
                   ? 'Nenhuma entrega corresponde aos filtros aplicados'
-                  : viewMode === 'day'
-                    ? 'Não há entregas agendadas para este dia'
-                    : 'Não há entregas cadastradas'}
+                  : 'Não há entregas cadastradas'}
               </p>
             </div>
           ) : (
@@ -675,18 +793,10 @@ export default function EntregasMoto() {
                     borderRadius: '0.375rem',
                     border: `1px solid ${theme.colors.border}`,
                     display: 'grid',
-                    gridTemplateColumns: '1fr auto',
+                    gridTemplateColumns: '1fr auto auto',
                     gap: '1rem',
-                    cursor: 'pointer',
+                    alignItems: 'center',
                     transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = theme.colors.primary;
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = theme.colors.border;
-                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
                   {/* Informações principais */}
@@ -739,7 +849,7 @@ export default function EntregasMoto() {
                       color: theme.colors.textLight,
                       marginBottom: '0.5rem'
                     }}>
-                      📍 {entrega.endereco?.endereco_completo || entrega.endereco_destino}
+                      📍 {entrega.endereco ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}` : entrega.endereco_destino}
                     </p>
 
                     <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: theme.colors.textLight }}>
@@ -771,12 +881,162 @@ export default function EntregasMoto() {
                       {entrega.regiao}
                     </span>
                   </div>
+
+                  {/* Botões de Ação */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => visualizarDetalhes(entrega)}
+                      style={{
+                        padding: '0.5rem',
+                        background: 'white',
+                        border: `1px solid ${theme.colors.border}`,
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        color: theme.colors.primary
+                      }}
+                      title="Ver detalhes"
+                    >
+                      <Icons.eye />
+                    </button>
+                    <button
+                      onClick={() => navigate(`/editar-romaneio/${entrega.id}`)}
+                      style={{
+                        padding: '0.5rem',
+                        background: 'white',
+                        border: `1px solid ${theme.colors.border}`,
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        color: theme.colors.primary
+                      }}
+                      title="Editar"
+                    >
+                      <Icons.edit />
+                    </button>
+                    <button
+                      onClick={() => confirmarExclusao(entrega)}
+                      style={{
+                        padding: '0.5rem',
+                        background: 'white',
+                        border: `1px solid #fee2e2`,
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        color: '#ef4444'
+                      }}
+                      title="Excluir"
+                    >
+                      <Icons.trash />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Dialog de Detalhes */}
+      <Dialog open={detalhesOpen} onOpenChange={setDetalhesOpen}>
+        <DialogContent style={{ maxWidth: '600px' }}>
+          <DialogHeader>
+            <DialogTitle>Detalhes da Entrega #{entregaSelecionada?.requisicao}</DialogTitle>
+          </DialogHeader>
+          {entregaSelecionada && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Status Atual */}
+              <div>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Status Atual</h4>
+                <span style={{
+                  fontSize: '0.875rem',
+                  padding: '0.25rem 0.75rem',
+                  background: entregaSelecionada.status === 'Entregue' ? '#dcfce7' :
+                             entregaSelecionada.status === 'A Caminho' ? '#fef3c7' : '#dbeafe',
+                  color: entregaSelecionada.status === 'Entregue' ? '#166534' :
+                         entregaSelecionada.status === 'A Caminho' ? '#92400e' : '#1e40af',
+                  borderRadius: '0.25rem',
+                  fontWeight: '500'
+                }}>
+                  {entregaSelecionada.status}
+                </span>
+              </div>
+
+              {/* Alterar Status */}
+              <div>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Alterar Status</h4>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {['Produzindo no Laboratório', 'A Caminho', 'Entregue'].map(status => (
+                    <Button
+                      key={status}
+                      onClick={() => handleMudarStatus(entregaSelecionada, status)}
+                      disabled={entregaSelecionada.status === status}
+                      variant={entregaSelecionada.status === status ? 'default' : 'outline'}
+                      size="sm"
+                    >
+                      {status}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Informações do Cliente */}
+              <div>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Cliente</h4>
+                <p style={{ fontSize: '0.875rem', color: theme.colors.text }}>
+                  {entregaSelecionada.cliente?.nome}<br />
+                  {entregaSelecionada.cliente?.telefone}
+                </p>
+              </div>
+
+              {/* Endereço */}
+              <div>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Endereço</h4>
+                <p style={{ fontSize: '0.875rem', color: theme.colors.text }}>
+                  {entregaSelecionada.endereco ?
+                    `${entregaSelecionada.endereco.logradouro}, ${entregaSelecionada.endereco.numero} - ${entregaSelecionada.endereco.bairro} - ${entregaSelecionada.endereco.cidade}` :
+                    entregaSelecionada.endereco_destino
+                  }
+                </p>
+              </div>
+
+              {/* Detalhes da Entrega */}
+              <div>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Detalhes</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
+                  <div><strong>Motoboy:</strong> {entregaSelecionada.motoboy?.nome || 'Não definido'}</div>
+                  <div><strong>Período:</strong> {entregaSelecionada.periodo}</div>
+                  <div><strong>Região:</strong> {entregaSelecionada.regiao}</div>
+                  <div><strong>Pagamento:</strong> {entregaSelecionada.forma_pagamento}</div>
+                  <div><strong>Valor:</strong> R$ {entregaSelecionada.valor?.toFixed(2)}</div>
+                  <div><strong>Data:</strong> {new Date(entregaSelecionada.data_entrega).toLocaleDateString('pt-BR')}</div>
+                </div>
+                {entregaSelecionada.observacoes && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <strong>Observações:</strong>
+                    <p style={{ marginTop: '0.25rem' }}>{entregaSelecionada.observacoes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A entrega <strong>#{entregaParaExcluir?.requisicao}</strong> será excluída permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEntregaParaExcluir(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleExcluir} style={{ background: '#ef4444' }}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npm run dev:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nImplementa busca de entregas do Supabase e melhorias no formulário de novo romaneio\n\n- Adiciona integração completa com Supabase para buscar entregas reais\n- Implementa cards clicáveis com filtros por status (Total, Produção, A Caminho, Entregues)\n- Adiciona busca e filtros funcionais (motoboy, região, período)\n- Corrige carregamento de endereços do cliente no novo romaneio\n- Implementa formulário completo para novo endereço com campos separados\n- Adiciona detecção automática de região baseada em cidade/bairro\n- Corrige URL e chave do Supabase\n- Cria scripts SQL para setup do banco de dados\n- Adiciona documentação de decisões de design\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nCorrige detecção automática de região no formulário de novo endereço\n\n- Resolve problema de setState assíncrono que impedia a detecção\n- Agora passa valores atualizados diretamente para detectarRegiao\\(\\)\n- Funciona corretamente ao digitar cidade ou bairro\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm install:*)",
+      "Bash(npm run migrate:*)"
     ]
   }
 }
