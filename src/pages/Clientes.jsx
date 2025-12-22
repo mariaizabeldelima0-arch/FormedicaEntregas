@@ -462,7 +462,7 @@ export default function Clientes() {
           *,
           enderecos (*)
         `)
-        .order('created_at', { ascending: false });
+        .order('nome', { ascending: true });
 
       if (error) throw error;
       setClientes(data || []);
@@ -603,7 +603,17 @@ export default function Clientes() {
 
   // Filtrar entregas
   const entregasFiltradas = entregasCliente.filter(e => {
-    if (filtroStatusEntrega !== "todas" && e.status !== filtroStatusEntrega) return false;
+    // Filtro de status
+    if (filtroStatusEntrega === "em_andamento") {
+      // Mostrar apenas entregas em andamento (não finalizadas)
+      if (e.status === 'Entregue' || e.status === 'Cancelado' || e.status === 'Não Entregue') {
+        return false;
+      }
+    } else if (filtroStatusEntrega !== "todas" && e.status !== filtroStatusEntrega) {
+      return false;
+    }
+
+    // Filtro de busca
     if (buscaEntregas) {
       const termo = buscaEntregas.toLowerCase();
       return e.requisicao?.toLowerCase().includes(termo) ||
@@ -837,18 +847,36 @@ export default function Clientes() {
                       <div>
                         <h3 className="font-semibold text-slate-900 mb-4">Estatísticas de Entregas</h3>
                         <div className="grid grid-cols-3 gap-4 text-center">
-                          <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setFiltroStatusEntrega("todas")}
+                            className={`p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+                              filtroStatusEntrega === "todas" ? "ring-2 ring-[#457bba]" : ""
+                            }`}
+                          >
                             <div className="text-3xl font-bold text-[#457bba]">{totalEntregas}</div>
                             <div className="text-xs text-slate-600 mt-1">Total de Entregas</div>
-                          </div>
-                          <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFiltroStatusEntrega("Entregue")}
+                            className={`p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+                              filtroStatusEntrega === "Entregue" ? "ring-2 ring-green-600" : ""
+                            }`}
+                          >
                             <div className="text-3xl font-bold text-green-600">{entregasEntregues}</div>
                             <div className="text-xs text-slate-600 mt-1">Entregues</div>
-                          </div>
-                          <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFiltroStatusEntrega("em_andamento")}
+                            className={`p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+                              filtroStatusEntrega === "em_andamento" ? "ring-2 ring-purple-600" : ""
+                            }`}
+                          >
                             <div className="text-3xl font-bold text-purple-600">{entregasEmAndamento}</div>
                             <div className="text-xs text-slate-600 mt-1">Em Andamento</div>
-                          </div>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -878,21 +906,21 @@ export default function Clientes() {
                           className="pl-10"
                         />
                       </div>
-                      <Select value={filtroStatusEntrega} onValueChange={setFiltroStatusEntrega}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Filtrar por status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="todas">Todos os Status</SelectItem>
-                          <SelectItem value="Pendente">Pendente</SelectItem>
-                          <SelectItem value="Produzindo no Laboratório">Produção</SelectItem>
-                          <SelectItem value="A Caminho">A Caminho</SelectItem>
-                          <SelectItem value="Entregue">Entregue</SelectItem>
-                          <SelectItem value="Não Entregue">Não Entregue</SelectItem>
-                          <SelectItem value="Voltou">Voltou</SelectItem>
-                          <SelectItem value="Cancelado">Cancelado</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <select
+                        value={filtroStatusEntrega}
+                        onChange={(e) => setFiltroStatusEntrega(e.target.value)}
+                        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#457bba] focus:border-transparent"
+                      >
+                        <option value="todas">Todos os Status</option>
+                        <option value="em_andamento">Em Andamento</option>
+                        <option value="Entregue">Entregue</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Produzindo no Laboratório">Produção</option>
+                        <option value="A Caminho">A Caminho</option>
+                        <option value="Não Entregue">Não Entregue</option>
+                        <option value="Voltou">Voltou</option>
+                        <option value="Cancelado">Cancelado</option>
+                      </select>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -912,10 +940,11 @@ export default function Clientes() {
                     ) : (
                       <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
                         {entregasFiltradas.map((entrega) => (
-                          <div
+                          <button
                             key={entrega.id}
+                            type="button"
                             onClick={() => navigate(`/detalhes-romaneio?id=${entrega.id}`)}
-                            className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                            className="w-full p-4 hover:bg-slate-50 transition-colors cursor-pointer text-left"
                           >
                             <div className="flex justify-between items-start gap-4">
                               <div className="flex-1 space-y-2">
@@ -952,7 +981,7 @@ export default function Clientes() {
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}

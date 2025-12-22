@@ -10,7 +10,9 @@
       "Bash(npm run migrate:*)",
       "Bash(git commit:*)",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(powershell:*)",
+      "Bash(timeout /t 3 /nobreak)"
     ]
   }
 }
