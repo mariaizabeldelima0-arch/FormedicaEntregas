@@ -362,66 +362,231 @@ export default function DetalhesRomaneio() {
 
         {/* Versão para impressão */}
         <div className="hidden print:block">
-          <div className="p-8 bg-white">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">Formédica Entregas</h1>
-              <p className="text-slate-600">Romaneio de Entrega</p>
+          <div className="p-8 bg-white max-w-[210mm] mx-auto">
+            {/* Cabeçalho */}
+            <div className="text-center mb-6 pb-4 border-b-2 border-slate-800">
+              <h1 className="text-4xl font-bold text-slate-900 mb-1">Formédica Entregas</h1>
+              <p className="text-sm text-slate-600">Sistema de Gestão de Entregas</p>
             </div>
 
-            <div className="border-2 border-slate-200 rounded-lg p-6 mb-6">
-              <div className="flex justify-between items-start mb-4">
+            {/* Título do Documento */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-1">ROMANEIO DE ENTREGA</h2>
+              <p className="text-sm text-slate-600">Comprovante de Entrega de Mercadoria</p>
+            </div>
+
+            {/* Informações da Requisição */}
+            <div className="border-2 border-slate-800 mb-4">
+              <div className="bg-slate-800 text-white px-4 py-2">
+                <h3 className="font-bold text-sm">DADOS DA REQUISIÇÃO</h3>
+              </div>
+              <div className="p-4 grid grid-cols-3 gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold">#{romaneio.requisicao}</h2>
-                  <p className="text-slate-600">
+                  <p className="text-xs text-slate-600 mb-1">Nº da Requisição:</p>
+                  <p className="font-bold text-lg">#{romaneio.requisicao}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Data de Entrega:</p>
+                  <p className="font-semibold">
                     {romaneio.data_entrega && format(parseISO(romaneio.data_entrega), "dd/MM/yyyy")}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold">Status:</p>
-                  <p className="text-lg">{romaneio.status}</p>
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Status:</p>
+                  <p className="font-semibold">{romaneio.status}</p>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <h3 className="font-semibold mb-2">Cliente:</h3>
-                  <p>{romaneio.cliente?.nome || romaneio.cliente_nome}</p>
-                  <p className="text-sm text-slate-600">{romaneio.cliente?.telefone || romaneio.cliente_telefone}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Endereço:</h3>
-                  {romaneio.endereco ? (
-                    <>
-                      <p>{romaneio.endereco.logradouro}, {romaneio.endereco.numero}</p>
-                      <p>{romaneio.endereco.bairro} - {romaneio.endereco.cidade}</p>
-                    </>
-                  ) : (
-                    <p>{romaneio.endereco_completo}</p>
-                  )}
-                </div>
+            {/* Cliente */}
+            <div className="border-2 border-slate-800 mb-4">
+              <div className="bg-slate-800 text-white px-4 py-2">
+                <h3 className="font-bold text-sm">DADOS DO CLIENTE</h3>
               </div>
-
-              {romaneio.observacoes && (
-                <div className="mt-4 pt-4 border-t">
-                  <h3 className="font-semibold mb-2">Observações:</h3>
-                  <p className="text-sm">{romaneio.observacoes}</p>
-                </div>
-              )}
-
-              <div className="mt-6 pt-6 border-t">
-                <div className="flex justify-between">
+              <div className="p-4">
+                <div className="grid grid-cols-2 gap-4 mb-3">
                   <div>
-                    <p className="text-sm text-slate-600">Assinatura do Cliente</p>
-                    <div className="mt-8 border-b border-slate-400 w-64"></div>
+                    <p className="text-xs text-slate-600 mb-1">Nome do Cliente:</p>
+                    <p className="font-semibold">{romaneio.cliente?.nome || romaneio.cliente_nome}</p>
                   </div>
-                  {romaneio.valor && (
-                    <div className="text-right">
-                      <p className="text-sm text-slate-600">Valor Total</p>
-                      <p className="text-2xl font-bold">R$ {romaneio.valor.toFixed(2)}</p>
+                  <div>
+                    <p className="text-xs text-slate-600 mb-1">Telefone:</p>
+                    <p className="font-semibold">{romaneio.cliente?.telefone || romaneio.cliente_telefone}</p>
+                  </div>
+                </div>
+                {romaneio.cliente?.cpf && (
+                  <div>
+                    <p className="text-xs text-slate-600 mb-1">CPF:</p>
+                    <p className="font-semibold">{romaneio.cliente.cpf}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Responsável pela Entrega */}
+            {romaneio.motoboy?.nome && (
+              <div className="border-2 border-slate-800 mb-4">
+                <div className="bg-slate-800 text-white px-4 py-2">
+                  <h3 className="font-bold text-sm">RESPONSÁVEL PELA ENTREGA</h3>
+                </div>
+                <div className="p-4">
+                  <div>
+                    <p className="text-xs text-slate-600 mb-1">Motoboy:</p>
+                    <p className="font-semibold">{romaneio.motoboy.nome}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Endereço de Entrega */}
+            <div className="border-2 border-slate-800 mb-4">
+              <div className="bg-slate-800 text-white px-4 py-2">
+                <h3 className="font-bold text-sm">ENDEREÇO DE ENTREGA</h3>
+              </div>
+              <div className="p-4">
+                {romaneio.endereco ? (
+                  <>
+                    <div className="mb-2">
+                      <p className="text-xs text-slate-600 mb-1">Logradouro:</p>
+                      <p className="font-semibold">{romaneio.endereco.logradouro}, {romaneio.endereco.numero}</p>
                     </div>
+                    {romaneio.endereco.complemento && (
+                      <div className="mb-2">
+                        <p className="text-xs text-slate-600 mb-1">Complemento:</p>
+                        <p className="font-semibold">{romaneio.endereco.complemento}</p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-4 mb-2">
+                      <div>
+                        <p className="text-xs text-slate-600 mb-1">Bairro:</p>
+                        <p className="font-semibold">{romaneio.endereco.bairro}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-600 mb-1">Cidade:</p>
+                        <p className="font-semibold">{romaneio.endereco.cidade}</p>
+                      </div>
+                      {romaneio.endereco.cep && (
+                        <div>
+                          <p className="text-xs text-slate-600 mb-1">CEP:</p>
+                          <p className="font-semibold">{romaneio.endereco.cep}</p>
+                        </div>
+                      )}
+                    </div>
+                    {romaneio.endereco.regiao && (
+                      <div>
+                        <p className="text-xs text-slate-600 mb-1">Região:</p>
+                        <p className="font-semibold">{romaneio.endereco.regiao}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="font-semibold">{romaneio.endereco_completo || 'Não informado'}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Pagamento */}
+            <div className="border-2 border-slate-800 mb-4">
+              <div className="bg-slate-800 text-white px-4 py-2">
+                <h3 className="font-bold text-sm">INFORMAÇÕES DE PAGAMENTO</h3>
+              </div>
+              <div className="p-4 grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Forma de Pagamento:</p>
+                  <p className="font-semibold">{romaneio.forma_pagamento || 'Não informado'}</p>
+                </div>
+                {romaneio.valor && (
+                  <div>
+                    <p className="text-xs text-slate-600 mb-1">Valor:</p>
+                    <p className="font-semibold text-lg">R$ {romaneio.valor.toFixed(2)}</p>
+                  </div>
+                )}
+                {romaneio.valor_troco && (
+                  <div>
+                    <p className="text-xs text-slate-600 mb-1">Troco para:</p>
+                    <p className="font-semibold">R$ {romaneio.valor_troco.toFixed(2)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Itens Especiais */}
+            <div className="border-2 border-slate-800 mb-4">
+              <div className="bg-slate-800 text-white px-4 py-2">
+                <h3 className="font-bold text-sm">ITENS ESPECIAIS</h3>
+              </div>
+              <div className="p-4">
+                <div className="flex gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-slate-800 flex items-center justify-center">
+                      {romaneio.item_geladeira && <span className="text-xs">✓</span>}
+                    </div>
+                    <span className="text-sm">Item Refrigerado</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-slate-800 flex items-center justify-center">
+                      {romaneio.buscar_receita && <span className="text-xs">✓</span>}
+                    </div>
+                    <span className="text-sm">Buscar Receita</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Observações */}
+            {romaneio.observacoes && (
+              <div className="border-2 border-slate-800 mb-4">
+                <div className="bg-slate-800 text-white px-4 py-2">
+                  <h3 className="font-bold text-sm">OBSERVAÇÕES</h3>
+                </div>
+                <div className="p-4">
+                  <p className="text-sm whitespace-pre-wrap">{romaneio.observacoes}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Valor a Cobrar */}
+            {romaneio.valor && (
+              <div className="border-2 border-slate-800 mb-6">
+                <div className="bg-slate-800 text-white px-4 py-2">
+                  <h3 className="font-bold text-sm">VALOR A COBRAR</h3>
+                </div>
+                <div className="p-4 text-center">
+                  <p className="text-3xl font-bold">R$ {romaneio.valor.toFixed(2)}</p>
+                  {romaneio.valor_troco && (
+                    <p className="text-sm text-slate-600 mt-1">Troco para: R$ {romaneio.valor_troco.toFixed(2)}</p>
                   )}
                 </div>
               </div>
+            )}
+
+            {/* Assinatura */}
+            <div className="border-2 border-slate-800 mb-4">
+              <div className="p-6">
+                <div className="mb-6">
+                  <p className="text-sm text-slate-600 mb-1">Assinatura do Recebedor:</p>
+                  <div className="mt-12 border-b-2 border-slate-800"></div>
+                </div>
+                <div className="grid grid-cols-2 gap-6 text-sm">
+                  <div>
+                    <p className="text-slate-600 mb-1">Nome Legível:</p>
+                    <div className="border-b border-slate-400 pb-1"></div>
+                  </div>
+                  <div>
+                    <p className="text-slate-600 mb-1">Data/Hora:</p>
+                    <div className="border-b border-slate-400 pb-1"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Rodapé */}
+            <div className="text-center text-xs text-slate-500 mt-6 pt-4 border-t">
+              <p>Formédica Entregas - Sistema de Gestão de Entregas</p>
+              <p className="mt-1">
+                Documento gerado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </p>
+              <p className="mt-2 font-mono">Código: {romaneio.id}</p>
             </div>
           </div>
         </div>
