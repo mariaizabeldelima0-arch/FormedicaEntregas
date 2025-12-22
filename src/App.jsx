@@ -1,13 +1,17 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import Login from '@/pages/Login';
 import EntregasMoto from '@/pages/EntregasMoto';
 import NovoRomaneio from '@/pages/NovoRomaneio';
 import EditarRomaneio from '@/pages/EditarRomaneio';
+import DetalhesRomaneio from '@/pages/DetalhesRomaneio';
 import Clientes from '@/pages/Clientes';
+
+const queryClient = new QueryClient();
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -58,6 +62,7 @@ function AppRoutes() {
                 <Route path="/sedex" element={<div style={{padding: '2rem'}}>Sedex/Disktenha - Em construção</div>} />
                 <Route path="/novo-romaneio" element={<NovoRomaneio />} />
                 <Route path="/editar-romaneio" element={<EditarRomaneio />} />
+                <Route path="/detalhes-romaneio" element={<DetalhesRomaneio />} />
                 <Route path="/clientes" element={<Clientes />} />
                 <Route path="/historico-clientes" element={<div style={{padding: '2rem'}}>Histórico - Em construção</div>} />
                 <Route path="/relatorios" element={<div style={{padding: '2rem'}}>Relatórios - Em construção</div>} />
@@ -77,25 +82,27 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-        <Toaster position="top-right" richColors />
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-          }
-        `}</style>
-      </BrowserRouter>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+          <Toaster position="top-right" richColors />
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            }
+          `}</style>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

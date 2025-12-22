@@ -67,7 +67,7 @@ export default function DetalhesRomaneio() {
         .select(`
           *,
           cliente:clientes(id, nome, telefone, cpf, email),
-          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep, regiao, ponto_referencia),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep, regiao),
           motoboy:motoboys(id, nome)
         `)
         .eq('id', romaneioId)
@@ -149,8 +149,8 @@ export default function DetalhesRomaneio() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">🔴 NOVO LAYOUT 🔴 Romaneio #{romaneio.requisicao}</h1>
-              <p className="text-slate-600 mt-1">Detalhes da entrega - VERSÃO ATUALIZADA</p>
+              <h1 className="text-3xl font-bold text-slate-900">Romaneio #{romaneio.requisicao}</h1>
+              <p className="text-slate-600 mt-1">Detalhes da entrega</p>
             </div>
           </div>
           <div className="flex gap-2">
