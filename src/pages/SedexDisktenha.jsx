@@ -65,11 +65,14 @@ export default function SedexDisktenha() {
     },
   });
 
-  // Calcular estatísticas
+  // Calcular estatísticas por tipo
   const total = entregas.length;
-  const sairam = entregas.filter(e => e.status === 'Saiu' || e.status === 'Entregue').length;
-  const entregues = entregas.filter(e => e.status === 'Entregue').length;
-  const valorTotal = entregas.reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0);
+  const sedex = entregas.filter(e => e.tipo === 'SEDEX').length;
+  const pac = entregas.filter(e => e.tipo === 'PAC').length;
+  const diskenha = entregas.filter(e => e.tipo === 'DISKTENHA').length;
+  const valorTotalDisktenha = entregas
+    .filter(e => e.tipo === 'DISKTENHA')
+    .reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0);
 
   // Filtrar entregas pela busca
   const entregasFiltradas = entregas.filter(e =>
@@ -130,19 +133,18 @@ export default function SedexDisktenha() {
           </div>
           <div className="flex gap-2">
             <Button
+              variant="outline"
+              onClick={() => setVisualizacao(visualizacao === 'dia' ? 'todas' : 'dia')}
+            >
+              {visualizacao === 'dia' ? 'Mostrar todas' : 'Mostrar dia'}
+            </Button>
+            <Button
               onClick={() => setShowNovaEntrega(true)}
-              style={{ background: 'linear-gradient(to right, #457bba, #890d5d)' }}
+              style={{ background: '#457bba' }}
               className="text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Nova Entrega
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleExportarExcel}
-            >
-              <FileSpreadsheet className="w-4 h-4 mr-2" />
-              Exportar Excel
             </Button>
           </div>
         </div>
@@ -193,51 +195,46 @@ export default function SedexDisktenha() {
           {/* Conteúdo Principal */}
           <div className="lg:col-span-3 space-y-6">
             {/* Cards de Estatísticas */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600">Total</p>
-                      <p className="text-3xl font-bold text-slate-900">{total}</p>
-                    </div>
-                    <Package className="w-8 h-8 text-blue-500" />
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {/* Total - com borda */}
+              <Card className="border-2 border-blue-500">
+                <CardContent className="p-6 text-center">
+                  <p className="text-sm text-slate-600 mb-2">Total</p>
+                  <p className="text-4xl font-bold text-slate-900">{total}</p>
                 </CardContent>
               </Card>
 
+              {/* Sedex - texto vermelho */}
               <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600">Saíram</p>
-                      <p className="text-3xl font-bold text-slate-900">{sairam}</p>
-                    </div>
-                    <TrendingUp className="w-8 h-8 text-orange-500" />
-                  </div>
+                <CardContent className="p-6 text-center">
+                  <p className="text-sm text-slate-600 mb-2">Sedex</p>
+                  <p className="text-4xl font-bold text-red-600">{sedex}</p>
                 </CardContent>
               </Card>
 
+              {/* PAC - texto azul */}
               <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600">Entregues</p>
-                      <p className="text-3xl font-bold text-slate-900">{entregues}</p>
-                    </div>
-                    <CheckCircle className="w-8 h-8 text-green-500" />
-                  </div>
+                <CardContent className="p-6 text-center">
+                  <p className="text-sm text-slate-600 mb-2">PAC</p>
+                  <p className="text-4xl font-bold text-blue-600">{pac}</p>
                 </CardContent>
               </Card>
 
+              {/* Diskenha - texto roxo */}
               <Card>
-                <CardContent className="p-6">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Valor Total</p>
-                    <p className="text-2xl font-bold" style={{ color: '#890d5d' }}>
-                      R$ {valorTotal.toFixed(2)}
-                    </p>
-                  </div>
+                <CardContent className="p-6 text-center">
+                  <p className="text-sm text-slate-600 mb-2">Diskenha</p>
+                  <p className="text-4xl font-bold text-purple-600">{diskenha}</p>
+                </CardContent>
+              </Card>
+
+              {/* Total Disktenha - fundo verde */}
+              <Card className="bg-green-100">
+                <CardContent className="p-6 text-center">
+                  <p className="text-sm text-green-800 mb-2">Total Disktenha</p>
+                  <p className="text-2xl font-bold text-green-900">
+                    R$ {valorTotalDisktenha.toFixed(2)}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -352,6 +349,7 @@ export default function SedexDisktenha() {
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, tipo: e.target.value })}
                 >
                   <option value="SEDEX">SEDEX</option>
+                  <option value="PAC">PAC</option>
                   <option value="DISKTENHA">DISKTENHA</option>
                 </select>
               </div>

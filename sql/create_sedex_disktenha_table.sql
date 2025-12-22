@@ -1,7 +1,7 @@
 -- Criar tabela sedex_disktenha para gerenciar entregas via correios
 CREATE TABLE IF NOT EXISTS public.sedex_disktenha (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  tipo VARCHAR(20) NOT NULL DEFAULT 'SEDEX', -- SEDEX ou DISKTENHA
+  tipo VARCHAR(20) NOT NULL DEFAULT 'SEDEX', -- SEDEX, PAC ou DISKTENHA
   cliente VARCHAR(255) NOT NULL,
   remetente VARCHAR(255),
   codigo_rastreio VARCHAR(100) NOT NULL UNIQUE,
@@ -74,6 +74,7 @@ CREATE POLICY "Usuários autenticados podem deletar entregas sedex/disktenha"
 INSERT INTO public.sedex_disktenha (tipo, cliente, codigo_rastreio, valor, forma_pagamento, status, data_saida, remetente)
 VALUES
   ('SEDEX', 'João Silva', 'BR123456789BR', 15.50, 'Pago', 'Saiu', CURRENT_DATE, 'Formédica'),
+  ('PAC', 'Ana Costa', 'BR999888777BR', 10.00, 'Pago', 'Pendente', CURRENT_DATE, 'Formédica'),
   ('DISKTENHA', 'Maria Santos', 'DK987654321BR', 12.00, 'A Pagar', 'Pendente', CURRENT_DATE, 'Formédica'),
   ('SEDEX', 'Pedro Oliveira', 'BR111222333BR', 18.00, 'Pago', 'Entregue', CURRENT_DATE - INTERVAL '1 day', 'Formédica')
 ON CONFLICT (codigo_rastreio) DO NOTHING;
