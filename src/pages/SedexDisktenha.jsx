@@ -33,6 +33,7 @@ export default function SedexDisktenha() {
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [showNovaEntrega, setShowNovaEntrega] = useState(false);
   const [busca, setBusca] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState('todos'); // 'todos', 'SEDEX', 'PAC', 'DISKTENHA'
   const [novaEntrega, setNovaEntrega] = useState({
     tipo: 'SEDEX',
     cliente: '',
@@ -74,12 +75,16 @@ export default function SedexDisktenha() {
     .filter(e => e.tipo === 'DISKTENHA')
     .reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0);
 
-  // Filtrar entregas pela busca
-  const entregasFiltradas = entregas.filter(e =>
-    e.cliente?.toLowerCase().includes(busca.toLowerCase()) ||
-    e.codigo_rastreio?.toLowerCase().includes(busca.toLowerCase()) ||
-    e.remetente?.toLowerCase().includes(busca.toLowerCase())
-  );
+  // Filtrar entregas pela busca e tipo
+  const entregasFiltradas = entregas.filter(e => {
+    const matchBusca = e.cliente?.toLowerCase().includes(busca.toLowerCase()) ||
+      e.codigo_rastreio?.toLowerCase().includes(busca.toLowerCase()) ||
+      e.remetente?.toLowerCase().includes(busca.toLowerCase());
+
+    const matchTipo = filtroTipo === 'todos' || e.tipo === filtroTipo;
+
+    return matchBusca && matchTipo;
+  });
 
   const handleCriarEntrega = async () => {
     if (!novaEntrega.cliente || !novaEntrega.codigo_rastreio) {
@@ -194,10 +199,15 @@ export default function SedexDisktenha() {
 
           {/* Conteúdo Principal */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Cards de Estatísticas */}
+            {/* Cards de Estatísticas - Clicáveis */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {/* Total - com borda */}
-              <Card className="border-2 border-blue-500">
+              <Card
+                className={`border-2 cursor-pointer transition-all hover:shadow-lg ${
+                  filtroTipo === 'todos' ? 'border-blue-500 shadow-md' : 'border-slate-200'
+                }`}
+                onClick={() => setFiltroTipo('todos')}
+              >
                 <CardContent className="p-6 text-center">
                   <p className="text-sm text-slate-600 mb-2">Total</p>
                   <p className="text-4xl font-bold text-slate-900">{total}</p>
@@ -205,7 +215,12 @@ export default function SedexDisktenha() {
               </Card>
 
               {/* Sedex - texto vermelho */}
-              <Card>
+              <Card
+                className={`cursor-pointer transition-all hover:shadow-lg ${
+                  filtroTipo === 'SEDEX' ? 'border-2 border-red-500 shadow-md' : ''
+                }`}
+                onClick={() => setFiltroTipo('SEDEX')}
+              >
                 <CardContent className="p-6 text-center">
                   <p className="text-sm text-slate-600 mb-2">Sedex</p>
                   <p className="text-4xl font-bold text-red-600">{sedex}</p>
@@ -213,7 +228,12 @@ export default function SedexDisktenha() {
               </Card>
 
               {/* PAC - texto azul */}
-              <Card>
+              <Card
+                className={`cursor-pointer transition-all hover:shadow-lg ${
+                  filtroTipo === 'PAC' ? 'border-2 border-blue-500 shadow-md' : ''
+                }`}
+                onClick={() => setFiltroTipo('PAC')}
+              >
                 <CardContent className="p-6 text-center">
                   <p className="text-sm text-slate-600 mb-2">PAC</p>
                   <p className="text-4xl font-bold text-blue-600">{pac}</p>
@@ -221,7 +241,12 @@ export default function SedexDisktenha() {
               </Card>
 
               {/* Diskenha - texto roxo */}
-              <Card>
+              <Card
+                className={`cursor-pointer transition-all hover:shadow-lg ${
+                  filtroTipo === 'DISKTENHA' ? 'border-2 border-purple-500 shadow-md' : ''
+                }`}
+                onClick={() => setFiltroTipo('DISKTENHA')}
+              >
                 <CardContent className="p-6 text-center">
                   <p className="text-sm text-slate-600 mb-2">Diskenha</p>
                   <p className="text-4xl font-bold text-purple-600">{diskenha}</p>
@@ -274,9 +299,10 @@ export default function SedexDisktenha() {
                 ) : (
                   <div className="space-y-3">
                     {entregasFiltradas.map((entrega) => (
-                      <div
+                      <button
                         key={entrega.id}
-                        className="p-4 border rounded-lg hover:bg-slate-50 transition-colors"
+                        onClick={() => navigate(`/sedex-detalhes?id=${entrega.id}`)}
+                        className="w-full p-4 border rounded-lg hover:bg-slate-50 transition-colors text-left"
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -315,7 +341,7 @@ export default function SedexDisktenha() {
                             </p>
                           </div>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}

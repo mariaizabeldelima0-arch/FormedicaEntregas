@@ -11,6 +11,7 @@ import EditarRomaneio from '@/pages/EditarRomaneio';
 import DetalhesRomaneio from '@/pages/DetalhesRomaneio';
 import Clientes from '@/pages/Clientes';
 import SedexDisktenha from '@/pages/SedexDisktenha';
+import DetalheSedexDisktenha from '@/pages/DetalheSedexDisktenha';
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ function AppRoutes() {
               <Routes>
                 <Route path="/" element={<EntregasMoto />} />
                 <Route path="/sedex" element={<SedexDisktenha />} />
+                <Route path="/sedex-detalhes" element={<DetalheSedexDisktenha />} />
                 <Route path="/novo-romaneio" element={<NovoRomaneio />} />
                 <Route path="/editar-romaneio" element={<EditarRomaneio />} />
                 <Route path="/detalhes-romaneio" element={<DetalhesRomaneio />} />
