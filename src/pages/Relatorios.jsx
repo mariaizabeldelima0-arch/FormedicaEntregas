@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,28 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
+import {
   ArrowLeft,
-  FileText,
-  Package,
-  Truck,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  RotateCcw,
   Printer,
   Search
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate, Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 
 export default function Relatorios() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const dataParam = urlParams.get('data');
-  
+
   const [dataSelecionada, setDataSelecionada] = useState(dataParam || format(new Date(), "yyyy-MM-dd"));
   const [filtroStatus, setFiltroStatus] = useState(urlParams.get('status') || "todos");
   const [filtroLocal, setFiltroLocal] = useState(urlParams.get('local') || "todos");
@@ -41,68 +33,51 @@ export default function Relatorios() {
   const [filtroPeriodo, setFiltroPeriodo] = useState(urlParams.get('periodo') || "todos");
   const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || "");
 
-  // Atualizar URL quando estado mudar
-  useEffect(() => {
-    const params = new URLSearchParams();
-    params.set('data', dataSelecionada);
-    if (filtroStatus !== "todos") params.set('status', filtroStatus);
-    if (filtroLocal !== "todos") params.set('local', filtroLocal);
-    if (filtroMotoboy !== "todos") params.set('motoboy', filtroMotoboy);
-    if (filtroPeriodo !== "todos") params.set('periodo', filtroPeriodo);
-    if (searchTerm) params.set('busca', searchTerm);
-    
-    navigate(`?${params.toString()}`, { replace: true });
-  }, [dataSelecionada, filtroStatus, filtroLocal, filtroMotoboy, filtroPeriodo, searchTerm]);
-
-  const { data: user } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: romaneios, isLoading } = useQuery({
-    queryKey: ['romaneios-relatorio', user?.email],
+  // Buscar entregas do Supabase
+  const { data: entregas = [], isLoading } = useQuery({
+    queryKey: ['entregas-relatorio'],
     queryFn: async () => {
-      if (!user) return [];
-      if (user.tipo_usuario === 'admin' || user.role === 'admin') {
-        return base44.entities.Romaneio.list('-data_entrega_prevista');
-      }
-      return base44.entities.Romaneio.filter(
-        { atendente_email: user.email },
-        '-data_entrega_prevista'
-      );
+      const { data, error } = await supabase
+        .from('entregas')
+        .select(`
+          *,
+          cliente:clientes(nome, telefone),
+          endereco:enderecos(cidade, regiao),
+          motoboy:motoboys(nome)
+        `)
+        .order('data_entrega', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
     },
-    enabled: !!user,
-    initialData: [],
     refetchOnMount: 'always',
-    staleTime: 0,
-    gcTime: 0,
   });
 
-  // Filtrar romaneios por data e filtros
-  const romaneiosDoDia = romaneios.filter(r => {
-    if (!r.data_entrega_prevista) return false;
-    const dataEntrega = parseISO(r.data_entrega_prevista);
+  // Filtrar entregas por data e filtros
+  const entregasDoDia = entregas.filter(e => {
+    if (!e.data_entrega) return false;
+    const dataEntrega = parseISO(e.data_entrega);
     if (!isSameDay(dataEntrega, parseISO(dataSelecionada))) return false;
 
     // Filtro de status
-    if (filtroStatus !== "todos" && r.status !== filtroStatus) return false;
+    if (filtroStatus !== "todos" && e.status !== filtroStatus) return false;
 
-    // Filtro de local
-    if (filtroLocal !== "todos" && r.cidade_regiao !== filtroLocal) return false;
+    // Filtro de local (região do endereço)
+    if (filtroLocal !== "todos" && e.endereco?.regiao !== filtroLocal) return false;
 
     // Filtro de motoboy
-    if (filtroMotoboy !== "todos" && r.motoboy !== filtroMotoboy) return false;
+    if (filtroMotoboy !== "todos" && e.motoboy?.nome !== filtroMotoboy) return false;
 
     // Filtro de período
-    if (filtroPeriodo !== "todos" && r.periodo_entrega !== filtroPeriodo) return false;
+    if (filtroPeriodo !== "todos" && e.periodo_entrega !== filtroPeriodo) return false;
 
     // Busca
     if (searchTerm) {
       const termo = searchTerm.toLowerCase();
       const match =
-        r.cliente_nome?.toLowerCase().includes(termo) ||
-        r.numero_requisicao?.toLowerCase().includes(termo) ||
-        r.motoboy?.toLowerCase().includes(termo);
+        e.cliente?.nome?.toLowerCase().includes(termo) ||
+        e.requisicao?.toLowerCase().includes(termo) ||
+        e.motoboy?.nome?.toLowerCase().includes(termo);
       if (!match) return false;
     }
 
@@ -110,17 +85,19 @@ export default function Relatorios() {
   });
 
   // Dados únicos para filtros
-  const locaisUnicos = [...new Set(romaneios
-    .filter(r => r.data_entrega_prevista && isSameDay(parseISO(r.data_entrega_prevista), parseISO(dataSelecionada)))
-    .map(r => r.cidade_regiao))].filter(Boolean).sort();
-  const motoboysUnicos = [...new Set(romaneios
-    .filter(r => r.data_entrega_prevista && isSameDay(parseISO(r.data_entrega_prevista), parseISO(dataSelecionada)))
-    .map(r => r.motoboy))].filter(Boolean);
+  const locaisUnicos = [...new Set(entregas
+    .filter(e => e.data_entrega && isSameDay(parseISO(e.data_entrega), parseISO(dataSelecionada)))
+    .map(e => e.endereco?.regiao))].filter(Boolean).sort();
+
+  const motoboysUnicos = [...new Set(entregas
+    .filter(e => e.data_entrega && isSameDay(parseISO(e.data_entrega), parseISO(dataSelecionada)))
+    .map(e => e.motoboy?.nome))].filter(Boolean).sort();
 
   // Agrupar por local e ordenar
-  const porLocal = romaneiosDoDia.reduce((acc, r) => {
-    if (!acc[r.cidade_regiao]) acc[r.cidade_regiao] = [];
-    acc[r.cidade_regiao].push(r);
+  const porLocal = entregasDoDia.reduce((acc, e) => {
+    const local = e.endereco?.regiao || 'Sem região';
+    if (!acc[local]) acc[local] = [];
+    acc[local].push(e);
     return acc;
   }, {});
 
@@ -136,26 +113,27 @@ export default function Relatorios() {
 
   // Agrupar por status
   const porStatus = {
-    pendente: romaneiosDoDia.filter(r => r.status === 'Pendente'),
-    produzindo: romaneiosDoDia.filter(r => r.status === 'Produzindo no Laboratório'),
-    preparando: romaneiosDoDia.filter(r => r.status === 'Preparando no Setor de Entregas'),
-    aCaminho: romaneiosDoDia.filter(r => r.status === 'A Caminho'),
-    entregues: romaneiosDoDia.filter(r => r.status === 'Entregue'),
-    naoEntregue: romaneiosDoDia.filter(r => r.status === 'Não Entregue'),
-    voltou: romaneiosDoDia.filter(r => r.status === 'Voltou'),
-    cancelado: romaneiosDoDia.filter(r => r.status === 'Cancelado'),
+    'Pendente': entregasDoDia.filter(e => e.status === 'Pendente'),
+    'Produzindo no Laboratório': entregasDoDia.filter(e => e.status === 'Produzindo no Laboratório'),
+    'Preparando no Setor de Entregas': entregasDoDia.filter(e => e.status === 'Preparando no Setor de Entregas'),
+    'A Caminho': entregasDoDia.filter(e => e.status === 'A Caminho'),
+    'Entregue': entregasDoDia.filter(e => e.status === 'Entregue'),
+    'Não Entregue': entregasDoDia.filter(e => e.status === 'Não Entregue'),
+    'Voltou': entregasDoDia.filter(e => e.status === 'Voltou'),
+    'Cancelado': entregasDoDia.filter(e => e.status === 'Cancelado'),
   };
 
   // Agrupar por período
   const porPeriodo = {
-    manha: romaneiosDoDia.filter(r => r.periodo_entrega === 'Manhã'),
-    tarde: romaneiosDoDia.filter(r => r.periodo_entrega === 'Tarde'),
+    'Manhã': entregasDoDia.filter(e => e.periodo_entrega === 'Manhã'),
+    'Tarde': entregasDoDia.filter(e => e.periodo_entrega === 'Tarde'),
   };
 
   // Agrupar por motoboy
-  const porMotoboy = romaneiosDoDia.reduce((acc, r) => {
-    if (!acc[r.motoboy]) acc[r.motoboy] = [];
-    acc[r.motoboy].push(r);
+  const porMotoboy = entregasDoDia.reduce((acc, e) => {
+    const motoboy = e.motoboy?.nome || 'Sem motoboy';
+    if (!acc[motoboy]) acc[motoboy] = [];
+    acc[motoboy].push(e);
     return acc;
   }, {});
 
@@ -164,21 +142,20 @@ export default function Relatorios() {
   };
 
   const StatusBadge = ({ status }) => {
-    const config = {
-      "Pendente": { color: "bg-slate-100 text-slate-700", icon: Clock },
-      "Produzindo no Laboratório": { color: "bg-blue-100 text-blue-700", icon: Package },
-      "Preparando no Setor de Entregas": { color: "bg-yellow-100 text-yellow-700", icon: Package },
-      "A Caminho": { color: "bg-purple-100 text-purple-700", icon: Truck },
-      "Entregue": { color: "bg-green-100 text-green-700", icon: CheckCircle },
-      "Não Entregue": { color: "bg-red-100 text-red-700", icon: AlertCircle },
-      "Voltou": { color: "bg-orange-100 text-orange-700", icon: RotateCcw },
-      "Cancelado": { color: "bg-gray-100 text-gray-700", icon: AlertCircle },
+    const configs = {
+      "Pendente": { bg: "bg-slate-100", text: "text-slate-700", label: "Pendente" },
+      "Produzindo no Laboratório": { bg: "bg-blue-100", text: "text-blue-700", label: "Produção" },
+      "Preparando no Setor de Entregas": { bg: "bg-yellow-100", text: "text-yellow-700", label: "Preparando" },
+      "A Caminho": { bg: "bg-purple-100", text: "text-purple-700", label: "Um Caminho" },
+      "Entregue": { bg: "bg-green-100", text: "text-green-700", label: "Entregue" },
+      "Não Entregue": { bg: "bg-red-100", text: "text-red-700", label: "Não Entregue" },
+      "Voltou": { bg: "bg-orange-100", text: "text-orange-700", label: "Voltou" },
+      "Cancelado": { bg: "bg-gray-100", text: "text-gray-700", label: "Cancelado" },
     };
-    const { color, icon: Icon } = config[status] || config["Pendente"];
+    const config = configs[status] || configs["Pendente"];
     return (
-      <Badge className={color}>
-        <Icon className="w-3 h-3 mr-1" />
-        {status}
+      <Badge className={`${config.bg} ${config.text} text-xs`}>
+        {status === "Entregue" ? "✓" : "🚛"} {config.label}
       </Badge>
     );
   };
@@ -187,6 +164,19 @@ export default function Relatorios() {
     <>
       <style>{`
         @media print {
+          * {
+            visibility: hidden !important;
+          }
+          .print-wrapper,
+          .print-wrapper * {
+            visibility: visible !important;
+          }
+          .print-wrapper {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+          }
           .no-print {
             display: none !important;
           }
@@ -198,36 +188,38 @@ export default function Relatorios() {
 
       <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header - Não imprime */}
-          <div className="flex items-center gap-4 no-print">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate(createPageUrl("Dashboard"))}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-slate-900">Relatório de Entregas</h1>
-              <p className="text-slate-600 mt-1">Visualização completa das entregas do dia</p>
+          {/* Header */}
+          <div className="flex items-center justify-between no-print">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">Relatório de Entregas</h1>
+                <p className="text-slate-600 mt-1">Visualização completa das entregas do dia</p>
+              </div>
             </div>
             <Button
               className="bg-[#457bba] hover:bg-[#3a6ba0]"
               onClick={handlePrint}
             >
               <Printer className="w-4 h-4 mr-2" />
-              Imprimir
+              {entregasDoDia.length}
             </Button>
           </div>
 
-          {/* Seletor de Data e Filtros - Não imprime */}
+          {/* Filtros e Busca */}
           <Card className="border-none shadow-lg no-print">
             <CardHeader>
               <CardTitle>Filtros e Busca</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Data</label>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">Dados</label>
                 <Input
                   type="date"
                   value={dataSelecionada}
@@ -236,7 +228,6 @@ export default function Relatorios() {
                 />
               </div>
 
-              {/* Busca */}
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-2 block">Buscar</label>
                 <div className="relative">
@@ -250,13 +241,12 @@ export default function Relatorios() {
                 </div>
               </div>
 
-              {/* Filtros */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Status</label>
                   <Select value={filtroStatus} onValueChange={setFiltroStatus}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Status" />
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
@@ -276,7 +266,7 @@ export default function Relatorios() {
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Local</label>
                   <Select value={filtroLocal} onValueChange={setFiltroLocal}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Local" />
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
@@ -291,7 +281,7 @@ export default function Relatorios() {
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Motoboy</label>
                   <Select value={filtroMotoboy} onValueChange={setFiltroMotoboy}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Motoboy" />
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
@@ -306,7 +296,7 @@ export default function Relatorios() {
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Período</label>
                   <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Período" />
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
@@ -316,142 +306,123 @@ export default function Relatorios() {
                   </Select>
                 </div>
               </div>
-
-              {(filtroStatus !== "todos" || filtroLocal !== "todos" || filtroMotoboy !== "todos" || filtroPeriodo !== "todos" || searchTerm) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFiltroStatus("todos");
-                    setFiltroLocal("todos");
-                    setFiltroMotoboy("todos");
-                    setFiltroPeriodo("todos");
-                    setSearchTerm("");
-                  }}
-                >
-                  Limpar Filtros
-                </Button>
-              )}
             </CardContent>
           </Card>
 
-          {/* Relatório - Imprimível */}
-          <div className="space-y-6">
+          <div className="print-wrapper">
             {/* Cabeçalho do Relatório */}
-            <Card className="border-none shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-[#457bba] to-[#890d5d] text-white">
-                <CardTitle className="text-2xl">
-                  Relatório do Dia {format(parseISO(dataSelecionada), "dd/MM/yyyy", { locale: ptBR })}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-
-            {/* Resumo Geral - Clicáveis */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button
-                onClick={() => setFiltroStatus("todos")}
-                className="text-left"
-              >
-                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroStatus === "todos" ? "ring-2 ring-[#457bba]" : ""}`}>
-                  <CardHeader className="pb-3">
-                    <p className="text-sm text-slate-500 font-medium">Total</p>
-                    <p className="text-3xl font-bold text-slate-900">{romaneiosDoDia.length}</p>
-                  </CardHeader>
-                </Card>
-              </button>
-
-              <button
-                onClick={() => setFiltroStatus(filtroStatus === "Entregue" ? "todos" : "Entregue")}
-                className="text-left"
-              >
-                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroStatus === "Entregue" ? "ring-2 ring-green-600" : ""}`}>
-                  <CardHeader className="pb-3">
-                    <p className="text-sm text-slate-500 font-medium">Entregues</p>
-                    <p className="text-3xl font-bold text-green-600">{porStatus.entregues.length}</p>
-                  </CardHeader>
-                </Card>
-              </button>
-
-              <button
-                onClick={() => setFiltroStatus(filtroStatus === "A Caminho" ? "todos" : "A Caminho")}
-                className="text-left"
-              >
-                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroStatus === "A Caminho" ? "ring-2 ring-purple-600" : ""}`}>
-                  <CardHeader className="pb-3">
-                    <p className="text-sm text-slate-500 font-medium">A Caminho</p>
-                    <p className="text-3xl font-bold text-purple-600">{porStatus.aCaminho.length}</p>
-                  </CardHeader>
-                </Card>
-              </button>
-
-              <button
-                onClick={() => setFiltroStatus(filtroStatus === "Pendente" ? "todos" : "Pendente")}
-                className="text-left"
-              >
-                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroStatus === "Pendente" ? "ring-2 ring-slate-600" : ""}`}>
-                  <CardHeader className="pb-3">
-                    <p className="text-sm text-slate-500 font-medium">Pendente</p>
-                    <p className="text-3xl font-bold text-slate-600">{porStatus.pendente.length}</p>
-                  </CardHeader>
-                </Card>
-              </button>
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 rounded-lg mb-6">
+              <h2 className="text-2xl font-bold">
+                Relatório do Dia {format(parseISO(dataSelecionada), "dd/MM/yyyy")}
+              </h2>
             </div>
 
-            {/* Por Local - NOVO */}
-            <Card className="border-none shadow-lg">
+            {/* Cards de Resumo - Clicáveis */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Card
+                className={`cursor-pointer hover:shadow-xl transition-all ${filtroStatus === "todos" ? "ring-2 ring-blue-500" : ""}`}
+                onClick={() => setFiltroStatus("todos")}
+              >
+                <CardContent className="p-6">
+                  <p className="text-sm text-slate-600 mb-1">Total</p>
+                  <p className="text-4xl font-bold text-slate-900">{entregasDoDia.length}</p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className={`cursor-pointer hover:shadow-xl transition-all ${filtroStatus === "Entregue" ? "ring-2 ring-green-500" : ""}`}
+                onClick={() => setFiltroStatus(filtroStatus === "Entregue" ? "todos" : "Entregue")}
+              >
+                <CardContent className="p-6">
+                  <p className="text-sm text-slate-600 mb-1">Entregues</p>
+                  <p className="text-4xl font-bold text-green-600">{porStatus['Entregue'].length}</p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className={`cursor-pointer hover:shadow-xl transition-all ${filtroStatus === "A Caminho" ? "ring-2 ring-purple-500" : ""}`}
+                onClick={() => setFiltroStatus(filtroStatus === "A Caminho" ? "todos" : "A Caminho")}
+              >
+                <CardContent className="p-6">
+                  <p className="text-sm text-slate-600 mb-1">Um Caminho</p>
+                  <p className="text-4xl font-bold text-purple-600">{porStatus['A Caminho'].length}</p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className={`cursor-pointer hover:shadow-xl transition-all ${filtroStatus === "Pendente" ? "ring-2 ring-slate-500" : ""}`}
+                onClick={() => setFiltroStatus(filtroStatus === "Pendente" ? "todos" : "Pendente")}
+              >
+                <CardContent className="p-6">
+                  <p className="text-sm text-slate-600 mb-1">Pendente</p>
+                  <p className="text-4xl font-bold text-slate-600">{porStatus['Pendente'].length}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Entregas por Local */}
+            <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Entregas por Local</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {Object.entries(porLocal).sort((a, b) => a[0].localeCompare(b[0])).map(([local, entregas]) => (
                     <div key={local} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3 border-b pb-2">
-                        <h3 className="font-bold text-slate-900 text-lg">{local}</h3>
-                        <Badge variant="outline" className="text-base">{entregas.length}</Badge>
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b">
+                        <h3 className="font-bold text-slate-900">{local}</h3>
+                        <Badge variant="outline">{entregas.length}</Badge>
                       </div>
-                      
+
                       {/* Manhã */}
                       {entregas.filter(e => e.periodo_entrega === 'Manhã').length > 0 && (
                         <div className="mb-3">
                           <p className="text-sm font-semibold text-slate-700 mb-2">☀️ Manhã</p>
-                          <div className="space-y-1 pl-4">
-                            {entregas.filter(e => e.periodo_entrega === 'Manhã').map(r => (
-                              <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between items-center text-sm py-1 hover:bg-slate-50 rounded px-2 transition-colors">
-                                <span className="text-slate-600 hover:text-[#457bba]">
-                                  #{r.numero_requisicao} - {r.cliente_nome}
+                          <div className="space-y-2 pl-4">
+                            {entregas.filter(e => e.periodo_entrega === 'Manhã').map(e => (
+                              <Link
+                                key={e.id}
+                                to={`/detalhes-romaneio?id=${e.id}`}
+                                className="flex justify-between items-center text-sm py-2 hover:bg-slate-50 rounded px-2 transition-colors"
+                              >
+                                <span className="text-slate-700">
+                                  # {e.requisicao} - {e.cliente?.nome || e.cliente_nome}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                  {r.valor_pagamento && ["Dinheiro", "Maquina", "Troco P/"].includes(r.forma_pagamento) && (
-                                    <Badge className="bg-orange-100 text-orange-700 text-xs">
-                                      R$ {r.valor_pagamento.toFixed(2)}
+                                  {e.valor && (
+                                    <Badge className="bg-orange-100 text-orange-700">
+                                      R$ {e.valor.toFixed(2)}
                                     </Badge>
                                   )}
-                                  <StatusBadge status={r.status} />
+                                  <StatusBadge status={e.status} />
                                 </div>
                               </Link>
                             ))}
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Tarde */}
                       {entregas.filter(e => e.periodo_entrega === 'Tarde').length > 0 && (
                         <div>
                           <p className="text-sm font-semibold text-slate-700 mb-2">🌙 Tarde</p>
-                          <div className="space-y-1 pl-4">
-                            {entregas.filter(e => e.periodo_entrega === 'Tarde').map(r => (
-                              <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between items-center text-sm py-1 hover:bg-slate-50 rounded px-2 transition-colors">
-                                <span className="text-slate-600 hover:text-[#457bba]">
-                                  #{r.numero_requisicao} - {r.cliente_nome}
+                          <div className="space-y-2 pl-4">
+                            {entregas.filter(e => e.periodo_entrega === 'Tarde').map(e => (
+                              <Link
+                                key={e.id}
+                                to={`/detalhes-romaneio?id=${e.id}`}
+                                className="flex justify-between items-center text-sm py-2 hover:bg-slate-50 rounded px-2 transition-colors"
+                              >
+                                <span className="text-slate-700">
+                                  # {e.requisicao} - {e.cliente?.nome || e.cliente_nome}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                  {r.valor_pagamento && ["Dinheiro", "Maquina", "Troco P/"].includes(r.forma_pagamento) && (
-                                    <Badge className="bg-orange-100 text-orange-700 text-xs">
-                                      R$ {r.valor_pagamento.toFixed(2)}
+                                  {e.valor && (
+                                    <Badge className="bg-orange-100 text-orange-700">
+                                      R$ {e.valor.toFixed(2)}
                                     </Badge>
                                   )}
-                                  <StatusBadge status={r.status} />
+                                  <StatusBadge status={e.status} />
                                 </div>
                               </Link>
                             ))}
@@ -464,26 +435,28 @@ export default function Relatorios() {
               </CardContent>
             </Card>
 
-            {/* Por Status */}
-            <Card className="border-none shadow-lg">
+            {/* Entregas por Status */}
+            <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Entregas por Status</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(porStatus).map(([key, entregas]) => (
+                  {Object.entries(porStatus).map(([status, entregas]) => (
                     entregas.length > 0 && (
-                      <div key={key} className="border rounded-lg p-4">
+                      <div key={status} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-semibold text-slate-900">
-                            {key.charAt(0).toUpperCase() + key.slice(1)}
-                          </h3>
+                          <h3 className="font-semibold text-slate-900">{status}</h3>
                           <Badge variant="outline">{entregas.length}</Badge>
                         </div>
                         <div className="space-y-2">
-                          {entregas.map(r => (
-                            <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="block text-sm text-slate-600 hover:text-[#457bba] hover:bg-slate-50 rounded px-2 py-1 transition-colors">
-                              #{r.numero_requisicao} - {r.cliente_nome}
+                          {entregas.map(e => (
+                            <Link
+                              key={e.id}
+                              to={`/detalhes-romaneio?id=${e.id}`}
+                              className="block text-sm text-slate-700 hover:text-[#457bba] hover:bg-slate-50 rounded px-2 py-1 transition-colors"
+                            >
+                              # {e.requisicao} - {e.cliente?.nome || e.cliente_nome}
                             </Link>
                           ))}
                         </div>
@@ -494,8 +467,8 @@ export default function Relatorios() {
               </CardContent>
             </Card>
 
-            {/* Por Motoboy */}
-            <Card className="border-none shadow-lg">
+            {/* Entregas por Motoboy */}
+            <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Entregas por Motoboy</CardTitle>
               </CardHeader>
@@ -508,12 +481,16 @@ export default function Relatorios() {
                         <Badge variant="outline">{entregas.length}</Badge>
                       </div>
                       <div className="space-y-2">
-                        {entregas.map(r => (
-                          <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between text-sm hover:bg-slate-50 rounded px-2 py-1 transition-colors">
-                            <span className="text-slate-600 hover:text-[#457bba]">
-                              #{r.numero_requisicao} - {r.cliente_nome}
+                        {entregas.map(e => (
+                          <Link
+                            key={e.id}
+                            to={`/detalhes-romaneio?id=${e.id}`}
+                            className="flex justify-between items-center text-sm hover:bg-slate-50 rounded px-2 py-1 transition-colors"
+                          >
+                            <span className="text-slate-700 hover:text-[#457bba]">
+                              # {e.requisicao} - {e.cliente?.nome || e.cliente_nome}
                             </span>
-                            <StatusBadge status={r.status} />
+                            <StatusBadge status={e.status} />
                           </Link>
                         ))}
                       </div>
@@ -523,46 +500,35 @@ export default function Relatorios() {
               </CardContent>
             </Card>
 
-            {/* Por Período */}
-            <Card className="border-none shadow-lg">
+            {/* Entregas por Período */}
+            <Card>
               <CardHeader>
                 <CardTitle>Entregas por Período</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-slate-900">Manhã</h3>
-                      <Badge variant="outline">{porPeriodo.manha.length}</Badge>
+                  {Object.entries(porPeriodo).map(([periodo, entregas]) => (
+                    <div key={periodo} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-slate-900">{periodo}</h3>
+                        <Badge variant="outline">{entregas.length}</Badge>
+                      </div>
+                      <div className="space-y-2">
+                        {entregas.map(e => (
+                          <Link
+                            key={e.id}
+                            to={`/detalhes-romaneio?id=${e.id}`}
+                            className="flex justify-between items-center text-sm hover:bg-slate-50 rounded px-2 py-1 transition-colors"
+                          >
+                            <span className="text-slate-700 hover:text-[#457bba]">
+                              # {e.requisicao} - {e.cliente?.nome || e.cliente_nome}
+                            </span>
+                            <StatusBadge status={e.status} />
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      {porPeriodo.manha.map(r => (
-                        <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between text-sm hover:bg-slate-50 rounded px-2 py-1 transition-colors">
-                          <span className="text-slate-600 hover:text-[#457bba]">
-                            #{r.numero_requisicao} - {r.cliente_nome}
-                          </span>
-                          <StatusBadge status={r.status} />
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-slate-900">Tarde</h3>
-                      <Badge variant="outline">{porPeriodo.tarde.length}</Badge>
-                    </div>
-                    <div className="space-y-2">
-                      {porPeriodo.tarde.map(r => (
-                        <Link key={r.id} to={createPageUrl(`DetalhesRomaneio?id=${r.id}`)} className="flex justify-between text-sm hover:bg-slate-50 rounded px-2 py-1 transition-colors">
-                          <span className="text-slate-600 hover:text-[#457bba]">
-                            #{r.numero_requisicao} - {r.cliente_nome}
-                          </span>
-                          <StatusBadge status={r.status} />
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

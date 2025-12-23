@@ -49,11 +49,44 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-export default function DetalhesRomaneio() {
+export default function DetalhesRomaneio({ printMode = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const romaneioId = urlParams.get('id');
+
+  // Forçar esconder sidebar ao imprimir
+  useEffect(() => {
+    const handleBeforePrint = () => {
+      // Esconder todos os sidebars e elementos de navegação
+      const elements = document.querySelectorAll('[data-sidebar="sidebar"], aside, nav, header');
+      elements.forEach(el => {
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+        el.style.position = 'absolute';
+        el.style.left = '-99999px';
+      });
+    };
+
+    const handleAfterPrint = () => {
+      // Restaurar após impressão
+      const elements = document.querySelectorAll('[data-sidebar="sidebar"], aside, nav, header');
+      elements.forEach(el => {
+        el.style.display = '';
+        el.style.visibility = '';
+        el.style.position = '';
+        el.style.left = '';
+      });
+    };
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
 
   const { data: romaneio, isLoading, error } = useQuery({
     queryKey: ['romaneio', romaneioId],
@@ -79,6 +112,15 @@ export default function DetalhesRomaneio() {
     enabled: !!romaneioId,
     retry: 2,
   });
+
+  // Auto-imprimir quando em modo de impressão (precisa vir ANTES dos returns)
+  useEffect(() => {
+    if (printMode && romaneio) {
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }
+  }, [printMode, romaneio]);
 
   const handlePrint = () => {
     window.print();
@@ -139,6 +181,309 @@ export default function DetalhesRomaneio() {
     );
   }
 
+  // Se estiver em modo de impressão, renderizar apenas o conteúdo de impressão
+  if (printMode) {
+    return (
+      <div style={{ width: '100%', height: '100vh', padding: 0, margin: 0 }}>
+        <style>{`
+          @media print {
+            @page { margin: 0; }
+            body { margin: 0; padding: 0; }
+            .print-page {
+              width: 210mm;
+              padding: 15mm;
+              font-family: Arial, sans-serif;
+              font-size: 11pt;
+              line-height: 1.4;
+            }
+            .print-header-top {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 12px;
+              font-size: 9pt;
+              color: #666;
+            }
+            .print-logo-section {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 15px;
+            }
+            .print-logo {
+              width: 24px;
+              height: 24px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .print-company-name {
+              font-size: 16pt;
+              font-weight: bold;
+              color: #000;
+            }
+            .print-title-section {
+              text-align: center;
+              margin: 20px 0;
+              padding-bottom: 15px;
+              border-bottom: 3px solid #000;
+            }
+            .print-main-title {
+              font-size: 14pt;
+              font-weight: bold;
+              margin: 0;
+              letter-spacing: 1px;
+            }
+            .print-subtitle {
+              font-size: 9pt;
+              color: #666;
+              margin: 4px 0 0 0;
+            }
+            .print-info-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 8px 0;
+              border-bottom: 1px solid #e0e0e0;
+            }
+            .print-label-orange {
+              color: #d97706;
+              font-weight: bold;
+              font-size: 9pt;
+              text-transform: uppercase;
+            }
+            .print-value-right {
+              text-align: right;
+              font-weight: 600;
+              color: #000;
+            }
+            .print-section-title-orange {
+              color: #d97706;
+              font-weight: bold;
+              font-size: 10pt;
+              text-transform: uppercase;
+              margin: 15px 0 8px 0;
+            }
+            .print-two-columns {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin: 15px 0;
+            }
+            .print-field {
+              margin-bottom: 6px;
+            }
+            .print-field-label {
+              font-size: 9pt;
+              color: #666;
+            }
+            .print-field-value {
+              font-weight: 600;
+              color: #000;
+            }
+            .print-address-block {
+              margin: 15px 0;
+            }
+            .print-address-main {
+              font-size: 12pt;
+              font-weight: bold;
+              margin-bottom: 4px;
+            }
+            .print-checkbox-section {
+              margin: 20px 0;
+            }
+            .print-checkbox-item {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin: 8px 0;
+            }
+            .print-checkbox {
+              width: 16px;
+              height: 16px;
+              border: 2px solid #000;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            }
+            .print-checkbox-checked {
+              background-color: #000;
+            }
+            .print-checkbox-text {
+              font-size: 10pt;
+              font-weight: 600;
+            }
+            .print-valor-destaque {
+              border: 2px solid #000;
+              padding: 15px;
+              text-align: center;
+              margin: 20px 0;
+            }
+            .print-valor-destaque-text {
+              font-size: 16pt;
+              font-weight: bold;
+            }
+            .print-footer {
+              margin-top: 20px;
+              padding-top: 15px;
+              border-top: 1px solid #e0e0e0;
+              text-align: center;
+              font-size: 9pt;
+              color: #666;
+            }
+          }
+        `}</style>
+        {!isLoading && !error && romaneio && (
+          <div className="print-page">
+            {/* Todo o conteúdo de impressão aqui */}
+            <div className="print-header-top">
+              <span>{format(new Date(), "dd/MM/yyyy, HH:mm")}</span>
+              <span>Formédica Entregas</span>
+            </div>
+
+            <div className="print-logo-section">
+              <div className="print-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+              </div>
+              <div className="print-company-name">Formédica Entregas</div>
+            </div>
+
+            <div className="print-title-section">
+              <h1 className="print-main-title">ROMANEIO DE ENTREGA</h1>
+              <p className="print-subtitle">Sistema de Gestão de Entregas</p>
+            </div>
+
+            <div className="print-info-row">
+              <span className="print-label-orange">Nº Requisição:</span>
+              <span className="print-value-right"># {romaneio.requisicao}</span>
+            </div>
+            <div className="print-info-row">
+              <span className="print-label-orange">Entrega de Dados:</span>
+              <span className="print-value-right">
+                {romaneio.data_entrega && format(parseISO(romaneio.data_entrega), "dd/MM/yyyy")}
+                {romaneio.periodo_entrega && ` - ${romaneio.periodo_entrega}`}
+              </span>
+            </div>
+            <div className="print-info-row">
+              <span className="print-label-orange">Status:</span>
+              <span className="print-value-right">{romaneio.status}</span>
+            </div>
+
+            <div className="print-two-columns">
+              <div>
+                <div className="print-section-title-orange">CLIENTE</div>
+                <div className="print-field">
+                  <span className="print-field-label">Nome: </span>
+                  <span className="print-field-value">{romaneio.cliente?.nome || romaneio.cliente_nome}</span>
+                </div>
+                <div className="print-field">
+                  <span className="print-field-label">Telefone: </span>
+                  <span className="print-field-value">{romaneio.cliente?.telefone || romaneio.cliente_telefone}</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="print-section-title-orange">RESPONSÁVEIS</div>
+                <div className="print-field">
+                  <span className="print-field-label">Convidado: </span>
+                  <span className="print-field-value">{romaneio.cliente?.email || '-'}</span>
+                </div>
+                {romaneio.motoboy?.nome && (
+                  <div className="print-field">
+                    <span className="print-field-label">Motoboy: </span>
+                    <span className="print-field-value">{romaneio.motoboy.nome}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="print-address-block">
+              <div className="print-section-title-orange">ENDEREÇO DE ENTREGA</div>
+              {romaneio.endereco ? (
+                <>
+                  <div className="print-address-main">
+                    {romaneio.endereco.logradouro}, {romaneio.endereco.numero}
+                  </div>
+                  <div>{romaneio.endereco.bairro} - {romaneio.endereco.cidade}</div>
+                  {romaneio.endereco.complemento && (
+                    <div>Compl: {romaneio.endereco.complemento}</div>
+                  )}
+                  {romaneio.endereco.ponto_referencia && (
+                    <div>Ref.: {romaneio.endereco.ponto_referencia}</div>
+                  )}
+                  {romaneio.endereco.aos_cuidados_de && (
+                    <div>A/C: {romaneio.endereco.aos_cuidados_de}</div>
+                  )}
+                </>
+              ) : (
+                <div>{romaneio.endereco_completo || 'Não informado'}</div>
+              )}
+            </div>
+
+            <div>
+              <div className="print-section-title-orange">PAGAMENTO</div>
+              <div className="print-info-row" style={{ border: 'none' }}>
+                <span className="print-field-label">Forma:</span>
+                <span className="print-value-right">{romaneio.forma_pagamento || 'Não informado'}</span>
+              </div>
+            </div>
+
+            <div className="print-checkbox-section">
+              <div className="print-checkbox-item">
+                <div className={`print-checkbox ${romaneio.item_geladeira ? 'print-checkbox-checked' : ''}`}>
+                  {romaneio.item_geladeira && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                      <circle cx="6" cy="6" r="3" />
+                    </svg>
+                  )}
+                </div>
+                <span className="print-checkbox-text">ITEM DE GELADEIRA - MANTER REFRIGERADO</span>
+              </div>
+              <div className="print-checkbox-item">
+                <div className={`print-checkbox ${romaneio.buscar_receita ? 'print-checkbox-checked' : ''}`}>
+                  {romaneio.buscar_receita && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                      <circle cx="6" cy="6" r="3" />
+                    </svg>
+                  )}
+                </div>
+                <span className="print-checkbox-text">BUSCAR RECEITA</span>
+              </div>
+            </div>
+
+            {romaneio.observacoes && (
+              <div style={{ margin: '15px 0', padding: '10px', backgroundColor: '#f5f5f5', borderLeft: '4px solid #d97706' }}>
+                <div className="print-label-orange" style={{ marginBottom: '5px' }}>OBSERVAÇÕES:</div>
+                <div style={{ whiteSpace: 'pre-wrap' }}>{romaneio.observacoes}</div>
+              </div>
+            )}
+
+            {romaneio.valor && (
+              <div className="print-valor-destaque">
+                <div className="print-valor-destaque-text">
+                  💰 COBRAR NA ENTREGA: R$ {romaneio.valor.toFixed(2)}
+                </div>
+                {romaneio.valor_troco && (
+                  <div style={{ fontSize: '10pt', marginTop: '5px', color: '#666' }}>
+                    Troco para: R$ {romaneio.valor_troco.toFixed(2)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="print-footer">
+              <div>Código de Rastreamento: {romaneio.codigo_rastreio || romaneio.id}</div>
+              <div>Impresso em: {format(new Date(), "dd/MM/yyyy, HH:mm:ss")}</div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen print:p-0 print:bg-white">
       <div className="max-w-5xl mx-auto space-y-6">
@@ -173,7 +518,7 @@ export default function DetalhesRomaneio() {
         </div>
 
         {/* Card Principal com Gradiente */}
-        <Card className="border-none shadow-lg overflow-hidden">
+        <Card className="border-none shadow-lg overflow-hidden print:hidden">
           <CardHeader className="bg-gradient-to-r from-[#457bba] to-[#890d5d] text-white">
             <div className="flex justify-between items-start">
               <div>
@@ -361,232 +706,330 @@ export default function DetalhesRomaneio() {
         </Card>
 
         {/* Versão para impressão */}
-        <div className="hidden print:block">
-          <div className="p-8 bg-white max-w-[210mm] mx-auto">
-            {/* Cabeçalho */}
-            <div className="text-center mb-6 pb-4 border-b-2 border-slate-800">
-              <h1 className="text-4xl font-bold text-slate-900 mb-1">Formédica Entregas</h1>
-              <p className="text-sm text-slate-600">Sistema de Gestão de Entregas</p>
+        <div className="hidden print:block print-wrapper">
+          <style>{`
+            @media print {
+              @page { margin: 0; size: A4; }
+
+              /* Esconder TUDO */
+              * {
+                visibility: hidden !important;
+              }
+
+              /* Mostrar APENAS print-wrapper e filhos */
+              .print-wrapper,
+              .print-wrapper *,
+              .print-page,
+              .print-page * {
+                visibility: visible !important;
+              }
+
+              .print-wrapper {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+              }
+
+              .print-page {
+                width: 210mm;
+                padding: 15mm;
+                font-family: Arial, sans-serif;
+                font-size: 11pt;
+                line-height: 1.4;
+              }
+              .print-header-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+                font-size: 9pt;
+                color: #666;
+              }
+              .print-logo-section {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 15px;
+              }
+              .print-logo {
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .print-company-name {
+                font-size: 16pt;
+                font-weight: bold;
+                color: #000;
+              }
+              .print-title-section {
+                text-align: center;
+                margin: 20px 0;
+                padding-bottom: 15px;
+                border-bottom: 3px solid #000;
+              }
+              .print-main-title {
+                font-size: 14pt;
+                font-weight: bold;
+                margin: 0;
+                letter-spacing: 1px;
+              }
+              .print-subtitle {
+                font-size: 9pt;
+                color: #666;
+                margin: 4px 0 0 0;
+              }
+              .print-info-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #e0e0e0;
+              }
+              .print-label-orange {
+                color: #d97706;
+                font-weight: bold;
+                font-size: 9pt;
+                text-transform: uppercase;
+              }
+              .print-value-right {
+                text-align: right;
+                font-weight: 600;
+                color: #000;
+              }
+              .print-section-title-orange {
+                color: #d97706;
+                font-weight: bold;
+                font-size: 10pt;
+                text-transform: uppercase;
+                margin: 15px 0 8px 0;
+              }
+              .print-two-columns {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin: 15px 0;
+              }
+              .print-field {
+                margin-bottom: 6px;
+              }
+              .print-field-label {
+                font-size: 9pt;
+                color: #666;
+              }
+              .print-field-value {
+                font-weight: 600;
+                color: #000;
+              }
+              .print-address-block {
+                margin: 15px 0;
+              }
+              .print-address-main {
+                font-size: 12pt;
+                font-weight: bold;
+                margin-bottom: 4px;
+              }
+              .print-checkbox-section {
+                margin: 20px 0;
+              }
+              .print-checkbox-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin: 8px 0;
+              }
+              .print-checkbox {
+                width: 16px;
+                height: 16px;
+                border: 2px solid #000;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+              }
+              .print-checkbox-checked {
+                background-color: #000;
+              }
+              .print-checkbox-text {
+                font-size: 10pt;
+                font-weight: 600;
+              }
+              .print-valor-destaque {
+                border: 2px solid #000;
+                padding: 15px;
+                text-align: center;
+                margin: 20px 0;
+              }
+              .print-valor-destaque-text {
+                font-size: 16pt;
+                font-weight: bold;
+              }
+              .print-footer {
+                margin-top: 20px;
+                padding-top: 15px;
+                border-top: 1px solid #e0e0e0;
+                text-align: center;
+                font-size: 9pt;
+                color: #666;
+              }
+            }
+          `}</style>
+          <div className="print-page">
+            {/* Cabeçalho com data e nome */}
+            <div className="print-header-top">
+              <span>{format(new Date(), "dd/MM/yyyy, HH:mm")}</span>
+              <span>Formédica Entregas</span>
             </div>
 
-            {/* Título do Documento */}
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-slate-900 mb-1">ROMANEIO DE ENTREGA</h2>
-              <p className="text-sm text-slate-600">Comprovante de Entrega de Mercadoria</p>
+            {/* Logo e Nome da Empresa */}
+            <div className="print-logo-section">
+              <div className="print-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+              </div>
+              <div className="print-company-name">Formédica Entregas</div>
+            </div>
+
+            {/* Título Principal */}
+            <div className="print-title-section">
+              <h1 className="print-main-title">ROMANEIO DE ENTREGA</h1>
+              <p className="print-subtitle">Sistema de Gestão de Entregas</p>
             </div>
 
             {/* Informações da Requisição */}
-            <div className="border-2 border-slate-800 mb-4">
-              <div className="bg-slate-800 text-white px-4 py-2">
-                <h3 className="font-bold text-sm">DADOS DA REQUISIÇÃO</h3>
-              </div>
-              <div className="p-4 grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs text-slate-600 mb-1">Nº da Requisição:</p>
-                  <p className="font-bold text-lg">#{romaneio.requisicao}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-600 mb-1">Data de Entrega:</p>
-                  <p className="font-semibold">
-                    {romaneio.data_entrega && format(parseISO(romaneio.data_entrega), "dd/MM/yyyy")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-600 mb-1">Status:</p>
-                  <p className="font-semibold">{romaneio.status}</p>
-                </div>
-              </div>
+            <div className="print-info-row">
+              <span className="print-label-orange">Nº Requisição:</span>
+              <span className="print-value-right"># {romaneio.requisicao}</span>
+            </div>
+            <div className="print-info-row">
+              <span className="print-label-orange">Entrega de Dados:</span>
+              <span className="print-value-right">
+                {romaneio.data_entrega && format(parseISO(romaneio.data_entrega), "dd/MM/yyyy")}
+                {romaneio.periodo_entrega && ` - ${romaneio.periodo_entrega}`}
+              </span>
+            </div>
+            <div className="print-info-row">
+              <span className="print-label-orange">Status:</span>
+              <span className="print-value-right">{romaneio.status}</span>
             </div>
 
-            {/* Cliente */}
-            <div className="border-2 border-slate-800 mb-4">
-              <div className="bg-slate-800 text-white px-4 py-2">
-                <h3 className="font-bold text-sm">DADOS DO CLIENTE</h3>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">Nome do Cliente:</p>
-                    <p className="font-semibold">{romaneio.cliente?.nome || romaneio.cliente_nome}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">Telefone:</p>
-                    <p className="font-semibold">{romaneio.cliente?.telefone || romaneio.cliente_telefone}</p>
-                  </div>
+            {/* Cliente e Responsáveis em 2 colunas */}
+            <div className="print-two-columns">
+              {/* Cliente */}
+              <div>
+                <div className="print-section-title-orange">CLIENTE</div>
+                <div className="print-field">
+                  <span className="print-field-label">Nome: </span>
+                  <span className="print-field-value">{romaneio.cliente?.nome || romaneio.cliente_nome}</span>
                 </div>
-                {romaneio.cliente?.cpf && (
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">CPF:</p>
-                    <p className="font-semibold">{romaneio.cliente.cpf}</p>
+                <div className="print-field">
+                  <span className="print-field-label">Telefone: </span>
+                  <span className="print-field-value">{romaneio.cliente?.telefone || romaneio.cliente_telefone}</span>
+                </div>
+              </div>
+
+              {/* Responsáveis */}
+              <div>
+                <div className="print-section-title-orange">RESPONSÁVEIS</div>
+                <div className="print-field">
+                  <span className="print-field-label">Convidado: </span>
+                  <span className="print-field-value">{romaneio.cliente?.email || '-'}</span>
+                </div>
+                {romaneio.motoboy?.nome && (
+                  <div className="print-field">
+                    <span className="print-field-label">Motoboy: </span>
+                    <span className="print-field-value">{romaneio.motoboy.nome}</span>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Responsável pela Entrega */}
-            {romaneio.motoboy?.nome && (
-              <div className="border-2 border-slate-800 mb-4">
-                <div className="bg-slate-800 text-white px-4 py-2">
-                  <h3 className="font-bold text-sm">RESPONSÁVEL PELA ENTREGA</h3>
-                </div>
-                <div className="p-4">
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">Motoboy:</p>
-                    <p className="font-semibold">{romaneio.motoboy.nome}</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Endereço de Entrega */}
-            <div className="border-2 border-slate-800 mb-4">
-              <div className="bg-slate-800 text-white px-4 py-2">
-                <h3 className="font-bold text-sm">ENDEREÇO DE ENTREGA</h3>
-              </div>
-              <div className="p-4">
-                {romaneio.endereco ? (
-                  <>
-                    <div className="mb-2">
-                      <p className="text-xs text-slate-600 mb-1">Logradouro:</p>
-                      <p className="font-semibold">{romaneio.endereco.logradouro}, {romaneio.endereco.numero}</p>
-                    </div>
-                    {romaneio.endereco.complemento && (
-                      <div className="mb-2">
-                        <p className="text-xs text-slate-600 mb-1">Complemento:</p>
-                        <p className="font-semibold">{romaneio.endereco.complemento}</p>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-3 gap-4 mb-2">
-                      <div>
-                        <p className="text-xs text-slate-600 mb-1">Bairro:</p>
-                        <p className="font-semibold">{romaneio.endereco.bairro}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-600 mb-1">Cidade:</p>
-                        <p className="font-semibold">{romaneio.endereco.cidade}</p>
-                      </div>
-                      {romaneio.endereco.cep && (
-                        <div>
-                          <p className="text-xs text-slate-600 mb-1">CEP:</p>
-                          <p className="font-semibold">{romaneio.endereco.cep}</p>
-                        </div>
-                      )}
-                    </div>
-                    {romaneio.endereco.regiao && (
-                      <div>
-                        <p className="text-xs text-slate-600 mb-1">Região:</p>
-                        <p className="font-semibold">{romaneio.endereco.regiao}</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="font-semibold">{romaneio.endereco_completo || 'Não informado'}</p>
-                )}
-              </div>
+            <div className="print-address-block">
+              <div className="print-section-title-orange">ENDEREÇO DE ENTREGA</div>
+              {romaneio.endereco ? (
+                <>
+                  <div className="print-address-main">
+                    {romaneio.endereco.logradouro}, {romaneio.endereco.numero}
+                  </div>
+                  <div>{romaneio.endereco.bairro} - {romaneio.endereco.cidade}</div>
+                  {romaneio.endereco.complemento && (
+                    <div>Compl: {romaneio.endereco.complemento}</div>
+                  )}
+                  {romaneio.endereco.ponto_referencia && (
+                    <div>Ref.: {romaneio.endereco.ponto_referencia}</div>
+                  )}
+                  {romaneio.endereco.aos_cuidados_de && (
+                    <div>A/C: {romaneio.endereco.aos_cuidados_de}</div>
+                  )}
+                </>
+              ) : (
+                <div>{romaneio.endereco_completo || 'Não informado'}</div>
+              )}
             </div>
 
             {/* Pagamento */}
-            <div className="border-2 border-slate-800 mb-4">
-              <div className="bg-slate-800 text-white px-4 py-2">
-                <h3 className="font-bold text-sm">INFORMAÇÕES DE PAGAMENTO</h3>
-              </div>
-              <div className="p-4 grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs text-slate-600 mb-1">Forma de Pagamento:</p>
-                  <p className="font-semibold">{romaneio.forma_pagamento || 'Não informado'}</p>
-                </div>
-                {romaneio.valor && (
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">Valor:</p>
-                    <p className="font-semibold text-lg">R$ {romaneio.valor.toFixed(2)}</p>
-                  </div>
-                )}
-                {romaneio.valor_troco && (
-                  <div>
-                    <p className="text-xs text-slate-600 mb-1">Troco para:</p>
-                    <p className="font-semibold">R$ {romaneio.valor_troco.toFixed(2)}</p>
-                  </div>
-                )}
+            <div>
+              <div className="print-section-title-orange">PAGAMENTO</div>
+              <div className="print-info-row" style={{ border: 'none' }}>
+                <span className="print-field-label">Forma:</span>
+                <span className="print-value-right">{romaneio.forma_pagamento || 'Não informado'}</span>
               </div>
             </div>
 
-            {/* Itens Especiais */}
-            <div className="border-2 border-slate-800 mb-4">
-              <div className="bg-slate-800 text-white px-4 py-2">
-                <h3 className="font-bold text-sm">ITENS ESPECIAIS</h3>
-              </div>
-              <div className="p-4">
-                <div className="flex gap-6">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-slate-800 flex items-center justify-center">
-                      {romaneio.item_geladeira && <span className="text-xs">✓</span>}
-                    </div>
-                    <span className="text-sm">Item Refrigerado</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-slate-800 flex items-center justify-center">
-                      {romaneio.buscar_receita && <span className="text-xs">✓</span>}
-                    </div>
-                    <span className="text-sm">Buscar Receita</span>
-                  </div>
+            {/* Checkboxes - Item de Geladeira e Buscar Receita */}
+            <div className="print-checkbox-section">
+              <div className="print-checkbox-item">
+                <div className={`print-checkbox ${romaneio.item_geladeira ? 'print-checkbox-checked' : ''}`}>
+                  {romaneio.item_geladeira && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                      <circle cx="6" cy="6" r="3" />
+                    </svg>
+                  )}
                 </div>
+                <span className="print-checkbox-text">ITEM DE GELADEIRA - MANTER REFRIGERADO</span>
+              </div>
+              <div className="print-checkbox-item">
+                <div className={`print-checkbox ${romaneio.buscar_receita ? 'print-checkbox-checked' : ''}`}>
+                  {romaneio.buscar_receita && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                      <circle cx="6" cy="6" r="3" />
+                    </svg>
+                  )}
+                </div>
+                <span className="print-checkbox-text">BUSCAR RECEITA</span>
               </div>
             </div>
 
-            {/* Observações */}
+            {/* Observações (se houver) */}
             {romaneio.observacoes && (
-              <div className="border-2 border-slate-800 mb-4">
-                <div className="bg-slate-800 text-white px-4 py-2">
-                  <h3 className="font-bold text-sm">OBSERVAÇÕES</h3>
-                </div>
-                <div className="p-4">
-                  <p className="text-sm whitespace-pre-wrap">{romaneio.observacoes}</p>
-                </div>
+              <div style={{ margin: '15px 0', padding: '10px', backgroundColor: '#f5f5f5', borderLeft: '4px solid #d97706' }}>
+                <div className="print-label-orange" style={{ marginBottom: '5px' }}>OBSERVAÇÕES:</div>
+                <div style={{ whiteSpace: 'pre-wrap' }}>{romaneio.observacoes}</div>
               </div>
             )}
 
             {/* Valor a Cobrar */}
             {romaneio.valor && (
-              <div className="border-2 border-slate-800 mb-6">
-                <div className="bg-slate-800 text-white px-4 py-2">
-                  <h3 className="font-bold text-sm">VALOR A COBRAR</h3>
+              <div className="print-valor-destaque">
+                <div className="print-valor-destaque-text">
+                  💰 COBRAR NA ENTREGA: R$ {romaneio.valor.toFixed(2)}
                 </div>
-                <div className="p-4 text-center">
-                  <p className="text-3xl font-bold">R$ {romaneio.valor.toFixed(2)}</p>
-                  {romaneio.valor_troco && (
-                    <p className="text-sm text-slate-600 mt-1">Troco para: R$ {romaneio.valor_troco.toFixed(2)}</p>
-                  )}
-                </div>
+                {romaneio.valor_troco && (
+                  <div style={{ fontSize: '10pt', marginTop: '5px', color: '#666' }}>
+                    Troco para: R$ {romaneio.valor_troco.toFixed(2)}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Assinatura */}
-            <div className="border-2 border-slate-800 mb-4">
-              <div className="p-6">
-                <div className="mb-6">
-                  <p className="text-sm text-slate-600 mb-1">Assinatura do Recebedor:</p>
-                  <div className="mt-12 border-b-2 border-slate-800"></div>
-                </div>
-                <div className="grid grid-cols-2 gap-6 text-sm">
-                  <div>
-                    <p className="text-slate-600 mb-1">Nome Legível:</p>
-                    <div className="border-b border-slate-400 pb-1"></div>
-                  </div>
-                  <div>
-                    <p className="text-slate-600 mb-1">Data/Hora:</p>
-                    <div className="border-b border-slate-400 pb-1"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Rodapé */}
-            <div className="text-center text-xs text-slate-500 mt-6 pt-4 border-t">
-              <p>Formédica Entregas - Sistema de Gestão de Entregas</p>
-              <p className="mt-1">
-                Documento gerado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-              </p>
-              <p className="mt-2 font-mono">Código: {romaneio.id}</p>
+            <div className="print-footer">
+              <div>Código de Rastreamento: {romaneio.codigo_rastreio || romaneio.id}</div>
+              <div>Impresso em: {format(new Date(), "dd/MM/yyyy, HH:mm:ss")}</div>
             </div>
           </div>
         </div>

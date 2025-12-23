@@ -12,6 +12,8 @@ import DetalhesRomaneio from '@/pages/DetalhesRomaneio';
 import Clientes from '@/pages/Clientes';
 import SedexDisktenha from '@/pages/SedexDisktenha';
 import DetalheSedexDisktenha from '@/pages/DetalheSedexDisktenha';
+import Relatorios from '@/pages/Relatorios';
+import Receitas from '@/pages/Receitas';
 
 const queryClient = new QueryClient();
 
@@ -50,9 +52,18 @@ function AppRoutes() {
   
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={user ? <Navigate to="/" /> : <Login />} 
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/" /> : <Login />}
+      />
+      {/* Rota de impressão SEM Layout */}
+      <Route
+        path="/imprimir-romaneio"
+        element={
+          <PrivateRoute>
+            <DetalhesRomaneio printMode={true} />
+          </PrivateRoute>
+        }
       />
       <Route
         path="/*"
@@ -68,8 +79,8 @@ function AppRoutes() {
                 <Route path="/detalhes-romaneio" element={<DetalhesRomaneio />} />
                 <Route path="/clientes" element={<Clientes />} />
                 <Route path="/historico-clientes" element={<div style={{padding: '2rem'}}>Histórico - Em construção</div>} />
-                <Route path="/relatorios" element={<div style={{padding: '2rem'}}>Relatórios - Em construção</div>} />
-                <Route path="/receitas" element={<div style={{padding: '2rem'}}>Receitas - Em construção</div>} />
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/receitas" element={<Receitas />} />
                 <Route path="/pagamentos" element={<div style={{padding: '2rem'}}>Pagamentos - Em construção</div>} />
                 <Route path="/planilha-diaria" element={<div style={{padding: '2rem'}}>Planilha Diária - Em construção</div>} />
                 <Route path="/painel-motoboys" element={<div style={{padding: '2rem'}}>Painel Motoboys - Em construção</div>} />

@@ -156,3 +156,20 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* Estilos de Impressão */
+@media print {
+  /* Esconder sidebar e navegação completamente */
+  [data-sidebar="sidebar"],
+  aside,
+  nav,
+  header:not(.print-page header) {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    left: -99999px !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+}

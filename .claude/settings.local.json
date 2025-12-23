@@ -12,7 +12,9 @@
       "Bash(git pull:*)",
       "Bash(git stash:*)",
       "Bash(powershell:*)",
-      "Bash(timeout /t 3 /nobreak)"
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

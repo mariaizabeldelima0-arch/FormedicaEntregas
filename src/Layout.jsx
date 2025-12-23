@@ -43,6 +43,21 @@ import DeviceGuard from "@/components/DeviceGuard";
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const queryClient = useQueryClient();
+  const [isPrinting, setIsPrinting] = React.useState(false);
+
+  // Detectar quando está imprimindo
+  React.useEffect(() => {
+    const handleBeforePrint = () => setIsPrinting(true);
+    const handleAfterPrint = () => setIsPrinting(false);
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
 
   // Invalida todas as queries quando a rota muda
   useEffect(() => {
@@ -132,9 +147,36 @@ export default function Layout({ children, currentPageName }) {
           --primary-hover: #3a6ba0;
           --secondary-hover: #6e0a4a;
         }
+        @media print {
+          /* Esconder sidebar completamente */
+          [data-sidebar="sidebar"],
+          [data-sidebar],
+          aside,
+          .sidebar {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            position: absolute !important;
+            left: -9999px !important;
+          }
+          /* Esconder header mobile */
+          header {
+            display: none !important;
+          }
+          /* Main ocupa toda a largura */
+          main {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+        }
       `}</style>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 to-slate-100">
-        <Sidebar className="border-r border-slate-200 bg-white">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 to-slate-100 print:bg-white">
+        {!isPrinting && (
+        <Sidebar className="border-r border-slate-200 bg-white print:hidden">
           <SidebarHeader className="border-b border-slate-200 p-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#457bba] to-[#890d5d] flex items-center justify-center shadow-lg">
@@ -230,14 +272,17 @@ export default function Layout({ children, currentPageName }) {
             )}
           </SidebarFooter>
         </Sidebar>
+        )}
 
         <main className="flex-1 flex flex-col">
-          <header className="bg-white border-b border-slate-200 px-6 py-4 lg:hidden">
+          {!isPrinting && (
+          <header className="bg-white border-b border-slate-200 px-6 py-4 lg:hidden print:hidden">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors" />
               <h1 className="text-xl font-bold text-slate-900">Formédica Entregas</h1>
             </div>
           </header>
+          )}
 
           <div className="flex-1 overflow-auto">
             {children}
