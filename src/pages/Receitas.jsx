@@ -25,6 +25,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function Receitas() {
+  console.log('🟢 [Receitas] Componente renderizando');
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -45,6 +47,7 @@ export default function Receitas() {
   const { data: entregas = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['receitas'],
     queryFn: async () => {
+      console.log('🔵 [Receitas] Executando queryFn...');
       const { data, error } = await supabase
         .from('entregas')
         .select(`
@@ -56,7 +59,11 @@ export default function Receitas() {
         .eq('buscar_receita', true)
         .order('data_entrega', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('🔴 [Receitas] Erro na query:', error);
+        throw error;
+      }
+      console.log('🟢 [Receitas] Query sucesso, receitas:', data?.length);
       return data || [];
     },
     refetchOnMount: true,
@@ -67,6 +74,8 @@ export default function Receitas() {
     retryDelay: 1000,
   });
 
+  console.log('📊 [Receitas] Estado:', { isLoading, hasError: !!queryError, entregasCount: entregas?.length });
+
   // Mostrar erro se houver
   useEffect(() => {
     if (queryError) {
@@ -76,6 +85,7 @@ export default function Receitas() {
 
   // Early return para loading inicial
   if (isLoading) {
+    console.log('⏳ [Receitas] Mostrando loading...');
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
@@ -85,6 +95,8 @@ export default function Receitas() {
       </div>
     );
   }
+
+  console.log('✅ [Receitas] Renderizando página completa');
 
   // Função para fazer upload do anexo
   const handleUploadAnexo = async () => {

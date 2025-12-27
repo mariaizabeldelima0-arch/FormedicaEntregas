@@ -14,7 +14,8 @@
       "Bash(powershell:*)",
       "Bash(timeout /t 3 /nobreak)",
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
