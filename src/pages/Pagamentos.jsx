@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import {
   ChevronRight,
   CreditCard,
   Banknote,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,8 +27,8 @@ export default function Pagamentos() {
 
   // Estados
   const [mesAtual, setMesAtual] = useState(new Date());
-  const [dataSelecionada, setDataSelecionada] = useState(new Date());
-  const [verTodos, setVerTodos] = useState(false);
+  const [dataSelecionada, setDataSelecionada] = useState(null);
+  const [verTodos, setVerTodos] = useState(true); // Iniciar com "ver todos"
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
 
@@ -52,6 +54,38 @@ export default function Pagamentos() {
     staleTime: 0,
     gcTime: 0,
   });
+
+  // Mutation para atualizar status de pagamento
+  const updatePagamentoMutation = useMutation({
+    mutationFn: async ({ entregaId, pagamentoRecebido }) => {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ pagamento_recebido: pagamentoRecebido })
+        .eq('id', entregaId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Invalidar múltiplas queries para atualizar outras páginas
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      queryClient.invalidateQueries({ queryKey: ['receitas'] });
+      toast.success('Status de pagamento atualizado!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar pagamento: ' + error.message);
+    },
+  });
+
+  // Função para alternar status de pagamento
+  const togglePagamento = (e, entregaId, statusAtual) => {
+    e.preventDefault(); // Evita navegação do Link
+    e.stopPropagation(); // Evita propagação do evento
+    updatePagamentoMutation.mutate({
+      entregaId,
+      pagamentoRecebido: !statusAtual,
+    });
+  };
 
   // Invalidar cache quando componente montar
   useEffect(() => {
@@ -388,15 +422,31 @@ export default function Pagamentos() {
                                 )}
                               </div>
                             )}
-                            <Badge
-                              className={
-                                entrega.pagamento_recebido
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-orange-100 text-orange-700"
-                              }
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => togglePagamento(e, entrega.id, entrega.pagamento_recebido)}
+                              disabled={updatePagamentoMutation.isPending}
+                              className={`
+                                flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all
+                                ${entrega.pagamento_recebido
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                                }
+                              `}
                             >
-                              {entrega.pagamento_recebido ? "Recebido" : "Pendente"}
-                            </Badge>
+                              {entrega.pagamento_recebido ? (
+                                <>
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  Recebido
+                                </>
+                              ) : (
+                                <>
+                                  <Circle className="w-4 h-4" />
+                                  Pendente
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </div>
                       </Link>
