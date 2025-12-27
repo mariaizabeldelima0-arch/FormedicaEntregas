@@ -1,0 +1,245 @@
+              {!showNovoEndereco && clienteEnderecos.length > 0 ? (
+                <div>
+                  {/* Lista de endereços com opções de editar/excluir */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    {clienteEnderecos.map(endereco => {
+                      const selecionado = formData.endereco_id === endereco.id;
+                      const estaEditando = enderecoEditando?.id === endereco.id;
+
+                      return (
+                        <div
+                          key={endereco.id}
+                          style={{
+                            padding: '0.75rem',
+                            border: `2px solid ${selecionado ? theme.colors.primary : theme.colors.border}`,
+                            borderRadius: '0.375rem',
+                            marginBottom: '0.5rem',
+                            background: selecionado ? '#f0f9ff' : 'white'
+                          }}
+                        >
+                          {estaEditando ? (
+                            // Formulário de edição inline
+                            <div style={{ padding: '0.5rem' }}>
+                              <h4 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '1rem' }}>
+                                Editando Endereço
+                              </h4>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                <input
+                                  type="text"
+                                  value={enderecoEditando.logradouro}
+                                  onChange={(e) => setEnderecoEditando({...enderecoEditando, logradouro: e.target.value})}
+                                  placeholder="Logradouro *"
+                                  style={{
+                                    padding: '0.5rem',
+                                    border: `1px solid ${theme.colors.border}`,
+                                    borderRadius: '0.375rem',
+                                    fontSize: '0.875rem'
+                                  }}
+                                />
+                                <input
+                                  type="text"
+                                  value={enderecoEditando.numero}
+                                  onChange={(e) => setEnderecoEditando({...enderecoEditando, numero: e.target.value})}
+                                  placeholder="Número *"
+                                  style={{
+                                    padding: '0.5rem',
+                                    border: `1px solid ${theme.colors.border}`,
+                                    borderRadius: '0.375rem',
+                                    fontSize: '0.875rem'
+                                  }}
+                                />
+                              </div>
+
+                              <input
+                                type="text"
+                                value={enderecoEditando.complemento}
+                                onChange={(e) => setEnderecoEditando({...enderecoEditando, complemento: e.target.value})}
+                                placeholder="Complemento"
+                                style={{
+                                  width: '100%',
+                                  padding: '0.5rem',
+                                  border: `1px solid ${theme.colors.border}`,
+                                  borderRadius: '0.375rem',
+                                  fontSize: '0.875rem',
+                                  marginBottom: '0.5rem'
+                                }}
+                              />
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                <input
+                                  type="text"
+                                  value={enderecoEditando.bairro}
+                                  onChange={(e) => setEnderecoEditando({...enderecoEditando, bairro: e.target.value})}
+                                  placeholder="Bairro *"
+                                  list="bairros-sugestoes-edit"
+                                  style={{
+                                    padding: '0.5rem',
+                                    border: `1px solid ${theme.colors.border}`,
+                                    borderRadius: '0.375rem',
+                                    fontSize: '0.875rem'
+                                  }}
+                                />
+                                <input
+                                  type="text"
+                                  value={enderecoEditando.cidade}
+                                  onChange={(e) => {
+                                    const cidadeNormalizada = normalizarCidade(e.target.value);
+                                    setEnderecoEditando({...enderecoEditando, cidade: cidadeNormalizada});
+                                  }}
+                                  placeholder="Cidade *"
+                                  list="cidades-sugestoes-edit"
+                                  style={{
+                                    padding: '0.5rem',
+                                    border: `1px solid ${theme.colors.border}`,
+                                    borderRadius: '0.375rem',
+                                    fontSize: '0.875rem'
+                                  }}
+                                />
+                              </div>
+
+                              <input
+                                type="text"
+                                value={enderecoEditando.cep}
+                                onChange={(e) => setEnderecoEditando({...enderecoEditando, cep: e.target.value})}
+                                placeholder="CEP"
+                                style={{
+                                  width: '100%',
+                                  padding: '0.5rem',
+                                  border: `1px solid ${theme.colors.border}`,
+                                  borderRadius: '0.375rem',
+                                  fontSize: '0.875rem',
+                                  marginBottom: '0.75rem'
+                                }}
+                              />
+
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={handleSalvarEdicaoEndereco}
+                                  style={{
+                                    flex: 1,
+                                    padding: '0.5rem',
+                                    background: theme.colors.primary,
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '0.375rem',
+                                    fontSize: '0.875rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Salvar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelarEdicao}
+                                  style={{
+                                    flex: 1,
+                                    padding: '0.5rem',
+                                    background: 'white',
+                                    color: theme.colors.text,
+                                    border: `1px solid ${theme.colors.border}`,
+                                    borderRadius: '0.375rem',
+                                    fontSize: '0.875rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            // Exibição normal do endereço
+                            <div
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => selecionarEndereco(endereco)}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                    <input
+                                      type="radio"
+                                      name="endereco"
+                                      checked={selecionado}
+                                      onChange={() => selecionarEndereco(endereco)}
+                                      style={{ cursor: 'pointer' }}
+                                    />
+                                    <p style={{
+                                      margin: 0,
+                                      fontWeight: '500',
+                                      fontSize: '0.875rem'
+                                    }}>
+                                      {endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}, ${endereco.cidade}`}
+                                      {endereco.is_principal && (
+                                        <span style={{
+                                          marginLeft: '0.5rem',
+                                          padding: '0.125rem 0.5rem',
+                                          background: theme.colors.primary,
+                                          color: 'white',
+                                          borderRadius: '0.25rem',
+                                          fontSize: '0.65rem',
+                                          fontWeight: '600'
+                                        }}>
+                                          PRINCIPAL
+                                        </span>
+                                      )}
+                                    </p>
+                                  </div>
+                                  {endereco.regiao && (
+                                    <p style={{
+                                      margin: 0,
+                                      fontSize: '0.75rem',
+                                      color: theme.colors.textLight,
+                                      marginLeft: '1.5rem'
+                                    }}>
+                                      Região: {endereco.regiao}
+                                    </p>
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditarEndereco(endereco);
+                                    }}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      background: 'white',
+                                      color: theme.colors.primary,
+                                      border: `1px solid ${theme.colors.primary}`,
+                                      borderRadius: '0.25rem',
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Editar
+                                  </button>
+                                  {clienteEnderecos.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleExcluirEndereco(endereco.id);
+                                      }}
+                                      style={{
+                                        padding: '0.25rem 0.5rem',
+                                        background: 'none',
+                                        color: theme.colors.danger,
+                                        border: `1px solid ${theme.colors.danger}`,
+                                        borderRadius: '0.25rem',
+                                        fontSize: '0.75rem',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Excluir
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
