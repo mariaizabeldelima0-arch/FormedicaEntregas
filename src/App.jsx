@@ -4,7 +4,6 @@ import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import ErrorBoundary from '@/components/ErrorBoundary';
 import Login from '@/pages/Login';
 import EntregasMoto from '@/pages/EntregasMoto';
 import NovoRomaneio from '@/pages/NovoRomaneio';
@@ -80,16 +79,16 @@ function AppRoutes() {
           <PrivateRoute>
             <Layout>
               <Routes>
-                <Route path="/" element={<ErrorBoundary><EntregasMoto /></ErrorBoundary>} />
-                <Route path="/sedex" element={<ErrorBoundary><SedexDisktenha /></ErrorBoundary>} />
-                <Route path="/sedex-detalhes" element={<ErrorBoundary><DetalheSedexDisktenha /></ErrorBoundary>} />
-                <Route path="/novo-romaneio" element={<ErrorBoundary><NovoRomaneio /></ErrorBoundary>} />
-                <Route path="/editar-romaneio" element={<ErrorBoundary><EditarRomaneio /></ErrorBoundary>} />
-                <Route path="/detalhes-romaneio" element={<ErrorBoundary><DetalhesRomaneio /></ErrorBoundary>} />
-                <Route path="/clientes" element={<ErrorBoundary><Clientes /></ErrorBoundary>} />
+                <Route path="/" element={<EntregasMoto />} />
+                <Route path="/sedex" element={<SedexDisktenha />} />
+                <Route path="/sedex-detalhes" element={<DetalheSedexDisktenha />} />
+                <Route path="/novo-romaneio" element={<NovoRomaneio />} />
+                <Route path="/editar-romaneio" element={<EditarRomaneio />} />
+                <Route path="/detalhes-romaneio" element={<DetalhesRomaneio />} />
+                <Route path="/clientes" element={<Clientes />} />
                 <Route path="/historico-clientes" element={<div style={{padding: '2rem'}}>Histórico - Em construção</div>} />
-                <Route path="/relatorios" element={<ErrorBoundary><Relatorios /></ErrorBoundary>} />
-                <Route path="/receitas" element={<ErrorBoundary><Receitas /></ErrorBoundary>} />
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/receitas" element={<Receitas />} />
                 <Route path="/pagamentos" element={<div style={{padding: '2rem'}}>Pagamentos - Em construção</div>} />
                 <Route path="/planilha-diaria" element={<div style={{padding: '2rem'}}>Planilha Diária - Em construção</div>} />
                 <Route path="/painel-motoboys" element={<div style={{padding: '2rem'}}>Painel Motoboys - Em construção</div>} />
