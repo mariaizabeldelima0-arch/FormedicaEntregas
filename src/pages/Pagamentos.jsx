@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Search,
   DollarSign,
@@ -16,11 +17,18 @@ import {
   Banknote,
   CheckCircle2,
   Circle,
+  Edit,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+
+const FORMAS_PAGAMENTO = [
+  'Pago', 'Dinheiro', 'Maquina', 'Troco P/', 'Via na Pasta',
+  'Só Entregar', 'Aguardando', 'Pix - Aguardando',
+  'Link - Aguardando', 'Boleto', 'Pagar MP'
+];
 
 export default function Pagamentos() {
   const queryClient = useQueryClient();
@@ -31,6 +39,12 @@ export default function Pagamentos() {
   const [verTodos, setVerTodos] = useState(true); // Iniciar com "ver todos"
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
+
+  // Estados para o modal de edição
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [entregaEditando, setEntregaEditando] = useState(null);
+  const [formaPagamentoEdit, setFormaPagamentoEdit] = useState('');
+  const [pagamentoRecebidoEdit, setPagamentoRecebidoEdit] = useState(false);
 
   // Buscar todas as entregas para gerenciar pagamentos
   const { data: entregas = [], isLoading, error: queryError } = useQuery({
@@ -55,12 +69,16 @@ export default function Pagamentos() {
     gcTime: 0,
   });
 
-  // Mutation para atualizar status de pagamento
+  // Mutation para atualizar pagamento
   const updatePagamentoMutation = useMutation({
-    mutationFn: async ({ entregaId, pagamentoRecebido }) => {
+    mutationFn: async ({ entregaId, formaPagamento, pagamentoRecebido }) => {
+      const updates = {};
+      if (formaPagamento !== undefined) updates.forma_pagamento = formaPagamento;
+      if (pagamentoRecebido !== undefined) updates.pagamento_recebido = pagamentoRecebido;
+
       const { error } = await supabase
         .from('entregas')
-        .update({ pagamento_recebido: pagamentoRecebido })
+        .update(updates)
         .eq('id', entregaId);
 
       if (error) throw error;
@@ -70,20 +88,35 @@ export default function Pagamentos() {
       queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
       queryClient.invalidateQueries({ queryKey: ['entregas'] });
       queryClient.invalidateQueries({ queryKey: ['receitas'] });
-      toast.success('Status de pagamento atualizado!');
+      toast.success('Pagamento atualizado com sucesso!');
+      setEditModalOpen(false);
     },
     onError: (error) => {
       toast.error('Erro ao atualizar pagamento: ' + error.message);
     },
   });
 
-  // Função para alternar status de pagamento
-  const togglePagamento = (e, entregaId, statusAtual) => {
-    e.preventDefault(); // Evita navegação do Link
-    e.stopPropagation(); // Evita propagação do evento
+  // Função para abrir modal de edição
+  const abrirModalEditar = (e, entrega) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEntregaEditando(entrega);
+    setFormaPagamentoEdit(entrega.forma_pagamento || '');
+    setPagamentoRecebidoEdit(entrega.pagamento_recebido || false);
+    setEditModalOpen(true);
+  };
+
+  // Função para salvar alterações
+  const salvarAlteracoes = () => {
+    if (!formaPagamentoEdit) {
+      toast.error('Selecione uma forma de pagamento');
+      return;
+    }
+
     updatePagamentoMutation.mutate({
-      entregaId,
-      pagamentoRecebido: !statusAtual,
+      entregaId: entregaEditando.id,
+      formaPagamento: formaPagamentoEdit,
+      pagamentoRecebido: pagamentoRecebidoEdit,
     });
   };
 
@@ -422,31 +455,26 @@ export default function Pagamentos() {
                                 )}
                               </div>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => togglePagamento(e, entrega.id, entrega.pagamento_recebido)}
-                              disabled={updatePagamentoMutation.isPending}
-                              className={`
-                                flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all
-                                ${entrega.pagamento_recebido
-                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                className={
+                                  entrega.pagamento_recebido
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-orange-100 text-orange-700"
                                 }
-                              `}
-                            >
-                              {entrega.pagamento_recebido ? (
-                                <>
-                                  <CheckCircle2 className="w-4 h-4" />
-                                  Recebido
-                                </>
-                              ) : (
-                                <>
-                                  <Circle className="w-4 h-4" />
-                                  Pendente
-                                </>
-                              )}
-                            </Button>
+                              >
+                                {entrega.pagamento_recebido ? "Recebido" : "Pendente"}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => abrirModalEditar(e, entrega)}
+                                className="h-8 w-8 p-0"
+                                title="Editar pagamento"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </Link>
@@ -458,6 +486,105 @@ export default function Pagamentos() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Edição de Pagamento */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Pagamento</DialogTitle>
+            <DialogDescription>
+              #{entregaEditando?.requisicao} - {entregaEditando?.cliente?.nome || entregaEditando?.cliente_nome}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Forma de Pagamento */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Forma de Pagamento *
+              </label>
+              <Select value={formaPagamentoEdit} onValueChange={setFormaPagamentoEdit}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FORMAS_PAGAMENTO.map(forma => (
+                    <SelectItem key={forma} value={forma}>{forma}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Status de Pagamento */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Status do Pagamento
+              </label>
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={!pagamentoRecebidoEdit}
+                    onChange={() => setPagamentoRecebidoEdit(false)}
+                    className="w-4 h-4 text-orange-600"
+                  />
+                  <span className="text-sm">Pendente</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={pagamentoRecebidoEdit}
+                    onChange={() => setPagamentoRecebidoEdit(true)}
+                    className="w-4 h-4 text-green-600"
+                  />
+                  <span className="text-sm">Recebido</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Informações da entrega */}
+            {entregaEditando && (
+              <div className="bg-slate-50 rounded-lg p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Valor:</span>
+                  <span className="font-semibold">
+                    R$ {parseFloat(entregaEditando.valor || 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Data:</span>
+                  <span>
+                    {entregaEditando.data_entrega ? format(parseISO(entregaEditando.data_entrega), "dd/MM/yyyy") : '-'}
+                  </span>
+                </div>
+                {entregaEditando.motoboy?.nome && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Motoboy:</span>
+                    <span>{entregaEditando.motoboy.nome}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditModalOpen(false)}
+              disabled={updatePagamentoMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={salvarAlteracoes}
+              disabled={updatePagamentoMutation.isPending}
+              className="bg-[#457bba] hover:bg-[#3a6ba0]"
+            >
+              {updatePagamentoMutation.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
