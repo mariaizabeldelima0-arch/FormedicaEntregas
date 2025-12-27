@@ -276,7 +276,7 @@ export default function Relatorios() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Status</label>
-                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                  <Select key={`status-${filtroStatus}`} value={filtroStatus} onValueChange={setFiltroStatus}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
@@ -296,7 +296,7 @@ export default function Relatorios() {
 
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Local</label>
-                  <Select value={filtroLocal} onValueChange={setFiltroLocal}>
+                  <Select key={`local-${filtroLocal}`} value={filtroLocal} onValueChange={setFiltroLocal}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
@@ -311,7 +311,7 @@ export default function Relatorios() {
 
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Motoboy</label>
-                  <Select value={filtroMotoboy} onValueChange={setFiltroMotoboy}>
+                  <Select key={`motoboy-${filtroMotoboy}`} value={filtroMotoboy} onValueChange={setFiltroMotoboy}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
@@ -326,7 +326,7 @@ export default function Relatorios() {
 
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Período</label>
-                  <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+                  <Select key={`periodo-${filtroPeriodo}`} value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
