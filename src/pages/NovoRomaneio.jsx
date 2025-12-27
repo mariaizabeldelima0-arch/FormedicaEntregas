@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Tabela de valores por região e motoboy
 const VALORES_ENTREGA = {
@@ -223,6 +224,7 @@ const detectarRegiao = (cidade, bairro) => {
 
 export default function NovoRomaneio() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
@@ -641,6 +643,10 @@ export default function NovoRomaneio() {
         .single();
 
       if (error) throw error;
+
+      // Invalidar queries relevantes
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      queryClient.invalidateQueries({ queryKey: ['receitas'] });
 
       toast.success('Romaneio criado com sucesso!', { id: toastId });
 

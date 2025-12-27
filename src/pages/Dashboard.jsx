@@ -199,6 +199,7 @@ export default function Dashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      queryClient.invalidateQueries({ queryKey: ['receitas'] });
       toast.success(`${selectedRomaneios.length} entrega${selectedRomaneios.length !== 1 ? 's' : ''} atualizada${selectedRomaneios.length !== 1 ? 's' : ''}!`);
       // Reset all bulk dialog states
       setShowBulkStatusDialog(false);

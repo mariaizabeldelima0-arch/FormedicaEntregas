@@ -15,7 +15,15 @@ import DetalheSedexDisktenha from '@/pages/DetalheSedexDisktenha';
 import Relatorios from '@/pages/Relatorios';
 import Receitas from '@/pages/Receitas';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutos
+    },
+  },
+});
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,8 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,15 +25,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function Receitas() {
+  console.log('🎯 Componente Receitas montando...');
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // TODOS os useState juntos (regra dos hooks)
   const [mesAtual, setMesAtual] = useState(new Date());
   const [dataSelecionada, setDataSelecionada] = useState(null);
   const [verTodas, setVerTodas] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
-
-  // Estados do modal de upload
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [receitaSelecionada, setReceitaSelecionada] = useState(null);
   const [tipoAnexo, setTipoAnexo] = useState("");
@@ -40,25 +44,68 @@ export default function Receitas() {
   const [uploading, setUploading] = useState(false);
 
   // Buscar entregas com buscar_receita = true
-  const { data: entregas = [], isLoading } = useQuery({
+  const { data: entregas = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['receitas'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('entregas')
-        .select(`
-          *,
-          cliente:clientes(nome, telefone, cpf),
-          endereco:enderecos(cidade, regiao),
-          motoboy:motoboys(nome)
-        `)
-        .eq('buscar_receita', true)
-        .order('data_entrega', { ascending: false });
+      console.log('🔄 Buscando receitas...', new Date().toISOString());
+      try {
+        const { data, error } = await supabase
+          .from('entregas')
+          .select(`
+            *,
+            cliente:clientes(nome, telefone, cpf),
+            endereco:enderecos(cidade, regiao),
+            motoboy:motoboys(nome)
+          `)
+          .eq('buscar_receita', true)
+          .order('data_entrega', { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+        if (error) {
+          console.error('❌ Erro ao buscar receitas:', error);
+          throw error;
+        }
+        console.log('✅ Receitas carregadas:', data?.length || 0, new Date().toISOString());
+        return data || [];
+      } catch (err) {
+        console.error('❌ Erro na queryFn:', err);
+        throw err;
+      }
     },
-    refetchOnMount: 'always',
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    cacheTime: 0,
+    retry: 1,
+    retryDelay: 1000,
   });
+
+  // Todos os useEffect juntos (depois de todos os outros hooks)
+  useEffect(() => {
+    console.log('✅ Componente Receitas montado');
+    return () => console.log('❌ Componente Receitas desmontando');
+  }, []);
+
+  useEffect(() => {
+    if (queryError) {
+      console.error('Erro na query de receitas:', queryError);
+      toast.error('Erro ao carregar receitas: ' + queryError.message);
+    }
+  }, [queryError]);
+
+  // Early return para loading inicial
+  console.log('📊 Estado da query:', { isLoading, hasError: !!queryError, entregasCount: entregas?.length });
+
+  if (isLoading) {
+    console.log('⏳ Mostrando tela de loading...');
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-slate-300 border-t-[#457bba] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Carregando receitas...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Função para fazer upload do anexo
   const handleUploadAnexo = async () => {
@@ -130,6 +177,7 @@ export default function Receitas() {
   };
 
   // Filtrar receitas
+  console.log('🔍 Filtrando receitas...', { total: entregas.length, verTodas, filtroStatus, searchTerm });
   const receitasFiltradas = entregas.filter(e => {
     // Filtro de data
     if (!verTodas && dataSelecionada && e.data_entrega) {
@@ -156,6 +204,7 @@ export default function Receitas() {
 
     return true;
   });
+  console.log('✅ Receitas filtradas:', receitasFiltradas.length);
 
   // Contar por status
   const pendentes = entregas.filter(e => !e.receita_anexo).length;
@@ -363,7 +412,17 @@ export default function Receitas() {
             {/* Lista de Receitas */}
             <Card className="border-none shadow-lg">
               <CardContent className="p-6">
-                {isLoading ? (
+                {queryError ? (
+                  <div className="text-center py-12">
+                    <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                    <p className="text-red-600 font-semibold mb-2">Erro ao carregar receitas</p>
+                    <p className="text-slate-500 text-sm mb-4">{queryError.message}</p>
+                    <Button onClick={() => refetch()} variant="outline" size="sm">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Tentar Novamente
+                    </Button>
+                  </div>
+                ) : isLoading ? (
                   <div className="text-center py-12 text-slate-500">
                     Carregando receitas...
                   </div>

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Tabela de valores por região e motoboy
 const VALORES_ENTREGA = {
@@ -225,6 +226,7 @@ export default function EditarRomaneio() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const entregaId = searchParams.get('id');
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(false);
   const [loadingEntrega, setLoadingEntrega] = useState(true);
@@ -712,6 +714,10 @@ export default function EditarRomaneio() {
         .single();
 
       if (error) throw error;
+
+      // Invalidar queries relevantes
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      queryClient.invalidateQueries({ queryKey: ['receitas'] });
 
       toast.success('Romaneio atualizado com sucesso!', { id: toastId });
 
