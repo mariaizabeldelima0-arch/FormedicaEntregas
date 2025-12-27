@@ -103,7 +103,8 @@ export default function Pagamentos() {
     setEntregaEditando(entrega);
     setFormaPagamentoEdit(entrega.forma_pagamento || '');
     setPagamentoRecebidoEdit(entrega.pagamento_recebido || false);
-    setEditModalOpen(true);
+    // Aguardar um ciclo de renderização antes de abrir o modal
+    setTimeout(() => setEditModalOpen(true), 0);
   };
 
   // Função para salvar alterações
@@ -131,6 +132,24 @@ export default function Pagamentos() {
       toast.error('Erro ao carregar pagamentos: ' + queryError.message);
     }
   }, [queryError]);
+
+  // Limpar portals quando o modal fechar
+  useEffect(() => {
+    if (!editModalOpen) {
+      // Aguardar um momento para o modal fechar completamente
+      const timer = setTimeout(() => {
+        const portals = document.querySelectorAll('[data-radix-popper-content-wrapper]');
+        portals.forEach(portal => {
+          try {
+            portal.remove();
+          } catch (e) {
+            // Ignorar erros de remoção
+          }
+        });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [editModalOpen]);
 
   // Loading state
   if (isLoading) {
@@ -488,7 +507,11 @@ export default function Pagamentos() {
       </div>
 
       {/* Modal de Edição de Pagamento */}
-      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+      <Dialog
+        key={`dialog-${entregaEditando?.id || 'none'}`}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Editar Pagamento</DialogTitle>
@@ -503,7 +526,11 @@ export default function Pagamentos() {
               <label className="text-sm font-medium">
                 Forma de Pagamento *
               </label>
-              <Select value={formaPagamentoEdit} onValueChange={setFormaPagamentoEdit}>
+              <Select
+                key={`forma-pagamento-${entregaEditando?.id}`}
+                value={formaPagamentoEdit}
+                onValueChange={setFormaPagamentoEdit}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
