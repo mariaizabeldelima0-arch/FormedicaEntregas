@@ -33,15 +33,6 @@ export default function Relatorios() {
   const [filtroPeriodo, setFiltroPeriodo] = useState(urlParams.get('periodo') || "todos");
   const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || "");
 
-  // Cleanup de portals ao desmontar
-  useEffect(() => {
-    return () => {
-      // Limpar qualquer portal aberto do Radix UI
-      const portals = document.querySelectorAll('[data-radix-popper-content-wrapper]');
-      portals.forEach(portal => portal.remove());
-    };
-  }, []);
-
   // Buscar entregas do Supabase
   const { data: entregas = [], isLoading, error: queryError } = useQuery({
     queryKey: ['entregas-relatorio'],

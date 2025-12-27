@@ -4,7 +4,6 @@ import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import RouteErrorBoundary from '@/components/RouteErrorBoundary';
 import Login from '@/pages/Login';
 import EntregasMoto from '@/pages/EntregasMoto';
 import NovoRomaneio from '@/pages/NovoRomaneio';
@@ -78,26 +77,24 @@ function AppRoutes() {
         path="/*"
         element={
           <PrivateRoute>
-            <RouteErrorBoundary>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<EntregasMoto />} />
-                  <Route path="/sedex" element={<SedexDisktenha />} />
-                  <Route path="/sedex-detalhes" element={<DetalheSedexDisktenha />} />
-                  <Route path="/novo-romaneio" element={<NovoRomaneio />} />
-                  <Route path="/editar-romaneio" element={<EditarRomaneio />} />
-                  <Route path="/detalhes-romaneio" element={<DetalhesRomaneio />} />
-                  <Route path="/clientes" element={<Clientes />} />
-                  <Route path="/historico-clientes" element={<div style={{padding: '2rem'}}>Histórico - Em construção</div>} />
-                  <Route path="/relatorios" element={<Relatorios />} />
-                  <Route path="/receitas" element={<Receitas />} />
-                  <Route path="/pagamentos" element={<div style={{padding: '2rem'}}>Pagamentos - Em construção</div>} />
-                  <Route path="/planilha-diaria" element={<div style={{padding: '2rem'}}>Planilha Diária - Em construção</div>} />
-                  <Route path="/painel-motoboys" element={<div style={{padding: '2rem'}}>Painel Motoboys - Em construção</div>} />
-                  <Route path="/dispositivos" element={<div style={{padding: '2rem'}}>Dispositivos - Em construção</div>} />
-                </Routes>
-              </Layout>
-            </RouteErrorBoundary>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<EntregasMoto />} />
+                <Route path="/sedex" element={<SedexDisktenha />} />
+                <Route path="/sedex-detalhes" element={<DetalheSedexDisktenha />} />
+                <Route path="/novo-romaneio" element={<NovoRomaneio />} />
+                <Route path="/editar-romaneio" element={<EditarRomaneio />} />
+                <Route path="/detalhes-romaneio" element={<DetalhesRomaneio />} />
+                <Route path="/clientes" element={<Clientes />} />
+                <Route path="/historico-clientes" element={<div style={{padding: '2rem'}}>Histórico - Em construção</div>} />
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/receitas" element={<Receitas />} />
+                <Route path="/pagamentos" element={<div style={{padding: '2rem'}}>Pagamentos - Em construção</div>} />
+                <Route path="/planilha-diaria" element={<div style={{padding: '2rem'}}>Planilha Diária - Em construção</div>} />
+                <Route path="/painel-motoboys" element={<div style={{padding: '2rem'}}>Painel Motoboys - Em construção</div>} />
+                <Route path="/dispositivos" element={<div style={{padding: '2rem'}}>Dispositivos - Em construção</div>} />
+              </Routes>
+            </Layout>
           </PrivateRoute>
         }
       />
