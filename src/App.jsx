@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import Login from '@/pages/Login';
 import EntregasMoto from '@/pages/EntregasMoto';
 import NovoRomaneio from '@/pages/NovoRomaneio';
@@ -14,6 +15,7 @@ import SedexDisktenha from '@/pages/SedexDisktenha';
 import DetalheSedexDisktenha from '@/pages/DetalheSedexDisktenha';
 import Relatorios from '@/pages/Relatorios';
 import Receitas from '@/pages/Receitas';
+import Pagamentos from '@/pages/Pagamentos';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,7 +91,7 @@ function AppRoutes() {
                 <Route path="/historico-clientes" element={<div style={{padding: '2rem'}}>Histórico - Em construção</div>} />
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/receitas" element={<Receitas />} />
-                <Route path="/pagamentos" element={<div style={{padding: '2rem'}}>Pagamentos - Em construção</div>} />
+                <Route path="/pagamentos" element={<Pagamentos />} />
                 <Route path="/planilha-diaria" element={<div style={{padding: '2rem'}}>Planilha Diária - Em construção</div>} />
                 <Route path="/painel-motoboys" element={<div style={{padding: '2rem'}}>Painel Motoboys - Em construção</div>} />
                 <Route path="/dispositivos" element={<div style={{padding: '2rem'}}>Dispositivos - Em construção</div>} />
@@ -104,27 +106,29 @@ function AppRoutes() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-          <Toaster position="top-right" richColors />
-          <style>{`
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            }
-          `}</style>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppRoutes />
+            <Toaster position="top-right" richColors />
+            <style>{`
+              @keyframes spin {
+                to { transform: rotate(360deg); }
+              }
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+              }
+            `}</style>
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

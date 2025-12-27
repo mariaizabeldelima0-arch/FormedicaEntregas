@@ -59,13 +59,19 @@ export default function Receitas() {
       if (error) throw error;
       return data || [];
     },
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    refetchOnReconnect: 'always',
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
     retry: 1,
     retryDelay: 1000,
   });
+
+  // Invalidar cache quando componente montar
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['receitas'] });
+  }, [queryClient]);
 
   // Mostrar erro se houver
   useEffect(() => {
