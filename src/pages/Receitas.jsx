@@ -25,8 +25,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function Receitas() {
-  console.log('🎯 Componente Receitas montando...');
-
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -47,29 +45,19 @@ export default function Receitas() {
   const { data: entregas = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['receitas'],
     queryFn: async () => {
-      console.log('🔄 Buscando receitas...', new Date().toISOString());
-      try {
-        const { data, error } = await supabase
-          .from('entregas')
-          .select(`
-            *,
-            cliente:clientes(nome, telefone, cpf),
-            endereco:enderecos(cidade, regiao),
-            motoboy:motoboys(nome)
-          `)
-          .eq('buscar_receita', true)
-          .order('data_entrega', { ascending: false });
+      const { data, error } = await supabase
+        .from('entregas')
+        .select(`
+          *,
+          cliente:clientes(nome, telefone, cpf),
+          endereco:enderecos(cidade, regiao),
+          motoboy:motoboys(nome)
+        `)
+        .eq('buscar_receita', true)
+        .order('data_entrega', { ascending: false });
 
-        if (error) {
-          console.error('❌ Erro ao buscar receitas:', error);
-          throw error;
-        }
-        console.log('✅ Receitas carregadas:', data?.length || 0, new Date().toISOString());
-        return data || [];
-      } catch (err) {
-        console.error('❌ Erro na queryFn:', err);
-        throw err;
-      }
+      if (error) throw error;
+      return data || [];
     },
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -79,24 +67,15 @@ export default function Receitas() {
     retryDelay: 1000,
   });
 
-  // Todos os useEffect juntos (depois de todos os outros hooks)
-  useEffect(() => {
-    console.log('✅ Componente Receitas montado');
-    return () => console.log('❌ Componente Receitas desmontando');
-  }, []);
-
+  // Mostrar erro se houver
   useEffect(() => {
     if (queryError) {
-      console.error('Erro na query de receitas:', queryError);
       toast.error('Erro ao carregar receitas: ' + queryError.message);
     }
   }, [queryError]);
 
   // Early return para loading inicial
-  console.log('📊 Estado da query:', { isLoading, hasError: !!queryError, entregasCount: entregas?.length });
-
   if (isLoading) {
-    console.log('⏳ Mostrando tela de loading...');
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
@@ -177,7 +156,6 @@ export default function Receitas() {
   };
 
   // Filtrar receitas
-  console.log('🔍 Filtrando receitas...', { total: entregas.length, verTodas, filtroStatus, searchTerm });
   const receitasFiltradas = entregas.filter(e => {
     // Filtro de data
     if (!verTodas && dataSelecionada && e.data_entrega) {
@@ -204,7 +182,6 @@ export default function Receitas() {
 
     return true;
   });
-  console.log('✅ Receitas filtradas:', receitasFiltradas.length);
 
   // Contar por status
   const pendentes = entregas.filter(e => !e.receita_anexo).length;
