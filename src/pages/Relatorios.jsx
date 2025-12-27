@@ -33,8 +33,17 @@ export default function Relatorios() {
   const [filtroPeriodo, setFiltroPeriodo] = useState(urlParams.get('periodo') || "todos");
   const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || "");
 
+  // Cleanup de portals ao desmontar
+  useEffect(() => {
+    return () => {
+      // Limpar qualquer portal aberto do Radix UI
+      const portals = document.querySelectorAll('[data-radix-popper-content-wrapper]');
+      portals.forEach(portal => portal.remove());
+    };
+  }, []);
+
   // Buscar entregas do Supabase
-  const { data: entregas = [], isLoading } = useQuery({
+  const { data: entregas = [], isLoading, error: queryError } = useQuery({
     queryKey: ['entregas-relatorio'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -50,8 +59,31 @@ export default function Relatorios() {
       if (error) throw error;
       return data || [];
     },
-    refetchOnMount: 'always',
   });
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-slate-300 border-t-[#457bba] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Carregando relatório...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (queryError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold mb-2">Erro ao carregar relatório</p>
+          <p className="text-slate-500 text-sm">{queryError.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   // Filtrar entregas por data e filtros
   const entregasDoDia = entregas.filter(e => {
