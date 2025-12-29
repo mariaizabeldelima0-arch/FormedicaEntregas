@@ -16,6 +16,8 @@ import DetalheSedexDisktenha from '@/pages/DetalheSedexDisktenha';
 import Relatorios from '@/pages/Relatorios';
 import Receitas from '@/pages/Receitas';
 import Pagamentos from '@/pages/Pagamentos';
+import PlanilhaDiaria from '@/pages/PlanilhaDiaria';
+import PainelMotoboys from '@/pages/PainelMotoboys';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,8 +94,8 @@ function AppRoutes() {
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/receitas" element={<Receitas />} />
                 <Route path="/pagamentos" element={<Pagamentos />} />
-                <Route path="/planilha-diaria" element={<div style={{padding: '2rem'}}>Planilha Diária - Em construção</div>} />
-                <Route path="/painel-motoboys" element={<div style={{padding: '2rem'}}>Painel Motoboys - Em construção</div>} />
+                <Route path="/planilha-diaria" element={<PlanilhaDiaria />} />
+                <Route path="/painel-motoboys" element={<PainelMotoboys />} />
                 <Route path="/dispositivos" element={<div style={{padding: '2rem'}}>Dispositivos - Em construção</div>} />
               </Routes>
             </Layout>

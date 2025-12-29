@@ -1,68 +1,117 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/api/supabaseClient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { 
-  ArrowLeft, 
-  Smartphone, 
-  Search, 
-  CheckCircle, 
-  Clock, 
+  ArrowLeft,
+  Smartphone,
+  Monitor,
+  Search,
+  CheckCircle,
   XCircle,
-  Trash2
-} from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
-import { createPageUrl } from "@/utils";
+  Trash2,
+  Clock
+} from 'lucide-react';
 
 export default function Dispositivos() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState('todos');
+  const [busca, setBusca] = useState('');
 
-  const { data: dispositivos, isLoading } = useQuery({
+  // Buscar dispositivos
+  const { data: dispositivos = [], isLoading } = useQuery({
     queryKey: ['dispositivos'],
-    queryFn: () => base44.entities.DispositivoAutorizado.list('-created_date'),
-    initialData: [],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dispositivos')
+        .select('*')
+        .order('ultimo_acesso', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.DispositivoAutorizado.update(id, data),
+  // Filtrar dispositivos
+  const dispositivosFiltrados = dispositivos.filter(dispositivo => {
+    // Filtro por status
+    const passaFiltroStatus =
+      filtroStatus === 'todos' ||
+      (filtroStatus === 'autorizados' && dispositivo.status === 'Autorizado') ||
+      (filtroStatus === 'pendentes' && dispositivo.status === 'Pendente') ||
+      (filtroStatus === 'bloqueados' && dispositivo.status === 'Bloqueado');
+
+    if (!passaFiltroStatus) return false;
+
+    // Filtro por busca
+    if (busca.trim() === '') return true;
+
+    const buscaLower = busca.toLowerCase();
+    return (
+      dispositivo.nome?.toLowerCase().includes(buscaLower) ||
+      dispositivo.usuario?.toLowerCase().includes(buscaLower) ||
+      dispositivo.impressao_digital?.toLowerCase().includes(buscaLower)
+    );
+  });
+
+  // Calcular estatísticas
+  const stats = {
+    total: dispositivos.length,
+    autorizados: dispositivos.filter(d => d.status === 'Autorizado').length,
+    pendentes: dispositivos.filter(d => d.status === 'Pendente').length,
+    bloqueados: dispositivos.filter(d => d.status === 'Bloqueado').length,
+  };
+
+  // Mutation para autorizar
+  const autorizarMutation = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase
+        .from('dispositivos')
+        .update({ status: 'Autorizado' })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
-      toast.success('Dispositivo atualizado!');
+      toast.success('Dispositivo autorizado!');
     },
     onError: () => {
-      toast.error('Erro ao atualizar dispositivo');
+      toast.error('Erro ao autorizar dispositivo');
     }
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.DispositivoAutorizado.delete(id),
+  // Mutation para bloquear
+  const bloquearMutation = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase
+        .from('dispositivos')
+        .update({ status: 'Bloqueado' })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
+      toast.success('Dispositivo bloqueado!');
+    },
+    onError: () => {
+      toast.error('Erro ao bloquear dispositivo');
+    }
+  });
+
+  // Mutation para deletar
+  const deletarMutation = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase
+        .from('dispositivos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
       toast.success('Dispositivo removido!');
@@ -72,233 +121,266 @@ export default function Dispositivos() {
     }
   });
 
-  const handleAutorizar = (dispositivo) => {
-    updateMutation.mutate({
-      id: dispositivo.id,
-      data: { autorizado: true, aguardando_aprovacao: false }
-    });
+  const handleAutorizar = (id) => {
+    autorizarMutation.mutate(id);
   };
 
-  const handleBloquear = (dispositivo) => {
-    updateMutation.mutate({
-      id: dispositivo.id,
-      data: { autorizado: false, aguardando_aprovacao: false }
-    });
+  const handleBloquear = (id) => {
+    bloquearMutation.mutate(id);
   };
 
-  const dispositivosFiltrados = dispositivos.filter(d => {
-    if (searchTerm) {
-      const termo = searchTerm.toLowerCase();
-      const match = 
-        d.user_email?.toLowerCase().includes(termo) ||
-        d.device_name?.toLowerCase().includes(termo) ||
-        d.device_fingerprint?.toLowerCase().includes(termo);
-      if (!match) return false;
+  const handleDeletar = (id) => {
+    if (window.confirm('Tem certeza que deseja remover este dispositivo?')) {
+      deletarMutation.mutate(id);
     }
-
-    if (filtroStatus === "autorizados" && !d.autorizado) return false;
-    if (filtroStatus === "pendentes" && !d.aguardando_aprovacao) return false;
-    if (filtroStatus === "bloqueados" && (d.autorizado || d.aguardando_aprovacao)) return false;
-
-    return true;
-  });
-
-  const stats = {
-    total: dispositivos.length,
-    autorizados: dispositivos.filter(d => d.autorizado).length,
-    pendentes: dispositivos.filter(d => d.aguardando_aprovacao).length,
-    bloqueados: dispositivos.filter(d => !d.autorizado && !d.aguardando_aprovacao).length,
-  };
-
-  const StatusBadge = ({ dispositivo }) => {
-    if (dispositivo.autorizado) {
-      return (
-        <Badge className="bg-green-100 text-green-700 border-green-300 border">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Autorizado
-        </Badge>
-      );
-    }
-    if (dispositivo.aguardando_aprovacao) {
-      return (
-        <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 border">
-          <Clock className="w-3 h-3 mr-1" />
-          Pendente
-        </Badge>
-      );
-    }
-    return (
-      <Badge className="bg-red-100 text-red-700 border-red-300 border">
-        <XCircle className="w-3 h-3 mr-1" />
-        Bloqueado
-      </Badge>
-    );
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(createPageUrl("Dashboard"))}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-6 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Gerenciar Dispositivos</h1>
+              <p className="text-sm text-slate-600">Autorizar ou bloquear dispositivos de acesso</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Cards de Estatísticas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div
+            onClick={() => setFiltroStatus('todos')}
+            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500 cursor-pointer transition-all hover:shadow-md ${
+              filtroStatus === 'todos' ? 'ring-2 ring-blue-500' : ''
+            }`}
           >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Gerenciar Dispositivos</h1>
-            <p className="text-slate-600">Autorize ou bloqueie dispositivos de acesso</p>
+            <div className="text-sm text-slate-600 mb-1">Total</div>
+            <div className="text-3xl font-bold text-slate-900">{stats.total}</div>
+          </div>
+
+          <div
+            onClick={() => setFiltroStatus('autorizados')}
+            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500 cursor-pointer transition-all hover:shadow-md ${
+              filtroStatus === 'autorizados' ? 'ring-2 ring-green-500' : ''
+            }`}
+          >
+            <div className="text-sm text-slate-600 mb-1">Autorizados</div>
+            <div className="text-3xl font-bold text-green-600">{stats.autorizados}</div>
+          </div>
+
+          <div
+            onClick={() => setFiltroStatus('pendentes')}
+            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500 cursor-pointer transition-all hover:shadow-md ${
+              filtroStatus === 'pendentes' ? 'ring-2 ring-yellow-500' : ''
+            }`}
+          >
+            <div className="text-sm text-slate-600 mb-1">Pendentes</div>
+            <div className="text-3xl font-bold text-yellow-600">{stats.pendentes}</div>
+          </div>
+
+          <div
+            onClick={() => setFiltroStatus('bloqueados')}
+            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500 cursor-pointer transition-all hover:shadow-md ${
+              filtroStatus === 'bloqueados' ? 'ring-2 ring-red-500' : ''
+            }`}
+          >
+            <div className="text-sm text-slate-600 mb-1">Bloqueados</div>
+            <div className="text-3xl font-bold text-red-600">{stats.bloqueados}</div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button onClick={() => setFiltroStatus("todos")} className="text-left">
-            <Card className={`border-none shadow-md hover:shadow-xl transition-shadow ${filtroStatus === "todos" ? "ring-2 ring-[#457bba]" : ""}`}>
-              <CardHeader className="pb-3">
-                <p className="text-sm text-slate-500 font-medium">Total</p>
-                <p className="text-3xl font-bold text-slate-900">{stats.total}</p>
-              </CardHeader>
-            </Card>
-          </button>
-          <button onClick={() => setFiltroStatus("autorizados")} className="text-left">
-            <Card className={`border-none shadow-md hover:shadow-xl transition-shadow ${filtroStatus === "autorizados" ? "ring-2 ring-green-600" : ""}`}>
-              <CardHeader className="pb-3">
-                <p className="text-sm text-slate-500 font-medium">Autorizados</p>
-                <p className="text-3xl font-bold text-green-600">{stats.autorizados}</p>
-              </CardHeader>
-            </Card>
-          </button>
-          <button onClick={() => setFiltroStatus("pendentes")} className="text-left">
-            <Card className={`border-none shadow-md hover:shadow-xl transition-shadow ${filtroStatus === "pendentes" ? "ring-2 ring-yellow-600" : ""}`}>
-              <CardHeader className="pb-3">
-                <p className="text-sm text-slate-500 font-medium">Pendentes</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.pendentes}</p>
-              </CardHeader>
-            </Card>
-          </button>
-          <button onClick={() => setFiltroStatus("bloqueados")} className="text-left">
-            <Card className={`border-none shadow-md hover:shadow-xl transition-shadow ${filtroStatus === "bloqueados" ? "ring-2 ring-red-600" : ""}`}>
-              <CardHeader className="pb-3">
-                <p className="text-sm text-slate-500 font-medium">Bloqueados</p>
-                <p className="text-3xl font-bold text-red-600">{stats.bloqueados}</p>
-              </CardHeader>
-            </Card>
-          </button>
+        {/* Barra de Busca */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por e-mail, dispositivo ou impressão digital..."
+              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
-        {/* Busca */}
-        <Card className="border-none shadow-lg">
-          <CardContent className="pt-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <Input
-                placeholder="Buscar por email, dispositivo ou fingerprint..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+        {/* Lista de Dispositivos */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <div className="flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-slate-600" />
+              <h2 className="text-lg font-bold text-slate-900">Dispositivos Registrados</h2>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Lista */}
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-[#457bba]" />
-              Dispositivos Registrados
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
+          <div className="divide-y divide-slate-200">
             {isLoading ? (
-              <div className="p-12 text-center">
-                <Smartphone className="w-12 h-12 text-slate-300 mx-auto mb-4 animate-pulse" />
-                <p className="text-slate-500">Carregando...</p>
+              <div className="p-12 text-center text-slate-500">
+                Carregando dispositivos...
               </div>
             ) : dispositivosFiltrados.length === 0 ? (
               <div className="p-12 text-center">
-                <Smartphone className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500 font-medium">Nenhum dispositivo encontrado</p>
+                <Monitor className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <div className="text-slate-600 font-medium">Nenhum dispositivo encontrado</div>
+                <div className="text-sm text-slate-500 mt-1">
+                  {busca ? 'Tente ajustar sua busca' : 'Não há dispositivos cadastrados'}
+                </div>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {dispositivosFiltrados.map((dispositivo) => (
-                  <div key={dispositivo.id} className="p-6 hover:bg-slate-50">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <Smartphone className="w-5 h-5 text-slate-500" />
-                          <h3 className="font-bold text-slate-900">
-                            {dispositivo.device_name}
-                          </h3>
-                          <StatusBadge dispositivo={dispositivo} />
-                        </div>
-                        <div className="text-sm text-slate-600 space-y-1">
-                          <p><span className="font-medium">Usuário:</span> {dispositivo.user_email}</p>
-                          <p><span className="font-medium">Fingerprint:</span> <code className="bg-slate-100 px-2 py-0.5 rounded text-xs">{dispositivo.device_fingerprint}</code></p>
-                          {dispositivo.ultimo_acesso && (
-                            <p><span className="font-medium">Último acesso:</span> {format(parseISO(dispositivo.ultimo_acesso), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        {!dispositivo.autorizado && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAutorizar(dispositivo)}
-                            disabled={updateMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Autorizar
-                          </Button>
-                        )}
-                        {dispositivo.autorizado && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleBloquear(dispositivo)}
-                            disabled={updateMutation.isPending}
-                            className="border-red-300 text-red-600 hover:bg-red-50"
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Bloquear
-                          </Button>
-                        )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline" className="border-slate-300">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remover Dispositivo</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja remover este dispositivo? O usuário precisará solicitar acesso novamente.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteMutation.mutate(dispositivo.id)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Remover
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              dispositivosFiltrados.map((dispositivo) => (
+                <DispositivoCard
+                  key={dispositivo.id}
+                  dispositivo={dispositivo}
+                  onAutorizar={handleAutorizar}
+                  onBloquear={handleBloquear}
+                  onDeletar={handleDeletar}
+                  isUpdating={
+                    autorizarMutation.isPending ||
+                    bloquearMutation.isPending ||
+                    deletarMutation.isPending
+                  }
+                />
+              ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente de Card de Dispositivo
+function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUpdating }) {
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Autorizado':
+        return (
+          <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+            <CheckCircle className="w-3 h-3" />
+            Autorizado
+          </span>
+        );
+      case 'Pendente':
+        return (
+          <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold">
+            <Clock className="w-3 h-3" />
+            Pendente
+          </span>
+        );
+      case 'Bloqueado':
+        return (
+          <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">
+            <XCircle className="w-3 h-3" />
+            Bloqueado
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const getDeviceIcon = (nome) => {
+    if (nome?.toLowerCase().includes('safari') || nome?.toLowerCase().includes('mac')) {
+      return <Monitor className="w-5 h-5 text-slate-600" />;
+    }
+    return <Smartphone className="w-5 h-5 text-slate-600" />;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="p-6 hover:bg-slate-50 transition-colors">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4 flex-1">
+          <div className="mt-1">{getDeviceIcon(dispositivo.nome)}</div>
+
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="font-bold text-slate-900">{dispositivo.nome || 'Dispositivo Desconhecido'}</h3>
+              {getStatusBadge(dispositivo.status)}
+            </div>
+
+            <div className="space-y-1 text-sm">
+              <div className="text-slate-600">
+                <span className="font-medium">Usuário:</span>{' '}
+                <span className="text-slate-900">{dispositivo.usuario || '-'}</span>
+              </div>
+              <div className="text-slate-600">
+                <span className="font-medium">Impressão digital:</span>{' '}
+                <span className="font-mono text-xs text-slate-700">
+                  {dispositivo.impressao_digital || '-'}
+                </span>
+              </div>
+              <div className="text-slate-600">
+                <span className="font-medium">Último acesso:</span>{' '}
+                <span className="text-slate-900">{formatDate(dispositivo.ultimo_acesso)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Botões de Ação */}
+        <div className="flex items-center gap-2 ml-4">
+          {dispositivo.status === 'Pendente' && (
+            <button
+              onClick={() => onAutorizar(dispositivo.id)}
+              disabled={isUpdating}
+              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Autorizar
+            </button>
+          )}
+
+          {dispositivo.status === 'Autorizado' && (
+            <button
+              onClick={() => onBloquear(dispositivo.id)}
+              disabled={isUpdating}
+              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+            >
+              <XCircle className="w-4 h-4" />
+              Bloquear
+            </button>
+          )}
+
+          {dispositivo.status === 'Bloqueado' && (
+            <button
+              onClick={() => onAutorizar(dispositivo.id)}
+              disabled={isUpdating}
+              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Autorizar
+            </button>
+          )}
+
+          <button
+            onClick={() => onDeletar(dispositivo.id)}
+            disabled={isUpdating}
+            className="p-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
       </div>
     </div>
   );

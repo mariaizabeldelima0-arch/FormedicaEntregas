@@ -1,950 +1,988 @@
-
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/api/supabaseClient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format, isSameDay, startOfWeek, endOfWeek, addDays, subDays, addWeeks, subWeeks, eachDayOfInterval, getDay, startOfDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { 
-  Package, 
-  MapPin, 
-  Phone, 
-  CreditCard, 
+  Package,
+  CheckCircle,
   Clock,
-  Snowflake,
-  Navigation,
+  MapPin,
+  Phone,
   DollarSign,
-  FileText,
-  Printer,
-  User
-} from "lucide-react";
-import { format, parseISO, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, addDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
-import { Link } from "react-router-dom";
+  TrendingUp,
+  User,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 
 export default function PainelMotoboys() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
-  const [filtroLocal, setFiltroLocal] = useState("todos");
-  const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [motoboyId, setMotoboyId] = useState(null);
+  const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [modoVisualizacao, setModoVisualizacao] = useState('dia'); // 'dia' ou 'semana'
+  const [filtroStatus, setFiltroStatus] = useState('todos'); // 'todos', 'entregues', 'a_caminho', 'pendentes'
 
-  const { data: user } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: romaneios, isLoading } = useQuery({
-    queryKey: ['painel-motoboys'],
+  // Buscar lista de motoboys
+  const { data: motoboys = [] } = useQuery({
+    queryKey: ['motoboys-lista'],
     queryFn: async () => {
-      const todos = await base44.entities.Romaneio.list('-created_date');
-      return todos.filter(r => 
-        r.status !== 'Entregue' && 
-        r.status !== 'Cancelado'
-      );
-    },
-    initialData: [],
-  });
+      const { data, error } = await supabase
+        .from('motoboys')
+        .select('*')
+        .order('nome');
 
-  const updateStatusPagamentoMutation = useMutation({
-    mutationFn: async ({ romaneioId, status }) => {
-      return base44.entities.Romaneio.update(romaneioId, {
-        status_pagamento_motoboy: status
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['painel-motoboys'] });
-      toast.success('Status de pagamento atualizado!');
+      if (error) throw error;
+      return data || [];
     },
   });
 
-  // Filtrar entregas do dia selecionado
-  const romaneiosDoDia = romaneios.filter(r => {
-    if (!r.data_entrega_prevista) return false;
-    const dataEntrega = parseISO(r.data_entrega_prevista);
-    if (!isSameDay(dataEntrega, selectedDate)) return false;
-    
-    // Aplicar filtros
-    if (filtroMotoboy !== "todos" && r.motoboy !== filtroMotoboy) return false;
-    if (filtroLocal !== "todos" && r.cidade_regiao !== filtroLocal) return false;
-    if (filtroPeriodo !== "todos" && r.periodo_entrega !== filtroPeriodo) return false;
-    
+  // Selecionar primeiro motoboy automaticamente
+  useEffect(() => {
+    if (motoboys.length > 0 && !motoboyId) {
+      setMotoboyId(motoboys[0].id);
+    }
+  }, [motoboys, motoboyId]);
+
+  // Calcular período de busca
+  const getPeriodoDeBusca = () => {
+    if (modoVisualizacao === 'dia') {
+      return {
+        inicio: format(dataSelecionada, 'yyyy-MM-dd'),
+        fim: format(dataSelecionada, 'yyyy-MM-dd')
+      };
+    } else {
+      // Semana: domingo a sábado
+      const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
+      const fimSemana = endOfWeek(dataSelecionada, { weekStartsOn: 0 });
+      return {
+        inicio: format(inicioSemana, 'yyyy-MM-dd'),
+        fim: format(fimSemana, 'yyyy-MM-dd')
+      };
+    }
+  };
+
+  // Buscar entregas do motoboy
+  const { data: todasEntregas = [], isLoading } = useQuery({
+    queryKey: ['entregas-motoboy', motoboyId],
+    queryFn: async () => {
+      if (!motoboyId) {
+        console.log('Nenhum motoboy selecionado');
+        return [];
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('entregas')
+          .select(`
+            *,
+            cliente:clientes(id, nome, telefone),
+            endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
+            motoboy:motoboys(id, nome)
+          `)
+          .eq('tipo', 'moto')
+          .order('data_entrega', { ascending: true });
+
+        if (error) {
+          console.error('Erro Supabase:', error);
+          throw error;
+        }
+
+        // Filtrar por motoboy no cliente
+        const entregasDoMotoboy = data?.filter(e => e.motoboy_id === motoboyId) || [];
+        return entregasDoMotoboy;
+      } catch (error) {
+        console.error('Erro ao carregar entregas:', error);
+        toast.error('Erro ao carregar entregas');
+        return [];
+      }
+    },
+    enabled: !!motoboyId,
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+
+  // Filtrar entregas por data no cliente
+  const entregasFiltradas = todasEntregas.filter(entrega => {
+    if (!entrega.data_entrega) return false;
+
+    const entregaDate = new Date(entrega.data_entrega + 'T00:00:00');
+
+    if (modoVisualizacao === 'dia') {
+      // Comparar apenas a data usando isSameDay
+      return isSameDay(entregaDate, dataSelecionada);
+    } else {
+      // Semana: verificar se está entre início e fim da semana
+      const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
+      const fimSemana = endOfWeek(dataSelecionada, { weekStartsOn: 0 });
+      return entregaDate >= inicioSemana && entregaDate <= fimSemana;
+    }
+  });
+
+  // Aplicar filtro de status
+  const entregas = entregasFiltradas.filter(entrega => {
+    if (filtroStatus === 'todos') return true;
+    if (filtroStatus === 'entregues') return entrega.status === 'Entregue';
+    if (filtroStatus === 'a_caminho') return entrega.status === 'A Caminho';
+    if (filtroStatus === 'pendentes') return entrega.status === 'Pendente' || entrega.status === 'Preparando' || entrega.status === 'Produzindo no Laboratório';
     return true;
   });
 
-  // Separar por motoboy
-  const romaneiosMarcio = romaneiosDoDia.filter(r => r.motoboy === "Marcio");
-  const romaneiosBruno = romaneiosDoDia.filter(r => r.motoboy === "Bruno");
+  // Mutation para atualizar status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }) => {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ status })
+        .eq('id', id);
 
-  // Locais únicos para o filtro
-  const locaisUnicos = [...new Set(romaneios
-    .filter(r => r.data_entrega_prevista && isSameDay(parseISO(r.data_entrega_prevista), selectedDate))
-    .map(r => r.cidade_regiao))].sort();
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entregas-motoboy'] });
+      toast.success('Status atualizado!');
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar status');
+    }
+  });
 
-  // Ordenar por local e período
-  const ordenarEntregas = (entregas) => {
-    return [...entregas].sort((a, b) => {
-      const localCompare = a.cidade_regiao.localeCompare(b.cidade_regiao);
-      if (localCompare !== 0) return localCompare;
-      if (a.periodo_entrega !== b.periodo_entrega) {
-        return a.periodo_entrega === "Manhã" ? -1 : 1;
-      }
-      return 0;
-    });
+  // Calcular estatísticas (usar entregasFiltradas para os números, mas entregas para exibir)
+  const statsTotal = {
+    total: entregasFiltradas.length,
+    entregues: entregasFiltradas.filter(e => e.status === 'Entregue').length,
+    aCaminho: entregasFiltradas.filter(e => e.status === 'A Caminho').length,
+    pendentes: entregasFiltradas.filter(e => e.status === 'Pendente' || e.status === 'Preparando' || e.status === 'Produzindo no Laboratório').length,
   };
 
-  const romaneiosMarcioOrdenados = ordenarEntregas(romaneiosMarcio);
-  const romaneiosBrunoOrdenados = ordenarEntregas(romaneiosBruno);
-
-  // Calcular estatísticas do dia para cada motoboy
-  const calcularStatsDoDia = (entregas) => {
-    return entregas.reduce((acc, r) => {
-      const local = r.cidade_regiao;
-      if (!acc[local]) {
-        acc[local] = { quantidade: 0, valor: 0 };
-      }
-      acc[local].quantidade += 1;
-      acc[local].valor += r.valor_entrega || 0;
-      return acc;
-    }, {});
+  const stats = {
+    total: entregas.length,
+    entregues: entregas.filter(e => e.status === 'Entregue').length,
+    aCaminho: entregas.filter(e => e.status === 'A Caminho').length,
+    pendentes: entregas.filter(e => e.status === 'Pendente' || e.status === 'Preparando' || e.status === 'Produzindo no Laboratório').length,
+    valorTotal: entregas.reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
+    taxaTotal: entregas.reduce((sum, e) => sum + (parseFloat(e.taxa) || 0), 0),
   };
 
-  const statsMarcio = calcularStatsDoDia(romaneiosMarcio);
-  const statsBruno = calcularStatsDoDia(romaneiosBruno);
-  const totalMarcio = Object.values(statsMarcio).reduce((sum, stat) => sum + stat.valor, 0);
-  const totalBruno = Object.values(statsBruno).reduce((sum, stat) => sum + stat.valor, 0);
-
-  // Calcular estatísticas da semana (Terça a Segunda)
-  const getTuesdayStartOfWeek = (date) => {
-    return startOfWeek(date, { weekStartsOn: 2 });
+  // Agrupar entregas por período
+  const entregasPorPeriodo = {
+    manha: entregas.filter(e => e.periodo === 'Manhã'),
+    tarde: entregas.filter(e => e.periodo === 'Tarde'),
   };
 
-  const currentWeekStart = addWeeks(getTuesdayStartOfWeek(selectedDate), weekOffset);
-  const weekStart = currentWeekStart;
-  const weekEnd = addDays(currentWeekStart, 6);
-  const daysOfWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  // Calcular semana de trabalho (Terça a Segunda, sem Domingo)
+  const calcularSemanaTrabalho = () => {
+    const dataReferencia = dataSelecionada; // Usar data selecionada ao invés de hoje
+    const diaDaSemana = getDay(dataReferencia); // 0=Domingo, 1=Segunda, 2=Terça...
 
-  const calcularWeekStats = (motoboy) => {
-    return daysOfWeek.map(day => {
-      const romaneiosDoDia = romaneios.filter(r => {
-        if (!r.data_entrega_prevista || r.motoboy !== motoboy) return false;
-        const dataEntrega = parseISO(r.data_entrega_prevista);
-        return isSameDay(dataEntrega, day) && r.status !== 'Cancelado';
+    // Encontrar a terça-feira da semana de trabalho
+    let inicioSemanaTrabalho;
+    if (diaDaSemana === 0) { // Domingo - pega terça anterior
+      inicioSemanaTrabalho = subDays(dataReferencia, 5);
+    } else if (diaDaSemana === 1) { // Segunda - pega terça anterior
+      inicioSemanaTrabalho = subDays(dataReferencia, 6);
+    } else { // Terça a Sábado - pega a terça desta semana
+      inicioSemanaTrabalho = subDays(dataReferencia, diaDaSemana - 2);
+    }
+
+    // Dias da semana: Terça, Quarta, Quinta, Sexta, Sábado, Segunda (sem Domingo)
+    const diasDaSemana = [
+      { nome: 'Terça-feira', offset: 0 },
+      { nome: 'Quarta-feira', offset: 1 },
+      { nome: 'Quinta-feira', offset: 2 },
+      { nome: 'Sexta-feira', offset: 3 },
+      { nome: 'Sábado', offset: 4 },
+      { nome: 'Segunda-feira', offset: 6 }, // Pula domingo
+    ];
+
+    return diasDaSemana.map(dia => {
+      const data = addDays(inicioSemanaTrabalho, dia.offset);
+      const dataStr = format(data, 'yyyy-MM-dd');
+      const hoje = new Date(); // Data real de hoje
+
+      // Filtrar entregas deste dia para o motoboy atual
+      const entregasDoDia = todasEntregas.filter(e => {
+        if (e.motoboy_id !== motoboyId) return false;
+        if (!e.data_entrega) return false;
+        return e.data_entrega === dataStr;
       });
-      
-      const total = romaneiosDoDia.reduce((sum, r) => sum + (r.valor_entrega || 0), 0);
-      
+
+      const taxaDia = entregasDoDia.reduce((sum, e) => sum + (parseFloat(e.taxa) || 0), 0);
+      const entreguesDia = entregasDoDia.filter(e => e.status === 'Entregue').length;
+
       return {
-        dia: format(day, 'EEE', { locale: ptBR }),
-        data: format(day, 'dd/MM'),
-        valor: total,
-        quantidade: romaneiosDoDia.length
+        nome: dia.nome,
+        data,
+        dataStr,
+        entregas: entregasDoDia.length,
+        entregues: entreguesDia,
+        taxa: taxaDia,
+        isHoje: isSameDay(data, hoje), // Comparar com hoje real
       };
     });
   };
 
-  const weekStatsMarcio = calcularWeekStats("Marcio");
-  const weekStatsBruno = calcularWeekStats("Bruno");
-  const totalSemanaMarcio = weekStatsMarcio.reduce((sum, stat) => sum + stat.valor, 0);
-  const totalSemanaBruno = weekStatsBruno.reduce((sum, stat) => sum + stat.valor, 0);
+  const semanaTrabalho = calcularSemanaTrabalho();
+  const totalSemanal = semanaTrabalho.reduce((sum, dia) => sum + dia.taxa, 0);
 
-  // Status de pagamento da semana
-  const getStatusPagamentoSemana = (motoboy) => {
-    // Find *any* romaneio for the motoboy in the current week to get the payment status.
-    // Assuming status_pagamento_motoboy is consistent for all romaneios of a motoboy in a given week.
-    const romaneioNaSemana = romaneios.find(r => {
-      if (!r.data_entrega_prevista || r.motoboy !== motoboy) return false;
-      const dataEntrega = parseISO(r.data_entrega_prevista);
-      return dataEntrega >= weekStart && dataEntrega <= weekEnd;
-    });
-    return romaneioNaSemana?.status_pagamento_motoboy || "Aguardando";
+  // Calcular intervalo de datas da semana de trabalho
+  const intervaloSemanaTrabalho = semanaTrabalho.length > 0
+    ? `${format(semanaTrabalho[0].data, 'dd/MM')} a ${format(semanaTrabalho[semanaTrabalho.length - 1].data, 'dd/MM/yyyy')}`
+    : '';
+
+  const handleStatusChange = (id, newStatus) => {
+    updateStatusMutation.mutate({ id, status: newStatus });
   };
 
-  const statusPagamentoSemanaMarcio = getStatusPagamentoSemana("Marcio");
-  const statusPagamentoSemanaBruno = getStatusPagamentoSemana("Bruno");
-
-  const handlePrint = () => {
-    window.print();
+  const handleCardClick = (entrega) => {
+    // Navegar para página de detalhes passando o ID da entrega
+    navigate(`/detalhes-romaneio?id=${entrega.id}`);
   };
 
-  const abrirNavegacao = (romaneio) => {
-    const end = romaneio.endereco;
-    const endereco = `${end.rua}, ${end.numero}, ${end.bairro}`;
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`;
-    window.open(url, '_blank');
+  const motoboyAtual = motoboys.find(m => m.id === motoboyId);
+
+  // Navegação de datas
+  const handleDiaAnterior = () => {
+    setDataSelecionada(prev => subDays(prev, 1));
   };
 
-  const precisaCobrar = (romaneio) => {
-    return romaneio.valor_pagamento && 
-           ["Dinheiro", "Maquina", "Troco P/"].includes(romaneio.forma_pagamento);
+  const handleProximoDia = () => {
+    setDataSelecionada(prev => addDays(prev, 1));
   };
 
-  const StatusBadge = ({ status }) => {
-    const configs = {
-      "Pendente": { color: "bg-slate-100 text-slate-700", icon: Clock },
-      "A Caminho": { color: "bg-purple-100 text-purple-700", icon: Package },
-      // Add other statuses if needed
-    };
-    const { color, icon: Icon } = configs[status] || configs["Pendente"];
-    return (
-      <Badge className={`${color} border`}>
-        <Icon className="w-3 h-3 mr-1" />
-        {status}
-      </Badge>
-    );
+  const handleSemanaAnterior = () => {
+    setDataSelecionada(prev => subWeeks(prev, 1));
   };
 
-  const EntregaCard = ({ romaneio, index, motoboy }) => {
-    const deveSerCobrado = precisaCobrar(romaneio);
-    const corMotoboy = motoboy === "Marcio" ? "ring-blue-400" : "ring-green-400";
-    
-    return (
-      <Card className={`border-slate-200 hover:shadow-lg transition-shadow ${deveSerCobrado ? 'ring-2 ring-orange-400' : ''} ring-2 ${corMotoboy}`}>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-start gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 flex-wrap mb-2">
-                <Badge variant="outline" className="font-mono">#{index + 1}</Badge>
-                <CardTitle className="text-lg">REQ #{romaneio.numero_requisicao}</CardTitle>
-                <StatusBadge status={romaneio.status} />
-                <Badge className={motoboy === "Marcio" ? "bg-blue-100 text-blue-700 border-blue-300" : "bg-green-100 text-green-700 border-green-300"}>
-                  <User className="w-3 h-3 mr-1" />
-                  {motoboy}
-                </Badge>
-                {romaneio.item_geladeira && (
-                  <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300">
-                    <Snowflake className="w-3 h-3 mr-1" />
-                    GELADEIRA
-                  </Badge>
-                )}
-                {deveSerCobrado && (
-                  <Badge className="bg-orange-100 text-orange-700 border-orange-400 border-2 font-bold">
-                    <DollarSign className="w-4 h-4 mr-1" />
-                    COBRAR
-                  </Badge>
-                )}
-                {romaneio.valor_entrega && (
-                  <Badge className="bg-green-100 text-green-700 border-green-300 font-bold">
-                    💰 R$ {romaneio.valor_entrega.toFixed(2)}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-sm text-slate-600 font-medium">{romaneio.cliente_nome}</p>
+  const handleProximaSemana = () => {
+    setDataSelecionada(prev => addWeeks(prev, 1));
+  };
+
+  const handleHoje = () => {
+    setDataSelecionada(new Date());
+  };
+
+  // Formatar período de exibição
+  const getPeriodoTexto = () => {
+    if (modoVisualizacao === 'dia') {
+      return format(dataSelecionada, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } else {
+      const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
+      const fimSemana = endOfWeek(dataSelecionada, { weekStartsOn: 0 });
+      return `${format(inicioSemana, 'dd/MM', { locale: ptBR })} a ${format(fimSemana, 'dd/MM/yyyy', { locale: ptBR })}`;
+    }
+  };
+
+  // Agrupar entregas por data (para visualização semanal)
+  const entregasPorData = entregas.reduce((acc, entrega) => {
+    const data = entrega.data_entrega;
+    if (!acc[data]) {
+      acc[data] = [];
+    }
+    acc[data].push(entrega);
+    return acc;
+  }, {});
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-6 shadow-lg">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-1">Painel do Motoboy</h1>
+              <p className="text-blue-100 text-sm">Gerencie suas entregas</p>
             </div>
-            <Badge variant="outline" className="text-xs">
-              {romaneio.periodo_entrega}
-            </Badge>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Valor a Cobrar em Destaque */}
-          {deveSerCobrado && (
-            <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4">
-              <p className="text-xs font-bold text-orange-700 mb-1">💰 COBRAR NA ENTREGA:</p>
-              <p className="text-2xl font-bold text-orange-900">
-                R$ {romaneio.valor_pagamento.toFixed(2)}
-              </p>
-              {romaneio.valor_troco && (
-                <p className="text-sm text-orange-700 mt-1">
-                  Troco para: R$ {romaneio.valor_troco.toFixed(2)}
+
+          {/* Seletor de Motoboy */}
+          <div className="flex items-center gap-3 mb-4">
+            <User className="w-5 h-5 text-blue-200" />
+            <select
+              value={motoboyId || ''}
+              onChange={(e) => setMotoboyId(e.target.value)}
+              className="flex-1 max-w-xs bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg px-4 py-2 text-white font-medium focus:outline-none focus:border-white/50"
+            >
+              {motoboys.map(m => (
+                <option key={m.id} value={m.id} className="text-slate-900">
+                  {m.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Controles de Data */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              {/* Modo de Visualização */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setModoVisualizacao('dia')}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                    modoVisualizacao === 'dia'
+                      ? 'bg-white text-blue-600'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  Dia
+                </button>
+                <button
+                  onClick={() => setModoVisualizacao('semana')}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                    modoVisualizacao === 'semana'
+                      ? 'bg-white text-blue-600'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  Semana
+                </button>
+              </div>
+
+              {/* Navegação de Data */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={modoVisualizacao === 'dia' ? handleDiaAnterior : handleSemanaAnterior}
+                  className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-lg min-w-[200px] justify-center">
+                  <CalendarIcon className="w-4 h-4" />
+                  <span className="font-semibold text-sm">
+                    {getPeriodoTexto()}
+                  </span>
+                </div>
+
+                <button
+                  onClick={modoVisualizacao === 'dia' ? handleProximoDia : handleProximaSemana}
+                  className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={handleHoje}
+                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
+                >
+                  Hoje
+                </button>
+              </div>
+
+              {/* Seletor de Data */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={format(dataSelecionada, 'yyyy-MM-dd')}
+                  onChange={(e) => {
+                    // Corrigir problema de timezone
+                    const [year, month, day] = e.target.value.split('-');
+                    const novaData = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                    setDataSelecionada(novaData);
+                  }}
+                  className="bg-white/20 border-2 border-white/30 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-white/50 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Cards de Estatísticas */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setFiltroStatus('todos');
+            }}
+            className={`rounded-xl shadow-md p-4 border-l-4 border-blue-500 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+              filtroStatus === 'todos' ? 'bg-blue-50 ring-2 ring-blue-500' : 'bg-white'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-slate-600 mb-1">Total</div>
+                <div className="text-2xl font-bold text-slate-900">{statsTotal.total}</div>
+              </div>
+              <Package className="w-8 h-8 text-blue-500 opacity-70" />
+            </div>
+          </div>
+
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setFiltroStatus('entregues');
+            }}
+            className={`rounded-xl shadow-md p-4 border-l-4 border-green-500 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+              filtroStatus === 'entregues' ? 'bg-green-50 ring-2 ring-green-500' : 'bg-white'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-slate-600 mb-1">Entregues</div>
+                <div className="text-2xl font-bold text-green-600">{statsTotal.entregues}</div>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-500 opacity-70" />
+            </div>
+          </div>
+
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setFiltroStatus('a_caminho');
+            }}
+            className={`rounded-xl shadow-md p-4 border-l-4 border-yellow-500 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+              filtroStatus === 'a_caminho' ? 'bg-yellow-50 ring-2 ring-yellow-500' : 'bg-white'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-slate-600 mb-1">A Caminho</div>
+                <div className="text-2xl font-bold text-yellow-600">{statsTotal.aCaminho}</div>
+              </div>
+              <Clock className="w-8 h-8 text-yellow-500 opacity-70" />
+            </div>
+          </div>
+
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setFiltroStatus('pendentes');
+            }}
+            className={`rounded-xl shadow-md p-4 border-l-4 border-slate-500 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+              filtroStatus === 'pendentes' ? 'bg-slate-50 ring-2 ring-slate-500' : 'bg-white'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-slate-600 mb-1">Pendentes</div>
+                <div className="text-2xl font-bold text-slate-600">{statsTotal.pendentes}</div>
+              </div>
+              <Package className="w-8 h-8 text-slate-500 opacity-70" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-slate-600 mb-1">Valor Total</div>
+                <div className="text-lg font-bold text-purple-600">
+                  R$ {stats.valorTotal.toFixed(2)}
+                </div>
+              </div>
+              <DollarSign className="w-8 h-8 text-purple-500 opacity-70" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-emerald-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-slate-600 mb-1">Ganhos</div>
+                <div className="text-lg font-bold text-emerald-600">
+                  R$ {stats.taxaTotal.toFixed(2)}
+                </div>
+              </div>
+              <TrendingUp className="w-8 h-8 text-emerald-500 opacity-70" />
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de Progresso */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-semibold text-slate-700">Progresso do Dia</div>
+            <div className="text-sm font-bold text-blue-600">
+              {stats.total > 0 ? Math.round((stats.entregues / stats.total) * 100) : 0}%
+            </div>
+          </div>
+          <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+              style={{
+                width: `${stats.total > 0 ? (stats.entregues / stats.total) * 100 : 0}%`
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Tabela de Ganhos Semanais */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold">Ganhos da Semana</h2>
+                <p className="text-sm text-emerald-100">
+                  {intervaloSemanaTrabalho || 'Terça-feira a Segunda-feira'}
                 </p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-emerald-100">Total Semanal</div>
+                <div className="text-2xl font-bold">R$ {totalSemanal.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b-2 border-slate-200">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Dia</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Data</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase">Entregas</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase">Entregues</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Ganhos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {semanaTrabalho.map((dia, index) => (
+                  <tr
+                    key={dia.dataStr}
+                    className={`border-b border-slate-100 transition-colors ${
+                      dia.isHoje
+                        ? 'bg-blue-50 hover:bg-blue-100'
+                        : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-medium ${dia.isHoje ? 'text-blue-700' : 'text-slate-900'}`}>
+                          {dia.nome}
+                        </span>
+                        {dia.isHoje && (
+                          <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                            HOJE
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {format(dia.data, "dd/MM/yyyy", { locale: ptBR })}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`font-semibold ${dia.entregas > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                        {dia.entregas}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`font-semibold ${dia.entregues > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                        {dia.entregues}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className={`font-bold text-lg ${dia.taxa > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                        R$ {dia.taxa.toFixed(2)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-50 border-t-2 border-slate-300">
+                  <td colSpan="4" className="px-6 py-4 text-right font-bold text-slate-700">
+                    Total da Semana:
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-2xl font-bold text-emerald-600">
+                      R$ {totalSemanal.toFixed(2)}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* Lista de Entregas */}
+        <div className="space-y-6">
+          {/* Visualização por Semana */}
+          {modoVisualizacao === 'semana' && Object.keys(entregasPorData).length > 0 && (
+            Object.entries(entregasPorData)
+              .sort(([dataA], [dataB]) => dataA.localeCompare(dataB))
+              .map(([data, entregasDoDia]) => {
+                const dataObj = new Date(data + 'T00:00:00');
+                const entregasManha = entregasDoDia.filter(e => e.periodo === 'Manhã');
+                const entregasTarde = entregasDoDia.filter(e => e.periodo === 'Tarde');
+
+                return (
+                  <div key={data} className="space-y-4">
+                    {/* Cabeçalho do Dia */}
+                    <div className="bg-gradient-to-r from-slate-700 to-slate-600 text-white px-4 py-3 rounded-lg shadow-md">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <CalendarIcon className="w-5 h-5" />
+                          <div>
+                            <div className="font-bold text-lg">
+                              {format(dataObj, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                            </div>
+                            <div className="text-xs text-slate-200">
+                              {entregasDoDia.length} entrega{entregasDoDia.length !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-slate-200">Entregues</div>
+                          <div className="text-lg font-bold">
+                            {entregasDoDia.filter(e => e.status === 'Entregue').length}/{entregasDoDia.length}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Entregas da Manhã */}
+                    {entregasManha.length > 0 && (
+                      <div>
+                        <div className="bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold text-sm mb-3">
+                          ☀️ MANHÃ ({entregasManha.length})
+                        </div>
+                        <div className="space-y-3">
+                          {Object.entries(
+                            entregasManha.reduce((acc, e) => {
+                              const cidade = e.endereco?.cidade || 'Sem cidade';
+                              if (!acc[cidade]) acc[cidade] = [];
+                              acc[cidade].push(e);
+                              return acc;
+                            }, {})
+                          ).map(([cidade, entregas]) => (
+                            <div key={cidade}>
+                              <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
+                                📍 {cidade} - {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
+                              </div>
+                              <div className="space-y-2">
+                                {entregas.map((entrega) => (
+                                  <EntregaCard
+                                    key={entrega.id}
+                                    entrega={entrega}
+                                    onStatusChange={handleStatusChange}
+                                    isUpdating={updateStatusMutation.isPending}
+                                    onCardClick={handleCardClick}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Entregas da Tarde */}
+                    {entregasTarde.length > 0 && (
+                      <div>
+                        <div className="bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold text-sm mb-3">
+                          🌅 TARDE ({entregasTarde.length})
+                        </div>
+                        <div className="space-y-3">
+                          {Object.entries(
+                            entregasTarde.reduce((acc, e) => {
+                              const cidade = e.endereco?.cidade || 'Sem cidade';
+                              if (!acc[cidade]) acc[cidade] = [];
+                              acc[cidade].push(e);
+                              return acc;
+                            }, {})
+                          ).map(([cidade, entregas]) => (
+                            <div key={cidade}>
+                              <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
+                                📍 {cidade} - {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
+                              </div>
+                              <div className="space-y-2">
+                                {entregas.map((entrega) => (
+                                  <EntregaCard
+                                    key={entrega.id}
+                                    entrega={entrega}
+                                    onStatusChange={handleStatusChange}
+                                    isUpdating={updateStatusMutation.isPending}
+                                    onCardClick={handleCardClick}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+          )}
+
+          {/* Visualização por Dia */}
+          {modoVisualizacao === 'dia' && (
+            <>
+              {/* Entregas Manhã */}
+              {entregasPorPeriodo.manha.length > 0 && (
+                <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                  ☀️ MANHÃ ({entregasPorPeriodo.manha.length})
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {Object.entries(
+                  entregasPorPeriodo.manha.reduce((acc, e) => {
+                    const cidade = e.endereco?.cidade || 'Sem cidade';
+                    if (!acc[cidade]) acc[cidade] = [];
+                    acc[cidade].push(e);
+                    return acc;
+                  }, {})
+                ).map(([cidade, entregas]) => (
+                  <div key={cidade}>
+                    <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
+                      📍 {cidade} - {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
+                    </div>
+                    <div className="space-y-2">
+                      {entregas.map((entrega) => (
+                        <EntregaCard
+                          key={entrega.id}
+                          entrega={entrega}
+                          onStatusChange={handleStatusChange}
+                          isUpdating={updateStatusMutation.isPending}
+                          onCardClick={handleCardClick}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+                </div>
+              )}
+
+              {/* Entregas Tarde */}
+              {entregasPorPeriodo.tarde.length > 0 && (
+                <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                  🌅 TARDE ({entregasPorPeriodo.tarde.length})
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {Object.entries(
+                  entregasPorPeriodo.tarde.reduce((acc, e) => {
+                    const cidade = e.endereco?.cidade || 'Sem cidade';
+                    if (!acc[cidade]) acc[cidade] = [];
+                    acc[cidade].push(e);
+                    return acc;
+                  }, {})
+                ).map(([cidade, entregas]) => (
+                  <div key={cidade}>
+                    <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
+                      📍 {cidade} - {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
+                    </div>
+                    <div className="space-y-2">
+                      {entregas.map((entrega) => (
+                        <EntregaCard
+                          key={entrega.id}
+                          entrega={entrega}
+                          onStatusChange={handleStatusChange}
+                          isUpdating={updateStatusMutation.isPending}
+                          onCardClick={handleCardClick}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Mensagem quando não há entregas */}
+          {entregas.length === 0 && !isLoading && (
+            <div className="bg-white rounded-xl shadow-md p-12 text-center">
+              <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <div className="text-xl font-semibold text-slate-600 mb-2">
+                Nenhuma entrega para {modoVisualizacao === 'dia' ? format(dataSelecionada, "dd/MM/yyyy") : 'esta semana'}
+              </div>
+              <div className="text-sm text-slate-500 mb-4">
+                {motoboyAtual?.nome} não tem entregas agendadas para este período.
+              </div>
+              {todasEntregas.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+                  <div className="text-sm font-semibold text-blue-900 mb-2">
+                    💡 Dias com entregas:
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {[...new Set(todasEntregas.map(e => e.data_entrega))].sort().map(data => (
+                      <button
+                        key={data}
+                        onClick={() => {
+                          const [year, month, day] = data.split('-');
+                          const novaData = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                          setDataSelecionada(novaData);
+                          setModoVisualizacao('dia');
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-semibold transition-colors"
+                      >
+                        {format(new Date(data + 'T00:00:00'), "dd/MM")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          {/* Endereço */}
-          <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-            <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-[#457bba] mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-slate-900">
-                  {romaneio.endereco.rua}, {romaneio.endereco.numero}
-                </p>
-                <p className="text-slate-600">{romaneio.endereco.bairro} - {romaneio.cidade_regiao}</p>
-                {romaneio.endereco.complemento && (
-                  <p className="text-slate-500">{romaneio.endereco.complemento}</p>
-                )}
-                {romaneio.endereco.ponto_referencia && (
-                  <p className="text-slate-500 italic">Ref: {romaneio.endereco.ponto_referencia}</p>
-                )}
-                {romaneio.endereco.aos_cuidados_de && (
-                  <p className="text-slate-600 font-medium">A/C: {romaneio.endereco.aos_cuidados_de}</p>
-                )}
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => abrirNavegacao(romaneio)}
-            >
-              <Navigation className="w-4 h-4 mr-2" />
-              Abrir no Mapa
-            </Button>
-          </div>
+// Componente de Card de Entrega
+function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Entregue':
+        return 'bg-green-50 border-green-200';
+      case 'A Caminho':
+        return 'bg-yellow-50 border-yellow-200';
+      case 'Não Entregue':
+        return 'bg-red-50 border-red-200';
+      default:
+        return 'bg-white border-slate-200';
+    }
+  };
 
-          {/* Informações */}
-          <div className="flex items-center gap-2 text-sm">
-            <CreditCard className="w-4 h-4 text-slate-500" />
-            <span className="font-medium">{romaneio.forma_pagamento}</span>
-          </div>
-
-          {romaneio.cliente_telefone && (
-            <a
-              href={`tel:${romaneio.cliente_telefone}`}
-              className="flex items-center gap-2 text-sm text-[#457bba] hover:underline"
-            >
-              <Phone className="w-4 h-4" />
-              {romaneio.cliente_telefone}
-            </a>
-          )}
-
-          {/* Observações */}
-          {romaneio.observacoes && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <p className="text-xs font-semibold text-yellow-800 mb-1">OBSERVAÇÕES:</p>
-              <p className="text-sm text-yellow-900">{romaneio.observacoes}</p>
-            </div>
-          )}
-
-          {romaneio.endereco.observacoes && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs font-semibold text-blue-800 mb-1">OBS. DO ENDEREÇO:</p>
-              <p className="text-sm text-blue-900">{romaneio.endereco.observacoes}</p>
-            </div>
-          )}
-
-          {/* Ação Admin - Link para detalhes */}
-          <Link to={`/DetalhesRomaneio?id=${romaneio.id}`}>
-            <Button variant="outline" size="sm" className="w-full">
-              <FileText className="w-4 h-4 mr-2" />
-              Ver Detalhes
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
+  const getStatusBadgeColor = (status) => {
+    switch (status) {
+      case 'Entregue':
+        return 'bg-green-500 text-white';
+      case 'A Caminho':
+        return 'bg-yellow-500 text-white';
+      case 'Não Entregue':
+        return 'bg-red-500 text-white';
+      case 'Pendente':
+        return 'bg-slate-400 text-white';
+      default:
+        return 'bg-blue-500 text-white';
+    }
   };
 
   return (
-    <>
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
+    <div
+      className={`rounded-xl shadow-md border-2 overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.02] ${getStatusColor(entrega.status)}`}
+      onClick={(e) => {
+        if (onCardClick) {
+          onCardClick(entrega);
         }
-      `}</style>
-      
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex justify-between items-center no-print">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
-                Painel dos Motoboys
-              </h1>
-              <p className="text-slate-600">
-                Visualização e gerenciamento das entregas dos motoboys
-              </p>
+      }}
+    >
+      <div className="p-4" style={{ pointerEvents: 'none' }}>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-bold text-slate-900 text-lg">
+                {entrega.cliente?.nome || 'Cliente'}
+              </h3>
+              {entrega.recibo_medico && (
+                <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded font-semibold">
+                  RECEITA
+                </span>
+              )}
             </div>
-            <Button onClick={handlePrint} variant="outline">
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir Relatório
-            </Button>
+            <div className="text-xs text-slate-600 mb-2">
+              Requisição: <span className="font-mono font-semibold">{entrega.requisicao || '-'}</span>
+            </div>
+          </div>
+          <div className={`px-3 py-1 rounded-lg text-xs font-bold ${getStatusBadgeColor(entrega.status)}`}>
+            {entrega.status || 'Pendente'}
+          </div>
+        </div>
+
+        <div className="space-y-2 mb-4">
+          <div className="flex items-start gap-2 text-sm">
+            <MapPin className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+            <div className="text-slate-700">
+              <div className="font-medium">
+                {entrega.endereco?.logradouro}, {entrega.endereco?.numero}
+              </div>
+              <div className="text-xs text-slate-600">
+                {entrega.endereco?.bairro} - {entrega.endereco?.cidade}
+                {entrega.endereco?.complemento && ` • ${entrega.endereco.complemento}`}
+              </div>
+            </div>
           </div>
 
-          <Tabs defaultValue="geral" className="w-full">
-            <TabsList className="no-print">
-              <TabsTrigger value="geral">Visão Geral</TabsTrigger>
-              <TabsTrigger value="marcio">Marcio</TabsTrigger>
-              <TabsTrigger value="bruno">Bruno</TabsTrigger>
-            </TabsList>
+          <div className="flex items-center gap-2 text-sm">
+            <Phone className="w-4 h-4 text-slate-500 flex-shrink-0" />
+            <span className="text-slate-700 font-medium">
+              {entrega.cliente?.telefone || 'Sem telefone'}
+            </span>
+          </div>
 
-            {/* Visão Geral */}
-            <TabsContent value="geral">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Calendário */}
-                <Card className="border-none shadow-lg no-print">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Selecione o Dia</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
-                      locale={ptBR}
-                      className="rounded-md border"
-                    />
-                    <div className="mt-4 text-center">
-                      <p className="text-sm font-semibold text-slate-900">
-                        {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {romaneiosDoDia.length} entrega{romaneiosDoDia.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="w-4 h-4 text-slate-500 flex-shrink-0" />
+            <span className="text-slate-700">
+              <span className="font-semibold">{entrega.horario || 'Sem horário'}</span>
+              {entrega.observacoes && ` • ${entrega.observacoes}`}
+            </span>
+          </div>
 
-                {/* Lista de Entregas */}
-                <div className="lg:col-span-3 space-y-6">
-                  {/* Filtros */}
-                  <Card className="border-none shadow-lg no-print">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="text-lg">Filtros</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Motoboy</label>
-                          <Select value={filtroMotoboy} onValueChange={setFiltroMotoboy}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Todos" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="todos">Todos</SelectItem>
-                              <SelectItem value="Marcio">Marcio</SelectItem>
-                              <SelectItem value="Bruno">Bruno</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Local</label>
-                          <Select value={filtroLocal} onValueChange={setFiltroLocal}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Todos os locais" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="todos">Todos os Locais</SelectItem>
-                              {locaisUnicos.map(local => (
-                                <SelectItem key={local} value={local}>{local}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Período</label>
-                          <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Todos os períodos" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="todos">Todos os Períodos</SelectItem>
-                              <SelectItem value="Manhã">Manhã</SelectItem>
-                              <SelectItem value="Tarde">Tarde</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Resumos Lado a Lado */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Resumo Marcio */}
-                    <div className="space-y-4">
-                      <h2 className="text-xl font-bold text-blue-900 flex items-center gap-2">
-                        <User className="w-5 h-5" />
-                        Marcio
-                      </h2>
-                      
-                      {/* Resumo do Dia Marcio */}
-                      {Object.keys(statsMarcio).length > 0 && (
-                        <Card className="border-none shadow-lg bg-blue-50">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm text-blue-900">Resumo do Dia</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            {Object.entries(statsMarcio).sort((a, b) => a[0].localeCompare(b[0])).map(([local, stats]) => (
-                              <div key={local} className="flex justify-between items-center text-sm">
-                                <span className="text-slate-700">{local}</span>
-                                <div className="text-right">
-                                  <span className="font-medium text-slate-900">{stats.quantidade}x</span>
-                                  <span className="text-blue-700 font-bold ml-2">R$ {stats.valor.toFixed(2)}</span>
-                                </div>
-                              </div>
-                            ))}
-                            <div className="pt-2 border-t-2 border-blue-300 flex justify-between items-center font-bold">
-                              <span className="text-blue-900">TOTAL DO DIA</span>
-                              <span className="text-blue-900 text-lg">R$ {totalMarcio.toFixed(2)}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {/* Resumo da Semana Marcio */}
-                      <Card className={`border-none shadow-lg ${statusPagamentoSemanaMarcio === "Pago" ? "bg-green-50" : "bg-blue-50"}`}>
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className={`text-sm ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}`}>
-                                Semana • {statusPagamentoSemanaMarcio}
-                              </CardTitle>
-                              <p className={`text-xs ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-blue-700"}`}>
-                                {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
-                              </p>
-                            </div>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => setWeekOffset(prev => prev - 1)}
-                              >
-                                ←
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => setWeekOffset(prev => prev + 1)}
-                              >
-                                →
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="mt-2">
-                            <Select
-                              value={statusPagamentoSemanaMarcio}
-                              onValueChange={(value) => {
-                                // Atualizar todos os romaneios de Marcio da semana
-                                const romaneiosSemana = romaneios.filter(r => {
-                                  if (!r.data_entrega_prevista || r.motoboy !== "Marcio") return false;
-                                  const dataEntrega = parseISO(r.data_entrega_prevista);
-                                  return dataEntrega >= weekStart && dataEntrega <= weekEnd;
-                                });
-                                romaneiosSemana.forEach(r => {
-                                  updateStatusPagamentoMutation.mutate({ romaneioId: r.id, status: value });
-                                });
-                              }}
-                            >
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Aguardando">Aguardando</SelectItem>
-                                <SelectItem value="Pago">Pago</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-1">
-                          {weekStatsMarcio.map((stat, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-xs">
-                              <span className={`w-12 ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-slate-700"}`}>{stat.dia}</span>
-                              <span className={`text-xs ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-600" : "text-slate-500"}`}>{stat.data}</span>
-                              <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-slate-600"}>{stat.quantidade}x</span>
-                              <span className={`font-bold ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-800" : "text-blue-700"}`}>R$ {stat.valor.toFixed(2)}</span>
-                            </div>
-                          ))}
-                          <div className={`pt-2 border-t-2 ${statusPagamentoSemanaMarcio === "Pago" ? "border-green-400" : "border-blue-300"} flex justify-between items-center font-bold text-sm`}>
-                            <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}>TOTAL</span>
-                            <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}>R$ {totalSemanaMarcio.toFixed(2)}</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Resumo Bruno */}
-                    <div className="space-y-4">
-                      <h2 className="text-xl font-bold text-green-900 flex items-center gap-2">
-                        <User className="w-5 h-5" />
-                        Bruno
-                      </h2>
-                      
-                      {/* Resumo do Dia Bruno */}
-                      {Object.keys(statsBruno).length > 0 && (
-                        <Card className="border-none shadow-lg bg-green-50">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm text-green-900">Resumo do Dia</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            {Object.entries(statsBruno).sort((a, b) => a[0].localeCompare(b[0])).map(([local, stats]) => (
-                              <div key={local} className="flex justify-between items-center text-sm">
-                                <span className="text-slate-700">{local}</span>
-                                <div className="text-right">
-                                  <span className="font-medium text-slate-900">{stats.quantidade}x</span>
-                                  <span className="text-green-700 font-bold ml-2">R$ {stats.valor.toFixed(2)}</span>
-                                </div>
-                              </div>
-                            ))}
-                            <div className="pt-2 border-t-2 border-green-300 flex justify-between items-center font-bold">
-                              <span className="text-green-900">TOTAL DO DIA</span>
-                              <span className="text-green-900 text-lg">R$ {totalBruno.toFixed(2)}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {/* Resumo da Semana Bruno */}
-                      <Card className={`border-none shadow-lg ${statusPagamentoSemanaBruno === "Pago" ? "bg-green-50" : "bg-blue-50"}`}>
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className={`text-sm ${statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}`}>
-                                Semana • {statusPagamentoSemanaBruno}
-                              </CardTitle>
-                              <p className={`text-xs ${statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-blue-700"}`}>
-                                {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-2">
-                            <Select
-                              value={statusPagamentoSemanaBruno}
-                              onValueChange={(value) => {
-                                // Atualizar todos os romaneios de Bruno da semana
-                                const romaneiosSemana = romaneios.filter(r => {
-                                  if (!r.data_entrega_prevista || r.motoboy !== "Bruno") return false;
-                                  const dataEntrega = parseISO(r.data_entrega_prevista);
-                                  return dataEntrega >= weekStart && dataEntrega <= weekEnd;
-                                });
-                                romaneiosSemana.forEach(r => {
-                                  updateStatusPagamentoMutation.mutate({ romaneioId: r.id, status: value });
-                                });
-                              }}
-                            >
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Aguardando">Aguardando</SelectItem>
-                                <SelectItem value="Pago">Pago</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-1">
-                          {weekStatsBruno.map((stat, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-xs">
-                              <span className={`w-12 ${statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-slate-700"}`}>{stat.dia}</span>
-                              <span className={`text-xs ${statusPagamentoSemanaBruno === "Pago" ? "text-green-600" : "text-slate-500"}`}>{stat.data}</span>
-                              <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-slate-600"}>{stat.quantidade}x</span>
-                              <span className={`font-bold ${statusPagamentoSemanaBruno === "Pago" ? "text-green-800" : "text-blue-700"}`}>R$ {stat.valor.toFixed(2)}</span>
-                            </div>
-                          ))}
-                          <div className={`pt-2 border-t-2 ${statusPagamentoSemanaBruno === "Pago" ? "border-green-400" : "border-blue-300"} flex justify-between items-center font-bold text-sm`}>
-                            <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}>TOTAL</span>
-                            <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}>R$ {totalSemanaBruno.toFixed(2)}</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-
-                  {/* Lista de Entregas */}
-                  {isLoading ? (
-                    <Card className="border-none shadow-lg">
-                      <CardContent className="p-12 text-center">
-                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500">Carregando...</p>
-                      </CardContent>
-                    </Card>
-                  ) : romaneiosDoDia.length === 0 ? (
-                    <Card className="border-none shadow-lg">
-                      <CardContent className="p-12 text-center">
-                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500 font-medium">Nenhuma entrega para este dia</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* Entregas Marcio */}
-                      {romaneiosMarcioOrdenados.length > 0 && (
-                        <div>
-                          <h3 className="text-xl font-bold text-blue-900 mb-4">
-                            Entregas - Marcio ({romaneiosMarcioOrdenados.length})
-                          </h3>
-                          <div className="grid grid-cols-1 gap-4">
-                            {romaneiosMarcioOrdenados.map((romaneio, idx) => (
-                              <EntregaCard key={romaneio.id} romaneio={romaneio} index={idx} motoboy="Marcio" />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Entregas Bruno */}
-                      {romaneiosBrunoOrdenados.length > 0 && (
-                        <div>
-                          <h3 className="text-xl font-bold text-green-900 mb-4">
-                            Entregas - Bruno ({romaneiosBrunoOrdenados.length})
-                          </h3>
-                          <div className="grid grid-cols-1 gap-4">
-                            {romaneiosBrunoOrdenados.map((romaneio, idx) => (
-                              <EntregaCard key={romaneio.id} romaneio={romaneio} index={idx} motoboy="Bruno" />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-slate-500 flex-shrink-0" />
+              <span className="text-slate-700">
+                Pagamento: <span className="font-semibold">{entrega.forma_pagamento || '-'}</span>
+              </span>
+            </div>
+            {entrega.valor && (
+              <div className="text-slate-700">
+                Valor: <span className="font-bold text-blue-600">R$ {parseFloat(entrega.valor).toFixed(2)}</span>
               </div>
-            </TabsContent>
+            )}
+          </div>
+        </div>
 
-            {/* Aba Marcio */}
-            <TabsContent value="marcio">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Calendário */}
-                <Card className="border-none shadow-lg no-print">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Selecione o Dia</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
-                      locale={ptBR}
-                      className="rounded-md border"
-                    />
-                    <div className="mt-4 text-center">
-                      <p className="text-sm font-semibold text-slate-900">
-                        {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {romaneiosMarcio.length} entrega{romaneiosMarcio.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Entregas e Resumos Marcio */}
-                <div className="lg:col-span-3 space-y-6">
-                  {/* Resumo do Dia */}
-                  {Object.keys(statsMarcio).length > 0 && (
-                    <Card className="border-none shadow-lg bg-blue-50">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm text-blue-900">Resumo do Dia</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {Object.entries(statsMarcio).sort((a, b) => a[0].localeCompare(b[0])).map(([local, stats]) => (
-                          <div key={local} className="flex justify-between items-center text-sm">
-                            <span className="text-slate-700">{local}</span>
-                            <div className="text-right">
-                              <span className="font-medium text-slate-900">{stats.quantidade}x</span>
-                              <span className="text-blue-700 font-bold ml-2">R$ {stats.valor.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="pt-2 border-t-2 border-blue-300 flex justify-between items-center font-bold">
-                          <span className="text-blue-900">TOTAL DO DIA</span>
-                          <span className="text-blue-900 text-lg">R$ {totalMarcio.toFixed(2)}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Resumo da Semana */}
-                  <Card className={`border-none shadow-lg ${statusPagamentoSemanaMarcio === "Pago" ? "bg-green-50" : "bg-blue-50"}`}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className={`text-sm ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}`}>
-                            Semana • {statusPagamentoSemanaMarcio}
-                          </CardTitle>
-                          <p className={`text-xs ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-blue-700"}`}>
-                            {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => setWeekOffset(prev => prev - 1)}
-                          >
-                            ←
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => setWeekOffset(prev => prev + 1)}
-                          >
-                            →
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-1">
-                      {weekStatsMarcio.map((stat, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-xs">
-                          <span className={`w-12 ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-slate-700"}`}>{stat.dia}</span>
-                          <span className={`text-xs ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-600" : "text-slate-500"}`}>{stat.data}</span>
-                          <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-700" : "text-slate-600"}>{stat.quantidade}x</span>
-                          <span className={`font-bold ${statusPagamentoSemanaMarcio === "Pago" ? "text-green-800" : "text-blue-700"}`}>R$ {stat.valor.toFixed(2)}</span>
-                        </div>
-                      ))}
-                      <div className={`pt-2 border-t-2 ${statusPagamentoSemanaMarcio === "Pago" ? "border-green-400" : "border-blue-300"} flex justify-between items-center font-bold text-sm`}>
-                        <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}>TOTAL</span>
-                        <span className={statusPagamentoSemanaMarcio === "Pago" ? "text-green-900" : "text-blue-900"}>R$ {totalSemanaMarcio.toFixed(2)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Lista de Entregas Marcio */}
-                  {isLoading ? (
-                    <Card className="border-none shadow-lg">
-                      <CardContent className="p-12 text-center">
-                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500">Carregando entregas de Marcio...</p>
-                      </CardContent>
-                    </Card>
-                  ) : romaneiosMarcioOrdenados.length > 0 ? (
-                    <div>
-                      <h3 className="text-xl font-bold text-blue-900 mb-4">
-                        Entregas - Marcio ({romaneiosMarcioOrdenados.length})
-                      </h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        {romaneiosMarcioOrdenados.map((romaneio, idx) => (
-                          <EntregaCard key={romaneio.id} romaneio={romaneio} index={idx} motoboy="Marcio" />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <Card className="border-none shadow-lg">
-                      <CardContent className="p-12 text-center">
-                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500 font-medium">Nenhuma entrega para Marcio neste dia</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Aba Bruno */}
-            <TabsContent value="bruno">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Calendário */}
-                <Card className="border-none shadow-lg no-print">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Selecione o Dia</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
-                      locale={ptBR}
-                      className="rounded-md border"
-                    />
-                    <div className="mt-4 text-center">
-                      <p className="text-sm font-semibold text-slate-900">
-                        {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {romaneiosBruno.length} entrega{romaneiosBruno.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Entregas e Resumos Bruno */}
-                <div className="lg:col-span-3 space-y-6">
-                  {/* Resumo do Dia */}
-                  {Object.keys(statsBruno).length > 0 && (
-                    <Card className="border-none shadow-lg bg-green-50">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm text-green-900">Resumo do Dia</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {Object.entries(statsBruno).sort((a, b) => a[0].localeCompare(b[0])).map(([local, stats]) => (
-                          <div key={local} className="flex justify-between items-center text-sm">
-                            <span className="text-slate-700">{local}</span>
-                            <div className="text-right">
-                              <span className="font-medium text-slate-900">{stats.quantidade}x</span>
-                              <span className="text-green-700 font-bold ml-2">R$ {stats.valor.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="pt-2 border-t-2 border-green-300 flex justify-between items-center font-bold">
-                          <span className="text-green-900">TOTAL DO DIA</span>
-                          <span className="text-green-900 text-lg">R$ {totalBruno.toFixed(2)}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Resumo da Semana */}
-                  <Card className={`border-none shadow-lg ${statusPagamentoSemanaBruno === "Pago" ? "bg-green-50" : "bg-blue-50"}`}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className={`text-sm ${statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}`}>
-                            Semana • {statusPagamentoSemanaBruno}
-                          </CardTitle>
-                          <p className={`text-xs ${statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-blue-700"}`}>
-                            {format(weekStart, 'dd/MM', { locale: ptBR })} - {format(weekEnd, 'dd/MM', { locale: ptBR })}
-                          </p>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-1">
-                      {weekStatsBruno.map((stat, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-xs">
-                          <span className={`w-12 ${statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-slate-700"}`}>{stat.dia}</span>
-                          <span className={`text-xs ${statusPagamentoSemanaBruno === "Pago" ? "text-green-600" : "text-slate-500"}`}>{stat.data}</span>
-                          <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-700" : "text-slate-600"}>{stat.quantidade}x</span>
-                          <span className={`font-bold ${statusPagamentoSemanaBruno === "Pago" ? "text-green-800" : "text-blue-700"}`}>R$ {stat.valor.toFixed(2)}</span>
-                        </div>
-                      ))}
-                      <div className={`pt-2 border-t-2 ${statusPagamentoSemanaBruno === "Pago" ? "border-green-400" : "border-blue-300"} flex justify-between items-center font-bold text-sm`}>
-                        <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}>TOTAL</span>
-                        <span className={statusPagamentoSemanaBruno === "Pago" ? "text-green-900" : "text-blue-900"}>R$ {totalSemanaBruno.toFixed(2)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Lista de Entregas Bruno */}
-                  {isLoading ? (
-                    <Card className="border-none shadow-lg">
-                      <CardContent className="p-12 text-center">
-                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500">Carregando entregas de Bruno...</p>
-                      </CardContent>
-                    </Card>
-                  ) : romaneiosBrunoOrdenados.length > 0 ? (
-                    <div>
-                      <h3 className="text-xl font-bold text-green-900 mb-4">
-                        Entregas - Bruno ({romaneiosBrunoOrdenados.length})
-                      </h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        {romaneiosBrunoOrdenados.map((romaneio, idx) => (
-                          <EntregaCard key={romaneio.id} romaneio={romaneio} index={idx} motoboy="Bruno" />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <Card className="border-none shadow-lg">
-                      <CardContent className="p-12 text-center">
-                        <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500 font-medium">Nenhuma entrega para Bruno neste dia</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+        {/* Botões de Ação */}
+        <div className="flex gap-2" style={{ pointerEvents: 'auto' }} onClick={(e) => e.stopPropagation()}>
+          {entrega.status !== 'Entregue' && (
+            <>
+              {entrega.status !== 'A Caminho' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStatusChange(entrega.id, 'A Caminho');
+                  }}
+                  disabled={isUpdating}
+                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                >
+                  🚀 A Caminho
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(entrega.id, 'Entregue');
+                }}
+                disabled={isUpdating}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm"
+              >
+                ✓ Entregar
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(entrega.id, 'Não Entregue');
+                }}
+                disabled={isUpdating}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm"
+              >
+                ✗ Não Entregue
+              </button>
+            </>
+          )}
+          {entrega.status === 'Entregue' && (
+            <div className="flex-1 bg-green-100 text-green-800 font-semibold py-2 px-4 rounded-lg text-center text-sm">
+              ✓ Entrega Concluída
+            </div>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
