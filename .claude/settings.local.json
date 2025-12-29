@@ -15,7 +15,8 @@
       "Bash(timeout /t 3 /nobreak)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(if exist node_modules.vite rd /s /q node_modules.vite)"
     ]
   }
 }
