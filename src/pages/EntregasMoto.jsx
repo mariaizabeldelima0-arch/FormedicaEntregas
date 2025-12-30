@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
+// Página refatorada com design system padronizado
 export default function EntregasMoto() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('day');
