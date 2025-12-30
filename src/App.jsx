@@ -18,6 +18,7 @@ import Receitas from '@/pages/Receitas';
 import Pagamentos from '@/pages/Pagamentos';
 import PlanilhaDiaria from '@/pages/PlanilhaDiaria';
 import PainelMotoboys from '@/pages/PainelMotoboys';
+import Dispositivos from '@/pages/Dispositivos';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,7 +97,7 @@ function AppRoutes() {
                 <Route path="/pagamentos" element={<Pagamentos />} />
                 <Route path="/planilha-diaria" element={<PlanilhaDiaria />} />
                 <Route path="/painel-motoboys" element={<PainelMotoboys />} />
-                <Route path="/dispositivos" element={<div style={{padding: '2rem'}}>Dispositivos - Em construção</div>} />
+                <Route path="/dispositivos" element={<Dispositivos />} />
               </Routes>
             </Layout>
           </PrivateRoute>

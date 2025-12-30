@@ -341,14 +341,24 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
         {/* Botões de Ação */}
         <div className="flex items-center gap-2 ml-4">
           {dispositivo.status === 'Pendente' && (
-            <button
-              onClick={() => onAutorizar(dispositivo.id)}
-              disabled={isUpdating}
-              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Autorizar
-            </button>
+            <>
+              <button
+                onClick={() => onAutorizar(dispositivo.id)}
+                disabled={isUpdating}
+                className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Autorizar
+              </button>
+              <button
+                onClick={() => onBloquear(dispositivo.id)}
+                disabled={isUpdating}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+              >
+                <XCircle className="w-4 h-4" />
+                Bloquear
+              </button>
+            </>
           )}
 
           {dispositivo.status === 'Autorizado' && (

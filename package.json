@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
-    "migrate": "node migrate-from-base44.js"
+    "migrate": "node migrate-from-base44.js",
+    "setup:dispositivos": "node scripts/setup-dispositivos.js",
+    "seed:dispositivos": "node scripts/seed-dispositivos.js"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.3",
