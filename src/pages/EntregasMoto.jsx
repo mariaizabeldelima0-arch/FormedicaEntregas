@@ -20,76 +20,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-
-// Ícones SVG
-const Icons = {
-  clipboard: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-      <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-    </svg>
-  ),
-  box: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-    </svg>
-  ),
-  truck: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="1" y="3" width="15" height="13"/>
-      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-      <circle cx="5.5" cy="18.5" r="2.5"/>
-      <circle cx="18.5" cy="18.5" r="2.5"/>
-    </svg>
-  ),
-  check: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-  ),
-  search: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="11" cy="11" r="8"/>
-      <path d="m21 21-4.35-4.35"/>
-    </svg>
-  ),
-  calendar: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8" y1="2" x2="8" y2="6"/>
-      <line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
-  chevronLeft: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-  ),
-  chevronRight: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
-  ),
-  eye: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  ),
-  edit: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-    </svg>
-  ),
-  trash: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="3 6 5 6 21 6"/>
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-    </svg>
-  ),
-};
+import {
+  ClipboardList,
+  Package,
+  Truck,
+  Check,
+  Search,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Edit,
+  Trash2
+} from 'lucide-react';
+import { PageHeader, LoadingState, EmptyState } from '@/components';
 
 export default function EntregasMoto() {
   const navigate = useNavigate();
@@ -300,88 +244,79 @@ export default function EntregasMoto() {
   };
 
   return (
-    <div style={{ padding: '2rem', background: theme.colors.background, minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem'
-          }}>
-            <h1 style={{
-              fontSize: '2rem',
-              fontWeight: '700',
-              color: theme.colors.text
+    <div style={{ background: theme.colors.background, minHeight: '100vh' }}>
+      <PageHeader
+        title="Entregas Moto"
+        subtitle="Gerenciar entregas e romaneios de moto"
+        showBack={false}
+        actions={
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            {/* Botões Dia/Todas */}
+            <div style={{
+              display: 'inline-flex',
+              background: theme.colors.background,
+              borderRadius: '0.375rem',
+              padding: '0.25rem'
             }}>
-              Entregas Moto
-            </h1>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              {/* Botões Dia/Todas */}
-              <div style={{
-                display: 'inline-flex',
-                background: theme.colors.background,
-                borderRadius: '0.375rem',
-                padding: '0.25rem'
-              }}>
-                <button
-                  onClick={() => setViewMode('day')}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: viewMode === 'day' ? '#457bba' : 'transparent',
-                    color: viewMode === 'day' ? 'white' : theme.colors.textLight,
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    boxShadow: viewMode === 'day' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  Dia
-                </button>
-                <button
-                  onClick={() => {
-                    setViewMode('all');
-                    setFiltroStatus('');
-                  }}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: viewMode === 'all' ? '#457bba' : 'transparent',
-                    color: viewMode === 'all' ? 'white' : theme.colors.textLight,
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    boxShadow: viewMode === 'all' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  Todas
-                </button>
-              </div>
-
               <button
-                onClick={() => navigate('/novo-romaneio')}
+                onClick={() => setViewMode('day')}
                 style={{
-                  padding: '0.75rem 1.5rem',
-                  background: theme.colors.primary,
-                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  background: viewMode === 'day' ? '#457bba' : 'transparent',
+                  color: viewMode === 'day' ? 'white' : theme.colors.textLight,
                   border: 'none',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.25rem',
                   fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  boxShadow: viewMode === 'day' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.2s'
                 }}
               >
-                + Novo Romaneio
+                Dia
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode('all');
+                  setFiltroStatus('');
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: viewMode === 'all' ? '#457bba' : 'transparent',
+                  color: viewMode === 'all' ? 'white' : theme.colors.textLight,
+                  border: 'none',
+                  borderRadius: '0.25rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  boxShadow: viewMode === 'all' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Todas
               </button>
             </div>
+
+            <button
+              onClick={() => navigate('/novo-romaneio')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: theme.colors.primary,
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              + Novo Romaneio
+            </button>
           </div>
-        </div>
+        }
+      />
+
+      <div style={{ padding: '0 2rem 2rem', maxWidth: '1400px', margin: '0 auto' }}>
 
         {/* Cards */}
         <div style={{
@@ -391,12 +326,11 @@ export default function EntregasMoto() {
           marginBottom: '2rem'
         }}>
           {[
-            { label: 'Total', value: stats.total, color: theme.colors.primary, icon: 'clipboard', statusFilter: '' },
-            { label: 'Produção', value: stats.producao, color: '#3b82f6', icon: 'box', statusFilter: 'Produzindo no Laboratório' },
-            { label: 'A Caminho', value: stats.caminho, color: '#f59e0b', icon: 'truck', statusFilter: 'A Caminho' },
-            { label: 'Entregues', value: stats.entregues, color: theme.colors.success, icon: 'check', statusFilter: 'Entregue' },
+            { label: 'Total', value: stats.total, color: theme.colors.primary, Icon: ClipboardList, statusFilter: '' },
+            { label: 'Produção', value: stats.producao, color: '#3b82f6', Icon: Package, statusFilter: 'Produzindo no Laboratório' },
+            { label: 'A Caminho', value: stats.caminho, color: '#f59e0b', Icon: Truck, statusFilter: 'A Caminho' },
+            { label: 'Entregues', value: stats.entregues, color: theme.colors.success, Icon: Check, statusFilter: 'Entregue' },
           ].map((card) => {
-            const IconComponent = Icons[card.icon];
             const isActive = filtroStatus === card.statusFilter;
             return (
               <div
@@ -420,7 +354,7 @@ export default function EntregasMoto() {
                   marginBottom: '0.75rem'
                 }}>
                   <span style={{ color: isActive ? 'white' : card.color }}>
-                    {IconComponent && <IconComponent />}
+                    <card.Icon size={20} />
                   </span>
                   <span style={{
                     fontSize: '0.75rem',
@@ -488,7 +422,7 @@ export default function EntregasMoto() {
                       color: theme.colors.text
                     }}
                   >
-                    <Icons.chevronLeft />
+                    <ChevronLeft size={18} />
                   </button>
                   <h4 style={{
                     fontSize: '0.875rem',
@@ -514,7 +448,7 @@ export default function EntregasMoto() {
                       color: theme.colors.text
                     }}
                   >
-                    <Icons.chevronRight />
+                    <ChevronRight size={18} />
                   </button>
                 </div>
 
@@ -602,7 +536,7 @@ export default function EntregasMoto() {
                   transform: 'translateY(-50%)',
                   color: theme.colors.textLight
                 }}>
-                  <Icons.search />
+                  <Search size={18} />
                 </div>
               </div>
 
@@ -689,7 +623,7 @@ export default function EntregasMoto() {
             marginBottom: '1.5rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Icons.calendar />
+              <Calendar size={18} />
               <h3 style={{
                 fontSize: '1.125rem',
                 fontWeight: '600',
@@ -764,7 +698,7 @@ export default function EntregasMoto() {
                     color: theme.colors.text
                   }}
                 >
-                  <Icons.chevronLeft />
+                  <ChevronLeft size={18} />
                 </button>
                 <h4 style={{
                   fontSize: '1rem',
@@ -790,7 +724,7 @@ export default function EntregasMoto() {
                     color: theme.colors.text
                   }}
                 >
-                  <Icons.chevronRight />
+                  <ChevronRight size={18} />
                 </button>
               </div>
 
@@ -923,44 +857,17 @@ export default function EntregasMoto() {
           </div>
 
           {loading ? (
-            <div style={{
-              padding: '3rem 2rem',
-              textAlign: 'center'
-            }}>
-              <div style={{
-                width: '50px',
-                height: '50px',
-                border: '4px solid #e2e8f0',
-                borderTop: '4px solid #457bba',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                margin: '0 auto 1rem'
-              }} />
-              <p style={{ color: theme.colors.textLight }}>Carregando entregas...</p>
-            </div>
+            <LoadingState message="Carregando entregas..." />
           ) : entregasFiltradas.length === 0 ? (
-            <div style={{
-              padding: '3rem 2rem',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem', opacity: 0.3 }}>📦</div>
-              <h3 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Nenhum romaneio encontrado
-              </h3>
-              <p style={{
-                color: theme.colors.textLight,
-                fontSize: '0.875rem'
-              }}>
-                {searchTerm || Object.values(filtros).some(f => f)
+            <EmptyState
+              icon={Package}
+              title="Nenhum romaneio encontrado"
+              description={
+                searchTerm || Object.values(filtros).some(f => f)
                   ? 'Nenhuma entrega corresponde aos filtros aplicados'
-                  : 'Não há entregas cadastradas'}
-              </p>
-            </div>
+                  : 'Não há entregas cadastradas'
+              }
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {entregasFiltradas.map(entrega => (
@@ -1075,7 +982,7 @@ export default function EntregasMoto() {
                       }}
                       title="Ver detalhes"
                     >
-                      <Icons.eye />
+                      <Eye size={18} />
                     </button>
                     <button
                       onClick={() => navigate(`/editar-romaneio/${entrega.id}`)}
@@ -1089,7 +996,7 @@ export default function EntregasMoto() {
                       }}
                       title="Editar"
                     >
-                      <Icons.edit />
+                      <Edit size={18} />
                     </button>
                     <button
                       onClick={() => confirmarExclusao(entrega)}
@@ -1103,7 +1010,7 @@ export default function EntregasMoto() {
                       }}
                       title="Excluir"
                     >
-                      <Icons.trash />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
