@@ -35,6 +35,69 @@ import {
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
+// Componente de Dropdown Customizado
+function CustomDropdown({ options, value, onChange, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayText = selectedOption ? selectedOption.label : placeholder;
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left' }}
+      >
+        <span className="text-sm text-slate-700">{displayText}</span>
+        <svg
+          className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-lg overflow-hidden"
+          style={{ border: '1px solid #376295' }}
+        >
+          {options.map((option) => (
+            <div
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              className="px-4 py-3 cursor-pointer transition-colors text-sm text-slate-700 hover:bg-blue-50"
+              style={{
+                backgroundColor: value === option.value ? '#E8F0F8' : 'white',
+                fontWeight: value === option.value ? '600' : 'normal'
+              }}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // 🎨 PÁGINA DE TESTE DE DESIGN - Experimentos visuais antes de aplicar no código real
 export default function DesignTest() {
   const navigate = useNavigate();
@@ -45,7 +108,10 @@ export default function DesignTest() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
+  const [cardSelecionado, setCardSelecionado] = useState('total');
   const [filtros, setFiltros] = useState({
+    status: '',
+    atendente: '',
     motoboy: '',
     regiao: '',
     periodo: ''
@@ -319,10 +385,12 @@ export default function DesignTest() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header Customizado */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm">
+      <div className="px-6 py-6 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-slate-900">Entregas Moto</h1>
-          <p className="text-sm text-slate-600">Olá, mariaizabeldelima0</p>
+          <h1 className="text-3xl font-bold text-white">Entregas Moto</h1>
+          <p className="text-sm text-white opacity-90">Olá, mariaizabeldelima0</p>
         </div>
       </div>
 
@@ -376,7 +444,7 @@ export default function DesignTest() {
               </button>
 
               <span className="text-sm font-semibold text-slate-700">
-                {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
               </span>
 
               <button
@@ -394,7 +462,7 @@ export default function DesignTest() {
             {/* Grid do Calendário */}
             <div className="grid grid-cols-7 gap-1 mb-4">
               {/* Dias da Semana */}
-              {['dom', 'seg', 'ter', 'qua', 'qui', 'sexo', 'sáb'].map((dia) => (
+              {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
                 <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
                   {dia}
                 </div>
@@ -435,6 +503,18 @@ export default function DesignTest() {
                 {stats.total} entregas
               </div>
             </div>
+
+            {/* Botão Relatório do Dia */}
+            <button
+              onClick={() => {
+                const dataFormatada = selectedDate.toISOString().split('T')[0];
+                navigate(`/relatorios?data=${dataFormatada}`);
+              }}
+              className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <ClipboardList className="w-4 h-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-700">Relatório do Dia</span>
+            </button>
           </div>
         </div>
 
@@ -442,61 +522,78 @@ export default function DesignTest() {
         <div className="flex-1">
           {/* Cards de Estatísticas */}
           <div className="grid grid-cols-5 gap-4 mb-6">
-            {/* Card Total - com borda azul */}
+            {/* Card Total */}
             <div
-              onClick={() => setFiltroStatus('')}
+              onClick={() => { setFiltroStatus(''); setCardSelecionado('total'); }}
               className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
               style={{
-                border: '2px solid #376295'
+                border: cardSelecionado === 'total' ? '2px solid #376295' : '2px solid transparent'
               }}
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-center gap-3 mb-1">
                 <span className="text-sm font-medium text-slate-700">Total</span>
-                <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                  <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+                </div>
               </div>
-              <div className="text-4xl font-bold" style={{ color: '#376295' }}>
+              <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
                 {stats.total}
               </div>
             </div>
 
             {/* Card Produção */}
             <div
-              onClick={() => setFiltroStatus('Produzindo no Laboratório')}
+              onClick={() => { setFiltroStatus('Produzindo no Laboratório'); setCardSelecionado('producao'); }}
               className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: cardSelecionado === 'producao' ? '2px solid #890d5d' : '2px solid transparent'
+              }}
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-center gap-3 mb-1">
                 <span className="text-sm font-medium text-slate-700">Produção</span>
-                <Package className="w-6 h-6" style={{ color: '#7ea8d4' }} />
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                  <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
+                </div>
               </div>
-              <div className="text-4xl font-bold text-slate-900">
+              <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
                 {stats.producao}
               </div>
             </div>
 
-            {/* Card Um Caminho */}
+            {/* Card A Caminho */}
             <div
-              onClick={() => setFiltroStatus('A Caminho')}
+              onClick={() => { setFiltroStatus('A Caminho'); setCardSelecionado('caminho'); }}
               className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
+              }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-slate-700">Um Caminho</span>
-                <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
+              <div className="flex items-center justify-center gap-3 mb-1">
+                <span className="text-sm font-medium text-slate-700">A Caminho</span>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                  <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
+                </div>
               </div>
-              <div className="text-4xl font-bold text-slate-900">
+              <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
                 {stats.caminho}
               </div>
             </div>
 
             {/* Card Entregues */}
             <div
-              onClick={() => setFiltroStatus('Entregue')}
+              onClick={() => { setFiltroStatus('Entregue'); setCardSelecionado('entregues'); }}
               className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: cardSelecionado === 'entregues' ? '2px solid #22c55e' : '2px solid transparent'
+              }}
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-center gap-3 mb-1">
                 <span className="text-sm font-medium text-slate-700">Entregues</span>
-                <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                  <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
+                </div>
               </div>
-              <div className="text-4xl font-bold text-slate-900">
+              <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
                 {stats.entregues}
               </div>
             </div>
@@ -533,41 +630,63 @@ export default function DesignTest() {
 
               {/* Filtros em Linha */}
               <div className="grid grid-cols-5 gap-4">
-                <select className="px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                  <option>Todos os status</option>
-                  <option>Produzindo no Laboratório</option>
-                  <option>A Caminho</option>
-                  <option>Entregue</option>
-                </select>
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Status' },
+                    { value: 'Produzindo no Laboratório', label: 'Produzindo no Laboratório' },
+                    { value: 'A Caminho', label: 'A Caminho' },
+                    { value: 'Entregue', label: 'Entregue' }
+                  ]}
+                  value={filtros.status}
+                  onChange={(value) => setFiltros({ ...filtros, status: value })}
+                  placeholder="Status"
+                />
 
-                <select className="px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                  <option>Todos os 20</option>
-                </select>
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Atendentes' }
+                  ]}
+                  value={filtros.atendente}
+                  onChange={(value) => setFiltros({ ...filtros, atendente: value })}
+                  placeholder="Atendentes"
+                />
 
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Motoboys' },
+                    ...Array.from(new Set(entregas.map(e => e.motoboy?.nome).filter(Boolean))).map(nome => ({
+                      value: nome,
+                      label: nome
+                    }))
+                  ]}
                   value={filtros.motoboy}
-                  onChange={(e) => setFiltros({ ...filtros, motoboy: e.target.value })}
-                  className="px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="">Todos Motoboys</option>
-                  {Array.from(new Set(entregas.map(e => e.motoboy?.nome).filter(Boolean))).map(nome => (
-                    <option key={nome} value={nome}>{nome}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFiltros({ ...filtros, motoboy: value })}
+                  placeholder="Motoboys"
+                />
 
-                <select className="px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                  <option>Todos os</option>
-                </select>
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Regiões' },
+                    ...Array.from(new Set(entregas.map(e => e.regiao).filter(Boolean))).map(regiao => ({
+                      value: regiao,
+                      label: regiao
+                    }))
+                  ]}
+                  value={filtros.regiao}
+                  onChange={(value) => setFiltros({ ...filtros, regiao: value })}
+                  placeholder="Regiões"
+                />
 
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Períodos' },
+                    { value: 'Manhã', label: 'Manhã' },
+                    { value: 'Tarde', label: 'Tarde' }
+                  ]}
                   value={filtros.periodo}
-                  onChange={(e) => setFiltros({ ...filtros, periodo: e.target.value })}
-                  className="px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="">Todos os Períodos</option>
-                  <option value="Manhã">Manhã</option>
-                  <option value="Tarde">Tarde</option>
-                </select>
+                  onChange={(value) => setFiltros({ ...filtros, periodo: value })}
+                  placeholder="Períodos"
+                />
               </div>
             </div>
           </div>
@@ -575,14 +694,10 @@ export default function DesignTest() {
           {/* Seção de Entregas */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             {/* Cabeçalho */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6">
               <h2 className="text-xl font-bold text-slate-900">
                 Entregas de {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
               </h2>
-              <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
-                <ClipboardList className="w-4 h-4 text-slate-600" />
-                <span className="text-sm font-medium text-slate-700">Relatório do Dia</span>
-              </button>
             </div>
 
             {/* Empty State */}

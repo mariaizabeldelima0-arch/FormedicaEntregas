@@ -32,7 +32,9 @@ export default function PageHeader({
   };
 
   return (
-    <div className="bg-white border-b border-slate-200 shadow-sm">
+    <div className="shadow-sm" style={{
+      background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+    }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* Header principal */}
         <div className="flex items-center justify-between gap-4">
@@ -40,19 +42,19 @@ export default function PageHeader({
             {showBack && (
               <button
                 onClick={handleBack}
-                className="flex-shrink-0 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                className="flex-shrink-0 p-2 hover:bg-white/20 rounded-lg transition-colors"
                 aria-label="Voltar"
               >
-                <ArrowLeft className="w-5 h-5 text-slate-600" />
+                <ArrowLeft className="w-5 h-5 text-white" />
               </button>
             )}
 
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">
+              <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-sm text-slate-600 mt-1">
+                <p className="text-sm text-white opacity-90 mt-1">
                   {subtitle}
                 </p>
               )}

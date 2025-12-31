@@ -632,55 +632,60 @@ export default function Clientes() {
   ).length;
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/')}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Clientes</h1>
-              <p className="text-slate-600 mt-1">Gerencie sua base de clientes</p>
-            </div>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                style={{ background: '#457bba' }}
-                onClick={() => setEditingCliente(null)}
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+      {/* Header com gradiente */}
+      <div className="shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-6">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/')}
+                className="flex-shrink-0 p-2 hover:bg-white/20 rounded-lg transition-colors"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Cliente
-              </Button>
-            </DialogTrigger>
-            <DialogContent
-              key={editingCliente?.id || 'new'}
-              style={{ maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto' }}
+                <ArrowLeft className="w-5 h-5 text-white" />
+              </button>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white">Clientes</h1>
+                <p className="text-white opacity-90 mt-1">Gerencie sua base de clientes</p>
+              </div>
+            </div>
+            <Button
+              style={{ background: 'white', color: '#4a90e2' }}
+              onClick={() => { setDialogOpen(true); setEditingCliente(null); }}
             >
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCliente ? 'Editar Cliente' : 'Novo Cliente'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingCliente
-                    ? 'Atualize as informações do cliente e seus endereços.'
-                    : 'Preencha os dados do novo cliente e pelo menos um endereço.'}
-                </DialogDescription>
-              </DialogHeader>
-              <ClienteForm
-                cliente={editingCliente}
-                onSuccess={handleSuccess}
-                onCancel={handleClose}
-              />
-            </DialogContent>
-          </Dialog>
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Cliente
+            </Button>
+          </div>
         </div>
+      </div>
+
+      {/* Conteúdo da página */}
+      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent
+            key={editingCliente?.id || 'new'}
+            style={{ maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            <DialogHeader>
+              <DialogTitle>
+                {editingCliente ? 'Editar Cliente' : 'Novo Cliente'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingCliente
+                  ? 'Atualize as informações do cliente e seus endereços.'
+                  : 'Preencha os dados do novo cliente e pelo menos um endereço.'}
+              </DialogDescription>
+            </DialogHeader>
+            <ClienteForm
+              cliente={editingCliente}
+              onSuccess={handleSuccess}
+              onCancel={handleClose}
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* Layout Master-Detail */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

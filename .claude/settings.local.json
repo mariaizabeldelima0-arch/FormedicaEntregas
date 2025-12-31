@@ -21,7 +21,8 @@
       "Bash(npm run seed:dispositivos:*)",
       "Bash(node scripts/check-table.js:*)",
       "Bash(node scripts/list-dispositivos.js:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }
