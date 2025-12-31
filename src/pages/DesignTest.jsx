@@ -29,7 +29,6 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Eye,
   Edit,
   Trash2
 } from 'lucide-react';
@@ -726,7 +725,17 @@ export default function DesignTest() {
               entregasFiltradas.map((entrega) => (
                 <div
                   key={entrega.id}
-                  className="p-6 hover:bg-slate-50 transition-colors"
+                  onClick={() => visualizarDetalhes(entrega)}
+                  className="p-6 hover:bg-slate-50 transition-all cursor-pointer hover:shadow-md"
+                  style={{
+                    borderLeft: '4px solid transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderLeftColor = '#376295';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderLeftColor = 'transparent';
+                  }}
                 >
                   <div className="flex items-start justify-between gap-4">
                     {/* Informações da Entrega */}
@@ -813,18 +822,10 @@ export default function DesignTest() {
                     {/* Botões de Ação */}
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => visualizarDetalhes(entrega)}
-                        className="p-2 rounded-lg transition-all"
-                        style={{ color: '#376295' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8F0F8'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        title="Visualizar detalhes"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-
-                      <button
-                        onClick={() => navigate('/editar-romaneio', { state: { entrega } })}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/editar-romaneio', { state: { entrega } });
+                        }}
                         className="p-2 rounded-lg transition-all"
                         style={{ color: '#376295' }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8F0F8'}
@@ -835,7 +836,10 @@ export default function DesignTest() {
                       </button>
 
                       <button
-                        onClick={() => confirmarExclusao(entrega)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmarExclusao(entrega);
+                        }}
                         className="p-2 rounded-lg transition-all"
                         style={{ color: '#C70D12' }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
