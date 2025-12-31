@@ -29,7 +29,6 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Eye,
   Edit,
   Trash2
 } from 'lucide-react';
@@ -874,6 +873,7 @@ export default function EntregasMoto() {
               {entregasFiltradas.map(entrega => (
                 <div
                   key={entrega.id}
+                  onClick={() => visualizarDetalhes(entrega)}
                   style={{
                     padding: '1rem',
                     background: theme.colors.background,
@@ -883,7 +883,16 @@ export default function EntregasMoto() {
                     gridTemplateColumns: '1fr auto auto',
                     gap: '1rem',
                     alignItems: 'center',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = theme.colors.primary;
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = theme.colors.border;
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
                   {/* Informações principais */}
@@ -972,21 +981,10 @@ export default function EntregasMoto() {
                   {/* Botões de Ação */}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
-                      onClick={() => visualizarDetalhes(entrega)}
-                      style={{
-                        padding: '0.5rem',
-                        background: 'white',
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: '0.375rem',
-                        cursor: 'pointer',
-                        color: theme.colors.primary
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/editar-romaneio/${entrega.id}`);
                       }}
-                      title="Ver detalhes"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    <button
-                      onClick={() => navigate(`/editar-romaneio/${entrega.id}`)}
                       style={{
                         padding: '0.5rem',
                         background: 'white',
@@ -1000,7 +998,10 @@ export default function EntregasMoto() {
                       <Edit size={18} />
                     </button>
                     <button
-                      onClick={() => confirmarExclusao(entrega)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmarExclusao(entrega);
+                      }}
                       style={{
                         padding: '0.5rem',
                         background: 'white',
