@@ -926,201 +926,137 @@ export default function EntregasMoto() {
                     <div
                       key={entrega.id}
                       onClick={() => visualizarDetalhes(entrega)}
-                      style={{
-                        padding: '1rem',
-                        background: theme.colors.background,
-                        borderRadius: '0.375rem',
-                        border: `1px solid ${theme.colors.border}`,
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto auto',
-                        gap: '1rem',
-                        alignItems: 'center',
-                        transition: 'all 0.2s',
-                        cursor: 'pointer',
-                        marginBottom: '0.75rem'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = theme.colors.primary;
-                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = theme.colors.border;
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}
+                      className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
                     >
-                      {/* Informações principais */}
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                          <span style={{
-                            fontSize: '0.875rem',
-                            fontWeight: '600',
-                            color: theme.colors.primary
-                          }}>
-                            #{entrega.requisicao}
-                          </span>
-                          <span style={{
-                            fontSize: '0.75rem',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '0.25rem',
-                            fontWeight: '500',
-                            background:
-                              entrega.status === 'Entregue'
-                                ? '#E8F5E8'
-                                : entrega.status === 'A Caminho'
-                                ? '#FEF3E8'
-                                : '#F5E8F5',
-                            color:
-                              entrega.status === 'Entregue'
-                                ? '#22c55e'
-                                : entrega.status === 'A Caminho'
-                                ? '#f97316'
-                                : '#890d5d'
-                          }}>
-                            {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
-                          </span>
-                        </div>
-                        <div style={{
-                          fontSize: '1rem',
-                          fontWeight: '600',
-                          color: theme.colors.text,
-                          marginBottom: '0.25rem'
-                        }}>
-                          {entrega.cliente?.nome || 'Cliente não informado'}
-                        </div>
-                        <div style={{
-                          fontSize: '0.875rem',
-                          color: theme.colors.textLight
-                        }}>
-                          {entrega.endereco
-                            ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro}`
-                            : entrega.endereco_destino || 'Endereço não informado'}
-                        </div>
-                        {/* Informações adicionais com ícones */}
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.875rem', color: theme.colors.text }}>
-                          {entrega.motoboy && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <Truck size={16} style={{ color: '#1e293b' }} />
-                              <span>{entrega.motoboy.nome}</span>
-                            </div>
-                          )}
-                          {entrega.periodo && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <Clock size={16} style={{ color: '#1e293b' }} />
-                              <span>{entrega.periodo}</span>
-                            </div>
-                          )}
-                          {entrega.forma_pagamento && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <Banknote size={16} style={{ color: '#1e293b' }} />
-                              <span>{entrega.forma_pagamento}</span>
-                            </div>
-                          )}
-                          {entrega.cliente?.telefone && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <Phone size={16} style={{ color: '#1e293b' }} />
-                              <span>{entrega.cliente.telefone}</span>
-                            </div>
-                          )}
-                        </div>
-                        {/* Badges Geladeira e Reter Receita */}
-                        {(entrega.item_geladeira || entrega.reter_receita) && (
-                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                            {entrega.item_geladeira && (
-                              <span style={{
-                                padding: '0.375rem 0.75rem',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                backgroundColor: '#cffafe',
-                                color: '#0c4a6e'
-                              }}>
-                                <Snowflake size={14} />
-                                Geladeira
-                              </span>
+                      <div className="flex items-center justify-between gap-6">
+                        {/* Lado Esquerdo - Informações */}
+                        <div className="flex-1">
+                          {/* Linha 1: Requisição + Status */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                              #{entrega.requisicao}
+                            </span>
+                            <span
+                              className="px-3 py-1 rounded text-xs font-medium"
+                              style={{
+                                backgroundColor:
+                                  entrega.status === 'Entregue'
+                                    ? '#E8F5E8'
+                                    : entrega.status === 'A Caminho'
+                                    ? '#FEF3E8'
+                                    : '#F5E8F5',
+                                color:
+                                  entrega.status === 'Entregue'
+                                    ? '#22c55e'
+                                    : entrega.status === 'A Caminho'
+                                    ? '#f97316'
+                                    : '#890d5d'
+                              }}
+                            >
+                              {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
+                            </span>
+                          </div>
+
+                          {/* Linha 2: Nome do Cliente */}
+                          <h3 className="text-lg font-bold text-slate-900 mb-2">
+                            {entrega.cliente?.nome || 'Cliente não informado'}
+                          </h3>
+
+                          {/* Linha 3: Endereço */}
+                          <div className="mb-3 text-sm text-slate-600">
+                            <span>
+                              {entrega.endereco
+                                ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                                : entrega.endereco_destino || 'Endereço não informado'}
+                            </span>
+                          </div>
+
+                          {/* Linha 4: Informações com ícones */}
+                          <div className="flex flex-wrap gap-4 text-sm text-slate-900">
+                            {entrega.motoboy && (
+                              <div className="flex items-center gap-1.5">
+                                <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <span>{entrega.motoboy.nome}</span>
+                              </div>
                             )}
-                            {entrega.reter_receita && (
-                              <span style={{
-                                padding: '0.375rem 0.75rem',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                backgroundColor: '#fef3c7',
-                                color: '#92400e'
-                              }}>
-                                <FileText size={14} />
-                                Reter Receita
-                              </span>
+                            {entrega.periodo && (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <span>{entrega.periodo}</span>
+                              </div>
+                            )}
+                            {entrega.forma_pagamento && (
+                              <div className="flex items-center gap-1.5">
+                                <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <span>{entrega.forma_pagamento}</span>
+                              </div>
+                            )}
+                            {entrega.cliente?.telefone && (
+                              <div className="flex items-center gap-1.5">
+                                <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <span>{entrega.cliente.telefone}</span>
+                              </div>
                             )}
                           </div>
-                        )}
+                        </div>
+
+                        {/* Lado Direito - Badges + Valor + Região + Ações */}
+                        <div className="flex flex-col items-center gap-3">
+                          {/* Badges Geladeira e Reter Receita */}
+                          {(entrega.item_geladeira || entrega.reter_receita) && (
+                            <div className="flex items-center gap-2">
+                              {entrega.item_geladeira && (
+                                <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                                  <Snowflake className="w-5 h-5" />
+                                  Geladeira
+                                </span>
+                              )}
+                              {entrega.reter_receita && (
+                                <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                                  <FileText className="w-5 h-5" />
+                                  Reter Receita
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Valor, Região e Botões */}
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                                R$ {entrega.valor?.toFixed(2) || '0.00'}
+                              </div>
+                              <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                                {entrega.regiao}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate('/editar-romaneio', { state: { entrega } });
+                                }}
+                                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                                title="Editar"
+                              >
+                                <Edit className="w-4 h-4" style={{ color: '#376295' }} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  confirmarExclusao(entrega);
+                                }}
+                                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-
-                  {/* Valor */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    justifyContent: 'center'
-                  }}>
-                    <span style={{
-                      fontSize: '1.5rem',
-                      fontWeight: '700',
-                      color: theme.colors.primary
-                    }}>
-                      R$ {entrega.valor?.toFixed(2) || '0.00'}
-                    </span>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      color: theme.colors.textLight
-                    }}>
-                      {entrega.regiao}
-                    </span>
-                  </div>
-
-                  {/* Botões de Ação */}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/editar-romaneio/${entrega.id}`);
-                      }}
-                      style={{
-                        padding: '0.5rem',
-                        background: 'white',
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: '0.375rem',
-                        cursor: 'pointer',
-                        color: theme.colors.primary
-                      }}
-                      title="Editar"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        confirmarExclusao(entrega);
-                      }}
-                      style={{
-                        padding: '0.5rem',
-                        background: 'white',
-                        border: `1px solid #fee2e2`,
-                        borderRadius: '0.375rem',
-                        cursor: 'pointer',
-                        color: '#ef4444'
-                      }}
-                      title="Excluir"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -1141,199 +1077,135 @@ export default function EntregasMoto() {
                     <div
                       key={entrega.id}
                       onClick={() => visualizarDetalhes(entrega)}
-                      style={{
-                        padding: '1rem',
-                        background: theme.colors.background,
-                        borderRadius: '0.375rem',
-                        border: `1px solid ${theme.colors.border}`,
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto auto',
-                        gap: '1rem',
-                        alignItems: 'center',
-                        transition: 'all 0.2s',
-                        cursor: 'pointer',
-                        marginBottom: '0.75rem'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = theme.colors.primary;
-                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = theme.colors.border;
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}
+                      className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
                     >
-                      {/* Informações principais */}
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                          <span style={{
-                            fontSize: '0.875rem',
-                            fontWeight: '600',
-                            color: theme.colors.primary
-                          }}>
-                            #{entrega.requisicao}
-                          </span>
-                          <span style={{
-                            fontSize: '0.75rem',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '0.25rem',
-                            fontWeight: '500',
-                            background:
-                              entrega.status === 'Entregue'
-                                ? '#E8F5E8'
-                                : entrega.status === 'A Caminho'
-                                ? '#FEF3E8'
-                                : '#F5E8F5',
-                            color:
-                              entrega.status === 'Entregue'
-                                ? '#22c55e'
-                                : entrega.status === 'A Caminho'
-                                ? '#f97316'
-                                : '#890d5d'
-                          }}>
-                            {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
-                          </span>
-                        </div>
-                        <div style={{
-                          fontSize: '1rem',
-                          fontWeight: '600',
-                          color: theme.colors.text,
-                          marginBottom: '0.25rem'
-                        }}>
-                          {entrega.cliente?.nome || 'Cliente não informado'}
-                        </div>
-                        <div style={{
-                          fontSize: '0.875rem',
-                          color: theme.colors.textLight
-                        }}>
-                          {entrega.endereco
-                            ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro}`
-                            : entrega.endereco_destino || 'Endereço não informado'}
-                        </div>
-                        {/* Informações adicionais com ícones */}
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.875rem', color: theme.colors.text }}>
-                          {entrega.motoboy && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <Truck size={16} style={{ color: '#1e293b' }} />
-                              <span>{entrega.motoboy.nome}</span>
-                            </div>
-                          )}
-                          {entrega.periodo && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <Clock size={16} style={{ color: '#1e293b' }} />
-                              <span>{entrega.periodo}</span>
-                            </div>
-                          )}
-                          {entrega.forma_pagamento && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <Banknote size={16} style={{ color: '#1e293b' }} />
-                              <span>{entrega.forma_pagamento}</span>
-                            </div>
-                          )}
-                          {entrega.cliente?.telefone && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <Phone size={16} style={{ color: '#1e293b' }} />
-                              <span>{entrega.cliente.telefone}</span>
-                            </div>
-                          )}
-                        </div>
-                        {/* Badges Geladeira e Reter Receita */}
-                        {(entrega.item_geladeira || entrega.reter_receita) && (
-                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                            {entrega.item_geladeira && (
-                              <span style={{
-                                padding: '0.375rem 0.75rem',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                backgroundColor: '#cffafe',
-                                color: '#0c4a6e'
-                              }}>
-                                <Snowflake size={14} />
-                                Geladeira
-                              </span>
+                      <div className="flex items-center justify-between gap-6">
+                        {/* Lado Esquerdo - Informações */}
+                        <div className="flex-1">
+                          {/* Linha 1: Requisição + Status */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                              #{entrega.requisicao}
+                            </span>
+                            <span
+                              className="px-3 py-1 rounded text-xs font-medium"
+                              style={{
+                                backgroundColor:
+                                  entrega.status === 'Entregue'
+                                    ? '#E8F5E8'
+                                    : entrega.status === 'A Caminho'
+                                    ? '#FEF3E8'
+                                    : '#F5E8F5',
+                                color:
+                                  entrega.status === 'Entregue'
+                                    ? '#22c55e'
+                                    : entrega.status === 'A Caminho'
+                                    ? '#f97316'
+                                    : '#890d5d'
+                              }}
+                            >
+                              {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
+                            </span>
+                          </div>
+
+                          {/* Linha 2: Nome do Cliente */}
+                          <h3 className="text-lg font-bold text-slate-900 mb-2">
+                            {entrega.cliente?.nome || 'Cliente não informado'}
+                          </h3>
+
+                          {/* Linha 3: Endereço */}
+                          <div className="mb-3 text-sm text-slate-600">
+                            <span>
+                              {entrega.endereco
+                                ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                                : entrega.endereco_destino || 'Endereço não informado'}
+                            </span>
+                          </div>
+
+                          {/* Linha 4: Informações com ícones */}
+                          <div className="flex flex-wrap gap-4 text-sm text-slate-900">
+                            {entrega.motoboy && (
+                              <div className="flex items-center gap-1.5">
+                                <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <span>{entrega.motoboy.nome}</span>
+                              </div>
                             )}
-                            {entrega.reter_receita && (
-                              <span style={{
-                                padding: '0.375rem 0.75rem',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                backgroundColor: '#fef3c7',
-                                color: '#92400e'
-                              }}>
-                                <FileText size={14} />
-                                Reter Receita
-                              </span>
+                            {entrega.periodo && (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <span>{entrega.periodo}</span>
+                              </div>
+                            )}
+                            {entrega.forma_pagamento && (
+                              <div className="flex items-center gap-1.5">
+                                <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <span>{entrega.forma_pagamento}</span>
+                              </div>
+                            )}
+                            {entrega.cliente?.telefone && (
+                              <div className="flex items-center gap-1.5">
+                                <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <span>{entrega.cliente.telefone}</span>
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Valor e Região */}
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        justifyContent: 'center'
-                      }}>
-                        <span style={{
-                          fontSize: '1.5rem',
-                          fontWeight: '700',
-                          color: theme.colors.primary
-                        }}>
-                          R$ {entrega.valor?.toFixed(2) || '0.00'}
-                        </span>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: theme.colors.textLight
-                        }}>
-                          {entrega.regiao}
-                        </span>
-                      </div>
+                        {/* Lado Direito - Badges + Valor + Região + Ações */}
+                        <div className="flex flex-col items-center gap-3">
+                          {/* Badges Geladeira e Reter Receita */}
+                          {(entrega.item_geladeira || entrega.reter_receita) && (
+                            <div className="flex items-center gap-2">
+                              {entrega.item_geladeira && (
+                                <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                                  <Snowflake className="w-5 h-5" />
+                                  Geladeira
+                                </span>
+                              )}
+                              {entrega.reter_receita && (
+                                <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                                  <FileText className="w-5 h-5" />
+                                  Reter Receita
+                                </span>
+                              )}
+                            </div>
+                          )}
 
-                      {/* Botões de Ação */}
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/editar-romaneio/${entrega.id}`);
-                          }}
-                          style={{
-                            padding: '0.5rem',
-                            background: 'white',
-                            border: `1px solid ${theme.colors.border}`,
-                            borderRadius: '0.375rem',
-                            cursor: 'pointer',
-                            color: theme.colors.primary
-                          }}
-                          title="Editar"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmarExclusao(entrega);
-                          }}
-                          style={{
-                            padding: '0.5rem',
-                            background: 'white',
-                            border: `1px solid #fee2e2`,
-                            borderRadius: '0.375rem',
-                            cursor: 'pointer',
-                            color: '#ef4444'
-                          }}
-                          title="Excluir"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                          {/* Valor, Região e Botões */}
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                                R$ {entrega.valor?.toFixed(2) || '0.00'}
+                              </div>
+                              <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                                {entrega.regiao}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate('/editar-romaneio', { state: { entrega } });
+                                }}
+                                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                                title="Editar"
+                              >
+                                <Edit className="w-4 h-4" style={{ color: '#376295' }} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  confirmarExclusao(entrega);
+                                }}
+                                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
