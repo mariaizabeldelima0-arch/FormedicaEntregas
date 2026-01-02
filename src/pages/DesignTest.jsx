@@ -806,16 +806,16 @@ export default function DesignTest() {
                                 ? '#E8F5E8'
                                 : entrega.status === 'A Caminho'
                                 ? '#FEF3E8'
-                                : '#FEF9E8',
+                                : '#F5E8F5',
                             color:
                               entrega.status === 'Entregue'
                                 ? '#629537'
                                 : entrega.status === 'A Caminho'
                                 ? '#f97316'
-                                : '#D8CA15'
+                                : '#890d5d'
                           }}
                         >
-                          {entrega.status}
+                          {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                         </span>
                         {entrega.item_geladeira && (
                           <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#E8F0F8', color: '#376295' }}>
