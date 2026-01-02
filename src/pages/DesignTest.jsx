@@ -605,7 +605,9 @@ export default function DesignTest() {
                 background: 'linear-gradient(135deg, #890d5d 0%, #6E0A4A 100%)'
               }}
             >
-              <span className="text-sm font-bold text-white mb-2 uppercase">Novo Romaneio</span>
+              <div className="mb-3">
+                <span className="text-sm font-bold text-white uppercase">Novo Romaneio</span>
+              </div>
               <div className="text-5xl font-bold text-white">+</div>
             </div>
           </div>
