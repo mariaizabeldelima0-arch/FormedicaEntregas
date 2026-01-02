@@ -860,53 +860,62 @@ export default function DesignTest() {
                             <span>{entrega.cliente.telefone}</span>
                           </div>
                         )}
-                        {entrega.item_geladeira && (
-                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
-                            <Snowflake className="w-3.5 h-3.5" />
-                            Geladeira
-                          </span>
-                        )}
-                        {entrega.reter_receita && (
-                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                            <FileText className="w-3.5 h-3.5" />
-                            Reter Receita
-                          </span>
-                        )}
                       </div>
                     </div>
 
-                    {/* Lado Direito - Valor + Região + Ações */}
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="text-2xl font-bold" style={{ color: '#376295' }}>
-                          R$ {entrega.valor?.toFixed(2) || '0.00'}
+                    {/* Lado Direito - Badges + Valor + Região + Ações */}
+                    <div className="flex flex-col items-center gap-3">
+                      {/* Badges Geladeira e Reter Receita */}
+                      {(entrega.item_geladeira || entrega.reter_receita) && (
+                        <div className="flex items-center gap-2">
+                          {entrega.item_geladeira && (
+                            <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                              <Snowflake className="w-3.5 h-3.5" />
+                              Geladeira
+                            </span>
+                          )}
+                          {entrega.reter_receita && (
+                            <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                              <FileText className="w-3.5 h-3.5" />
+                              Reter Receita
+                            </span>
+                          )}
                         </div>
-                        <div className="text-sm font-medium" style={{ color: '#376295' }}>
-                          {entrega.regiao}
-                        </div>
-                      </div>
+                      )}
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/editar-romaneio', { state: { entrega } });
-                          }}
-                          className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-                          title="Editar"
-                        >
-                          <Edit className="w-4 h-4" style={{ color: '#376295' }} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmarExclusao(entrega);
-                          }}
-                          className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
-                        </button>
+                      {/* Valor, Região e Botões */}
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                            R$ {entrega.valor?.toFixed(2) || '0.00'}
+                          </div>
+                          <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                            {entrega.regiao}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/editar-romaneio', { state: { entrega } });
+                            }}
+                            className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" style={{ color: '#376295' }} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirmarExclusao(entrega);
+                            }}
+                            className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
