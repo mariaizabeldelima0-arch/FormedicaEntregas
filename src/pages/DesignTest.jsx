@@ -185,6 +185,8 @@ export default function DesignTest() {
           data_entrega: selectedDate.toISOString(),
           regiao: 'Centro',
           periodo: 'Manhã',
+          valor: 45.50,
+          forma_pagamento: 'Dinheiro',
           cliente: {
             nome: 'Maria Silva Santos',
             telefone: '(11) 98765-4321'
@@ -207,6 +209,8 @@ export default function DesignTest() {
           data_entrega: selectedDate.toISOString(),
           regiao: 'Zona Sul',
           periodo: 'Tarde',
+          valor: 32.00,
+          forma_pagamento: 'Cartão',
           cliente: {
             nome: 'Carlos Eduardo Oliveira',
             telefone: '(11) 97654-3210'
@@ -229,6 +233,8 @@ export default function DesignTest() {
           data_entrega: selectedDate.toISOString(),
           regiao: 'Zona Norte',
           periodo: 'Manhã',
+          valor: 28.75,
+          forma_pagamento: 'Pix',
           cliente: {
             nome: 'Ana Paula Costa',
             telefone: '(11) 96543-2109'
@@ -241,6 +247,56 @@ export default function DesignTest() {
           },
           motoboy: {
             nome: 'João Motoboy'
+          }
+        },
+        {
+          id: 'exemplo-4',
+          status: 'A Caminho',
+          requisicao: 'REQ-001',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'ITAJAÍ',
+          periodo: 'Tarde',
+          valor: 52.00,
+          forma_pagamento: 'Boleto',
+          item_geladeira: true,
+          cliente: {
+            nome: 'Roberto Santos Silva',
+            telefone: '(47) 99876-5432'
+          },
+          endereco: {
+            logradouro: 'Rua das Acácias',
+            numero: '456',
+            complemento: 'Casa',
+            bairro: 'Centro',
+            cidade: 'Itajaí'
+          },
+          motoboy: {
+            nome: 'Marcio'
+          }
+        },
+        {
+          id: 'exemplo-5',
+          status: 'Produzindo no Laboratório',
+          requisicao: 'REQ-002',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'PRAIA BRAVA',
+          periodo: 'Manhã',
+          valor: 65.00,
+          forma_pagamento: 'Pix - Aguardando',
+          reter_receita: true,
+          cliente: {
+            nome: 'Fernanda Lima Costa',
+            telefone: '(47) 98888-7777'
+          },
+          endereco: {
+            logradouro: 'Avenida Atlântica',
+            numero: '2000',
+            complemento: 'Apto 302',
+            bairro: 'Praia Brava',
+            cidade: 'Balneário Camboriú'
+          },
+          motoboy: {
+            nome: 'Bruno'
           }
         }
       ];
@@ -765,6 +821,12 @@ export default function DesignTest() {
                           <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#E8F0F8', color: '#376295' }}>
                             <Snowflake className="w-3.5 h-3.5" />
                             Geladeira
+                          </span>
+                        )}
+                        {entrega.reter_receita && (
+                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#F5E8F5', color: '#890d5d' }}>
+                            <Package className="w-3.5 h-3.5" />
+                            Reter Receita
                           </span>
                         )}
                       </div>
