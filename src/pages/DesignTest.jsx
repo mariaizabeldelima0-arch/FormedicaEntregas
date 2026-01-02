@@ -533,7 +533,7 @@ export default function DesignTest() {
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
                   <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                 </div>
-                <span className="text-sm font-bold text-slate-700 uppercase">Total</span>
+                <span className="text-sm font-bold text-slate-700">Total</span>
               </div>
               <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
                 {stats.total}
@@ -552,7 +552,7 @@ export default function DesignTest() {
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
                   <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
                 </div>
-                <span className="text-sm font-bold text-slate-700 uppercase">Produção</span>
+                <span className="text-sm font-bold text-slate-700">Produção</span>
               </div>
               <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
                 {stats.producao}
@@ -571,7 +571,7 @@ export default function DesignTest() {
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
                   <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
                 </div>
-                <span className="text-sm font-bold text-slate-700 uppercase">A Caminho</span>
+                <span className="text-sm font-bold text-slate-700">A Caminho</span>
               </div>
               <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
                 {stats.caminho}
@@ -590,7 +590,7 @@ export default function DesignTest() {
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
                   <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
                 </div>
-                <span className="text-sm font-bold text-slate-700 uppercase">Entregues</span>
+                <span className="text-sm font-bold text-slate-700">Entregues</span>
               </div>
               <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
                 {stats.entregues}
