@@ -35,7 +35,9 @@ import {
   Banknote,
   Phone,
   Snowflake,
-  FileText
+  FileText,
+  Sunrise,
+  Sun
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -808,7 +810,8 @@ export default function DesignTest() {
                   <div className="bg-white rounded-xl shadow-sm border-2 border-slate-300 p-6">
                     <div className="mb-6">
                       <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        ☀️ Entregas da Manhã
+                        <Sunrise className="w-7 h-7" style={{ color: '#f97316' }} />
+                        Entregas da Manhã
                         <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
                           {entregasManha.length}
                         </span>
@@ -958,7 +961,8 @@ export default function DesignTest() {
                   <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <div className="mb-6">
                       <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        🌙 Entregas da Tarde
+                        <Sun className="w-7 h-7" style={{ color: '#f59e0b' }} />
+                        Entregas da Tarde
                         <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
                           {entregasTarde.length}
                         </span>
