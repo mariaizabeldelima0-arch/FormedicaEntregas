@@ -618,12 +618,12 @@ export default function EntregasMoto() {
                 <span className="text-sm font-medium text-slate-600">Filtros ativos:</span>
 
                 {searchTerm && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm font-medium">
                     <Search className="w-3.5 h-3.5" />
                     Busca: "{searchTerm}"
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                      className="ml-1 hover:bg-blue-200 rounded p-0.5 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -634,7 +634,7 @@ export default function EntregasMoto() {
 
                 {filtroStatus && (
                   <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium"
                     style={{
                       backgroundColor:
                         filtroStatus === 'Entregue' ? '#E8F5E8' :
@@ -650,7 +650,7 @@ export default function EntregasMoto() {
                         setFiltroStatus('');
                         setCardSelecionado('total');
                       }}
-                      className="ml-1 hover:opacity-70 rounded-full p-0.5 transition-opacity"
+                      className="ml-1 hover:opacity-70 rounded p-0.5 transition-opacity"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -660,12 +660,12 @@ export default function EntregasMoto() {
                 )}
 
                 {filtros.motoboy && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded text-sm font-medium">
                     <Truck className="w-3.5 h-3.5" />
                     Motoboy: {filtros.motoboy}
                     <button
                       onClick={() => setFiltros({ ...filtros, motoboy: '' })}
-                      className="ml-1 hover:bg-orange-200 rounded-full p-0.5 transition-colors"
+                      className="ml-1 hover:bg-orange-200 rounded p-0.5 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -675,12 +675,12 @@ export default function EntregasMoto() {
                 )}
 
                 {filtros.regiao && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded text-sm font-medium">
                     <MapPin className="w-3.5 h-3.5" />
                     Região: {filtros.regiao}
                     <button
                       onClick={() => setFiltros({ ...filtros, regiao: '' })}
-                      className="ml-1 hover:bg-purple-200 rounded-full p-0.5 transition-colors"
+                      className="ml-1 hover:bg-purple-200 rounded p-0.5 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -690,12 +690,12 @@ export default function EntregasMoto() {
                 )}
 
                 {filtros.periodo && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded text-sm font-medium">
                     <Clock className="w-3.5 h-3.5" />
                     Período: {filtros.periodo}
                     <button
                       onClick={() => setFiltros({ ...filtros, periodo: '' })}
-                      className="ml-1 hover:bg-amber-200 rounded-full p-0.5 transition-colors"
+                      className="ml-1 hover:bg-amber-200 rounded p-0.5 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -705,11 +705,11 @@ export default function EntregasMoto() {
                 )}
 
                 {filtros.atendente && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded text-sm font-medium">
                     👤 Atendente: {filtros.atendente}
                     <button
                       onClick={() => setFiltros({ ...filtros, atendente: '' })}
-                      className="ml-1 hover:bg-green-200 rounded-full p-0.5 transition-colors"
+                      className="ml-1 hover:bg-green-200 rounded p-0.5 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
