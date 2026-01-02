@@ -809,7 +809,7 @@ export default function DesignTest() {
                                 : '#F5E8F5',
                             color:
                               entrega.status === 'Entregue'
-                                ? '#629537'
+                                ? '#22c55e'
                                 : entrega.status === 'A Caminho'
                                 ? '#f97316'
                                 : '#890d5d'
