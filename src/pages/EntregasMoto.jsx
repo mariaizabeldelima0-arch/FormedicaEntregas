@@ -583,7 +583,140 @@ export default function EntregasMoto() {
 
           {/* Seção Buscar e Filtrar */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Buscar e Filtrar</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900">Buscar e Filtrar</h2>
+
+              {/* Botão Limpar Filtros */}
+              {(searchTerm || filtroStatus || filtros.motoboy || filtros.regiao || filtros.periodo || filtros.atendente) && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFiltroStatus('');
+                    setCardSelecionado('total');
+                    setFiltros({
+                      status: '',
+                      atendente: '',
+                      motoboy: '',
+                      regiao: '',
+                      periodo: ''
+                    });
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Limpar Filtros
+                </button>
+              )}
+            </div>
+
+            {/* Filtros Ativos */}
+            {(searchTerm || filtroStatus || filtros.motoboy || filtros.regiao || filtros.periodo || filtros.atendente) && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                <span className="text-sm font-medium text-slate-600">Filtros ativos:</span>
+
+                {searchTerm && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                    <Search className="w-3.5 h-3.5" />
+                    Busca: "{searchTerm}"
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+
+                {filtroStatus && (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+                    style={{
+                      backgroundColor:
+                        filtroStatus === 'Entregue' ? '#E8F5E8' :
+                        filtroStatus === 'A Caminho' ? '#FEF3E8' : '#F5E8F5',
+                      color:
+                        filtroStatus === 'Entregue' ? '#22c55e' :
+                        filtroStatus === 'A Caminho' ? '#f97316' : '#890d5d'
+                    }}
+                  >
+                    Status: {filtroStatus === 'Produzindo no Laboratório' ? 'Produção' : filtroStatus}
+                    <button
+                      onClick={() => {
+                        setFiltroStatus('');
+                        setCardSelecionado('total');
+                      }}
+                      className="ml-1 hover:opacity-70 rounded-full p-0.5 transition-opacity"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+
+                {filtros.motoboy && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                    <Truck className="w-3.5 h-3.5" />
+                    Motoboy: {filtros.motoboy}
+                    <button
+                      onClick={() => setFiltros({ ...filtros, motoboy: '' })}
+                      className="ml-1 hover:bg-orange-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+
+                {filtros.regiao && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                    📍 Região: {filtros.regiao}
+                    <button
+                      onClick={() => setFiltros({ ...filtros, regiao: '' })}
+                      className="ml-1 hover:bg-purple-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+
+                {filtros.periodo && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                    <Clock className="w-3.5 h-3.5" />
+                    Período: {filtros.periodo}
+                    <button
+                      onClick={() => setFiltros({ ...filtros, periodo: '' })}
+                      className="ml-1 hover:bg-amber-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+
+                {filtros.atendente && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                    👤 Atendente: {filtros.atendente}
+                    <button
+                      onClick={() => setFiltros({ ...filtros, atendente: '' })}
+                      className="ml-1 hover:bg-green-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="space-y-4">
               {/* Campo de Busca */}
