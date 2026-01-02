@@ -315,6 +315,35 @@ export default function DesignTest() {
     loadEntregas();
   }, []);
 
+  // Função para ordenar entregas
+  const ordenarEntregas = (entregas) => {
+    return entregas.sort((a, b) => {
+      // 1. Ordenar por motoboy
+      const motoboyA = a.motoboy?.nome || '';
+      const motoboyB = b.motoboy?.nome || '';
+      if (motoboyA !== motoboyB) {
+        return motoboyA.localeCompare(motoboyB);
+      }
+
+      // 2. Ordenar por status (ordem: Produzindo -> A Caminho -> Entregue)
+      const statusOrder = {
+        'Produzindo no Laboratório': 1,
+        'A Caminho': 2,
+        'Entregue': 3
+      };
+      const statusA = statusOrder[a.status] || 999;
+      const statusB = statusOrder[b.status] || 999;
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+
+      // 3. Ordenar por nome do cliente (alfabética)
+      const nomeA = a.cliente?.nome || '';
+      const nomeB = b.cliente?.nome || '';
+      return nomeA.localeCompare(nomeB);
+    });
+  };
+
   // Filtrar entregas
   const entregasFiltradas = entregas.filter(entrega => {
     // Filtro de data (se viewMode === 'day')
@@ -360,6 +389,10 @@ export default function DesignTest() {
 
     return true;
   });
+
+  // Separar e ordenar entregas por período
+  const entregasManha = ordenarEntregas(entregasFiltradas.filter(e => e.periodo === 'Manhã'));
+  const entregasTarde = ordenarEntregas(entregasFiltradas.filter(e => e.periodo === 'Tarde'));
 
   // Estatísticas
   const stats = {
@@ -742,173 +775,334 @@ export default function DesignTest() {
           </div>
 
           {/* Seção de Entregas */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            {/* Cabeçalho */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-slate-900">
-                Entregas de {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-              </h2>
-            </div>
-
-            {/* Empty State */}
+          <div className="space-y-6">
             {loading ? (
-              <div className="py-24 text-center">
-                <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-4 rounded-full animate-spin mb-4"
-                  style={{ borderTopColor: '#376295' }}
-                />
-                <p className="text-slate-600">Carregando entregas...</p>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="py-24 text-center">
+                  <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-4 rounded-full animate-spin mb-4"
+                    style={{ borderTopColor: '#376295' }}
+                  />
+                  <p className="text-slate-600">Carregando entregas...</p>
+                </div>
               </div>
             ) : entregasFiltradas.length === 0 ? (
-              <div className="py-24 text-center">
-                <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                  Nenhuma entrega encontrada
-                </h3>
-                <p className="text-sm text-slate-600">
-                  {searchTerm || filtros.motoboy || filtros.regiao || filtros.periodo
-                    ? 'Tente ajustar os filtros de busca'
-                    : viewMode === 'day'
-                    ? 'Não há entregas para esta data'
-                    : 'Não há entregas cadastradas'}
-                </p>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="py-24 text-center">
+                  <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    Nenhuma entrega encontrada
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    {searchTerm || filtros.motoboy || filtros.regiao || filtros.periodo
+                      ? 'Tente ajustar os filtros de busca'
+                      : viewMode === 'day'
+                      ? 'Não há entregas para esta data'
+                      : 'Não há entregas cadastradas'}
+                  </p>
+                </div>
               </div>
             ) : (
-              entregasFiltradas.map((entrega) => (
-                <div
-                  key={entrega.id}
-                  onClick={() => visualizarDetalhes(entrega)}
-                  className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between gap-6">
-                    {/* Lado Esquerdo - Informações */}
-                    <div className="flex-1">
-                      {/* Linha 1: Requisição + Status */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-base font-semibold" style={{ color: '#376295' }}>
-                          #{entrega.requisicao}
+              <>
+                {/* Entregas da Manhã */}
+                {entregasManha.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border-2 border-slate-300 p-6">
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        ☀️ Entregas da Manhã
+                        <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
+                          {entregasManha.length}
                         </span>
-                        <span
-                          className="px-3 py-1 rounded text-xs font-medium"
-                          style={{
-                            backgroundColor:
-                              entrega.status === 'Entregue'
-                                ? '#E8F5E8'
-                                : entrega.status === 'A Caminho'
-                                ? '#FEF3E8'
-                                : '#F5E8F5',
-                            color:
-                              entrega.status === 'Entregue'
-                                ? '#22c55e'
-                                : entrega.status === 'A Caminho'
-                                ? '#f97316'
-                                : '#890d5d'
-                          }}
-                        >
-                          {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
-                        </span>
-                      </div>
-
-                      {/* Linha 2: Nome do Cliente */}
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">
-                        {entrega.cliente?.nome || 'Cliente não informado'}
-                      </h3>
-
-                      {/* Linha 3: Endereço */}
-                      <div className="mb-3 text-sm text-slate-600">
-                        <span>
-                          {entrega.endereco
-                            ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
-                            : entrega.endereco_destino || 'Endereço não informado'}
-                        </span>
-                      </div>
-
-                      {/* Linha 4: Informações com ícones */}
-                      <div className="flex flex-wrap gap-4 text-sm text-slate-900">
-                        {entrega.motoboy && (
-                          <div className="flex items-center gap-1.5">
-                            <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
-                            <span>{entrega.motoboy.nome}</span>
-                          </div>
-                        )}
-                        {entrega.periodo && (
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
-                            <span>{entrega.periodo}</span>
-                          </div>
-                        )}
-                        {entrega.forma_pagamento && (
-                          <div className="flex items-center gap-1.5">
-                            <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
-                            <span>{entrega.forma_pagamento}</span>
-                          </div>
-                        )}
-                        {entrega.cliente?.telefone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
-                            <span>{entrega.cliente.telefone}</span>
-                          </div>
-                        )}
-                      </div>
+                      </h2>
                     </div>
+                    {entregasManha.map((entrega) => (
+                      <div
+                        key={entrega.id}
+                        onClick={() => visualizarDetalhes(entrega)}
+                        className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
+                      >
+                        <div className="flex items-center justify-between gap-6">
+                          {/* Lado Esquerdo - Informações */}
+                          <div className="flex-1">
+                            {/* Linha 1: Requisição + Status */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                                #{entrega.requisicao}
+                              </span>
+                              <span
+                                className="px-3 py-1 rounded text-xs font-medium"
+                                style={{
+                                  backgroundColor:
+                                    entrega.status === 'Entregue'
+                                      ? '#E8F5E8'
+                                      : entrega.status === 'A Caminho'
+                                      ? '#FEF3E8'
+                                      : '#F5E8F5',
+                                  color:
+                                    entrega.status === 'Entregue'
+                                      ? '#22c55e'
+                                      : entrega.status === 'A Caminho'
+                                      ? '#f97316'
+                                      : '#890d5d'
+                                }}
+                              >
+                                {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
+                              </span>
+                            </div>
 
-                    {/* Lado Direito - Badges + Valor + Região + Ações */}
-                    <div className="flex flex-col items-center gap-3">
-                      {/* Badges Geladeira e Reter Receita */}
-                      {(entrega.item_geladeira || entrega.reter_receita) && (
-                        <div className="flex items-center gap-2">
-                          {entrega.item_geladeira && (
-                            <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
-                              <Snowflake className="w-5 h-5" />
-                              Geladeira
-                            </span>
-                          )}
-                          {entrega.reter_receita && (
-                            <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                              <FileText className="w-5 h-5" />
-                              Reter Receita
-                            </span>
-                          )}
-                        </div>
-                      )}
+                            {/* Linha 2: Nome do Cliente */}
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">
+                              {entrega.cliente?.nome || 'Cliente não informado'}
+                            </h3>
 
-                      {/* Valor, Região e Botões */}
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="text-2xl font-bold" style={{ color: '#376295' }}>
-                            R$ {entrega.valor?.toFixed(2) || '0.00'}
+                            {/* Linha 3: Endereço */}
+                            <div className="mb-3 text-sm text-slate-600">
+                              <span>
+                                {entrega.endereco
+                                  ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                                  : entrega.endereco_destino || 'Endereço não informado'}
+                              </span>
+                            </div>
+
+                            {/* Linha 4: Informações com ícones */}
+                            <div className="flex flex-wrap gap-4 text-sm text-slate-900">
+                              {entrega.motoboy && (
+                                <div className="flex items-center gap-1.5">
+                                  <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.motoboy.nome}</span>
+                                </div>
+                              )}
+                              {entrega.periodo && (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.periodo}</span>
+                                </div>
+                              )}
+                              {entrega.forma_pagamento && (
+                                <div className="flex items-center gap-1.5">
+                                  <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.forma_pagamento}</span>
+                                </div>
+                              )}
+                              {entrega.cliente?.telefone && (
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.cliente.telefone}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm font-medium" style={{ color: '#376295' }}>
-                            {entrega.regiao}
-                          </div>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate('/editar-romaneio', { state: { entrega } });
-                            }}
-                            className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-                            title="Editar"
-                          >
-                            <Edit className="w-4 h-4" style={{ color: '#376295' }} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              confirmarExclusao(entrega);
-                            }}
-                            className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
-                            title="Excluir"
-                          >
-                            <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
-                          </button>
+                          {/* Lado Direito - Badges + Valor + Região + Ações */}
+                          <div className="flex flex-col items-center gap-3">
+                            {/* Badges Geladeira e Reter Receita */}
+                            {(entrega.item_geladeira || entrega.reter_receita) && (
+                              <div className="flex items-center gap-2">
+                                {entrega.item_geladeira && (
+                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                                    <Snowflake className="w-5 h-5" />
+                                    Geladeira
+                                  </span>
+                                )}
+                                {entrega.reter_receita && (
+                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                                    <FileText className="w-5 h-5" />
+                                    Reter Receita
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Valor, Região e Botões */}
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                                  R$ {entrega.valor?.toFixed(2) || '0.00'}
+                                </div>
+                                <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                                  {entrega.regiao}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate('/editar-romaneio', { state: { entrega } });
+                                  }}
+                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                                  title="Editar"
+                                >
+                                  <Edit className="w-4 h-4" style={{ color: '#376295' }} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    confirmarExclusao(entrega);
+                                  }}
+                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              ))
+                )}
+
+                {/* Entregas da Tarde */}
+                {entregasTarde.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        🌙 Entregas da Tarde
+                        <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
+                          {entregasTarde.length}
+                        </span>
+                      </h2>
+                    </div>
+                    {entregasTarde.map((entrega) => (
+                      <div
+                        key={entrega.id}
+                        onClick={() => visualizarDetalhes(entrega)}
+                        className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
+                      >
+                        <div className="flex items-center justify-between gap-6">
+                          {/* Lado Esquerdo - Informações */}
+                          <div className="flex-1">
+                            {/* Linha 1: Requisição + Status */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                                #{entrega.requisicao}
+                              </span>
+                              <span
+                                className="px-3 py-1 rounded text-xs font-medium"
+                                style={{
+                                  backgroundColor:
+                                    entrega.status === 'Entregue'
+                                      ? '#E8F5E8'
+                                      : entrega.status === 'A Caminho'
+                                      ? '#FEF3E8'
+                                      : '#F5E8F5',
+                                  color:
+                                    entrega.status === 'Entregue'
+                                      ? '#22c55e'
+                                      : entrega.status === 'A Caminho'
+                                      ? '#f97316'
+                                      : '#890d5d'
+                                }}
+                              >
+                                {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
+                              </span>
+                            </div>
+
+                            {/* Linha 2: Nome do Cliente */}
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">
+                              {entrega.cliente?.nome || 'Cliente não informado'}
+                            </h3>
+
+                            {/* Linha 3: Endereço */}
+                            <div className="mb-3 text-sm text-slate-600">
+                              <span>
+                                {entrega.endereco
+                                  ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                                  : entrega.endereco_destino || 'Endereço não informado'}
+                              </span>
+                            </div>
+
+                            {/* Linha 4: Informações com ícones */}
+                            <div className="flex flex-wrap gap-4 text-sm text-slate-900">
+                              {entrega.motoboy && (
+                                <div className="flex items-center gap-1.5">
+                                  <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.motoboy.nome}</span>
+                                </div>
+                              )}
+                              {entrega.periodo && (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.periodo}</span>
+                                </div>
+                              )}
+                              {entrega.forma_pagamento && (
+                                <div className="flex items-center gap-1.5">
+                                  <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.forma_pagamento}</span>
+                                </div>
+                              )}
+                              {entrega.cliente?.telefone && (
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.cliente.telefone}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Lado Direito - Badges + Valor + Região + Ações */}
+                          <div className="flex flex-col items-center gap-3">
+                            {/* Badges Geladeira e Reter Receita */}
+                            {(entrega.item_geladeira || entrega.reter_receita) && (
+                              <div className="flex items-center gap-2">
+                                {entrega.item_geladeira && (
+                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                                    <Snowflake className="w-5 h-5" />
+                                    Geladeira
+                                  </span>
+                                )}
+                                {entrega.reter_receita && (
+                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                                    <FileText className="w-5 h-5" />
+                                    Reter Receita
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Valor, Região e Botões */}
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                                  R$ {entrega.valor?.toFixed(2) || '0.00'}
+                                </div>
+                                <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                                  {entrega.regiao}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate('/editar-romaneio', { state: { entrega } });
+                                  }}
+                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                                  title="Editar"
+                                >
+                                  <Edit className="w-4 h-4" style={{ color: '#376295' }} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    confirmarExclusao(entrega);
+                                  }}
+                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
