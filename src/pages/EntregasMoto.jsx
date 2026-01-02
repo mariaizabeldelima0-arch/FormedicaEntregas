@@ -737,7 +737,11 @@ export default function EntregasMoto() {
               <div className="grid grid-cols-4 gap-4">
                 <CustomDropdown
                   options={[
-                    { value: '', label: 'Atendentes' }
+                    { value: '', label: 'Atendentes' },
+                    { value: 'Maria Isabel', label: 'Maria Isabel' },
+                    { value: 'João Silva', label: 'João Silva' },
+                    { value: 'Ana Paula', label: 'Ana Paula' },
+                    { value: 'Carlos Santos', label: 'Carlos Santos' }
                   ]}
                   value={filtros.atendente}
                   onChange={(value) => setFiltros({ ...filtros, atendente: value })}
