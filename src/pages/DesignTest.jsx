@@ -606,7 +606,7 @@ export default function DesignTest() {
               }}
             >
               <span className="text-sm font-bold text-white mb-2 uppercase">Novo Romaneio</span>
-              <div className="text-4xl font-bold text-white">+</div>
+              <div className="text-5xl font-bold text-white">+</div>
             </div>
           </div>
 
