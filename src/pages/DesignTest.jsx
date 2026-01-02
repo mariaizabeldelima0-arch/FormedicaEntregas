@@ -728,128 +728,119 @@ export default function DesignTest() {
                 <div
                   key={entrega.id}
                   onClick={() => visualizarDetalhes(entrega)}
-                  className="p-6 hover:bg-slate-50 transition-all cursor-pointer hover:shadow-md"
-                  style={{
-                    borderLeft: '4px solid transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderLeftColor = '#376295';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderLeftColor = 'transparent';
-                  }}
+                  className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    {/* Informações da Entrega */}
+                  <div className="flex items-start justify-between gap-6">
+                    {/* Lado Esquerdo - Informações */}
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        {/* Status Badge */}
+                      {/* Linha 1: Requisição + Status + Geladeira */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                          #{entrega.requisicao}
+                        </span>
                         <span
-                          className="px-3 py-1 rounded-full text-xs font-semibold"
+                          className="px-3 py-1 rounded text-xs font-medium"
                           style={{
                             backgroundColor:
                               entrega.status === 'Entregue'
                                 ? '#E8F5E8'
                                 : entrega.status === 'A Caminho'
-                                ? '#F5E8F5'
-                                : entrega.status === 'Produzindo no Laboratório'
-                                ? '#FEF9E8'
-                                : '#f3f4f6',
+                                ? '#FEF3E8'
+                                : '#FEF9E8',
                             color:
                               entrega.status === 'Entregue'
                                 ? '#629537'
                                 : entrega.status === 'A Caminho'
-                                ? '#6E0A4A'
-                                : entrega.status === 'Produzindo no Laboratório'
-                                ? '#D8CA15'
-                                : '#6b7280'
+                                ? '#f97316'
+                                : '#D8CA15'
                           }}
                         >
                           {entrega.status}
                         </span>
-
-                        {/* Requisição */}
-                        {entrega.requisicao && (
-                          <span className="text-sm font-mono text-slate-600">
-                            #{entrega.requisicao}
+                        {entrega.item_geladeira && (
+                          <span className="px-3 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#FEF9E8', color: '#D8CA15' }}>
+                            ❄️ Geladeira
                           </span>
                         )}
                       </div>
 
-                      {/* Cliente */}
-                      <div className="mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-900">
-                            {entrega.cliente?.nome || 'Cliente não informado'}
-                          </span>
-                          {entrega.cliente?.telefone && (
-                            <span className="text-sm text-slate-600">
-                              • {entrega.cliente.telefone}
-                            </span>
-                          )}
-                        </div>
+                      {/* Linha 2: Nome do Cliente */}
+                      <h3 className="text-lg font-bold text-slate-900 mb-2">
+                        {entrega.cliente?.nome || 'Cliente não informado'}
+                      </h3>
+
+                      {/* Linha 3: Endereço */}
+                      <div className="flex items-start gap-2 mb-3 text-sm text-slate-600">
+                        <span style={{ color: '#64748b' }}>📍</span>
+                        <span>
+                          {entrega.endereco
+                            ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                            : entrega.endereco_destino || 'Endereço não informado'}
+                        </span>
                       </div>
 
-                      {/* Endereço */}
-                      {entrega.endereco && (
-                        <div className="text-sm text-slate-600 mb-2">
-                          {entrega.endereco.logradouro}, {entrega.endereco.numero}
-                          {entrega.endereco.complemento && ` - ${entrega.endereco.complemento}`}
-                          <br />
-                          {entrega.endereco.bairro} - {entrega.endereco.cidade}
-                        </div>
-                      )}
-
-                      {/* Informações Adicionais */}
-                      <div className="flex flex-wrap gap-4 text-sm">
+                      {/* Linha 4: Informações com ícones */}
+                      <div className="flex flex-wrap gap-4 text-sm text-slate-600">
                         {entrega.motoboy && (
                           <div className="flex items-center gap-1.5">
-                            <Truck className="w-4 h-4" style={{ color: '#376295' }} />
-                            <span className="text-slate-600">{entrega.motoboy.nome}</span>
-                          </div>
-                        )}
-                        {entrega.regiao && (
-                          <div className="text-slate-600">
-                            <span className="font-medium">Região:</span> {entrega.regiao}
+                            <Truck className="w-4 h-4" style={{ color: '#64748b' }} />
+                            <span>{entrega.motoboy.nome}</span>
                           </div>
                         )}
                         {entrega.periodo && (
-                          <div className="text-slate-600">
-                            <span className="font-medium">Período:</span> {entrega.periodo}
+                          <div className="flex items-center gap-1.5">
+                            <span style={{ color: '#64748b' }}>🕐</span>
+                            <span>{entrega.periodo}</span>
+                          </div>
+                        )}
+                        {entrega.forma_pagamento && (
+                          <div className="flex items-center gap-1.5">
+                            <span style={{ color: '#64748b' }}>💰</span>
+                            <span>{entrega.forma_pagamento}</span>
+                          </div>
+                        )}
+                        {entrega.cliente?.telefone && (
+                          <div className="flex items-center gap-1.5">
+                            <span style={{ color: '#64748b' }}>📞</span>
+                            <span>{entrega.cliente.telefone}</span>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Botões de Ação */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/editar-romaneio', { state: { entrega } });
-                        }}
-                        className="p-2 rounded-lg transition-all"
-                        style={{ color: '#376295' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8F0F8'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        title="Editar entrega"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
+                    {/* Lado Direito - Valor + Região + Ações */}
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="text-right mb-2">
+                        <div className="text-3xl font-bold" style={{ color: '#376295' }}>
+                          R$ {entrega.valor?.toFixed(2) || '0.00'}
+                        </div>
+                        <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                          {entrega.regiao}
+                        </div>
+                      </div>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmarExclusao(entrega);
-                        }}
-                        className="p-2 rounded-lg transition-all"
-                        style={{ color: '#C70D12' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        title="Excluir entrega"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/editar-romaneio', { state: { entrega } });
+                          }}
+                          className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4" style={{ color: '#376295' }} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmarExclusao(entrega);
+                          }}
+                          className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
