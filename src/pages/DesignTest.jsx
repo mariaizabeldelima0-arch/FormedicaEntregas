@@ -784,44 +784,28 @@ export default function DesignTest() {
                       </div>
 
                       {/* Linha 4: Informações com ícones */}
-                      <div className="flex flex-wrap gap-4 text-sm">
+                      <div className="flex flex-wrap gap-4 text-sm text-slate-900">
                         {entrega.motoboy && (
-                          <div className="flex items-center gap-1.5" style={{
-                            color: entrega.item_geladeira ? '#376295' : entrega.reter_receita ? '#890d5d' : '#1e293b'
-                          }}>
-                            <Truck className="w-4 h-4" style={{
-                              color: entrega.item_geladeira ? '#376295' : entrega.reter_receita ? '#890d5d' : '#1e293b'
-                            }} />
+                          <div className="flex items-center gap-1.5">
+                            <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
                             <span>{entrega.motoboy.nome}</span>
                           </div>
                         )}
                         {entrega.periodo && (
-                          <div className="flex items-center gap-1.5" style={{
-                            color: entrega.item_geladeira ? '#376295' : entrega.reter_receita ? '#890d5d' : '#1e293b'
-                          }}>
-                            <Clock className="w-4 h-4" style={{
-                              color: entrega.item_geladeira ? '#376295' : entrega.reter_receita ? '#890d5d' : '#1e293b'
-                            }} />
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
                             <span>{entrega.periodo}</span>
                           </div>
                         )}
                         {entrega.forma_pagamento && (
-                          <div className="flex items-center gap-1.5" style={{
-                            color: entrega.item_geladeira ? '#376295' : entrega.reter_receita ? '#890d5d' : '#1e293b'
-                          }}>
-                            <Banknote className="w-4 h-4" style={{
-                              color: entrega.item_geladeira ? '#376295' : entrega.reter_receita ? '#890d5d' : '#1e293b'
-                            }} />
+                          <div className="flex items-center gap-1.5">
+                            <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
                             <span>{entrega.forma_pagamento}</span>
                           </div>
                         )}
                         {entrega.cliente?.telefone && (
-                          <div className="flex items-center gap-1.5" style={{
-                            color: entrega.item_geladeira ? '#376295' : entrega.reter_receita ? '#890d5d' : '#1e293b'
-                          }}>
-                            <Phone className="w-4 h-4" style={{
-                              color: entrega.item_geladeira ? '#376295' : entrega.reter_receita ? '#890d5d' : '#1e293b'
-                            }} />
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
                             <span>{entrega.cliente.telefone}</span>
                           </div>
                         )}
