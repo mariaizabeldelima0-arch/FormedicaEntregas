@@ -810,10 +810,10 @@ export default function DesignTest() {
                     {/* Lado Direito - Valor + Região + Ações */}
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <div className="text-xl font-bold" style={{ color: '#376295' }}>
+                        <div className="text-2xl font-bold" style={{ color: '#376295' }}>
                           R$ {entrega.valor?.toFixed(2) || '0.00'}
                         </div>
-                        <div className="text-xs font-medium" style={{ color: '#376295' }}>
+                        <div className="text-sm font-medium" style={{ color: '#376295' }}>
                           {entrega.regiao}
                         </div>
                       </div>
