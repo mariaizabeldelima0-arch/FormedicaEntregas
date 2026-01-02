@@ -819,13 +819,13 @@ export default function DesignTest() {
                           {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                         </span>
                         {entrega.item_geladeira && (
-                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#E8F0F8', color: '#376295' }}>
+                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
                             <Snowflake className="w-3.5 h-3.5" />
                             Geladeira
                           </span>
                         )}
                         {entrega.reter_receita && (
-                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>
+                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
                             <FileText className="w-3.5 h-3.5" />
                             Reter Receita
                           </span>
