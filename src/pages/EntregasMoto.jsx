@@ -938,12 +938,12 @@ export default function EntregasMoto() {
                 )}
 
                 {filtros.regiao && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium" style={{ backgroundColor: '#F5E8F5', color: '#890d5d' }}>
                     <MapPin className="w-3.5 h-3.5" />
                     Região: {filtros.regiao}
                     <button
                       onClick={() => setFiltros({ ...filtros, regiao: '' })}
-                      className="ml-1 hover:bg-purple-200 rounded p-0.5 transition-colors"
+                      className="ml-1 hover:opacity-70 rounded p-0.5 transition-opacity"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
