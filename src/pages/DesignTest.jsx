@@ -730,7 +730,7 @@ export default function DesignTest() {
                   onClick={() => visualizarDetalhes(entrega)}
                   className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md"
                 >
-                  <div className="flex items-start justify-between gap-6">
+                  <div className="flex items-center justify-between gap-6">
                     {/* Lado Esquerdo - Informações */}
                     <div className="flex-1">
                       {/* Linha 1: Requisição + Status + Geladeira */}
