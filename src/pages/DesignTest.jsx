@@ -691,19 +691,7 @@ export default function DesignTest() {
               </div>
 
               {/* Filtros em Linha */}
-              <div className="grid grid-cols-5 gap-4">
-                <CustomDropdown
-                  options={[
-                    { value: '', label: 'Status' },
-                    { value: 'Produzindo no Laboratório', label: 'Produzindo no Laboratório' },
-                    { value: 'A Caminho', label: 'A Caminho' },
-                    { value: 'Entregue', label: 'Entregue' }
-                  ]}
-                  value={filtros.status}
-                  onChange={(value) => setFiltros({ ...filtros, status: value })}
-                  placeholder="Status"
-                />
-
+              <div className="grid grid-cols-4 gap-4">
                 <CustomDropdown
                   options={[
                     { value: '', label: 'Atendentes' }
