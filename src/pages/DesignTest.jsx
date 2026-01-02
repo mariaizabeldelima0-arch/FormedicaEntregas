@@ -869,14 +869,14 @@ export default function DesignTest() {
                       {(entrega.item_geladeira || entrega.reter_receita) && (
                         <div className="flex items-center gap-2">
                           {entrega.item_geladeira && (
-                            <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
-                              <Snowflake className="w-3.5 h-3.5" />
+                            <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                              <Snowflake className="w-5 h-5" />
                               Geladeira
                             </span>
                           )}
                           {entrega.reter_receita && (
-                            <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                              <FileText className="w-3.5 h-3.5" />
+                            <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                              <FileText className="w-5 h-5" />
                               Reter Receita
                             </span>
                           )}
