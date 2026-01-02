@@ -34,7 +34,8 @@ import {
   Clock,
   Banknote,
   Phone,
-  Snowflake
+  Snowflake,
+  FileText
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -824,8 +825,8 @@ export default function DesignTest() {
                           </span>
                         )}
                         {entrega.reter_receita && (
-                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#F5E8F5', color: '#890d5d' }}>
-                            <Package className="w-3.5 h-3.5" />
+                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>
+                            <FileText className="w-3.5 h-3.5" />
                             Reter Receita
                           </span>
                         )}
