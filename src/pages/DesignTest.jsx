@@ -530,7 +530,7 @@ export default function DesignTest() {
               }}
             >
               <div className="flex items-center justify-center gap-3 mb-1">
-                <span className="text-sm font-medium text-slate-700">Total</span>
+                <span className="text-xs font-medium text-slate-700">Total</span>
                 <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
                   <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                 </div>
@@ -549,7 +549,7 @@ export default function DesignTest() {
               }}
             >
               <div className="flex items-center justify-center gap-3 mb-1">
-                <span className="text-sm font-medium text-slate-700">Produção</span>
+                <span className="text-xs font-medium text-slate-700">Produção</span>
                 <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
                   <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
                 </div>
@@ -568,7 +568,7 @@ export default function DesignTest() {
               }}
             >
               <div className="flex items-center justify-center gap-3 mb-1">
-                <span className="text-sm font-medium text-slate-700">A Caminho</span>
+                <span className="text-xs font-medium text-slate-700">A Caminho</span>
                 <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
                   <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
                 </div>
@@ -587,7 +587,7 @@ export default function DesignTest() {
               }}
             >
               <div className="flex items-center justify-center gap-3 mb-1">
-                <span className="text-sm font-medium text-slate-700">Entregues</span>
+                <span className="text-xs font-medium text-slate-700">Entregues</span>
                 <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
                   <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
                 </div>
@@ -605,7 +605,7 @@ export default function DesignTest() {
                 background: 'linear-gradient(135deg, #890d5d 0%, #6E0A4A 100%)'
               }}
             >
-              <span className="text-sm font-medium text-white mb-2">Novo Romaneio</span>
+              <span className="text-sm font-medium text-white mb-2 uppercase">Novo Romaneio</span>
               <div className="text-4xl font-bold text-white">+</div>
             </div>
           </div>
