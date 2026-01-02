@@ -179,7 +179,139 @@ export default function EntregasMoto() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setEntregas(data || []);
+
+      // Adicionar dados de exemplo para visualização
+      const entregasReais = data || [];
+      const exemplos = [
+        {
+          id: 'exemplo-1',
+          status: 'A Caminho',
+          requisicao: '12345',
+          atendente: 'Maria Isabel',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'Centro',
+          periodo: 'Manhã',
+          valor: 45.50,
+          forma_pagamento: 'Dinheiro',
+          cliente: {
+            nome: 'Maria Silva Santos',
+            telefone: '(11) 98765-4321'
+          },
+          endereco: {
+            logradouro: 'Rua das Flores',
+            numero: '123',
+            complemento: 'Apto 45',
+            bairro: 'Jardim Paulista',
+            cidade: 'São Paulo'
+          },
+          motoboy: {
+            nome: 'Marcio'
+          }
+        },
+        {
+          id: 'exemplo-2',
+          status: 'Produzindo no Laboratório',
+          requisicao: '12346',
+          atendente: 'João Silva',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'Zona Sul',
+          periodo: 'Tarde',
+          valor: 32.00,
+          forma_pagamento: 'Cartão',
+          cliente: {
+            nome: 'Carlos Eduardo Oliveira',
+            telefone: '(11) 97654-3210'
+          },
+          endereco: {
+            logradouro: 'Avenida Paulista',
+            numero: '1578',
+            complemento: 'Sala 201',
+            bairro: 'Bela Vista',
+            cidade: 'São Paulo'
+          },
+          motoboy: {
+            nome: 'Bruno'
+          }
+        },
+        {
+          id: 'exemplo-3',
+          status: 'Entregue',
+          requisicao: '12347',
+          atendente: 'Ana Paula',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'Zona Norte',
+          periodo: 'Manhã',
+          valor: 28.75,
+          forma_pagamento: 'Pix',
+          cliente: {
+            nome: 'Ana Paula Costa',
+            telefone: '(11) 96543-2109'
+          },
+          endereco: {
+            logradouro: 'Rua Augusta',
+            numero: '789',
+            bairro: 'Consolação',
+            cidade: 'São Paulo'
+          },
+          motoboy: {
+            nome: 'Marcio'
+          }
+        },
+        {
+          id: 'exemplo-4',
+          status: 'A Caminho',
+          requisicao: 'REQ-001',
+          atendente: 'Carlos Santos',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'ITAJAÍ',
+          periodo: 'Tarde',
+          valor: 52.00,
+          forma_pagamento: 'Boleto',
+          item_geladeira: true,
+          cliente: {
+            nome: 'Roberto Santos Silva',
+            telefone: '(47) 99876-5432'
+          },
+          endereco: {
+            logradouro: 'Rua das Acácias',
+            numero: '456',
+            complemento: 'Casa',
+            bairro: 'Centro',
+            cidade: 'Itajaí'
+          },
+          motoboy: {
+            nome: 'Marcio'
+          }
+        },
+        {
+          id: 'exemplo-5',
+          status: 'Produzindo no Laboratório',
+          requisicao: 'REQ-002',
+          atendente: 'Maria Isabel',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'PRAIA BRAVA',
+          periodo: 'Manhã',
+          valor: 65.00,
+          forma_pagamento: 'Pix - Aguardando',
+          reter_receita: true,
+          cliente: {
+            nome: 'Fernanda Lima Costa',
+            telefone: '(47) 98888-7777'
+          },
+          endereco: {
+            logradouro: 'Avenida Atlântica',
+            numero: '2000',
+            complemento: 'Apto 302',
+            bairro: 'Praia Brava',
+            cidade: 'Balneário Camboriú'
+          },
+          motoboy: {
+            nome: 'Bruno'
+          }
+        }
+      ];
+
+      setEntregas([...exemplos, ...entregasReais]);
     } catch (error) {
       console.error('Erro ao carregar entregas:', error);
       toast.error('Erro ao carregar entregas');
