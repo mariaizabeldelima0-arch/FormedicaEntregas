@@ -30,7 +30,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
-  Trash2
+  Trash2,
+  Clock,
+  Banknote,
+  Phone
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -788,19 +791,19 @@ export default function DesignTest() {
                         )}
                         {entrega.periodo && (
                           <div className="flex items-center gap-1.5">
-                            <span style={{ color: '#64748b' }}>🕐</span>
+                            <Clock className="w-4 h-4" style={{ color: '#64748b' }} />
                             <span>{entrega.periodo}</span>
                           </div>
                         )}
                         {entrega.forma_pagamento && (
                           <div className="flex items-center gap-1.5">
-                            <span style={{ color: '#64748b' }}>💰</span>
+                            <Banknote className="w-4 h-4" style={{ color: '#64748b' }} />
                             <span>{entrega.forma_pagamento}</span>
                           </div>
                         )}
                         {entrega.cliente?.telefone && (
                           <div className="flex items-center gap-1.5">
-                            <span style={{ color: '#64748b' }}>📞</span>
+                            <Phone className="w-4 h-4" style={{ color: '#64748b' }} />
                             <span>{entrega.cliente.telefone}</span>
                           </div>
                         )}
