@@ -180,8 +180,8 @@ export default function EntregasMoto() {
 
       if (error) throw error;
 
-      // Adicionar dados de exemplo para visualização
-      const entregasReais = data || [];
+      // Dados de exemplo para testes (comentar linha abaixo para usar dados reais)
+      const entregasReais = []; // data || [];
       const exemplos = [
         {
           id: 'exemplo-1',
