@@ -308,6 +308,132 @@ export default function EntregasMoto() {
           motoboy: {
             nome: 'Bruno'
           }
+        },
+        {
+          id: 'exemplo-6',
+          status: 'A Caminho',
+          requisicao: 'REQ-003',
+          atendente: 'João Silva',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'Centro',
+          periodo: 'Tarde',
+          valor: 38.00,
+          forma_pagamento: 'Cartão',
+          cliente: {
+            nome: 'Pedro Henrique Alves',
+            telefone: '(11) 99123-4567'
+          },
+          endereco: {
+            logradouro: 'Rua Oscar Freire',
+            numero: '500',
+            bairro: 'Jardins',
+            cidade: 'São Paulo'
+          },
+          motoboy: {
+            nome: 'Bruno'
+          }
+        },
+        {
+          id: 'exemplo-7',
+          status: 'Entregue',
+          requisicao: 'REQ-004',
+          atendente: 'Ana Paula',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'Zona Norte',
+          periodo: 'Manhã',
+          valor: 42.50,
+          forma_pagamento: 'Pix',
+          item_geladeira: true,
+          cliente: {
+            nome: 'Juliana Martins',
+            telefone: '(11) 98234-5678'
+          },
+          endereco: {
+            logradouro: 'Avenida Pacaembu',
+            numero: '1200',
+            complemento: 'Bloco A',
+            bairro: 'Pacaembu',
+            cidade: 'São Paulo'
+          },
+          motoboy: {
+            nome: 'Marcio'
+          }
+        },
+        {
+          id: 'exemplo-8',
+          status: 'Produzindo no Laboratório',
+          requisicao: 'REQ-005',
+          atendente: 'Carlos Santos',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'ITAJAÍ',
+          periodo: 'Tarde',
+          valor: 55.00,
+          forma_pagamento: 'Dinheiro',
+          reter_receita: true,
+          cliente: {
+            nome: 'Ricardo Souza Lima',
+            telefone: '(47) 99345-6789'
+          },
+          endereco: {
+            logradouro: 'Rua Alberto Werner',
+            numero: '800',
+            bairro: 'São João',
+            cidade: 'Itajaí'
+          },
+          motoboy: {
+            nome: 'Bruno'
+          }
+        },
+        {
+          id: 'exemplo-9',
+          status: 'A Caminho',
+          requisicao: 'REQ-006',
+          atendente: 'Maria Isabel',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'PRAIA BRAVA',
+          periodo: 'Manhã',
+          valor: 72.00,
+          forma_pagamento: 'Pix',
+          item_geladeira: true,
+          reter_receita: true,
+          cliente: {
+            nome: 'Beatriz Oliveira Santos',
+            telefone: '(47) 98456-7890'
+          },
+          endereco: {
+            logradouro: 'Avenida Central',
+            numero: '3500',
+            complemento: 'Apto 1502',
+            bairro: 'Praia Brava',
+            cidade: 'Balneário Camboriú'
+          },
+          motoboy: {
+            nome: 'Marcio'
+          }
+        },
+        {
+          id: 'exemplo-10',
+          status: 'Entregue',
+          requisicao: 'REQ-007',
+          atendente: 'João Silva',
+          data_entrega: selectedDate.toISOString(),
+          regiao: 'Zona Sul',
+          periodo: 'Tarde',
+          valor: 31.50,
+          forma_pagamento: 'Boleto',
+          cliente: {
+            nome: 'Gustavo Ferreira Costa',
+            telefone: '(11) 97567-8901'
+          },
+          endereco: {
+            logradouro: 'Avenida Ibirapuera',
+            numero: '2500',
+            bairro: 'Moema',
+            cidade: 'São Paulo'
+          },
+          motoboy: {
+            nome: 'Bruno'
+          }
         }
       ];
 
