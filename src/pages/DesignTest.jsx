@@ -794,7 +794,7 @@ export default function DesignTest() {
                   <div className="flex items-center justify-between gap-6">
                     {/* Lado Esquerdo - Informações */}
                     <div className="flex-1">
-                      {/* Linha 1: Requisição + Status + Geladeira */}
+                      {/* Linha 1: Requisição + Status */}
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-base font-semibold" style={{ color: '#376295' }}>
                           #{entrega.requisicao}
@@ -818,18 +818,6 @@ export default function DesignTest() {
                         >
                           {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                         </span>
-                        {entrega.item_geladeira && (
-                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
-                            <Snowflake className="w-3.5 h-3.5" />
-                            Geladeira
-                          </span>
-                        )}
-                        {entrega.reter_receita && (
-                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                            <FileText className="w-3.5 h-3.5" />
-                            Reter Receita
-                          </span>
-                        )}
                       </div>
 
                       {/* Linha 2: Nome do Cliente */}
@@ -871,6 +859,18 @@ export default function DesignTest() {
                             <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
                             <span>{entrega.cliente.telefone}</span>
                           </div>
+                        )}
+                        {entrega.item_geladeira && (
+                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                            <Snowflake className="w-3.5 h-3.5" />
+                            Geladeira
+                          </span>
+                        )}
+                        {entrega.reter_receita && (
+                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                            <FileText className="w-3.5 h-3.5" />
+                            Reter Receita
+                          </span>
                         )}
                       </div>
                     </div>
