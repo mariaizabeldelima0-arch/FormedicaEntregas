@@ -38,7 +38,8 @@ import {
   FileText,
   Sunrise,
   Sun,
-  MapPin
+  MapPin,
+  User
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -706,7 +707,8 @@ export default function EntregasMoto() {
 
                 {filtros.atendente && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded text-sm font-medium">
-                    👤 Atendente: {filtros.atendente}
+                    <User className="w-3.5 h-3.5" />
+                    Atendente: {filtros.atendente}
                     <button
                       onClick={() => setFiltros({ ...filtros, atendente: '' })}
                       className="ml-1 hover:bg-green-200 rounded p-0.5 transition-colors"
