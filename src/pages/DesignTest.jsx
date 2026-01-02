@@ -533,11 +533,11 @@ export default function DesignTest() {
                 <span className="text-sm font-bold text-slate-700 uppercase">Total</span>
               </div>
               <div className="flex items-center justify-center gap-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                  <ClipboardList className="w-8 h-8" style={{ color: '#376295' }} />
-                </div>
                 <div className="text-4xl font-bold" style={{ color: '#376295' }}>
                   {stats.total}
+                </div>
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                  <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                 </div>
               </div>
             </div>
@@ -554,11 +554,11 @@ export default function DesignTest() {
                 <span className="text-sm font-bold text-slate-700 uppercase">Produção</span>
               </div>
               <div className="flex items-center justify-center gap-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                  <Package className="w-8 h-8" style={{ color: '#890d5d' }} />
-                </div>
                 <div className="text-4xl font-bold" style={{ color: '#890d5d' }}>
                   {stats.producao}
+                </div>
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                  <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
                 </div>
               </div>
             </div>
@@ -575,11 +575,11 @@ export default function DesignTest() {
                 <span className="text-sm font-bold text-slate-700 uppercase">A Caminho</span>
               </div>
               <div className="flex items-center justify-center gap-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                  <Truck className="w-8 h-8" style={{ color: '#f97316' }} />
-                </div>
                 <div className="text-4xl font-bold" style={{ color: '#f97316' }}>
                   {stats.caminho}
+                </div>
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                  <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
                 </div>
               </div>
             </div>
@@ -596,11 +596,11 @@ export default function DesignTest() {
                 <span className="text-sm font-bold text-slate-700 uppercase">Entregues</span>
               </div>
               <div className="flex items-center justify-center gap-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                  <Check className="w-8 h-8" style={{ color: '#22c55e' }} />
-                </div>
                 <div className="text-4xl font-bold" style={{ color: '#22c55e' }}>
                   {stats.entregues}
+                </div>
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                  <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
                 </div>
               </div>
             </div>
