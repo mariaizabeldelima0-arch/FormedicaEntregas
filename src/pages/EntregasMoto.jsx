@@ -840,11 +840,20 @@ export default function EntregasMoto() {
                         <div className="flex items-center justify-between gap-6">
                           {/* Lado Esquerdo - Informações */}
                           <div className="flex-1">
-                            {/* Linha 1: Requisição + Status */}
+                            {/* Linha 1: Requisição + Atendente + Status */}
                             <div className="flex items-center gap-2 mb-3">
                               <span className="text-base font-semibold" style={{ color: '#376295' }}>
                                 #{entrega.requisicao}
                               </span>
+                              {entrega.atendente && (
+                                <>
+                                  <span className="text-slate-400">•</span>
+                                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
+                                    <User className="w-3.5 h-3.5" />
+                                    {entrega.atendente}
+                                  </span>
+                                </>
+                              )}
                               <span
                                 className="px-3 py-1 rounded text-xs font-medium"
                                 style={{
@@ -991,11 +1000,20 @@ export default function EntregasMoto() {
                         <div className="flex items-center justify-between gap-6">
                           {/* Lado Esquerdo - Informações */}
                           <div className="flex-1">
-                            {/* Linha 1: Requisição + Status */}
+                            {/* Linha 1: Requisição + Atendente + Status */}
                             <div className="flex items-center gap-2 mb-3">
                               <span className="text-base font-semibold" style={{ color: '#376295' }}>
                                 #{entrega.requisicao}
                               </span>
+                              {entrega.atendente && (
+                                <>
+                                  <span className="text-slate-400">•</span>
+                                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
+                                    <User className="w-3.5 h-3.5" />
+                                    {entrega.atendente}
+                                  </span>
+                                </>
+                              )}
                               <span
                                 className="px-3 py-1 rounded text-xs font-medium"
                                 style={{
