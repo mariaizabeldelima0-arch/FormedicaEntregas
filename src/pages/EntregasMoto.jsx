@@ -510,6 +510,10 @@ export default function EntregasMoto() {
     }
 
     // Filtros adicionais
+    if (filtros.atendente && entrega.atendente !== filtros.atendente) {
+      return false;
+    }
+
     if (filtros.motoboy && entrega.motoboy?.nome !== filtros.motoboy) {
       return false;
     }
