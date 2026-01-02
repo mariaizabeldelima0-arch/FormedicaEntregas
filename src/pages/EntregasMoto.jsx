@@ -37,7 +37,8 @@ import {
   Snowflake,
   FileText,
   Sunrise,
-  Sun
+  Sun,
+  MapPin
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -613,7 +614,7 @@ export default function EntregasMoto() {
 
             {/* Filtros Ativos */}
             {(searchTerm || filtroStatus || filtros.motoboy || filtros.regiao || filtros.periodo || filtros.atendente) && (
-              <div className="mb-4 flex flex-wrap gap-2">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium text-slate-600">Filtros ativos:</span>
 
                 {searchTerm && (
@@ -675,7 +676,8 @@ export default function EntregasMoto() {
 
                 {filtros.regiao && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                    📍 Região: {filtros.regiao}
+                    <MapPin className="w-3.5 h-3.5" />
+                    Região: {filtros.regiao}
                     <button
                       onClick={() => setFiltros({ ...filtros, regiao: '' })}
                       className="ml-1 hover:bg-purple-200 rounded-full p-0.5 transition-colors"
