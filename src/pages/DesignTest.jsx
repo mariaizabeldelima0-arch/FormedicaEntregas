@@ -529,16 +529,14 @@ export default function DesignTest() {
                 border: cardSelecionado === 'total' ? '2px solid #376295' : '2px solid transparent'
               }}
             >
-              <div className="text-center mb-3">
-                <span className="text-sm font-bold text-slate-700 uppercase">Total</span>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <div className="text-4xl font-bold" style={{ color: '#376295' }}>
-                  {stats.total}
-                </div>
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
                   <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                 </div>
+                <span className="text-sm font-bold text-slate-700 uppercase">Total</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                {stats.total}
               </div>
             </div>
 
@@ -550,16 +548,14 @@ export default function DesignTest() {
                 border: cardSelecionado === 'producao' ? '2px solid #890d5d' : '2px solid transparent'
               }}
             >
-              <div className="text-center mb-3">
-                <span className="text-sm font-bold text-slate-700 uppercase">Produção</span>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <div className="text-4xl font-bold" style={{ color: '#890d5d' }}>
-                  {stats.producao}
-                </div>
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
                   <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
                 </div>
+                <span className="text-sm font-bold text-slate-700 uppercase">Produção</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
+                {stats.producao}
               </div>
             </div>
 
@@ -571,16 +567,14 @@ export default function DesignTest() {
                 border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
               }}
             >
-              <div className="text-center mb-3">
-                <span className="text-sm font-bold text-slate-700 uppercase">A Caminho</span>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <div className="text-4xl font-bold" style={{ color: '#f97316' }}>
-                  {stats.caminho}
-                </div>
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
                   <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
                 </div>
+                <span className="text-sm font-bold text-slate-700 uppercase">A Caminho</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+                {stats.caminho}
               </div>
             </div>
 
@@ -592,16 +586,14 @@ export default function DesignTest() {
                 border: cardSelecionado === 'entregues' ? '2px solid #22c55e' : '2px solid transparent'
               }}
             >
-              <div className="text-center mb-3">
-                <span className="text-sm font-bold text-slate-700 uppercase">Entregues</span>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <div className="text-4xl font-bold" style={{ color: '#22c55e' }}>
-                  {stats.entregues}
-                </div>
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
                   <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
                 </div>
+                <span className="text-sm font-bold text-slate-700 uppercase">Entregues</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+                {stats.entregues}
               </div>
             </div>
 
