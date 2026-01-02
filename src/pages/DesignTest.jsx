@@ -529,14 +529,16 @@ export default function DesignTest() {
                 border: cardSelecionado === 'total' ? '2px solid #376295' : '2px solid transparent'
               }}
             >
-              <div className="flex items-center justify-center gap-3 mb-1">
-                <span className="text-xs font-bold text-slate-700 uppercase">Total</span>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                  <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
-                </div>
+              <div className="text-center mb-3">
+                <span className="text-sm font-bold text-slate-700 uppercase">Total</span>
               </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
-                {stats.total}
+              <div className="flex items-center justify-center gap-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                  <ClipboardList className="w-8 h-8" style={{ color: '#376295' }} />
+                </div>
+                <div className="text-4xl font-bold" style={{ color: '#376295' }}>
+                  {stats.total}
+                </div>
               </div>
             </div>
 
@@ -548,14 +550,16 @@ export default function DesignTest() {
                 border: cardSelecionado === 'producao' ? '2px solid #890d5d' : '2px solid transparent'
               }}
             >
-              <div className="flex items-center justify-center gap-3 mb-1">
-                <span className="text-xs font-bold text-slate-700 uppercase">Produção</span>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                  <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
-                </div>
+              <div className="text-center mb-3">
+                <span className="text-sm font-bold text-slate-700 uppercase">Produção</span>
               </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
-                {stats.producao}
+              <div className="flex items-center justify-center gap-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                  <Package className="w-8 h-8" style={{ color: '#890d5d' }} />
+                </div>
+                <div className="text-4xl font-bold" style={{ color: '#890d5d' }}>
+                  {stats.producao}
+                </div>
               </div>
             </div>
 
@@ -567,14 +571,16 @@ export default function DesignTest() {
                 border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
               }}
             >
-              <div className="flex items-center justify-center gap-3 mb-1">
-                <span className="text-xs font-bold text-slate-700 uppercase">A Caminho</span>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                  <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
-                </div>
+              <div className="text-center mb-3">
+                <span className="text-sm font-bold text-slate-700 uppercase">A Caminho</span>
               </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
-                {stats.caminho}
+              <div className="flex items-center justify-center gap-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                  <Truck className="w-8 h-8" style={{ color: '#f97316' }} />
+                </div>
+                <div className="text-4xl font-bold" style={{ color: '#f97316' }}>
+                  {stats.caminho}
+                </div>
               </div>
             </div>
 
@@ -586,14 +592,16 @@ export default function DesignTest() {
                 border: cardSelecionado === 'entregues' ? '2px solid #22c55e' : '2px solid transparent'
               }}
             >
-              <div className="flex items-center justify-center gap-3 mb-1">
-                <span className="text-xs font-bold text-slate-700 uppercase">Entregues</span>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                  <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
-                </div>
+              <div className="text-center mb-3">
+                <span className="text-sm font-bold text-slate-700 uppercase">Entregues</span>
               </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
-                {stats.entregues}
+              <div className="flex items-center justify-center gap-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                  <Check className="w-8 h-8" style={{ color: '#22c55e' }} />
+                </div>
+                <div className="text-4xl font-bold" style={{ color: '#22c55e' }}>
+                  {stats.entregues}
+                </div>
               </div>
             </div>
 
