@@ -33,7 +33,8 @@ import {
   Trash2,
   Clock,
   Banknote,
-  Phone
+  Phone,
+  Snowflake
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -761,8 +762,9 @@ export default function DesignTest() {
                           {entrega.status}
                         </span>
                         {entrega.item_geladeira && (
-                          <span className="px-3 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#FEF9E8', color: '#D8CA15' }}>
-                            ❄️ Geladeira
+                          <span className="px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5" style={{ backgroundColor: '#E8F0F8', color: '#376295' }}>
+                            <Snowflake className="w-3.5 h-3.5" />
+                            Geladeira
                           </span>
                         )}
                       </div>
