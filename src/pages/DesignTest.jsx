@@ -770,8 +770,7 @@ export default function DesignTest() {
                       </h3>
 
                       {/* Linha 3: Endereço */}
-                      <div className="flex items-start gap-2 mb-3 text-sm text-slate-600">
-                        <span style={{ color: '#64748b' }}>📍</span>
+                      <div className="mb-3 text-sm text-slate-600">
                         <span>
                           {entrega.endereco
                             ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
@@ -809,12 +808,12 @@ export default function DesignTest() {
                     </div>
 
                     {/* Lado Direito - Valor + Região + Ações */}
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="text-right mb-2">
-                        <div className="text-3xl font-bold" style={{ color: '#376295' }}>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-xl font-bold" style={{ color: '#376295' }}>
                           R$ {entrega.valor?.toFixed(2) || '0.00'}
                         </div>
-                        <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                        <div className="text-xs font-medium" style={{ color: '#376295' }}>
                           {entrega.regiao}
                         </div>
                       </div>
