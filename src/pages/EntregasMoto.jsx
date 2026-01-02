@@ -41,7 +41,70 @@ import {
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
-// Página refatorada com design system padronizado
+// Componente de Dropdown Customizado
+function CustomDropdown({ options, value, onChange, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayText = selectedOption ? selectedOption.label : placeholder;
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left' }}
+      >
+        <span className="text-sm text-slate-700">{displayText}</span>
+        <svg
+          className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-lg overflow-hidden"
+          style={{ border: '1px solid #376295' }}
+        >
+          {options.map((option) => (
+            <div
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              className="px-4 py-3 cursor-pointer transition-colors text-sm text-slate-700 hover:bg-blue-50"
+              style={{
+                backgroundColor: value === option.value ? '#E8F0F8' : 'white',
+                fontWeight: value === option.value ? '600' : 'normal'
+              }}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Página de entregas por moto
 export default function EntregasMoto() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('day');
@@ -51,7 +114,10 @@ export default function EntregasMoto() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
+  const [cardSelecionado, setCardSelecionado] = useState('total');
   const [filtros, setFiltros] = useState({
+    status: '',
+    atendente: '',
     motoboy: '',
     regiao: '',
     periodo: ''
@@ -93,7 +159,7 @@ export default function EntregasMoto() {
     return days;
   };
 
-  // Carregar entregas
+  // Carregar entregas (com dados de exemplo)
   const loadEntregas = async () => {
     setLoading(true);
     try {
@@ -124,12 +190,41 @@ export default function EntregasMoto() {
     loadEntregas();
   }, []);
 
+  // Função para ordenar entregas
+  const ordenarEntregas = (entregas) => {
+    return entregas.sort((a, b) => {
+      // 1. Ordenar por motoboy
+      const motoboyA = a.motoboy?.nome || '';
+      const motoboyB = b.motoboy?.nome || '';
+      if (motoboyA !== motoboyB) {
+        return motoboyA.localeCompare(motoboyB);
+      }
+
+      // 2. Ordenar por status (ordem: Produzindo -> A Caminho -> Entregue)
+      const statusOrder = {
+        'Produzindo no Laboratório': 1,
+        'A Caminho': 2,
+        'Entregue': 3
+      };
+      const statusA = statusOrder[a.status] || 999;
+      const statusB = statusOrder[b.status] || 999;
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+
+      // 3. Ordenar por nome do cliente (alfabética)
+      const nomeA = a.cliente?.nome || '';
+      const nomeB = b.cliente?.nome || '';
+      return nomeA.localeCompare(nomeB);
+    });
+  };
+
   // Filtrar entregas
   const entregasFiltradas = entregas.filter(entrega => {
     // Filtro de data (se viewMode === 'day')
     if (viewMode === 'day') {
       if (!entrega.data_entrega) {
-        return false; // Ignora entregas sem data no modo 'day'
+        return false;
       }
       const entregaDate = new Date(entrega.data_entrega);
       if (isNaN(entregaDate.getTime()) || entregaDate.toDateString() !== selectedDate.toDateString()) {
@@ -169,35 +264,6 @@ export default function EntregasMoto() {
 
     return true;
   });
-
-  // Função para ordenar entregas
-  const ordenarEntregas = (entregas) => {
-    return entregas.sort((a, b) => {
-      // 1. Ordenar por motoboy
-      const motoboyA = a.motoboy?.nome || '';
-      const motoboyB = b.motoboy?.nome || '';
-      if (motoboyA !== motoboyB) {
-        return motoboyA.localeCompare(motoboyB);
-      }
-
-      // 2. Ordenar por status (ordem: Produzindo -> A Caminho -> Entregue)
-      const statusOrder = {
-        'Produzindo no Laboratório': 1,
-        'A Caminho': 2,
-        'Entregue': 3
-      };
-      const statusA = statusOrder[a.status] || 999;
-      const statusB = statusOrder[b.status] || 999;
-      if (statusA !== statusB) {
-        return statusA - statusB;
-      }
-
-      // 3. Ordenar por nome do cliente (alfabética)
-      const nomeA = a.cliente?.nome || '';
-      const nomeB = b.cliente?.nome || '';
-      return nomeA.localeCompare(nomeB);
-    });
-  };
 
   // Separar e ordenar entregas por período
   const entregasManha = ordenarEntregas(entregasFiltradas.filter(e => e.periodo === 'Manhã'));
@@ -280,1021 +346,730 @@ export default function EntregasMoto() {
   };
 
   const visualizarDetalhes = (entrega) => {
-    navigate(`/detalhes-romaneio?id=${entrega.id}`);
+    setEntregaSelecionada(entrega);
+    setDetalhesOpen(true);
   };
 
   return (
-    <div style={{ background: theme.colors.background, minHeight: '100vh' }}>
-      <PageHeader
-        title="Entregas Moto"
-        subtitle="Gerenciar entregas e romaneios de moto"
-        showBack={false}
-        actions={
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {/* Botões Dia/Todas */}
-            <div style={{
-              display: 'inline-flex',
-              background: theme.colors.background,
-              borderRadius: '0.375rem',
-              padding: '0.25rem'
-            }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header Customizado */}
+      <div className="px-6 py-6 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold text-white">Entregas Moto</h1>
+          <p className="text-sm text-white opacity-90">Olá, mariaizabeldelima0</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-6 flex gap-6">
+        {/* Sidebar Esquerda - Calendário */}
+        <div className="w-80 flex-shrink-0">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
+            {/* Botões Por Dia / Todos */}
+            <div className="flex items-center gap-2 mb-4">
               <button
                 onClick={() => setViewMode('day')}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
                 style={{
-                  padding: '0.5rem 1rem',
-                  background: viewMode === 'day' ? '#457bba' : 'transparent',
-                  color: viewMode === 'day' ? 'white' : theme.colors.textLight,
-                  border: 'none',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  boxShadow: viewMode === 'day' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  transition: 'all 0.2s'
+                  backgroundColor: viewMode === 'day' ? '#376295' : 'white',
+                  color: viewMode === 'day' ? 'white' : '#64748b',
+                  border: viewMode === 'day' ? 'none' : '1px solid #e2e8f0'
                 }}
               >
-                Dia
+                <Calendar className="w-4 h-4" />
+                Por Dia
               </button>
+
               <button
                 onClick={() => {
                   setViewMode('all');
                   setFiltroStatus('');
                 }}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
                 style={{
-                  padding: '0.5rem 1rem',
-                  background: viewMode === 'all' ? '#457bba' : 'transparent',
-                  color: viewMode === 'all' ? 'white' : theme.colors.textLight,
-                  border: 'none',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  boxShadow: viewMode === 'all' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  transition: 'all 0.2s'
+                  backgroundColor: viewMode === 'all' ? '#376295' : 'white',
+                  color: viewMode === 'all' ? 'white' : '#64748b',
+                  border: viewMode === 'all' ? 'none' : '1px solid #e2e8f0'
                 }}
               >
-                Todas
+                <ClipboardList className="w-4 h-4" />
+                Todos
               </button>
             </div>
 
-            <button
-              onClick={() => navigate('/novo-romaneio')}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: theme.colors.primary,
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              + Novo Romaneio
-            </button>
-          </div>
-        }
-      />
-
-      <div style={{ padding: '0 2rem 2rem', maxWidth: '1400px', margin: '0 auto' }}>
-
-        {/* Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '1rem',
-          marginBottom: '2rem'
-        }}>
-          {[
-            { label: 'Total', value: stats.total, color: theme.colors.primary, Icon: ClipboardList, statusFilter: '' },
-            { label: 'Produção', value: stats.producao, color: '#3b82f6', Icon: Package, statusFilter: 'Produzindo no Laboratório' },
-            { label: 'A Caminho', value: stats.caminho, color: '#f59e0b', Icon: Truck, statusFilter: 'A Caminho' },
-            { label: 'Entregues', value: stats.entregues, color: theme.colors.success, Icon: Check, statusFilter: 'Entregue' },
-          ].map((card) => {
-            const isActive = filtroStatus === card.statusFilter;
-            return (
-              <div
-                key={card.label}
-                onClick={() => setFiltroStatus(card.statusFilter)}
-                style={{
-                  background: isActive ? card.color : 'white',
-                  padding: '1.25rem',
-                  borderRadius: '0.5rem',
-                  border: isActive ? `2px solid ${card.color}` : `1px solid ${theme.colors.border}`,
-                  boxShadow: isActive ? `0 4px 12px ${card.color}40` : '0 1px 2px rgba(0,0,0,0.05)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  transform: isActive ? 'translateY(-2px)' : 'none'
+            {/* Navegação do Calendário */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => {
+                  const newDate = new Date(currentMonthDate);
+                  newDate.setMonth(newDate.getMonth() - 1);
+                  setCurrentMonthDate(newDate);
                 }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '0.75rem'
-                }}>
-                  <span style={{ color: isActive ? 'white' : card.color }}>
-                    <card.Icon size={20} />
-                  </span>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    color: isActive ? 'white' : card.color
-                  }}>
-                    {card.label}
-                  </span>
-                </div>
-                <p style={{
-                  fontSize: '2rem',
-                  fontWeight: '700',
-                  color: isActive ? 'white' : theme.colors.text,
-                  margin: 0
-                }}>
-                  {card.value}
-                </p>
-              </div>
-            );
-          })}
-        </div>
+                <ChevronLeft className="w-5 h-5 text-slate-600" />
+              </button>
 
-        {/* Buscar e Filtrar */}
-        <div style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '0.5rem',
-          border: `1px solid ${theme.colors.border}`,
-          marginBottom: '1.5rem'
-        }}>
-          <h3 style={{
-            fontSize: '1rem',
-            fontWeight: '600',
-            color: theme.colors.text,
-            marginBottom: '1rem'
-          }}>
-            Buscar e Filtrar
-          </h3>
+              <span className="text-sm font-semibold text-slate-700">
+                {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+              </span>
 
-          <div style={{
-            display: 'flex',
-            gap: '1.5rem',
-            flexDirection: window.innerWidth < 1024 ? 'column' : 'row'
-          }}>
-            {/* Calendário Compacto */}
-            <div style={{ flexShrink: 0, width: window.innerWidth >= 1024 ? '280px' : '100%' }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '1rem'
-                }}>
-                  <button
-                    onClick={() => {
-                      const newDate = new Date(currentMonthDate);
-                      newDate.setMonth(newDate.getMonth() - 1);
-                      setCurrentMonthDate(newDate);
-                    }}
-                    style={{
-                      padding: '0.5rem',
-                      background: 'white',
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      color: theme.colors.text
-                    }}
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <h4 style={{
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    color: theme.colors.text,
-                    margin: 0,
-                    textTransform: 'capitalize'
-                  }}>
-                    {formatMonthYear(currentMonthDate)}
-                  </h4>
-                  <button
-                    onClick={() => {
-                      const newDate = new Date(currentMonthDate);
-                      newDate.setMonth(newDate.getMonth() + 1);
-                      setCurrentMonthDate(newDate);
-                    }}
-                    style={{
-                      padding: '0.5rem',
-                      background: 'white',
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      color: theme.colors.text
-                    }}
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  gap: '0.25rem'
-                }}>
-                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        textAlign: 'center',
-                        fontSize: '0.625rem',
-                        fontWeight: '600',
-                        color: theme.colors.textLight,
-                        padding: '0.25rem'
-                      }}
-                    >
-                      {day}
-                    </div>
-                  ))}
-
-                  {getDaysInMonth(currentMonthDate).map((dayInfo, index) => (
-                    <div
-                      key={index}
-                      onClick={() => {
-                        if (dayInfo.isCurrentMonth) {
-                          setSelectedDate(dayInfo.date);
-                          setViewMode('day');
-                        }
-                      }}
-                      style={{
-                        aspectRatio: '1',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: dayInfo.isSelected ? '600' : '400',
-                        color: dayInfo.isSelected ? 'white' : dayInfo.isCurrentMonth ? theme.colors.text : theme.colors.textLight,
-                        background: dayInfo.isSelected ? theme.colors.primary : 'transparent',
-                        border: dayInfo.isSelected ? 'none' : `1px solid ${theme.colors.border}`,
-                        borderRadius: '0.25rem',
-                        cursor: dayInfo.isCurrentMonth ? 'pointer' : 'default',
-                        opacity: dayInfo.isCurrentMonth ? 1 : 0.4,
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (dayInfo.isCurrentMonth && !dayInfo.isSelected) {
-                          e.currentTarget.style.background = theme.colors.background;
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!dayInfo.isSelected) {
-                          e.currentTarget.style.background = 'transparent';
-                        }
-                      }}
-                    >
-                      {dayInfo.day}
-                    </div>
-                  ))}
-                </div>
+              <button
+                onClick={() => {
+                  const newDate = new Date(currentMonthDate);
+                  newDate.setMonth(newDate.getMonth() + 1);
+                  setCurrentMonthDate(newDate);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-600" />
+              </button>
             </div>
 
-            {/* Filtros */}
-            <div style={{ flex: 1 }}>
-              <div style={{ marginBottom: '1rem', position: 'relative' }}>
+            {/* Grid do Calendário */}
+            <div className="grid grid-cols-7 gap-1 mb-4">
+              {/* Dias da Semana */}
+              {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
+                <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
+                  {dia}
+                </div>
+              ))}
+
+              {/* Dias do Mês */}
+              {getDaysInMonth(currentMonthDate).map((dayInfo, index) => {
+                if (!dayInfo.isCurrentMonth) {
+                  return <div key={index} className="aspect-square" />;
+                }
+
+                const isSelected = dayInfo.isSelected;
+                const isToday = dayInfo.date?.toDateString() === new Date().toDateString();
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedDate(dayInfo.date)}
+                    className="aspect-square rounded-lg text-sm font-medium transition-all flex items-center justify-center hover:bg-blue-50"
+                    style={{
+                      backgroundColor: isSelected ? '#376295' : 'transparent',
+                      color: isSelected ? 'white' : isToday ? '#376295' : '#1e293b',
+                      fontWeight: isToday || isSelected ? 'bold' : 'normal'
+                    }}
+                  >
+                    {dayInfo.day}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Data Selecionada */}
+            <div className="text-center pt-4 border-t border-slate-200">
+              <div className="text-base font-semibold text-slate-700">
+                {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+              </div>
+              <div className="text-sm text-slate-500">
+                {stats.total} entregas
+              </div>
+            </div>
+
+            {/* Botão Relatório do Dia */}
+            <button
+              onClick={() => {
+                const dataFormatada = selectedDate.toISOString().split('T')[0];
+                navigate(`/relatorios?data=${dataFormatada}`);
+              }}
+              className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <ClipboardList className="w-4 h-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-700">Relatório do Dia</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Conteúdo Principal */}
+        <div className="flex-1">
+          {/* Cards de Estatísticas */}
+          <div className="grid grid-cols-5 gap-4 mb-6">
+            {/* Card Total */}
+            <div
+              onClick={() => { setFiltroStatus(''); setCardSelecionado('total'); }}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: cardSelecionado === 'total' ? '2px solid #376295' : '2px solid transparent'
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                  <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">Total</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                {stats.total}
+              </div>
+            </div>
+
+            {/* Card Produção */}
+            <div
+              onClick={() => { setFiltroStatus('Produzindo no Laboratório'); setCardSelecionado('producao'); }}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: cardSelecionado === 'producao' ? '2px solid #890d5d' : '2px solid transparent'
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                  <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">Produção</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
+                {stats.producao}
+              </div>
+            </div>
+
+            {/* Card A Caminho */}
+            <div
+              onClick={() => { setFiltroStatus('A Caminho'); setCardSelecionado('caminho'); }}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                  <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">A Caminho</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+                {stats.caminho}
+              </div>
+            </div>
+
+            {/* Card Entregues */}
+            <div
+              onClick={() => { setFiltroStatus('Entregue'); setCardSelecionado('entregues'); }}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: cardSelecionado === 'entregues' ? '2px solid #22c55e' : '2px solid transparent'
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                  <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">Entregues</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+                {stats.entregues}
+              </div>
+            </div>
+
+            {/* Card Novo Romaneio */}
+            <div
+              onClick={() => navigate('/novo-romaneio')}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center text-center"
+              style={{
+                background: 'linear-gradient(135deg, #890d5d 0%, #6E0A4A 100%)'
+              }}
+            >
+              <div className="mb-1">
+                <span className="text-sm font-bold text-white uppercase">Novo Romaneio</span>
+              </div>
+              <div className="text-5xl font-bold text-white">+</div>
+            </div>
+          </div>
+
+          {/* Seção Buscar e Filtrar */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Buscar e Filtrar</h2>
+
+            <div className="space-y-4">
+              {/* Campo de Busca */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por cliente, requisição ou telefone..."
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem 0.75rem 2.5rem',
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: '0.375rem',
-                    fontSize: '0.875rem'
-                  }}
+                  placeholder="Buscar por cliente, requisição, atendente ou telefone..."
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                 />
-                <div style={{
-                  position: 'absolute',
-                  left: '0.75rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: theme.colors.textLight
-                }}>
-                  <Search size={18} />
+              </div>
+
+              {/* Filtros em Linha */}
+              <div className="grid grid-cols-4 gap-4">
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Atendentes' }
+                  ]}
+                  value={filtros.atendente}
+                  onChange={(value) => setFiltros({ ...filtros, atendente: value })}
+                  placeholder="Atendentes"
+                />
+
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Motoboys' },
+                    ...Array.from(new Set(entregas.map(e => e.motoboy?.nome).filter(Boolean))).map(nome => ({
+                      value: nome,
+                      label: nome
+                    }))
+                  ]}
+                  value={filtros.motoboy}
+                  onChange={(value) => setFiltros({ ...filtros, motoboy: value })}
+                  placeholder="Motoboys"
+                />
+
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Regiões' },
+                    ...Array.from(new Set(entregas.map(e => e.regiao).filter(Boolean))).map(regiao => ({
+                      value: regiao,
+                      label: regiao
+                    }))
+                  ]}
+                  value={filtros.regiao}
+                  onChange={(value) => setFiltros({ ...filtros, regiao: value })}
+                  placeholder="Regiões"
+                />
+
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Períodos' },
+                    { value: 'Manhã', label: 'Manhã' },
+                    { value: 'Tarde', label: 'Tarde' }
+                  ]}
+                  value={filtros.periodo}
+                  onChange={(value) => setFiltros({ ...filtros, periodo: value })}
+                  placeholder="Períodos"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Seção de Entregas */}
+          <div className="space-y-6">
+            {loading ? (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="py-24 text-center">
+                  <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-4 rounded-full animate-spin mb-4"
+                    style={{ borderTopColor: '#376295' }}
+                  />
+                  <p className="text-slate-600">Carregando entregas...</p>
                 </div>
               </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '1rem'
-              }}>
-            <select
-              value={filtros.motoboy}
-              onChange={(e) => setFiltros({...filtros, motoboy: e.target.value})}
-              style={{
-                padding: '0.625rem 1rem',
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                color: theme.colors.text,
-                background: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">Todos Motoboys</option>
-              <option value="Marcio">Marcio</option>
-              <option value="Bruno">Bruno</option>
-            </select>
-
-            <select
-              value={filtros.regiao}
-              onChange={(e) => setFiltros({...filtros, regiao: e.target.value})}
-              style={{
-                padding: '0.625rem 1rem',
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                color: theme.colors.text,
-                background: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">Todas Regiões</option>
-              <option value="BC">BC</option>
-              <option value="ITAJAI">Itajaí</option>
-              <option value="ITAPEMA">Itapema</option>
-              <option value="NAVEGANTES">Navegantes</option>
-            </select>
-
-            <select
-              value={filtros.periodo}
-              onChange={(e) => setFiltros({...filtros, periodo: e.target.value})}
-              style={{
-                padding: '0.625rem 1rem',
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                color: theme.colors.text,
-                background: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">Todos Períodos</option>
-              <option value="Manhã">Manhã</option>
-              <option value="Tarde">Tarde</option>
-            </select>
+            ) : entregasFiltradas.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="py-24 text-center">
+                  <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    Nenhuma entrega encontrada
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    {searchTerm || filtros.motoboy || filtros.regiao || filtros.periodo
+                      ? 'Tente ajustar os filtros de busca'
+                      : viewMode === 'day'
+                      ? 'Não há entregas para esta data'
+                      : 'Não há entregas cadastradas'}
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-
-        {/* Calendário antigo - remover */}
-        {false && (
-        <div style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '0.5rem',
-          border: `1px solid ${theme.colors.border}`,
-          marginBottom: '1.5rem'
-        }}>
-          {/* Header do Calendário */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Calendar size={18} />
-              <h3 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: theme.colors.text,
-                margin: 0
-              }}>
-                Calendário
-              </h3>
-            </div>
-            <div style={{
-              display: 'inline-flex',
-              background: theme.colors.background,
-              borderRadius: '0.375rem',
-              padding: '0.25rem'
-            }}>
-              <button
-                onClick={() => setViewMode('day')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: viewMode === 'day' ? 'white' : 'transparent',
-                  border: 'none',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  color: viewMode === 'day' ? theme.colors.primary : theme.colors.textLight,
-                  boxShadow: viewMode === 'day' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-                }}
-              >
-                Dia
-              </button>
-              <button
-                onClick={() => setViewMode('month')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: viewMode === 'month' ? 'white' : 'transparent',
-                  border: 'none',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  color: viewMode === 'month' ? theme.colors.primary : theme.colors.textLight,
-                  boxShadow: viewMode === 'month' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-                }}
-              >
-                Mês
-              </button>
-            </div>
-          </div>
-
-          {/* Navegação do mês */}
-          {viewMode === 'month' && (
-            <>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '1rem'
-              }}>
-                <button
-                  onClick={() => {
-                    const newDate = new Date(currentMonthDate);
-                    newDate.setMonth(newDate.getMonth() - 1);
-                    setCurrentMonthDate(newDate);
-                  }}
-                  style={{
-                    padding: '0.5rem',
-                    background: 'white',
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    color: theme.colors.text
-                  }}
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <h4 style={{
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  color: theme.colors.text,
-                  margin: 0,
-                  textTransform: 'capitalize'
-                }}>
-                  {formatMonthYear(currentMonthDate)}
-                </h4>
-                <button
-                  onClick={() => {
-                    const newDate = new Date(currentMonthDate);
-                    newDate.setMonth(newDate.getMonth() + 1);
-                    setCurrentMonthDate(newDate);
-                  }}
-                  style={{
-                    padding: '0.5rem',
-                    background: 'white',
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    color: theme.colors.text
-                  }}
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-
-              {/* Grid do Calendário */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(7, 1fr)',
-                gap: '0.5rem'
-              }}>
-                {/* Cabeçalho dos dias da semana */}
-                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                  <div
-                    key={day}
-                    style={{
-                      textAlign: 'center',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: theme.colors.textLight,
-                      padding: '0.5rem'
-                    }}
-                  >
-                    {day}
-                  </div>
-                ))}
-
-                {/* Dias do mês */}
-                {getDaysInMonth(currentMonthDate).map((dayInfo, index) => (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      if (dayInfo.isCurrentMonth) {
-                        setSelectedDate(dayInfo.date);
-                        setViewMode('day');
-                      }
-                    }}
-                    style={{
-                      aspectRatio: '1',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.875rem',
-                      fontWeight: dayInfo.isSelected ? '600' : '400',
-                      color: dayInfo.isCurrentMonth ? theme.colors.text : theme.colors.textLight,
-                      background: dayInfo.isSelected ? theme.colors.primary : 'transparent',
-                      border: dayInfo.isSelected ? 'none' : `1px solid ${theme.colors.border}`,
-                      borderRadius: '0.375rem',
-                      cursor: dayInfo.isCurrentMonth ? 'pointer' : 'default',
-                      opacity: dayInfo.isCurrentMonth ? 1 : 0.4,
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (dayInfo.isCurrentMonth && !dayInfo.isSelected) {
-                        e.currentTarget.style.background = theme.colors.background;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!dayInfo.isSelected) {
-                        e.currentTarget.style.background = 'transparent';
-                      }
-                    }}
-                  >
-                    {dayInfo.day}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Visualização de dia único */}
-          {viewMode === 'day' && (
-            <div style={{
-              padding: '1rem',
-              background: theme.colors.background,
-              borderRadius: '0.375rem',
-              textAlign: 'center'
-            }}>
-              <p style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: theme.colors.primary,
-                margin: 0,
-                textTransform: 'capitalize'
-              }}>
-                {formatDate(selectedDate)}
-              </p>
-              <button
-                onClick={() => setViewMode('month')}
-                style={{
-                  marginTop: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  background: 'white',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
-                  color: theme.colors.text
-                }}
-              >
-                Ver Calendário Completo
-              </button>
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* Lista de Entregas */}
-        <div style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '0.5rem',
-          border: `1px solid ${theme.colors.border}`
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1.5rem'
-          }}>
-            <h3
-              key={viewMode === 'day' ? `day-${selectedDate.toDateString()}` : 'all'}
-              style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: theme.colors.text,
-                margin: 0
-              }}
-            >
-              {viewMode === 'day' ? `Entregas de ${formatDate(selectedDate)}` : 'Todas as Entregas'}
-            </h3>
-          </div>
-
-          {loading ? (
-            <LoadingState message="Carregando entregas..." />
-          ) : entregasFiltradas.length === 0 ? (
-            <EmptyState
-              icon={Package}
-              title="Nenhum romaneio encontrado"
-              description={
-                searchTerm || Object.values(filtros).some(f => f)
-                  ? 'Nenhuma entrega corresponde aos filtros aplicados'
-                  : 'Não há entregas cadastradas'
-              }
-            />
-          ) : (
-            <>
-              {/* Entregas da Manhã */}
-              {entregasManha.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border-2 border-slate-300 p-6 mb-6">
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                      <Sunrise className="w-7 h-7" style={{ color: '#f97316' }} />
-                      Entregas da Manhã
-                      <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
-                        {entregasManha.length}
-                      </span>
-                    </h2>
-                  </div>
-                  {entregasManha.map(entrega => (
-                    <div
-                      key={entrega.id}
-                      onClick={() => visualizarDetalhes(entrega)}
-                      className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
-                    >
-                      <div className="flex items-center justify-between gap-6">
-                        {/* Lado Esquerdo - Informações */}
-                        <div className="flex-1">
-                          {/* Linha 1: Requisição + Status */}
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-base font-semibold" style={{ color: '#376295' }}>
-                              #{entrega.requisicao}
-                            </span>
-                            <span
-                              className="px-3 py-1 rounded text-xs font-medium"
-                              style={{
-                                backgroundColor:
-                                  entrega.status === 'Entregue'
-                                    ? '#E8F5E8'
-                                    : entrega.status === 'A Caminho'
-                                    ? '#FEF3E8'
-                                    : '#F5E8F5',
-                                color:
-                                  entrega.status === 'Entregue'
-                                    ? '#22c55e'
-                                    : entrega.status === 'A Caminho'
-                                    ? '#f97316'
-                                    : '#890d5d'
-                              }}
-                            >
-                              {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
-                            </span>
-                          </div>
-
-                          {/* Linha 2: Nome do Cliente */}
-                          <h3 className="text-lg font-bold text-slate-900 mb-2">
-                            {entrega.cliente?.nome || 'Cliente não informado'}
-                          </h3>
-
-                          {/* Linha 3: Endereço */}
-                          <div className="mb-3 text-sm text-slate-600">
-                            <span>
-                              {entrega.endereco
-                                ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
-                                : entrega.endereco_destino || 'Endereço não informado'}
-                            </span>
-                          </div>
-
-                          {/* Linha 4: Informações com ícones */}
-                          <div className="flex flex-wrap gap-4 text-sm text-slate-900">
-                            {entrega.motoboy && (
-                              <div className="flex items-center gap-1.5">
-                                <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                <span>{entrega.motoboy.nome}</span>
-                              </div>
-                            )}
-                            {entrega.periodo && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                <span>{entrega.periodo}</span>
-                              </div>
-                            )}
-                            {entrega.forma_pagamento && (
-                              <div className="flex items-center gap-1.5">
-                                <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                <span>{entrega.forma_pagamento}</span>
-                              </div>
-                            )}
-                            {entrega.cliente?.telefone && (
-                              <div className="flex items-center gap-1.5">
-                                <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                <span>{entrega.cliente.telefone}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Lado Direito - Badges + Valor + Região + Ações */}
-                        <div className="flex flex-col items-center gap-3">
-                          {/* Badges Geladeira e Reter Receita */}
-                          {(entrega.item_geladeira || entrega.reter_receita) && (
-                            <div className="flex items-center gap-2">
-                              {entrega.item_geladeira && (
-                                <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
-                                  <Snowflake className="w-5 h-5" />
-                                  Geladeira
-                                </span>
-                              )}
-                              {entrega.reter_receita && (
-                                <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                                  <FileText className="w-5 h-5" />
-                                  Reter Receita
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Valor, Região e Botões */}
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <div className="text-2xl font-bold" style={{ color: '#376295' }}>
-                                R$ {entrega.valor?.toFixed(2) || '0.00'}
-                              </div>
-                              <div className="text-sm font-medium" style={{ color: '#376295' }}>
-                                {entrega.regiao}
-                              </div>
+            ) : (
+              <>
+                {/* Entregas da Manhã */}
+                {entregasManha.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border-2 border-slate-300 p-6">
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <Sunrise className="w-7 h-7" style={{ color: '#f97316' }} />
+                        Entregas da Manhã
+                        <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
+                          {entregasManha.length}
+                        </span>
+                      </h2>
+                    </div>
+                    {entregasManha.map((entrega) => (
+                      <div
+                        key={entrega.id}
+                        onClick={() => visualizarDetalhes(entrega)}
+                        className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
+                      >
+                        <div className="flex items-center justify-between gap-6">
+                          {/* Lado Esquerdo - Informações */}
+                          <div className="flex-1">
+                            {/* Linha 1: Requisição + Status */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                                #{entrega.requisicao}
+                              </span>
+                              <span
+                                className="px-3 py-1 rounded text-xs font-medium"
+                                style={{
+                                  backgroundColor:
+                                    entrega.status === 'Entregue'
+                                      ? '#E8F5E8'
+                                      : entrega.status === 'A Caminho'
+                                      ? '#FEF3E8'
+                                      : '#F5E8F5',
+                                  color:
+                                    entrega.status === 'Entregue'
+                                      ? '#22c55e'
+                                      : entrega.status === 'A Caminho'
+                                      ? '#f97316'
+                                      : '#890d5d'
+                                }}
+                              >
+                                {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
+                              </span>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate('/editar-romaneio', { state: { entrega } });
-                                }}
-                                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-                                title="Editar"
-                              >
-                                <Edit className="w-4 h-4" style={{ color: '#376295' }} />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  confirmarExclusao(entrega);
-                                }}
-                                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
-                                title="Excluir"
-                              >
-                                <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
-                              </button>
+                            {/* Linha 2: Nome do Cliente */}
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">
+                              {entrega.cliente?.nome || 'Cliente não informado'}
+                            </h3>
+
+                            {/* Linha 3: Endereço */}
+                            <div className="mb-3 text-sm text-slate-600">
+                              <span>
+                                {entrega.endereco
+                                  ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                                  : entrega.endereco_destino || 'Endereço não informado'}
+                              </span>
+                            </div>
+
+                            {/* Linha 4: Informações com ícones */}
+                            <div className="flex flex-wrap gap-4 text-sm text-slate-900">
+                              {entrega.motoboy && (
+                                <div className="flex items-center gap-1.5">
+                                  <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.motoboy.nome}</span>
+                                </div>
+                              )}
+                              {entrega.periodo && (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.periodo}</span>
+                                </div>
+                              )}
+                              {entrega.forma_pagamento && (
+                                <div className="flex items-center gap-1.5">
+                                  <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.forma_pagamento}</span>
+                                </div>
+                              )}
+                              {entrega.cliente?.telefone && (
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.cliente.telefone}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Lado Direito - Badges + Valor + Região + Ações */}
+                          <div className="flex flex-col items-center gap-3">
+                            {/* Badges Geladeira e Reter Receita */}
+                            {(entrega.item_geladeira || entrega.reter_receita) && (
+                              <div className="flex items-center gap-2">
+                                {entrega.item_geladeira && (
+                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                                    <Snowflake className="w-5 h-5" />
+                                    Geladeira
+                                  </span>
+                                )}
+                                {entrega.reter_receita && (
+                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                                    <FileText className="w-5 h-5" />
+                                    Reter Receita
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Valor, Região e Botões */}
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                                  R$ {entrega.valor?.toFixed(2) || '0.00'}
+                                </div>
+                                <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                                  {entrega.regiao}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate('/editar-romaneio', { state: { entrega } });
+                                  }}
+                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                                  title="Editar"
+                                >
+                                  <Edit className="w-4 h-4" style={{ color: '#376295' }} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    confirmarExclusao(entrega);
+                                  }}
+                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Entregas da Tarde */}
-              {entregasTarde.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                      <Sun className="w-7 h-7" style={{ color: '#f59e0b' }} />
-                      Entregas da Tarde
-                      <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
-                        {entregasTarde.length}
-                      </span>
-                    </h2>
+                    ))}
                   </div>
-                  {entregasTarde.map(entrega => (
-                    <div
-                      key={entrega.id}
-                      onClick={() => visualizarDetalhes(entrega)}
-                      className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
-                    >
-                      <div className="flex items-center justify-between gap-6">
-                        {/* Lado Esquerdo - Informações */}
-                        <div className="flex-1">
-                          {/* Linha 1: Requisição + Status */}
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-base font-semibold" style={{ color: '#376295' }}>
-                              #{entrega.requisicao}
-                            </span>
-                            <span
-                              className="px-3 py-1 rounded text-xs font-medium"
-                              style={{
-                                backgroundColor:
-                                  entrega.status === 'Entregue'
-                                    ? '#E8F5E8'
-                                    : entrega.status === 'A Caminho'
-                                    ? '#FEF3E8'
-                                    : '#F5E8F5',
-                                color:
-                                  entrega.status === 'Entregue'
-                                    ? '#22c55e'
-                                    : entrega.status === 'A Caminho'
-                                    ? '#f97316'
-                                    : '#890d5d'
-                              }}
-                            >
-                              {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
-                            </span>
-                          </div>
+                )}
 
-                          {/* Linha 2: Nome do Cliente */}
-                          <h3 className="text-lg font-bold text-slate-900 mb-2">
-                            {entrega.cliente?.nome || 'Cliente não informado'}
-                          </h3>
-
-                          {/* Linha 3: Endereço */}
-                          <div className="mb-3 text-sm text-slate-600">
-                            <span>
-                              {entrega.endereco
-                                ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
-                                : entrega.endereco_destino || 'Endereço não informado'}
-                            </span>
-                          </div>
-
-                          {/* Linha 4: Informações com ícones */}
-                          <div className="flex flex-wrap gap-4 text-sm text-slate-900">
-                            {entrega.motoboy && (
-                              <div className="flex items-center gap-1.5">
-                                <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                <span>{entrega.motoboy.nome}</span>
-                              </div>
-                            )}
-                            {entrega.periodo && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                <span>{entrega.periodo}</span>
-                              </div>
-                            )}
-                            {entrega.forma_pagamento && (
-                              <div className="flex items-center gap-1.5">
-                                <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                <span>{entrega.forma_pagamento}</span>
-                              </div>
-                            )}
-                            {entrega.cliente?.telefone && (
-                              <div className="flex items-center gap-1.5">
-                                <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                <span>{entrega.cliente.telefone}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Lado Direito - Badges + Valor + Região + Ações */}
-                        <div className="flex flex-col items-center gap-3">
-                          {/* Badges Geladeira e Reter Receita */}
-                          {(entrega.item_geladeira || entrega.reter_receita) && (
-                            <div className="flex items-center gap-2">
-                              {entrega.item_geladeira && (
-                                <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
-                                  <Snowflake className="w-5 h-5" />
-                                  Geladeira
-                                </span>
-                              )}
-                              {entrega.reter_receita && (
-                                <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                                  <FileText className="w-5 h-5" />
-                                  Reter Receita
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Valor, Região e Botões */}
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <div className="text-2xl font-bold" style={{ color: '#376295' }}>
-                                R$ {entrega.valor?.toFixed(2) || '0.00'}
-                              </div>
-                              <div className="text-sm font-medium" style={{ color: '#376295' }}>
-                                {entrega.regiao}
-                              </div>
+                {/* Entregas da Tarde */}
+                {entregasTarde.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <Sun className="w-7 h-7" style={{ color: '#f59e0b' }} />
+                        Entregas da Tarde
+                        <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
+                          {entregasTarde.length}
+                        </span>
+                      </h2>
+                    </div>
+                    {entregasTarde.map((entrega) => (
+                      <div
+                        key={entrega.id}
+                        onClick={() => visualizarDetalhes(entrega)}
+                        className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
+                      >
+                        <div className="flex items-center justify-between gap-6">
+                          {/* Lado Esquerdo - Informações */}
+                          <div className="flex-1">
+                            {/* Linha 1: Requisição + Status */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                                #{entrega.requisicao}
+                              </span>
+                              <span
+                                className="px-3 py-1 rounded text-xs font-medium"
+                                style={{
+                                  backgroundColor:
+                                    entrega.status === 'Entregue'
+                                      ? '#E8F5E8'
+                                      : entrega.status === 'A Caminho'
+                                      ? '#FEF3E8'
+                                      : '#F5E8F5',
+                                  color:
+                                    entrega.status === 'Entregue'
+                                      ? '#22c55e'
+                                      : entrega.status === 'A Caminho'
+                                      ? '#f97316'
+                                      : '#890d5d'
+                                }}
+                              >
+                                {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
+                              </span>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate('/editar-romaneio', { state: { entrega } });
-                                }}
-                                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-                                title="Editar"
-                              >
-                                <Edit className="w-4 h-4" style={{ color: '#376295' }} />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  confirmarExclusao(entrega);
-                                }}
-                                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
-                                title="Excluir"
-                              >
-                                <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
-                              </button>
+                            {/* Linha 2: Nome do Cliente */}
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">
+                              {entrega.cliente?.nome || 'Cliente não informado'}
+                            </h3>
+
+                            {/* Linha 3: Endereço */}
+                            <div className="mb-3 text-sm text-slate-600">
+                              <span>
+                                {entrega.endereco
+                                  ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                                  : entrega.endereco_destino || 'Endereço não informado'}
+                              </span>
+                            </div>
+
+                            {/* Linha 4: Informações com ícones */}
+                            <div className="flex flex-wrap gap-4 text-sm text-slate-900">
+                              {entrega.motoboy && (
+                                <div className="flex items-center gap-1.5">
+                                  <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.motoboy.nome}</span>
+                                </div>
+                              )}
+                              {entrega.periodo && (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.periodo}</span>
+                                </div>
+                              )}
+                              {entrega.forma_pagamento && (
+                                <div className="flex items-center gap-1.5">
+                                  <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.forma_pagamento}</span>
+                                </div>
+                              )}
+                              {entrega.cliente?.telefone && (
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.cliente.telefone}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Lado Direito - Badges + Valor + Região + Ações */}
+                          <div className="flex flex-col items-center gap-3">
+                            {/* Badges Geladeira e Reter Receita */}
+                            {(entrega.item_geladeira || entrega.reter_receita) && (
+                              <div className="flex items-center gap-2">
+                                {entrega.item_geladeira && (
+                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                                    <Snowflake className="w-5 h-5" />
+                                    Geladeira
+                                  </span>
+                                )}
+                                {entrega.reter_receita && (
+                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                                    <FileText className="w-5 h-5" />
+                                    Reter Receita
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Valor, Região e Botões */}
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                                  R$ {entrega.valor?.toFixed(2) || '0.00'}
+                                </div>
+                                <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                                  {entrega.regiao}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate('/editar-romaneio', { state: { entrega } });
+                                  }}
+                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                                  title="Editar"
+                                >
+                                  <Edit className="w-4 h-4" style={{ color: '#376295' }} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    confirmarExclusao(entrega);
+                                  }}
+                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Dialog de Detalhes */}
+      {/* Modal de Detalhes */}
       <Dialog open={detalhesOpen} onOpenChange={setDetalhesOpen}>
-        <DialogContent style={{ maxWidth: '600px' }}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Detalhes da Entrega #{entregaSelecionada?.requisicao}</DialogTitle>
+            <DialogTitle style={{ color: '#376295' }}>Detalhes da Entrega</DialogTitle>
           </DialogHeader>
           {entregaSelecionada && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="space-y-4">
               {/* Status Atual */}
               <div>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Status Atual</h4>
-                <span style={{
-                  fontSize: '0.875rem',
-                  padding: '0.25rem 0.75rem',
-                  background: entregaSelecionada.status === 'Entregue' ? '#dcfce7' :
-                             entregaSelecionada.status === 'A Caminho' ? '#fef3c7' : '#dbeafe',
-                  color: entregaSelecionada.status === 'Entregue' ? '#166534' :
-                         entregaSelecionada.status === 'A Caminho' ? '#92400e' : '#1e40af',
-                  borderRadius: '0.25rem',
-                  fontWeight: '500'
-                }}>
+                <label className="text-sm font-medium text-slate-600 block mb-2">
+                  Status Atual
+                </label>
+                <span
+                  className="inline-block px-4 py-2 rounded-lg text-sm font-semibold"
+                  style={{
+                    backgroundColor:
+                      entregaSelecionada.status === 'Entregue'
+                        ? '#E8F5E8'
+                        : entregaSelecionada.status === 'A Caminho'
+                        ? '#F5E8F5'
+                        : '#FEF9E8',
+                    color:
+                      entregaSelecionada.status === 'Entregue'
+                        ? '#629537'
+                        : entregaSelecionada.status === 'A Caminho'
+                        ? '#6E0A4A'
+                        : '#D8CA15'
+                  }}
+                >
                   {entregaSelecionada.status}
                 </span>
               </div>
 
-              {/* Alterar Status */}
+              {/* Cliente */}
               <div>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Alterar Status</h4>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {['Produzindo no Laboratório', 'A Caminho', 'Entregue'].map(status => (
-                    <Button
-                      key={status}
-                      onClick={() => handleMudarStatus(entregaSelecionada, status)}
-                      disabled={entregaSelecionada.status === status}
-                      variant={entregaSelecionada.status === status ? 'default' : 'outline'}
-                      size="sm"
-                    >
-                      {status}
-                    </Button>
-                  ))}
+                <label className="text-sm font-medium text-slate-600 block mb-1">
+                  Cliente
+                </label>
+                <div className="text-slate-900">
+                  {entregaSelecionada.cliente?.nome || 'Não informado'}
                 </div>
-              </div>
-
-              {/* Informações do Cliente */}
-              <div>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Cliente</h4>
-                <p style={{ fontSize: '0.875rem', color: theme.colors.text }}>
-                  {entregaSelecionada.cliente?.nome}<br />
-                  {entregaSelecionada.cliente?.telefone}
-                </p>
+                {entregaSelecionada.cliente?.telefone && (
+                  <div className="text-sm text-slate-600">
+                    {entregaSelecionada.cliente.telefone}
+                  </div>
+                )}
               </div>
 
               {/* Endereço */}
-              <div>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Endereço</h4>
-                <p style={{ fontSize: '0.875rem', color: theme.colors.text }}>
-                  {entregaSelecionada.endereco ?
-                    `${entregaSelecionada.endereco.logradouro}, ${entregaSelecionada.endereco.numero} - ${entregaSelecionada.endereco.bairro} - ${entregaSelecionada.endereco.cidade}` :
-                    entregaSelecionada.endereco_destino
-                  }
-                </p>
-              </div>
-
-              {/* Detalhes da Entrega */}
-              <div>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Detalhes</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
-                  <div><strong>Motoboy:</strong> {entregaSelecionada.motoboy?.nome || 'Não definido'}</div>
-                  <div><strong>Período:</strong> {entregaSelecionada.periodo}</div>
-                  <div><strong>Região:</strong> {entregaSelecionada.regiao}</div>
-                  <div><strong>Pagamento:</strong> {entregaSelecionada.forma_pagamento}</div>
-                  <div><strong>Valor:</strong> R$ {entregaSelecionada.valor?.toFixed(2)}</div>
-                  <div><strong>Data:</strong> {new Date(entregaSelecionada.data_entrega).toLocaleDateString('pt-BR')}</div>
-                </div>
-                {entregaSelecionada.observacoes && (
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <strong>Observações:</strong>
-                    <p style={{ marginTop: '0.25rem' }}>{entregaSelecionada.observacoes}</p>
+              {entregaSelecionada.endereco && (
+                <div>
+                  <label className="text-sm font-medium text-slate-600 block mb-1">
+                    Endereço
+                  </label>
+                  <div className="text-slate-900">
+                    {entregaSelecionada.endereco.logradouro}, {entregaSelecionada.endereco.numero}
+                    {entregaSelecionada.endereco.complemento && ` - ${entregaSelecionada.endereco.complemento}`}
+                    <br />
+                    {entregaSelecionada.endereco.bairro} - {entregaSelecionada.endereco.cidade}
                   </div>
+                </div>
+              )}
+
+              {/* Botões de Ação no Modal */}
+              <div className="flex gap-2 pt-4 border-t border-slate-200">
+                {entregaSelecionada.status !== 'Entregue' && (
+                  <Button
+                    onClick={() => handleMudarStatus(entregaSelecionada, 'Entregue')}
+                    style={{ backgroundColor: '#629537' }}
+                    className="text-white hover:opacity-90"
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Marcar como Entregue
+                  </Button>
+                )}
+                {entregaSelecionada.status !== 'A Caminho' && (
+                  <Button
+                    onClick={() => handleMudarStatus(entregaSelecionada, 'A Caminho')}
+                    style={{ backgroundColor: '#6E0A4A' }}
+                    className="text-white hover:opacity-90"
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    Marcar como A Caminho
+                  </Button>
                 )}
               </div>
             </div>
@@ -1306,14 +1081,20 @@ export default function EntregasMoto() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogTitle style={{ color: '#376295' }}>
+              Confirmar Exclusão
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A entrega <strong>#{entregaParaExcluir?.requisicao}</strong> será excluída permanentemente.
+              Tem certeza que deseja excluir esta entrega? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setEntregaParaExcluir(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleExcluir} style={{ background: '#ef4444' }}>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleExcluir}
+              style={{ backgroundColor: '#C70D12' }}
+              className="text-white hover:opacity-90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
