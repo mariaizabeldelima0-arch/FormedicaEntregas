@@ -180,8 +180,43 @@ export default function EntregasMoto() {
 
       if (error) throw error;
 
-      // Dados de exemplo para testes (comentar linha abaixo para usar dados reais)
-      const entregasReais = []; // data || [];
+      // Buscar dados dos clientes adicionais e processar snapshot de endereço
+      const entregasComClientesAdicionais = await Promise.all(
+        (data || []).map(async (entrega) => {
+          // Buscar clientes adicionais
+          let clientesAdicionaisData = [];
+          if (entrega.clientes_adicionais && entrega.clientes_adicionais.length > 0) {
+            const { data: clientesData } = await supabase
+              .from('clientes')
+              .select('id, nome, telefone')
+              .in('id', entrega.clientes_adicionais);
+            clientesAdicionaisData = clientesData || [];
+          }
+
+          // Priorizar dados do snapshot de endereço
+          const enderecoDisplay = entrega.endereco_logradouro
+            ? {
+                // Usar snapshot se existir
+                id: entrega.endereco_id,
+                logradouro: entrega.endereco_logradouro,
+                numero: entrega.endereco_numero,
+                complemento: entrega.endereco_complemento,
+                bairro: entrega.endereco_bairro,
+                cidade: entrega.endereco_cidade,
+                cep: entrega.endereco_cep
+              }
+            : entrega.endereco; // Usar dados da relação se snapshot não existir
+
+          return {
+            ...entrega,
+            endereco: enderecoDisplay,
+            clientes_adicionais_data: clientesAdicionaisData
+          };
+        })
+      );
+
+      // Usar dados reais do banco
+      const entregasReais = entregasComClientesAdicionais || [];
       const exemplos = [
         {
           id: 'exemplo-1',
@@ -437,7 +472,8 @@ export default function EntregasMoto() {
         }
       ];
 
-      setEntregas([...exemplos, ...entregasReais]);
+      // Usar apenas dados reais do banco (sem exemplos)
+      setEntregas(entregasReais);
     } catch (error) {
       console.error('Erro ao carregar entregas:', error);
       toast.error('Erro ao carregar entregas');
@@ -479,6 +515,30 @@ export default function EntregasMoto() {
     });
   };
 
+  // Função helper para obter todos os nomes de clientes
+  const getTodosClientes = (entrega) => {
+    const clientes = [entrega.cliente?.nome || 'Cliente não informado'];
+
+    if (entrega.clientes_adicionais_data && entrega.clientes_adicionais_data.length > 0) {
+      entrega.clientes_adicionais_data.forEach(c => {
+        clientes.push(c.nome);
+      });
+    }
+
+    return clientes;
+  };
+
+  // Função helper para formatar nomes de clientes
+  const formatarNomesClientes = (entrega) => {
+    const clientes = getTodosClientes(entrega);
+
+    if (clientes.length === 1) {
+      return clientes[0];
+    }
+
+    return clientes.join(', ');
+  };
+
   // Filtrar entregas
   const entregasFiltradas = entregas.filter(entrega => {
     // Filtro de data (se viewMode === 'day')
@@ -486,8 +546,11 @@ export default function EntregasMoto() {
       if (!entrega.data_entrega) {
         return false;
       }
-      const entregaDate = new Date(entrega.data_entrega);
-      if (isNaN(entregaDate.getTime()) || entregaDate.toDateString() !== selectedDate.toDateString()) {
+      // Extrair apenas a data (YYYY-MM-DD) ignorando timezone
+      const entregaDateStr = entrega.data_entrega.split('T')[0];
+      const selectedDateStr = selectedDate.toISOString().split('T')[0];
+
+      if (entregaDateStr !== selectedDateStr) {
         return false;
       }
     }
@@ -500,7 +563,13 @@ export default function EntregasMoto() {
     // Filtro de busca
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      const matchCliente = entrega.cliente?.nome?.toLowerCase().includes(searchLower);
+
+      // Buscar em todos os clientes (principal + adicionais)
+      const todosClientes = getTodosClientes(entrega);
+      const matchCliente = todosClientes.some(nome =>
+        nome.toLowerCase().includes(searchLower)
+      );
+
       const matchRequisicao = entrega.requisicao?.toLowerCase().includes(searchLower);
       const matchTelefone = entrega.cliente?.telefone?.includes(searchTerm);
 
@@ -533,12 +602,30 @@ export default function EntregasMoto() {
   const entregasManha = ordenarEntregas(entregasFiltradas.filter(e => e.periodo === 'Manhã'));
   const entregasTarde = ordenarEntregas(entregasFiltradas.filter(e => e.periodo === 'Tarde'));
 
-  // Estatísticas
+  // Estatísticas (baseadas apenas no viewMode, sem outros filtros)
+  const entregasPorData = entregas.filter(entrega => {
+    // Filtro de data (se viewMode === 'day')
+    if (viewMode === 'day') {
+      if (!entrega.data_entrega) {
+        return false;
+      }
+      // Extrair apenas a data (YYYY-MM-DD) ignorando timezone
+      const entregaDateStr = entrega.data_entrega.split('T')[0];
+      const selectedDateStr = selectedDate.toISOString().split('T')[0];
+
+      if (entregaDateStr !== selectedDateStr) {
+        return false;
+      }
+    }
+    // Quando viewMode === 'all', não filtra por data
+    return true;
+  });
+
   const stats = {
-    total: entregasFiltradas.length,
-    producao: entregasFiltradas.filter(e => e.status === 'Produzindo no Laboratório').length,
-    caminho: entregasFiltradas.filter(e => e.status === 'A Caminho').length,
-    entregues: entregasFiltradas.filter(e => e.status === 'Entregue').length,
+    total: entregasPorData.length,
+    producao: entregasPorData.filter(e => e.status === 'Produzindo no Laboratório').length,
+    caminho: entregasPorData.filter(e => e.status === 'A Caminho').length,
+    entregues: entregasPorData.filter(e => e.status === 'Entregue').length,
   };
 
   // Formatação de data
@@ -617,12 +704,12 @@ export default function EntregasMoto() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header Customizado */}
-      <div className="px-6 py-6 shadow-sm" style={{
+      <div className="py-8 shadow-sm" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-white">Entregas Moto</h1>
-          <p className="text-sm text-white opacity-90">Olá, mariaizabeldelima0</p>
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="text-4xl font-bold text-white">Entregas Moto</h1>
+          <p className="text-base text-white opacity-90 mt-1">Olá, mariaizabeldelima0</p>
         </div>
       </div>
 
@@ -712,7 +799,10 @@ export default function EntregasMoto() {
                 return (
                   <button
                     key={index}
-                    onClick={() => setSelectedDate(dayInfo.date)}
+                    onClick={() => {
+                      setSelectedDate(dayInfo.date);
+                      setViewMode('day');
+                    }}
                     className="aspect-square rounded-lg text-sm font-medium transition-all flex items-center justify-center hover:bg-blue-50"
                     style={{
                       backgroundColor: isSelected ? '#376295' : 'transparent',
@@ -1139,7 +1229,7 @@ export default function EntregasMoto() {
 
                             {/* Linha 2: Nome do Cliente */}
                             <h3 className="text-lg font-bold text-slate-900 mb-2">
-                              {entrega.cliente?.nome || 'Cliente não informado'}
+                              {formatarNomesClientes(entrega)}
                             </h3>
 
                             {/* Linha 3: Endereço */}
@@ -1299,7 +1389,7 @@ export default function EntregasMoto() {
 
                             {/* Linha 2: Nome do Cliente */}
                             <h3 className="text-lg font-bold text-slate-900 mb-2">
-                              {entrega.cliente?.nome || 'Cliente não informado'}
+                              {formatarNomesClientes(entrega)}
                             </h3>
 
                             {/* Linha 3: Endereço */}
@@ -1443,14 +1533,21 @@ export default function EntregasMoto() {
               {/* Cliente */}
               <div>
                 <label className="text-sm font-medium text-slate-600 block mb-1">
-                  Cliente
+                  Cliente{getTodosClientes(entregaSelecionada).length > 1 ? 's' : ''}
                 </label>
                 <div className="text-slate-900">
-                  {entregaSelecionada.cliente?.nome || 'Não informado'}
+                  {formatarNomesClientes(entregaSelecionada)}
                 </div>
                 {entregaSelecionada.cliente?.telefone && (
                   <div className="text-sm text-slate-600">
                     {entregaSelecionada.cliente.telefone}
+                  </div>
+                )}
+                {entregaSelecionada.clientes_adicionais_data && entregaSelecionada.clientes_adicionais_data.length > 0 && (
+                  <div className="text-sm text-slate-600 mt-1">
+                    {entregaSelecionada.clientes_adicionais_data.map((c, idx) => (
+                      <div key={idx}>{c.telefone}</div>
+                    ))}
                   </div>
                 )}
               </div>

@@ -532,7 +532,29 @@ export default function Clientes() {
         .order('data_entrega', { ascending: false });
 
       if (error) throw error;
-      setEntregasCliente(data || []);
+
+      // Processar snapshot de endereço
+      const entregasComSnapshot = (data || []).map(entrega => {
+        // Priorizar dados do snapshot de endereço
+        const enderecoDisplay = entrega.endereco_logradouro
+          ? {
+              // Usar snapshot se existir
+              id: entrega.endereco_id,
+              logradouro: entrega.endereco_logradouro,
+              numero: entrega.endereco_numero,
+              complemento: entrega.endereco_complemento,
+              bairro: entrega.endereco_bairro,
+              cidade: entrega.endereco_cidade
+            }
+          : entrega.endereco; // Usar dados da relação se snapshot não existir
+
+        return {
+          ...entrega,
+          endereco: enderecoDisplay
+        };
+      });
+
+      setEntregasCliente(entregasComSnapshot);
     } catch (error) {
       console.error('Erro ao carregar entregas:', error);
       toast.error('Erro ao carregar histórico de entregas');

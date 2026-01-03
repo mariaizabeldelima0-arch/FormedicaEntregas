@@ -22,7 +22,8 @@
       "Bash(node scripts/check-table.js:*)",
       "Bash(node scripts/list-dispositivos.js:*)",
       "Bash(git restore:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(del \"C:\\\\Users\\\\Maria\\\\formedica-entregas-novo\\\\src\\\\pages\\\\DesignTest.jsx\")"
     ]
   }
 }

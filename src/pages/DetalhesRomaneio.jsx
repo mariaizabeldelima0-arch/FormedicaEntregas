@@ -107,7 +107,26 @@ export default function DetalhesRomaneio({ printMode = false }) {
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Priorizar dados do snapshot de endereço
+      const enderecoDisplay = data.endereco_logradouro
+        ? {
+            // Usar snapshot se existir
+            id: data.endereco_id,
+            logradouro: data.endereco_logradouro,
+            numero: data.endereco_numero,
+            complemento: data.endereco_complemento,
+            bairro: data.endereco_bairro,
+            cidade: data.endereco_cidade,
+            cep: data.endereco_cep,
+            regiao: data.regiao
+          }
+        : data.endereco; // Usar dados da relação se snapshot não existir
+
+      return {
+        ...data,
+        endereco: enderecoDisplay
+      };
     },
     enabled: !!romaneioId,
     retry: 2,

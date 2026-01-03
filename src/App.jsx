@@ -19,7 +19,6 @@ import Pagamentos from '@/pages/Pagamentos';
 import PlanilhaDiaria from '@/pages/PlanilhaDiaria';
 import PainelMotoboys from '@/pages/PainelMotoboys';
 import Dispositivos from '@/pages/Dispositivos';
-import DesignTest from '@/pages/DesignTest';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -99,7 +98,6 @@ function AppRoutes() {
                 <Route path="/planilha-diaria" element={<PlanilhaDiaria />} />
                 <Route path="/painel-motoboys" element={<PainelMotoboys />} />
                 <Route path="/dispositivos" element={<Dispositivos />} />
-                <Route path="/design-test" element={<DesignTest />} />
               </Routes>
             </Layout>
           </PrivateRoute>

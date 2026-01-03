@@ -309,13 +309,29 @@ export default function EditarRomaneio() {
           return;
         }
 
+        // Priorizar dados do snapshot de endereço
+        const enderecoDisplay = entrega.endereco_logradouro
+          ? {
+              // Usar snapshot se existir
+              id: entrega.endereco_id,
+              logradouro: entrega.endereco_logradouro,
+              numero: entrega.endereco_numero,
+              complemento: entrega.endereco_complemento,
+              bairro: entrega.endereco_bairro,
+              cidade: entrega.endereco_cidade,
+              cep: entrega.endereco_cep,
+              regiao: entrega.regiao,
+              endereco_completo: `${entrega.endereco_logradouro}, ${entrega.endereco_numero}${entrega.endereco_complemento ? ' - ' + entrega.endereco_complemento : ''} - ${entrega.endereco_bairro}, ${entrega.endereco_cidade}`
+            }
+          : entrega.endereco; // Usar dados da relação se snapshot não existir
+
         // Preencher formulário com dados da entrega
         setFormData({
           cliente_id: entrega.cliente_id,
           cliente_nome: entrega.cliente?.nome || '',
           numero_requisicao: entrega.requisicao,
           endereco_id: entrega.endereco_id || '',
-          endereco: entrega.endereco?.endereco_completo || entrega.endereco_destino || '',
+          endereco: enderecoDisplay?.endereco_completo || entrega.endereco_destino || '',
           regiao: entrega.regiao || '',
           outra_cidade: entrega.outra_cidade || '',
           data_entrega: entrega.data_entrega || '',
@@ -632,6 +648,7 @@ export default function EditarRomaneio() {
       // Se não tem endereço selecionado, criar novo endereço no banco
       let enderecoIdFinal = formData.endereco_id;
       let enderecoTexto = formData.endereco;
+      let enderecoSnapshot = {};
 
       if (!formData.endereco_id && novoEndereco.logradouro) {
         console.log('📍 Criando novo endereço:', novoEndereco);
@@ -669,6 +686,16 @@ export default function EditarRomaneio() {
           enderecoIdFinal = novoEnd.id;
           enderecoTexto = enderecoCompleto;
 
+          // Preparar snapshot do novo endereço
+          enderecoSnapshot = {
+            endereco_logradouro: novoEnd.logradouro,
+            endereco_numero: novoEnd.numero,
+            endereco_complemento: novoEnd.complemento,
+            endereco_bairro: novoEnd.bairro,
+            endereco_cidade: novoEnd.cidade,
+            endereco_cep: novoEnd.cep
+          };
+
           // Adicionar o novo endereço à lista local
           setClienteEnderecos(prev => {
             const novos = [...prev, novoEnd];
@@ -690,7 +717,27 @@ export default function EditarRomaneio() {
         motoboyId = motoboy?.id || null;
       }
 
-      // Atualizar entrega
+      // Buscar dados atuais do endereço para fazer snapshot (se ainda não foi definido)
+      if (enderecoIdFinal && Object.keys(enderecoSnapshot).length === 0) {
+        const { data: enderecoAtual } = await supabase
+          .from('enderecos')
+          .select('logradouro, numero, complemento, bairro, cidade, cep')
+          .eq('id', enderecoIdFinal)
+          .maybeSingle();
+
+        if (enderecoAtual) {
+          enderecoSnapshot = {
+            endereco_logradouro: enderecoAtual.logradouro,
+            endereco_numero: enderecoAtual.numero,
+            endereco_complemento: enderecoAtual.complemento,
+            endereco_bairro: enderecoAtual.bairro,
+            endereco_cidade: enderecoAtual.cidade,
+            endereco_cep: enderecoAtual.cep
+          };
+        }
+      }
+
+      // Atualizar entrega com snapshot do endereço
       const { data, error } = await supabase
         .from('entregas')
         .update({
@@ -707,7 +754,9 @@ export default function EditarRomaneio() {
           valor: formData.valor_entrega,
           item_geladeira: formData.item_geladeira,
           buscar_receita: formData.buscar_receita,
-          observacoes: formData.observacoes
+          observacoes: formData.observacoes,
+          // Atualizar snapshot com dados atuais do endereço
+          ...enderecoSnapshot
         })
         .eq('id', entregaId)
         .select()
