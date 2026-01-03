@@ -89,9 +89,19 @@ const REGIOES = [
 ];
 
 const FORMAS_PAGAMENTO = [
-  'Pago', 'Dinheiro', 'Maquina', 'Troco P/', 'Via na Pasta',
-  'Só Entregar', 'Aguardando', 'Pix - Aguardando',
-  'Link - Aguardando', 'Boleto', 'Pagar MP'
+  'Aguardando',
+  'Boleto',
+  'Link Aguardando',
+  'Pagar MP',
+  'Pago Dinheiro',
+  'Pago Link',
+  'Pago Máquina',
+  'Pago Pix',
+  'Pix Aguardando',
+  'Receber Dinheiro',
+  'Receber Máquina',
+  'Só Entregar',
+  'Via na Pasta'
 ];
 
 // Mapeamento de cidades/bairros para regiões
@@ -242,6 +252,12 @@ export default function NovoRomaneio() {
   // Controle de navegação por teclado na busca
   const [indiceSelecionado, setIndiceSelecionado] = useState(-1);
 
+  // Controle de busca e navegação para forma de pagamento
+  const [buscaFormaPagamento, setBuscaFormaPagamento] = useState('');
+  const [formasPagamentoFiltradas, setFormasPagamentoFiltradas] = useState([]);
+  const [indicePagamentoSelecionado, setIndicePagamentoSelecionado] = useState(-1);
+  const [mostrarSugestoesPagamento, setMostrarSugestoesPagamento] = useState(false);
+
   // Controle do formulário de novo endereço
   const [mostrarNovoEndereco, setMostrarNovoEndereco] = useState(null); // clienteId para quem mostrar
   const [novoEndereco, setNovoEndereco] = useState({
@@ -277,7 +293,9 @@ export default function NovoRomaneio() {
     valor_entrega: 0,
     item_geladeira: false,
     buscar_receita: false,
-    observacoes: ''
+    observacoes: '',
+    precisa_troco: false,
+    valor_troco: 0
   });
 
   const [errors, setErrors] = useState({});
@@ -322,6 +340,53 @@ export default function NovoRomaneio() {
       e.preventDefault();
       adicionarCliente(clientesSugestoes[indiceSelecionado]);
     }
+  };
+
+  // Buscar forma de pagamento
+  const handleBuscarFormaPagamento = (termo) => {
+    setBuscaFormaPagamento(termo);
+    setIndicePagamentoSelecionado(-1);
+    setMostrarSugestoesPagamento(true);
+
+    if (termo.length === 0) {
+      setFormasPagamentoFiltradas(FORMAS_PAGAMENTO);
+    } else {
+      const filtradas = FORMAS_PAGAMENTO.filter(forma =>
+        forma.toLowerCase().includes(termo.toLowerCase())
+      );
+      setFormasPagamentoFiltradas(filtradas);
+    }
+  };
+
+  // Navegação por teclado na busca de forma de pagamento
+  const handleKeyDownPagamento = (e) => {
+    if (formasPagamentoFiltradas.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setIndicePagamentoSelecionado(prev =>
+        prev < formasPagamentoFiltradas.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setIndicePagamentoSelecionado(prev =>
+        prev > 0 ? prev - 1 : formasPagamentoFiltradas.length - 1
+      );
+    } else if (e.key === 'Enter' && indicePagamentoSelecionado >= 0) {
+      e.preventDefault();
+      selecionarFormaPagamento(formasPagamentoFiltradas[indicePagamentoSelecionado]);
+    } else if (e.key === 'Escape') {
+      setMostrarSugestoesPagamento(false);
+    }
+  };
+
+  // Selecionar forma de pagamento
+  const selecionarFormaPagamento = (forma) => {
+    setFormData({...formData, forma_pagamento: forma});
+    setBuscaFormaPagamento(forma);
+    setMostrarSugestoesPagamento(false);
+    setFormasPagamentoFiltradas([]);
+    setIndicePagamentoSelecionado(-1);
   };
 
   // Adicionar cliente à lista
@@ -633,6 +698,24 @@ export default function NovoRomaneio() {
     }
   }, [dadosEdicao.cidade, dadosEdicao.bairro, enderecoEmEdicao]);
 
+  // Sincronizar campo de busca de forma de pagamento com formData
+  useEffect(() => {
+    if (formData.forma_pagamento && formData.forma_pagamento !== buscaFormaPagamento) {
+      setBuscaFormaPagamento(formData.forma_pagamento);
+    }
+  }, [formData.forma_pagamento]);
+
+  // Resetar campos de troco quando forma de pagamento mudar
+  useEffect(() => {
+    if (formData.forma_pagamento !== 'Receber Dinheiro') {
+      setFormData(prev => ({
+        ...prev,
+        precisa_troco: false,
+        valor_troco: 0
+      }));
+    }
+  }, [formData.forma_pagamento]);
+
   // Calcular valor automaticamente
   const calcularValor = (regiao, motoboy) => {
     if (regiao === 'OUTRO' || !regiao || !motoboy) return 0;
@@ -686,6 +769,13 @@ export default function NovoRomaneio() {
     if (!formData.data_entrega) novosErros.data = 'Data obrigatória';
     if (!formData.forma_pagamento) novosErros.pagamento = 'Forma de pagamento obrigatória';
     if (!formData.motoboy) novosErros.motoboy = 'Selecione o motoboy';
+
+    // Validar troco quando forma de pagamento é "Receber Dinheiro"
+    if (formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco) {
+      if (!formData.valor_troco || formData.valor_troco <= 0) {
+        novosErros.valor_troco = 'Informe o valor do troco';
+      }
+    }
 
     setErrors(novosErros);
     return Object.keys(novosErros).length === 0;
@@ -745,6 +835,8 @@ export default function NovoRomaneio() {
         buscar_receita: formData.buscar_receita,
         observacoes: formData.observacoes,
         clientes_adicionais: clientesAdicionais,
+        precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,
+        valor_troco: formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco ? formData.valor_troco : 0,
         // Snapshot dos dados do endereço no momento da criação
         endereco_logradouro: enderecoSelecionado.logradouro,
         endereco_numero: enderecoSelecionado.numero,
@@ -1583,7 +1675,7 @@ export default function NovoRomaneio() {
               </select>
             </div>
 
-            <div>
+            <div style={{ position: 'relative' }}>
               <label style={{
                 display: 'block',
                 fontSize: '0.875rem',
@@ -1593,9 +1685,22 @@ export default function NovoRomaneio() {
               }}>
                 Forma de Pagamento *
               </label>
-              <select
-                value={formData.forma_pagamento}
-                onChange={(e) => setFormData({...formData, forma_pagamento: e.target.value})}
+              <input
+                type="text"
+                value={buscaFormaPagamento}
+                onChange={(e) => handleBuscarFormaPagamento(e.target.value)}
+                onKeyDown={handleKeyDownPagamento}
+                onFocus={() => {
+                  setMostrarSugestoesPagamento(true);
+                  if (formasPagamentoFiltradas.length === 0) {
+                    setFormasPagamentoFiltradas(FORMAS_PAGAMENTO);
+                  }
+                }}
+                onBlur={() => {
+                  // Delay para permitir clique na sugestão
+                  setTimeout(() => setMostrarSugestoesPagamento(false), 200);
+                }}
+                placeholder="Digite ou selecione a forma de pagamento..."
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -1603,14 +1708,135 @@ export default function NovoRomaneio() {
                   borderRadius: '0.375rem',
                   fontSize: '0.875rem'
                 }}
-              >
-                <option value="">Selecione</option>
-                {FORMAS_PAGAMENTO.map(forma => (
-                  <option key={forma} value={forma}>{forma}</option>
-                ))}
-              </select>
+              />
+              {mostrarSugestoesPagamento && formasPagamentoFiltradas.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  background: 'white',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  marginTop: '0.25rem',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  zIndex: 1000
+                }}>
+                  {formasPagamentoFiltradas.map((forma, index) => (
+                    <div
+                      key={forma}
+                      onClick={() => selecionarFormaPagamento(forma)}
+                      onMouseEnter={() => setIndicePagamentoSelecionado(index)}
+                      style={{
+                        padding: '0.75rem',
+                        cursor: 'pointer',
+                        borderBottom: index < formasPagamentoFiltradas.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
+                        background: index === indicePagamentoSelecionado ? '#e3f2fd' : 'white',
+                        transition: 'background 0.15s'
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: '0.875rem' }}>{forma}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Pergunta de Troco - aparece apenas quando forma de pagamento é "Receber Dinheiro" */}
+          {formData.forma_pagamento === 'Receber Dinheiro' && (
+            <div style={{
+              marginBottom: '1rem',
+              padding: '1rem',
+              background: '#fff9e6',
+              border: '2px solid #ffc107',
+              borderRadius: '0.5rem'
+            }}>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: '#f57c00',
+                  marginBottom: '0.5rem'
+                }}>
+                  Precisa de troco?
+                </label>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}>
+                    <input
+                      type="radio"
+                      name="precisa_troco"
+                      checked={formData.precisa_troco === true}
+                      onChange={() => setFormData({...formData, precisa_troco: true})}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    Sim
+                  </label>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}>
+                    <input
+                      type="radio"
+                      name="precisa_troco"
+                      checked={formData.precisa_troco === false}
+                      onChange={() => setFormData({...formData, precisa_troco: false, valor_troco: 0})}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    Não
+                  </label>
+                </div>
+              </div>
+
+              {formData.precisa_troco && (
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: '#f57c00',
+                    marginBottom: '0.5rem'
+                  }}>
+                    Valor do Troco (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.valor_troco}
+                    onChange={(e) => setFormData({...formData, valor_troco: parseFloat(e.target.value) || 0})}
+                    placeholder="Ex: 50.00"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `2px solid ${errors.valor_troco ? theme.colors.danger : '#ffc107'}`,
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      background: 'white'
+                    }}
+                  />
+                  <p style={{
+                    fontSize: '0.75rem',
+                    color: '#f57c00',
+                    marginTop: '0.25rem',
+                    fontWeight: '500'
+                  }}>
+                    Cliente pagará com quanto? Informe o valor para calcular o troco.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Grid: Motoboy e Valor */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>

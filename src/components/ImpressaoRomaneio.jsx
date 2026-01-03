@@ -1,5 +1,5 @@
 import React from "react";
-import { Snowflake } from "lucide-react";
+import { Snowflake, AlertTriangle } from "lucide-react";
 
 export default function ImpressaoRomaneio({ romaneio }) {
   if (!romaneio) return null;
@@ -205,15 +205,42 @@ export default function ImpressaoRomaneio({ romaneio }) {
               {romaneio.forma_pagamento}
             </span>
           </div>
-          {romaneio.valor_troco && (
-            <div className="print-row">
-              <span className="print-label">Troco para:</span>
-              <span className="print-value" style={{ fontSize: '12px', fontWeight: 'bold', color: '#009900' }}>
-                R$ {romaneio.valor_troco.toFixed(2)}
-              </span>
-            </div>
-          )}
         </div>
+
+        {/* Destaque especial para TROCO */}
+        {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
+          <div style={{
+            border: '3px solid #ff9800',
+            backgroundColor: '#fff3e0',
+            padding: '10px',
+            marginTop: '10px',
+            borderRadius: '5px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              fontSize: '14px',
+              fontWeight: 'bold',
+              color: '#e65100',
+              marginBottom: '5px',
+              textTransform: 'uppercase',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px'
+            }}>
+              <AlertTriangle style={{ width: '16px', height: '16px' }} />
+              PRECISA DE TROCO
+              <AlertTriangle style={{ width: '16px', height: '16px' }} />
+            </div>
+            <div style={{
+              fontSize: '13px',
+              fontWeight: 'bold',
+              color: '#e65100'
+            }}>
+              Cliente pagará com: R$ {romaneio.valor_troco.toFixed(2)}
+            </div>
+          </div>
+        )}
 
         {/* Observações */}
         {(romaneio.observacoes || romaneio.endereco.observacoes) && (

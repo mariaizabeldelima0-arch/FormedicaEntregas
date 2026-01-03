@@ -39,7 +39,8 @@ import {
   Sunrise,
   Sun,
   MapPin,
-  User
+  User,
+  AlertTriangle
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -1259,6 +1260,24 @@ export default function EntregasMoto() {
                                 <div className="flex items-center gap-1.5">
                                   <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.forma_pagamento}</span>
+                                  {entrega.precisa_troco && entrega.valor_troco > 0 && (
+                                    <span style={{
+                                      backgroundColor: '#fff3e0',
+                                      color: '#e65100',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 'bold',
+                                      marginLeft: '4px',
+                                      border: '1px solid #ff9800',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      <AlertTriangle className="w-3 h-3" />
+                                      TROCO: R$ {entrega.valor_troco.toFixed(2)}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                               {entrega.cliente?.telefone && (
@@ -1419,6 +1438,24 @@ export default function EntregasMoto() {
                                 <div className="flex items-center gap-1.5">
                                   <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.forma_pagamento}</span>
+                                  {entrega.precisa_troco && entrega.valor_troco > 0 && (
+                                    <span style={{
+                                      backgroundColor: '#fff3e0',
+                                      color: '#e65100',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 'bold',
+                                      marginLeft: '4px',
+                                      border: '1px solid #ff9800',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      <AlertTriangle className="w-3 h-3" />
+                                      TROCO: R$ {entrega.valor_troco.toFixed(2)}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                               {entrega.cliente?.telefone && (
