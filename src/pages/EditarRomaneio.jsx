@@ -233,7 +233,8 @@ export default function EditarRomaneio() {
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
   const [showCadastroCliente, setShowCadastroCliente] = useState(false);
-  
+  const [clientesSelecionados, setClientesSelecionados] = useState([]);
+
   const [clienteEnderecos, setClienteEnderecos] = useState([]);
   const [showNovoEndereco, setShowNovoEndereco] = useState(false);
   const [enderecoEditando, setEnderecoEditando] = useState(null);
@@ -344,9 +345,28 @@ export default function EditarRomaneio() {
           observacoes: entrega.observacoes || ''
         });
 
-        setBuscarCliente(entrega.cliente?.nome || '');
+        // Carregar cliente principal
+        const clientesSelecionadosTemp = [];
+        if (entrega.cliente) {
+          clientesSelecionadosTemp.push(entrega.cliente);
+        }
 
-        // Carregar endereços do cliente
+        // Carregar clientes adicionais
+        if (entrega.clientes_adicionais && entrega.clientes_adicionais.length > 0) {
+          const { data: clientesAdicionais, error: errorAdicionais } = await supabase
+            .from('clientes')
+            .select('id, nome, telefone')
+            .in('id', entrega.clientes_adicionais);
+
+          if (!errorAdicionais && clientesAdicionais) {
+            clientesSelecionadosTemp.push(...clientesAdicionais);
+          }
+        }
+
+        setClientesSelecionados(clientesSelecionadosTemp);
+        setBuscarCliente('');
+
+        // Carregar endereços do cliente principal
         if (entrega.cliente_id) {
           await carregarEnderecosCliente(entrega.cliente_id);
         }
@@ -384,23 +404,59 @@ export default function EditarRomaneio() {
     }
   };
 
-  // Selecionar cliente
-  const selecionarCliente = (cliente) => {
-    console.log('Cliente selecionado:', cliente);
-    console.log('Vai buscar endereços agora...');
+  // Adicionar cliente à lista
+  const adicionarCliente = async (cliente) => {
+    // Verificar se já foi adicionado
+    if (clientesSelecionados.find(c => c.id === cliente.id)) {
+      toast.error('Cliente já adicionado!');
+      return;
+    }
 
-    setFormData({
-      ...formData,
-      cliente_id: cliente.id,
-      cliente_nome: cliente.nome,
-      endereco_id: '',
-      endereco: ''
-    });
-    setBuscarCliente(cliente.nome);
+    // Adicionar cliente à lista
+    setClientesSelecionados([...clientesSelecionados, cliente]);
+
+    // Se é o primeiro cliente, definir como cliente principal
+    if (clientesSelecionados.length === 0) {
+      setFormData({
+        ...formData,
+        cliente_id: cliente.id,
+        cliente_nome: cliente.nome,
+        endereco_id: '',
+        endereco: ''
+      });
+
+      // Carregar endereços do primeiro cliente
+      await carregarEnderecosCliente(cliente.id);
+    }
+
+    setBuscarCliente('');
     setClientesSugestoes([]);
+    toast.success(`Cliente ${cliente.nome} adicionado!`);
+  };
 
-    // Buscar endereços do cliente imediatamente
-    carregarEnderecosCliente(cliente.id);
+  // Remover cliente da lista
+  const removerCliente = (clienteId) => {
+    // Não permitir remover se for o único cliente
+    if (clientesSelecionados.length === 1) {
+      toast.error('Deve haver pelo menos um cliente!');
+      return;
+    }
+
+    // Remover cliente
+    setClientesSelecionados(clientesSelecionados.filter(c => c.id !== clienteId));
+
+    // Se removeu o cliente principal, atualizar para o próximo
+    if (formData.cliente_id === clienteId) {
+      const novoClientePrincipal = clientesSelecionados.find(c => c.id !== clienteId);
+      if (novoClientePrincipal) {
+        setFormData({
+          ...formData,
+          cliente_id: novoClientePrincipal.id,
+          cliente_nome: novoClientePrincipal.nome
+        });
+        carregarEnderecosCliente(novoClientePrincipal.id);
+      }
+    }
   };
 
   // Carregar endereços do cliente
@@ -597,7 +653,7 @@ export default function EditarRomaneio() {
   const validarFormulario = () => {
     const novosErros = {};
 
-    if (!formData.cliente_id) novosErros.cliente = 'Selecione um cliente';
+    if (clientesSelecionados.length === 0) novosErros.cliente = 'Adicione pelo menos um cliente';
     if (!formData.numero_requisicao) novosErros.requisicao = 'Número de requisição obrigatório';
 
     // Validar endereço
@@ -737,6 +793,9 @@ export default function EditarRomaneio() {
         }
       }
 
+      // Preparar array com IDs dos clientes adicionais (todos exceto o primeiro)
+      const clientesAdicionais = clientesSelecionados.slice(1).map(c => c.id);
+
       // Atualizar entrega com snapshot do endereço
       const { data, error } = await supabase
         .from('entregas')
@@ -755,6 +814,7 @@ export default function EditarRomaneio() {
           item_geladeira: formData.item_geladeira,
           buscar_receita: formData.buscar_receita,
           observacoes: formData.observacoes,
+          clientes_adicionais: clientesAdicionais,
           // Atualizar snapshot com dados atuais do endereço
           ...enderecoSnapshot
         })
@@ -782,77 +842,57 @@ export default function EditarRomaneio() {
 
   if (loadingEntrega) {
     return (
-      <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-        <div style={{
-          width: '50px',
-          height: '50px',
-          border: '4px solid #e2e8f0',
-          borderTop: '4px solid #457bba',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          margin: '2rem auto'
-        }} />
-        <p style={{ color: theme.colors.textLight }}>Carregando dados da entrega...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="py-8 shadow-sm mb-6" style={{
+          background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+        }}>
+          <div className="max-w-7xl mx-auto px-6">
+            <h1 className="text-4xl font-bold text-white">Editar Romaneio</h1>
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+            <div className="text-xl text-slate-600">Carregando dados da entrega...</div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: theme.colors.primary,
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            marginBottom: '1rem'
-          }}
-        >
-          ← Voltar
-        </button>
-        <h1 style={{ 
-          fontSize: '1.875rem', 
-          fontWeight: '700',
-          color: theme.colors.text,
-          marginBottom: '0.25rem'
-        }}>
-          Editar Romaneio
-        </h1>
-        <p style={{ color: theme.colors.textLight, fontSize: '0.875rem' }}>
-          Edite as informações da ordem de entrega
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-8">
+      {/* Header Customizado */}
+      <div className="py-8 shadow-sm mb-6" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 rounded-lg transition-all border border-white border-opacity-30 hover:bg-white hover:bg-opacity-10 text-white"
+            >
+              ← Voltar
+            </button>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Editar Romaneio</h1>
+              <p className="text-base text-white opacity-90 mt-1">Edite as informações da ordem de entrega</p>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="max-w-4xl mx-auto px-6">
 
       <form onSubmit={handleSubmit}>
         {/* Informações do Romaneio */}
-        <div style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '0.5rem',
-          border: `1px solid ${theme.colors.border}`,
-          marginBottom: '1.5rem'
-        }}>
-          <h3 style={{
-            fontSize: '1rem',
-            fontWeight: '600',
-            color: theme.colors.text,
-            marginBottom: '1.5rem'
-          }}>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-6" style={{ color: '#376295' }}>
             Informações do Romaneio
           </h3>
 
           {/* Cliente */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: theme.colors.text,
-              marginBottom: '0.5rem'
-            }}>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
               Cliente(s) *
             </label>
             <input
@@ -860,42 +900,21 @@ export default function EditarRomaneio() {
               value={buscarCliente}
               onChange={(e) => handleBuscarCliente(e.target.value)}
               placeholder="Buscar cliente por nome, CPF ou telefone..."
+              className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: `1px solid ${errors.cliente ? theme.colors.danger : theme.colors.border}`,
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem'
+                borderColor: errors.cliente ? '#ef4444' : '#cbd5e1'
               }}
             />
             {clientesSugestoes.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                zIndex: 10,
-                background: 'white',
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
-                marginTop: '0.25rem',
-                maxHeight: '200px',
-                overflowY: 'auto',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-              }}>
+              <div className="absolute z-50 bg-white border border-slate-300 rounded-lg mt-1 max-h-[200px] overflow-y-auto shadow-lg">
                 {clientesSugestoes.map(cliente => (
                   <div
                     key={cliente.id}
-                    onClick={() => selecionarCliente(cliente)}
-                    style={{
-                      padding: '0.75rem',
-                      cursor: 'pointer',
-                      borderBottom: `1px solid ${theme.colors.border}`
-                    }}
-                    onMouseEnter={(e) => e.target.style.background = theme.colors.background}
-                    onMouseLeave={(e) => e.target.style.background = 'white'}
+                    onClick={() => adicionarCliente(cliente)}
+                    className="p-3 cursor-pointer border-b border-slate-200 hover:bg-slate-50 transition-colors"
                   >
-                    <p style={{ fontWeight: '500', margin: 0 }}>{cliente.nome}</p>
-                    <p style={{ fontSize: '0.75rem', color: theme.colors.textLight, margin: 0 }}>
-                      {cliente.telefone}
-                    </p>
+                    <p className="font-semibold text-slate-900 m-0">{cliente.nome}</p>
+                    <p className="text-xs text-slate-600 m-0">{cliente.telefone}</p>
                   </div>
                 ))}
               </div>
@@ -904,26 +923,48 @@ export default function EditarRomaneio() {
               <button
                 type="button"
                 onClick={() => setShowCadastroCliente(true)}
-                style={{
-                  marginTop: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  background: theme.colors.primary,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  cursor: 'pointer'
-                }}
+                className="mt-2 px-4 py-2 rounded-lg font-semibold text-sm"
+                style={{ backgroundColor: '#376295', color: 'white' }}
               >
                 + Cadastrar Novo Cliente
               </button>
             )}
             {errors.cliente && (
-              <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <p className="text-red-600 text-xs mt-1">
                 {errors.cliente}
               </p>
             )}
           </div>
+
+          {/* Clientes Selecionados */}
+          {clientesSelecionados.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Clientes Selecionados ({clientesSelecionados.length})
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {clientesSelecionados.map((cliente, index) => (
+                  <div
+                    key={cliente.id}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-full text-sm"
+                  >
+                    <span className="font-medium text-slate-900">
+                      {cliente.nome}
+                      {index === 0 && <span className="ml-1 text-xs text-slate-500">(Principal)</span>}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removerCliente(cliente.id)}
+                      className="text-red-600 hover:text-red-800 font-bold text-lg leading-none"
+                      title="Remover cliente"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Endereço de Entrega */}
           {formData.cliente_id && (
@@ -1756,34 +1797,20 @@ export default function EditarRomaneio() {
         </div>
 
         {/* Botões */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+        <div className="flex gap-4 justify-end mt-6">
           <button
             type="button"
             onClick={() => navigate('/')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'white',
-              color: theme.colors.text,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '0.375rem',
-              fontSize: '0.9375rem',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
+            className="px-6 py-3 bg-white border border-slate-300 rounded-lg font-semibold text-sm text-slate-700 hover:bg-slate-50 transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
+            className="px-6 py-3 rounded-lg font-semibold text-sm text-white transition-colors"
             style={{
-              padding: '0.75rem 1.5rem',
-              background: loading ? theme.colors.textLight : theme.colors.primary,
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.375rem',
-              fontSize: '0.9375rem',
-              fontWeight: '600',
+              backgroundColor: loading ? '#94a3b8' : '#376295',
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
@@ -1791,6 +1818,7 @@ export default function EditarRomaneio() {
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

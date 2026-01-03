@@ -317,9 +317,9 @@ export default function DetalhesRomaneio() {
                   <h2 className="text-lg font-bold">Informações do Romaneio</h2>
                 </div>
 
-                <div className="grid grid-cols-4 gap-8">
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto', gap: '3.5rem', justifyContent: 'start' }}>
                   <div>
-                    <div className="text-xs text-slate-500 mb-1">
+                    <div className="text-xs text-slate-500 mb-2">
                       Número da Requisição
                     </div>
                     <div className="text-base font-semibold" style={{ color: '#376295' }}>
@@ -328,7 +328,7 @@ export default function DetalhesRomaneio() {
                   </div>
 
                   <div>
-                    <div className="text-xs text-slate-500 mb-1">
+                    <div className="text-xs text-slate-500 mb-2">
                       Status
                     </div>
                     <div>
@@ -342,16 +342,16 @@ export default function DetalhesRomaneio() {
                   </div>
 
                   <div>
-                    <div className="text-xs text-slate-500 mb-1">
+                    <div className="text-xs text-slate-500 mb-2">
                       Data de Entrega Prevista
                     </div>
-                    <div className="text-sm font-semibold text-slate-900">
+                    <div className="text-base font-semibold text-slate-900">
                       {romaneio.data_entrega ? new Date(romaneio.data_entrega + 'T12:00:00').toLocaleDateString('pt-BR') : '-'} - {romaneio.periodo}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-xs text-slate-500 mb-1">
+                    <div className="text-xs text-slate-500 mb-2">
                       Valor da Entrega
                     </div>
                     <div className="text-2xl font-bold" style={{ color: '#376295' }}>
@@ -439,59 +439,59 @@ export default function DetalhesRomaneio() {
               {/* Informações */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <div className="flex items-center gap-2 mb-4" style={{ color: '#376295' }}>
-                  <FileText size={18} />
-                  <h2 className="text-lg font-bold">Informações</h2>
+                  <FileText size={20} />
+                  <h2 className="text-xl font-bold">Informações</h2>
                 </div>
 
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-5">
                   <div className="flex items-start gap-3">
-                    <MapPin size={16} className="text-slate-500 mt-0.5 flex-shrink-0" />
+                    <MapPin size={20} className="text-slate-500 mt-1 flex-shrink-0" />
                     <div className="flex-1">
-                      <div className="text-xs text-slate-500">Região</div>
-                      <div className="text-sm font-semibold" style={{ color: '#376295' }}>
+                      <div className="text-sm text-slate-500 mb-1">Região</div>
+                      <div className="text-base font-semibold" style={{ color: '#376295' }}>
                         {romaneio.regiao || romaneio.endereco?.regiao || '-'}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <DollarSign size={16} className="text-slate-500 mt-0.5 flex-shrink-0" />
+                    <DollarSign size={20} className="text-slate-500 mt-1 flex-shrink-0" />
                     <div className="flex-1">
-                      <div className="text-xs text-slate-500">Pagamento</div>
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm text-slate-500 mb-1">Pagamento</div>
+                      <div className="text-base font-semibold text-slate-900">
                         {romaneio.forma_pagamento}
                       </div>
-                      <div className="text-sm font-bold" style={{ color: '#376295' }}>
+                      <div className="text-lg font-bold mt-1" style={{ color: '#376295' }}>
                         R$ {(romaneio.valor || 0).toFixed(2)}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Clock size={16} className="text-slate-500 mt-0.5 flex-shrink-0" />
+                    <Clock size={20} className="text-slate-500 mt-1 flex-shrink-0" />
                     <div className="flex-1">
-                      <div className="text-xs text-slate-500">Período</div>
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm text-slate-500 mb-1">Período</div>
+                      <div className="text-base font-semibold text-slate-900">
                         {romaneio.periodo}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Truck size={16} className="text-slate-500 mt-0.5 flex-shrink-0" />
+                    <Truck size={20} className="text-slate-500 mt-1 flex-shrink-0" />
                     <div className="flex-1">
-                      <div className="text-xs text-slate-500">Motoboy</div>
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm text-slate-500 mb-1">Motoboy</div>
+                      <div className="text-base font-semibold text-slate-900">
                         {romaneio.motoboy?.nome || '-'}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <User size={16} className="text-slate-500 mt-0.5 flex-shrink-0" />
+                    <User size={20} className="text-slate-500 mt-1 flex-shrink-0" />
                     <div className="flex-1">
-                      <div className="text-xs text-slate-500">Atendente</div>
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm text-slate-500 mb-1">Atendente</div>
+                      <div className="text-base font-semibold text-slate-900">
                         {romaneio.atendente?.email || romaneio.atendente?.nome || '-'}
                       </div>
                     </div>
