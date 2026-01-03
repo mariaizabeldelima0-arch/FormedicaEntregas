@@ -698,8 +698,7 @@ export default function EntregasMoto() {
   };
 
   const visualizarDetalhes = (entrega) => {
-    setEntregaSelecionada(entrega);
-    setDetalhesOpen(true);
+    navigate(`/detalhes-romaneio?id=${entrega.id}`);
   };
 
   return (

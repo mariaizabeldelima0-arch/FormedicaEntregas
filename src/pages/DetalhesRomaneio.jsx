@@ -31,24 +31,33 @@ export default function DetalhesRomaneio() {
   const [pagamentoMotoboy, setPagamentoMotoboy] = useState("Aguardando");
   const [pagamentoRecebido, setPagamentoRecebido] = useState(false);
 
-  const { data: romaneio, isLoading } = useQuery({
+  const { data: romaneio, isLoading, error: queryError } = useQuery({
     queryKey: ['romaneio', romaneioId],
     queryFn: async () => {
-      if (!romaneioId) throw new Error("ID do romaneio não fornecido");
+      console.log('🔍 Buscando romaneio com ID:', romaneioId);
+
+      if (!romaneioId) {
+        console.error('❌ ID do romaneio não fornecido');
+        throw new Error("ID do romaneio não fornecido");
+      }
 
       const { data, error } = await supabase
         .from('entregas')
         .select(`
           *,
           cliente:clientes(id, nome, telefone, cpf, email),
-          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep, regiao, ponto_referencia, aos_cuidados_de),
-          motoboy:motoboys(id, nome),
-          atendente:usuarios(id, nome, email)
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep, regiao),
+          motoboy:motoboys(id, nome)
         `)
         .eq('id', romaneioId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao buscar romaneio:', error);
+        throw error;
+      }
+
+      console.log('✅ Romaneio encontrado:', data);
 
       // Buscar clientes adicionais se houver
       let clientesAdicionais = [];
@@ -74,14 +83,33 @@ export default function DetalhesRomaneio() {
           }
         : data.endereco;
 
+      // Buscar informações do atendente se houver
+      let atendente = null;
+      if (data.atendente_id) {
+        const { data: atendenteData } = await supabase
+          .from('usuarios')
+          .select('id, nome, email')
+          .eq('id', data.atendente_id)
+          .single();
+        atendente = atendenteData;
+      }
+
       return {
         ...data,
         endereco: enderecoDisplay,
-        clientesAdicionais
+        clientesAdicionais,
+        atendente
       };
     },
     enabled: !!romaneioId,
   });
+
+  // Log de debug para ver o que está acontecendo
+  useEffect(() => {
+    if (queryError) {
+      console.error('❌ Erro na query:', queryError);
+    }
+  }, [queryError]);
 
   useEffect(() => {
     if (romaneio) {
@@ -143,11 +171,29 @@ export default function DetalhesRomaneio() {
     );
   }
 
-  if (!romaneio) {
+  if (!romaneio && !isLoading) {
     return (
       <div style={{ padding: '2rem', background: '#f8f9fa', minHeight: '100vh' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ fontSize: '1.5rem', color: '#666' }}>Romaneio não encontrado</div>
+          <div style={{ fontSize: '1.5rem', color: '#666', marginBottom: '1rem' }}>
+            Romaneio não encontrado
+          </div>
+          <div style={{ fontSize: '1rem', color: '#999', marginBottom: '1rem' }}>
+            ID buscado: {romaneioId || 'Nenhum ID fornecido'}
+          </div>
+          {queryError && (
+            <div style={{
+              padding: '1rem',
+              background: '#fee',
+              border: '1px solid #fcc',
+              borderRadius: '4px',
+              marginBottom: '1rem',
+              fontSize: '0.875rem',
+              color: '#c00'
+            }}>
+              Erro: {queryError.message}
+            </div>
+          )}
           <Button onClick={() => navigate('/entregas-moto')} style={{ marginTop: '1rem' }}>
             Voltar
           </Button>

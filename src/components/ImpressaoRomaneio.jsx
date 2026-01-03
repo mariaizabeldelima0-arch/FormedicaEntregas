@@ -149,12 +149,12 @@ export default function ImpressaoRomaneio({ romaneio }) {
             <div className="print-section-title">CLIENTE</div>
             <div className="print-row">
               <span className="print-label">Nome:</span>
-              <span className="print-value">{romaneio.cliente_nome}</span>
+              <span className="print-value">{romaneio.cliente?.nome || romaneio.cliente_nome || '-'}</span>
             </div>
-            {romaneio.cliente_telefone && (
+            {(romaneio.cliente?.telefone || romaneio.cliente_telefone) && (
               <div className="print-row">
                 <span className="print-label">Telefone:</span>
-                <span className="print-value">{romaneio.cliente_telefone}</span>
+                <span className="print-value">{romaneio.cliente?.telefone || romaneio.cliente_telefone}</span>
               </div>
             )}
           </div>
@@ -163,11 +163,11 @@ export default function ImpressaoRomaneio({ romaneio }) {
             <div className="print-section-title">RESPONSÁVEIS</div>
             <div className="print-row">
               <span className="print-label">Atendente:</span>
-              <span className="print-value">{romaneio.atendente_nome}</span>
+              <span className="print-value">{romaneio.atendente?.nome || romaneio.atendente?.email || romaneio.atendente_nome || '-'}</span>
             </div>
             <div className="print-row">
               <span className="print-label">Motoboy:</span>
-              <span className="print-value">{romaneio.motoboy}</span>
+              <span className="print-value">{romaneio.motoboy?.nome || romaneio.motoboy || '-'}</span>
             </div>
           </div>
         </div>
@@ -176,23 +176,13 @@ export default function ImpressaoRomaneio({ romaneio }) {
         <div className="print-section">
           <div className="print-section-title">ENDEREÇO DE ENTREGA</div>
           <div className="print-value" style={{ fontSize: '12px', fontWeight: 'bold' }}>
-            {romaneio.endereco.rua}, {romaneio.endereco.numero}
+            {romaneio.endereco?.logradouro || romaneio.endereco_logradouro || '-'}, {romaneio.endereco?.numero || romaneio.endereco_numero || 'S/N'}
           </div>
           <div className="print-value">
-            {romaneio.endereco.bairro} - {romaneio.cidade_regiao}
+            {romaneio.endereco?.bairro || romaneio.endereco_bairro || '-'} - {romaneio.endereco?.cidade || romaneio.endereco_cidade || romaneio.regiao || '-'}
           </div>
-          {romaneio.endereco.complemento && (
-            <div className="print-value">Compl: {romaneio.endereco.complemento}</div>
-          )}
-          {romaneio.endereco.ponto_referencia && (
-            <div className="print-value" style={{ fontStyle: 'italic' }}>
-              Ref: {romaneio.endereco.ponto_referencia}
-            </div>
-          )}
-          {romaneio.endereco.aos_cuidados_de && (
-            <div className="print-value" style={{ fontWeight: 'bold' }}>
-              A/C: {romaneio.endereco.aos_cuidados_de}
-            </div>
+          {(romaneio.endereco?.complemento || romaneio.endereco_complemento) && (
+            <div className="print-value">Compl: {romaneio.endereco?.complemento || romaneio.endereco_complemento}</div>
           )}
         </div>
 
