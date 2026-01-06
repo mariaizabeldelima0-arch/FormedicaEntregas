@@ -88,6 +88,7 @@ export default function Layout({ children }) {
   const { user, userType, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMenuExpanded, setIsMenuExpanded] = useState(false);
 
   const menuItems = {
     admin: [
@@ -121,11 +122,12 @@ export default function Layout({ children }) {
     <div style={{ display: 'flex', minHeight: '100vh', background: theme.colors.background }}>
       {/* Menu Lateral */}
       <div style={{
-        width: '200px',
+        width: isMenuExpanded ? '200px' : '64px',
         background: 'white',
         borderRight: `1px solid ${theme.colors.border}`,
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        transition: 'width 0.3s ease'
       }}>
         {/* Logo */}
         <div style={{
@@ -133,7 +135,9 @@ export default function Layout({ children }) {
           borderBottom: `1px solid ${theme.colors.border}`,
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem'
+          justifyContent: isMenuExpanded ? 'flex-start' : 'center',
+          gap: '0.75rem',
+          position: 'relative'
         }}>
           <div style={{
             width: '36px',
@@ -145,44 +149,89 @@ export default function Layout({ children }) {
             justifyContent: 'center',
             color: 'white',
             fontWeight: 'bold',
-            fontSize: '1.125rem'
+            fontSize: '1.125rem',
+            flexShrink: 0
           }}>
             F
           </div>
-          <div>
-            <h2 style={{ 
-              fontSize: '1rem', 
-              fontWeight: '600',
-              color: theme.colors.text,
-              margin: 0,
-              lineHeight: 1.2
+          {isMenuExpanded && (
+            <div style={{
+              overflow: 'hidden',
+              transition: 'opacity 0.3s ease'
             }}>
-              Formédica
-            </h2>
-            <p style={{ 
-              fontSize: '0.75rem', 
-              color: theme.colors.textLight,
-              margin: 0,
-              lineHeight: 1.2
-            }}>
-              Entregas
-            </p>
-          </div>
+              <h2 style={{
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: theme.colors.text,
+                margin: 0,
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap'
+              }}>
+                Formédica
+              </h2>
+              <p style={{
+                fontSize: '0.75rem',
+                color: theme.colors.textLight,
+                margin: 0,
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap'
+              }}>
+                Entregas
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Botão Toggle */}
+        <div style={{
+          padding: '0.5rem',
+          display: 'flex',
+          justifyContent: 'center',
+          borderBottom: `1px solid ${theme.colors.border}`
+        }}>
+          <button
+            onClick={() => setIsMenuExpanded(!isMenuExpanded)}
+            style={{
+              padding: '0.5rem',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: theme.colors.primary,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '0.375rem',
+              transition: 'background 0.15s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
+            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            title={isMenuExpanded ? 'Recolher menu' : 'Expandir menu'}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {isMenuExpanded ? (
+                <path d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+              ) : (
+                <path d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+              )}
+            </svg>
+          </button>
         </div>
 
         {/* Menu Items */}
         <nav style={{ flex: 1, padding: '0.5rem 0', overflowY: 'auto' }}>
-          <p style={{
-            padding: '0.5rem 1rem',
-            fontSize: '0.6875rem',
-            fontWeight: '600',
-            color: theme.colors.textLight,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.25rem'
-          }}>
-            Menu Principal
-          </p>
+          {isMenuExpanded && (
+            <p style={{
+              padding: '0.5rem 1rem',
+              fontSize: '0.6875rem',
+              fontWeight: '600',
+              color: theme.colors.textLight,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '0.25rem'
+            }}>
+              Menu Principal
+            </p>
+          )}
           {currentMenu.map((item) => {
             const isActive = location.pathname === item.path;
             const IconComponent = Icons[item.icon];
@@ -190,11 +239,13 @@ export default function Layout({ children }) {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
+                title={!isMenuExpanded ? item.label : ''}
                 style={{
                   width: '100%',
-                  padding: '0.625rem 1rem',
+                  padding: isMenuExpanded ? '0.625rem 1rem' : '0.625rem 0',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: isMenuExpanded ? 'flex-start' : 'center',
                   gap: '0.75rem',
                   border: 'none',
                   background: isActive ? `${theme.colors.primary}10` : 'transparent',
@@ -204,23 +255,33 @@ export default function Layout({ children }) {
                   fontSize: '0.875rem',
                   fontWeight: isActive ? '500' : '400',
                   borderLeft: isActive ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  position: 'relative'
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    e.target.style.background = '#f8fafc';
+                    e.currentTarget.style.background = '#f8fafc';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
-                    e.target.style.background = 'transparent';
+                    e.currentTarget.style.background = 'transparent';
                   }
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                   {IconComponent && <IconComponent />}
                 </span>
-                <span style={{ flex: 1 }}>{item.label}</span>
+                {isMenuExpanded && (
+                  <span style={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {item.label}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -234,47 +295,55 @@ export default function Layout({ children }) {
           <div style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: isMenuExpanded ? 'flex-start' : 'center',
             gap: '0.75rem',
             marginBottom: '0.75rem'
           }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              background: theme.colors.secondary,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: '600',
-              fontSize: '0.875rem'
-            }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                background: theme.colors.secondary,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                flexShrink: 0
+              }}
+              title={!isMenuExpanded ? user?.nome || 'Usuário' : ''}
+            >
               {user?.nome?.charAt(0) || 'U'}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{
-                margin: 0,
-                fontSize: '0.8125rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}>
-                {user?.nome || 'Usuário'}
-              </p>
-              <p style={{
-                margin: 0,
-                fontSize: '0.6875rem',
-                color: theme.colors.textLight,
-                textTransform: 'capitalize'
-              }}>
-                {userType}
-              </p>
-            </div>
+            {isMenuExpanded && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  margin: 0,
+                  fontSize: '0.8125rem',
+                  fontWeight: '500',
+                  color: theme.colors.text,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {user?.nome || 'Usuário'}
+                </p>
+                <p style={{
+                  margin: 0,
+                  fontSize: '0.6875rem',
+                  color: theme.colors.textLight,
+                  textTransform: 'capitalize'
+                }}>
+                  {userType}
+                </p>
+              </div>
+            )}
           </div>
           <button
             onClick={logout}
+            title={!isMenuExpanded ? 'Sair' : ''}
             style={{
               width: '100%',
               padding: '0.5rem',
@@ -296,7 +365,7 @@ export default function Layout({ children }) {
               <polyline points="16 17 21 12 16 7"/>
               <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
-            <span>Sair</span>
+            {isMenuExpanded && <span>Sair</span>}
           </button>
         </div>
       </div>
