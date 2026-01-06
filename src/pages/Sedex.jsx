@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Send, Plus, Search, MapPin, DollarSign, Package } from "lucide-react";
+import { Send, Plus, Search, MapPin, DollarSign, Package, ClipboardList, Truck, Check } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -209,32 +209,157 @@ export default function Sedex() {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
-              Sedex / Disktenha
-            </h1>
-            <p className="text-slate-600">
-              Gerencie entregas via Sedex, PAC e Disktenha
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header com gradiente */}
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="text-4xl font-bold text-white">Sedex / Disktenha</h1>
+          <p className="text-base text-white opacity-90 mt-1">Gerencie entregas via Sedex, PAC e Disktenha</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-6 flex gap-6">
+        {/* Sidebar Esquerda - Calendário */}
+        {!visualizarTodas && (
+          <div className="w-80 flex-shrink-0">
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg">Selecione a Data</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  locale={ptBR}
+                  className="rounded-md border"
+                />
+                <div className="mt-4 text-center">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {entregasFiltradas.length} entrega{entregasFiltradas.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-4 space-y-3">
+              <Button
+                variant="outline"
+                onClick={() => setVisualizarTodas(!visualizarTodas)}
+                className="w-full"
+              >
+                {visualizarTodas ? "Mostrar por Dia" : "Mostrar Todas"}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <Button
-              variant={visualizarTodas ? "default" : "outline"}
-              onClick={() => setVisualizarTodas(!visualizarTodas)}
-              className={visualizarTodas ? "bg-[#457bba] hover:bg-[#3a6ba0]" : ""}
+        )}
+
+        {/* Conteúdo Principal */}
+        <div className="flex-1">
+          {/* Cards de Estatísticas */}
+          <div className="grid grid-cols-5 gap-4 mb-6">
+            {/* Card Total */}
+            <div
+              onClick={() => setFiltroTipo("todos")}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: filtroTipo === "todos" ? '2px solid #376295' : '2px solid transparent'
+              }}
             >
-              {visualizarTodas ? "Mostrar por Dia" : "Mostrar Todas"}
-            </Button>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-[#457bba] hover:bg-[#3a6ba0]">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Entrega
-                </Button>
-              </DialogTrigger>
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                  <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">Total</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                {stats.total}
+              </div>
+            </div>
+
+            {/* Card Sedex */}
+            <div
+              onClick={() => setFiltroTipo(filtroTipo === "Sedex" ? "todos" : "Sedex")}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: filtroTipo === "Sedex" ? '2px solid #dc2626' : '2px solid transparent'
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEE8E8' }}>
+                  <Send className="w-6 h-6" style={{ color: '#dc2626' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">Sedex</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#dc2626' }}>
+                {stats.sedex}
+              </div>
+            </div>
+
+            {/* Card PAC */}
+            <div
+              onClick={() => setFiltroTipo(filtroTipo === "PAC" ? "todos" : "PAC")}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: filtroTipo === "PAC" ? '2px solid #2563eb' : '2px solid transparent'
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0FE' }}>
+                  <Package className="w-6 h-6" style={{ color: '#2563eb' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">PAC</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#2563eb' }}>
+                {stats.pac}
+              </div>
+            </div>
+
+            {/* Card Disktenha */}
+            <div
+              onClick={() => setFiltroTipo(filtroTipo === "Disktenha" ? "todos" : "Disktenha")}
+              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{
+                border: filtroTipo === "Disktenha" ? '2px solid #9333ea' : '2px solid transparent'
+              }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8FE' }}>
+                  <Truck className="w-6 h-6" style={{ color: '#9333ea' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">Disktenha</span>
+              </div>
+              <div className="text-4xl font-bold text-center" style={{ color: '#9333ea' }}>
+                {stats.disktenha}
+              </div>
+            </div>
+
+            {/* Card Valor Disktenha */}
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                  <DollarSign className="w-6 h-6" style={{ color: '#22c55e' }} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">Total R$</span>
+              </div>
+              <div className="text-3xl font-bold text-center" style={{ color: '#22c55e' }}>
+                {stats.valorDisktenha.toFixed(2)}
+              </div>
+            </div>
+          </div>
+
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-[#457bba] hover:bg-[#3a6ba0] mb-6">
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Entrega
+              </Button>
+            </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Cadastrar Nova Entrega</DialogTitle>
@@ -377,81 +502,12 @@ export default function Sedex() {
                 </form>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {!visualizarTodas && (
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg">Selecione a Data</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  locale={ptBR}
-                  className="rounded-md border"
-                />
-                <div className="mt-4 text-center">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {entregasFiltradas.length} entrega{entregasFiltradas.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className={`${!visualizarTodas ? "lg:col-span-3" : "lg:col-span-4"} space-y-6`}>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <button onClick={() => setFiltroTipo("todos")} className="text-left">
-                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroTipo === "todos" ? "ring-2 ring-[#457bba]" : ""}`}>
-                  <CardHeader className="pb-3">
-                    <p className="text-sm text-slate-500 font-medium">Total</p>
-                    <p className="text-3xl font-bold text-slate-900">{stats.total}</p>
-                  </CardHeader>
-                </Card>
-              </button>
-              <button onClick={() => setFiltroTipo(filtroTipo === "Sedex" ? "todos" : "Sedex")} className="text-left">
-                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroTipo === "Sedex" ? "ring-2 ring-red-600" : ""}`}>
-                  <CardHeader className="pb-3">
-                    <p className="text-sm text-slate-500 font-medium">Sedex</p>
-                    <p className="text-3xl font-bold text-red-600">{stats.sedex}</p>
-                  </CardHeader>
-                </Card>
-              </button>
-              <button onClick={() => setFiltroTipo(filtroTipo === "PAC" ? "todos" : "PAC")} className="text-left">
-                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroTipo === "PAC" ? "ring-2 ring-blue-600" : ""}`}>
-                  <CardHeader className="pb-3">
-                    <p className="text-sm text-slate-500 font-medium">PAC</p>
-                    <p className="text-3xl font-bold text-blue-600">{stats.pac}</p>
-                  </CardHeader>
-                </Card>
-              </button>
-              <button onClick={() => setFiltroTipo(filtroTipo === "Disktenha" ? "todos" : "Disktenha")} className="text-left">
-                <Card className={`border-none shadow-md hover:shadow-xl transition-shadow cursor-pointer ${filtroTipo === "Disktenha" ? "ring-2 ring-purple-600" : ""}`}>
-                  <CardHeader className="pb-3">
-                    <p className="text-sm text-slate-500 font-medium">Disktenha</p>
-                    <p className="text-3xl font-bold text-purple-600">{stats.disktenha}</p>
-                  </CardHeader>
-                </Card>
-              </button>
-              <Card className="border-none shadow-md bg-gradient-to-br from-green-50 to-green-100">
-                <CardHeader className="pb-3">
-                  <p className="text-sm text-green-700 font-medium">Total Disktenha</p>
-                  <p className="text-2xl font-bold text-green-700">R$ {stats.valorDisktenha.toFixed(2)}</p>
-                </CardHeader>
-              </Card>
-            </div>
-
-            <Card className="border-none shadow-lg">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Buscar e Filtrar</CardTitle>
-              </CardHeader>
+          {/* Busca e Filtros */}
+          <Card className="border-none shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Buscar e Filtrar</CardTitle>
+            </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
