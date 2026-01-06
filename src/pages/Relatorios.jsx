@@ -15,7 +15,16 @@ import {
 import {
   ArrowLeft,
   Printer,
-  Search
+  Search,
+  ClipboardList,
+  Package,
+  Truck,
+  Check,
+  Sunrise,
+  Sunset,
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,11 +36,41 @@ export default function Relatorios() {
   const dataParam = urlParams.get('data');
 
   const [dataSelecionada, setDataSelecionada] = useState(dataParam || format(new Date(), "yyyy-MM-dd"));
+  const [currentMonthDate, setCurrentMonthDate] = useState(dataParam ? parseISO(dataParam) : new Date());
   const [filtroStatus, setFiltroStatus] = useState(urlParams.get('status') || "todos");
   const [filtroLocal, setFiltroLocal] = useState(urlParams.get('local') || "todos");
   const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || "todos");
   const [filtroPeriodo, setFiltroPeriodo] = useState(urlParams.get('periodo') || "todos");
   const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || "");
+
+  // Função para gerar dias do mês
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push({ day: '', isCurrentMonth: false });
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dayDate = new Date(year, month, i);
+      const dateStr = format(dayDate, 'yyyy-MM-dd');
+      days.push({
+        day: i,
+        isCurrentMonth: true,
+        isSelected: dateStr === dataSelecionada,
+        date: dayDate
+      });
+    }
+
+    return days;
+  };
 
   // Buscar entregas do Supabase
   const { data: entregas = [], isLoading, error: queryError } = useQuery({
@@ -177,8 +216,9 @@ export default function Relatorios() {
     };
     const config = configs[status] || configs["Pendente"];
     return (
-      <Badge className={`${config.bg} ${config.text} text-xs`}>
-        {status === "Entregue" ? "✓" : "🚛"} {config.label}
+      <Badge className={`${config.bg} ${config.text} text-xs flex items-center gap-1`}>
+        {status === "Entregue" ? <Check className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
+        {config.label}
       </Badge>
     );
   };
@@ -209,70 +249,314 @@ export default function Relatorios() {
         }
       `}</style>
 
-      <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between no-print">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigate(-1)}
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900">Relatório de Entregas</h1>
-                <p className="text-slate-600 mt-1">Visualização completa das entregas do dia</p>
-              </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        {/* Header com gradiente */}
+        <div className="py-8 shadow-sm no-print" style={{
+          background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+        }}>
+          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold text-white">Relatório de Entregas</h1>
+              <p className="text-base text-white opacity-90 mt-1">Visualização completa das entregas do dia - {format(parseISO(dataSelecionada), "dd 'de' MMMM", { locale: ptBR })}</p>
             </div>
             <Button
-              className="bg-[#457bba] hover:bg-[#3a6ba0]"
+              className="bg-white hover:bg-slate-100"
+              style={{ color: '#457bba' }}
               onClick={handlePrint}
             >
               <Printer className="w-4 h-4 mr-2" />
-              {entregasDoDia.length}
+              Imprimir ({entregasDoDia.length})
             </Button>
           </div>
+        </div>
 
-          {/* Filtros e Busca */}
-          <Card className="border-none shadow-lg no-print">
-            <CardHeader>
-              <CardTitle>Filtros e Busca</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Dados</label>
-                <Input
-                  type="date"
-                  value={dataSelecionada}
-                  onChange={(e) => setDataSelecionada(e.target.value)}
-                  className="max-w-xs"
-                />
+        <div className="max-w-7xl mx-auto px-6 py-6 flex gap-6">
+          {/* Sidebar Esquerda - Calendário */}
+          <div className="w-80 flex-shrink-0 no-print">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
+              {/* Navegação do Calendário */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => {
+                    const newDate = new Date(currentMonthDate);
+                    newDate.setMonth(newDate.getMonth() - 1);
+                    setCurrentMonthDate(newDate);
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 text-slate-600" />
+                </button>
+
+                <span className="text-sm font-semibold text-slate-700">
+                  {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+                </span>
+
+                <button
+                  onClick={() => {
+                    const newDate = new Date(currentMonthDate);
+                    newDate.setMonth(newDate.getMonth() + 1);
+                    setCurrentMonthDate(newDate);
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5 text-slate-600" />
+                </button>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Buscar</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    placeholder="Buscar por cliente, requisição ou motoboy..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              {/* Grid do Calendário */}
+              <div className="grid grid-cols-7 gap-1 mb-4">
+                {/* Dias da Semana */}
+                {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
+                  <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
+                    {dia}
+                  </div>
+                ))}
+
+                {/* Dias do Mês */}
+                {getDaysInMonth(currentMonthDate).map((dayInfo, index) => {
+                  if (!dayInfo.isCurrentMonth) {
+                    return <div key={index} className="aspect-square" />;
+                  }
+
+                  const isSelected = dayInfo.isSelected;
+                  const isToday = dayInfo.date?.toDateString() === new Date().toDateString();
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setDataSelecionada(format(dayInfo.date, 'yyyy-MM-dd'));
+                      }}
+                      className="aspect-square rounded-lg text-sm font-medium transition-all flex items-center justify-center hover:bg-blue-50"
+                      style={{
+                        backgroundColor: isSelected ? '#376295' : 'transparent',
+                        color: isSelected ? 'white' : isToday ? '#376295' : '#1e293b',
+                        fontWeight: isToday || isSelected ? 'bold' : 'normal'
+                      }}
+                    >
+                      {dayInfo.day}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Data Selecionada */}
+              <div className="text-center pt-4 border-t border-slate-200">
+                <div className="text-base font-semibold text-slate-700">
+                  {format(parseISO(dataSelecionada), "dd 'de' MMMM", { locale: ptBR })}
+                </div>
+                <div className="text-sm text-slate-500">
+                  {entregasDoDia.length} entregas
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Conteúdo Principal */}
+          <div className="flex-1">
+            {/* Cards de Estatísticas */}
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              {/* Card Total */}
+              <div
+                onClick={() => setFiltroStatus("todos")}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{
+                  border: filtroStatus === "todos" ? '2px solid #376295' : '2px solid transparent'
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Total</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                  {entregasDoDia.length}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Status</label>
-                  <Select key={`status-${filtroStatus}`} value={filtroStatus} onValueChange={setFiltroStatus}>
+              {/* Card Produção */}
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === "Produzindo no Laboratório" ? "todos" : "Produzindo no Laboratório")}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{
+                  border: filtroStatus === "Produzindo no Laboratório" ? '2px solid #890d5d' : '2px solid transparent'
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                    <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Produção</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
+                  {porStatus['Produzindo no Laboratório'].length}
+                </div>
+              </div>
+
+              {/* Card A Caminho */}
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === "A Caminho" ? "todos" : "A Caminho")}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{
+                  border: filtroStatus === "A Caminho" ? '2px solid #f97316' : '2px solid transparent'
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                    <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">A Caminho</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+                  {porStatus['A Caminho'].length}
+                </div>
+              </div>
+
+              {/* Card Entregues */}
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === "Entregue" ? "todos" : "Entregue")}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{
+                  border: filtroStatus === "Entregue" ? '2px solid #22c55e' : '2px solid transparent'
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                    <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Entregues</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+                  {porStatus['Entregue'].length}
+                </div>
+              </div>
+            </div>
+
+            {/* Buscar e Filtrar */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 no-print">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-900">Buscar e Filtrar</h2>
+
+                {/* Botão Limpar Filtros */}
+                {(searchTerm || (filtroStatus !== "todos") || (filtroLocal !== "todos") || (filtroMotoboy !== "todos") || (filtroPeriodo !== "todos")) && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setFiltroStatus('todos');
+                      setFiltroLocal('todos');
+                      setFiltroMotoboy('todos');
+                      setFiltroPeriodo('todos');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Limpar Filtros
+                  </button>
+                )}
+              </div>
+
+              {/* Filtros Ativos */}
+              {(searchTerm || (filtroStatus !== "todos") || (filtroLocal !== "todos") || (filtroMotoboy !== "todos") || (filtroPeriodo !== "todos")) && (
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-slate-600">Filtros ativos:</span>
+
+                  {searchTerm && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm font-medium">
+                      <Search className="w-3.5 h-3.5" />
+                      Busca: "{searchTerm}"
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="ml-1 hover:bg-blue-200 rounded p-0.5 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+
+                  {filtroStatus !== "todos" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-700 rounded text-sm font-medium">
+                      Status: {filtroStatus === 'Produzindo no Laboratório' ? 'Produção' : filtroStatus}
+                      <button
+                        onClick={() => setFiltroStatus('todos')}
+                        className="ml-1 hover:bg-purple-200 rounded p-0.5 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+
+                  {filtroLocal !== "todos" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded text-sm font-medium">
+                      Local: {filtroLocal}
+                      <button
+                        onClick={() => setFiltroLocal('todos')}
+                        className="ml-1 hover:bg-orange-200 rounded p-0.5 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+
+                  {filtroMotoboy !== "todos" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded text-sm font-medium">
+                      Motoboy: {filtroMotoboy}
+                      <button
+                        onClick={() => setFiltroMotoboy('todos')}
+                        className="ml-1 hover:bg-green-200 rounded p-0.5 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+
+                  {filtroPeriodo !== "todos" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded text-sm font-medium">
+                      Período: {filtroPeriodo}
+                      <button
+                        onClick={() => setFiltroPeriodo('todos')}
+                        className="ml-1 hover:bg-amber-200 rounded p-0.5 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {/* Campo de Busca */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar por cliente, requisição ou motoboy..."
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                  />
+                </div>
+
+                {/* Filtros em Linha */}
+                <div className="grid grid-cols-4 gap-4">
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
+                      <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="todos">Todos Status</SelectItem>
                       <SelectItem value="Pendente">Pendente</SelectItem>
                       <SelectItem value="Produzindo no Laboratório">Produção</SelectItem>
                       <SelectItem value="Preparando no Setor de Entregas">Preparando</SelectItem>
@@ -283,106 +567,46 @@ export default function Relatorios() {
                       <SelectItem value="Cancelado">Cancelado</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Local</label>
-                  <Select key={`local-${filtroLocal}`} value={filtroLocal} onValueChange={setFiltroLocal}>
+                  <Select value={filtroLocal} onValueChange={setFiltroLocal}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
+                      <SelectValue placeholder="Regiões" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="todos">Todas Regiões</SelectItem>
                       {locaisUnicos.map(l => (
                         <SelectItem key={l} value={l}>{l}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Motoboy</label>
-                  <Select key={`motoboy-${filtroMotoboy}`} value={filtroMotoboy} onValueChange={setFiltroMotoboy}>
+                  <Select value={filtroMotoboy} onValueChange={setFiltroMotoboy}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
+                      <SelectValue placeholder="Motoboys" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="todos">Todos Motoboys</SelectItem>
                       {motoboysUnicos.map(m => (
                         <SelectItem key={m} value={m}>{m}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Período</label>
-                  <Select key={`periodo-${filtroPeriodo}`} value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+                  <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
+                      <SelectValue placeholder="Períodos" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="todos">Todos Períodos</SelectItem>
                       <SelectItem value="Manhã">Manhã</SelectItem>
                       <SelectItem value="Tarde">Tarde</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
           <div className="print-wrapper">
-            {/* Cabeçalho do Relatório */}
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 rounded-lg mb-6">
-              <h2 className="text-2xl font-bold">
-                Relatório do Dia {format(parseISO(dataSelecionada), "dd/MM/yyyy")}
-              </h2>
-            </div>
-
-            {/* Cards de Resumo - Clicáveis */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <Card
-                className={`cursor-pointer hover:shadow-xl transition-all ${filtroStatus === "todos" ? "ring-2 ring-blue-500" : ""}`}
-                onClick={() => setFiltroStatus("todos")}
-              >
-                <CardContent className="p-6">
-                  <p className="text-sm text-slate-600 mb-1">Total</p>
-                  <p className="text-4xl font-bold text-slate-900">{entregasDoDia.length}</p>
-                </CardContent>
-              </Card>
-
-              <Card
-                className={`cursor-pointer hover:shadow-xl transition-all ${filtroStatus === "Entregue" ? "ring-2 ring-green-500" : ""}`}
-                onClick={() => setFiltroStatus(filtroStatus === "Entregue" ? "todos" : "Entregue")}
-              >
-                <CardContent className="p-6">
-                  <p className="text-sm text-slate-600 mb-1">Entregues</p>
-                  <p className="text-4xl font-bold text-green-600">{porStatus['Entregue'].length}</p>
-                </CardContent>
-              </Card>
-
-              <Card
-                className={`cursor-pointer hover:shadow-xl transition-all ${filtroStatus === "A Caminho" ? "ring-2 ring-purple-500" : ""}`}
-                onClick={() => setFiltroStatus(filtroStatus === "A Caminho" ? "todos" : "A Caminho")}
-              >
-                <CardContent className="p-6">
-                  <p className="text-sm text-slate-600 mb-1">Um Caminho</p>
-                  <p className="text-4xl font-bold text-purple-600">{porStatus['A Caminho'].length}</p>
-                </CardContent>
-              </Card>
-
-              <Card
-                className={`cursor-pointer hover:shadow-xl transition-all ${filtroStatus === "Pendente" ? "ring-2 ring-slate-500" : ""}`}
-                onClick={() => setFiltroStatus(filtroStatus === "Pendente" ? "todos" : "Pendente")}
-              >
-                <CardContent className="p-6">
-                  <p className="text-sm text-slate-600 mb-1">Pendente</p>
-                  <p className="text-4xl font-bold text-slate-600">{porStatus['Pendente'].length}</p>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* Entregas por Local */}
             <Card className="mb-6">
               <CardHeader>
@@ -400,7 +624,10 @@ export default function Relatorios() {
                       {/* Manhã */}
                       {entregas.filter(e => e.periodo_entrega === 'Manhã').length > 0 && (
                         <div className="mb-3">
-                          <p className="text-sm font-semibold text-slate-700 mb-2">☀️ Manhã</p>
+                          <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1">
+                            <Sunrise className="w-4 h-4" />
+                            Manhã
+                          </p>
                           <div className="space-y-2 pl-4">
                             {entregas.filter(e => e.periodo_entrega === 'Manhã').map(e => (
                               <Link
@@ -428,7 +655,10 @@ export default function Relatorios() {
                       {/* Tarde */}
                       {entregas.filter(e => e.periodo_entrega === 'Tarde').length > 0 && (
                         <div>
-                          <p className="text-sm font-semibold text-slate-700 mb-2">🌙 Tarde</p>
+                          <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1">
+                            <Sunset className="w-4 h-4" />
+                            Tarde
+                          </p>
                           <div className="space-y-2 pl-4">
                             {entregas.filter(e => e.periodo_entrega === 'Tarde').map(e => (
                               <Link
@@ -555,6 +785,7 @@ export default function Relatorios() {
                 </div>
               </CardContent>
             </Card>
+          </div>
           </div>
         </div>
       </div>

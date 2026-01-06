@@ -23,7 +23,9 @@
       "Bash(node scripts/list-dispositivos.js:*)",
       "Bash(git restore:*)",
       "Bash(taskkill:*)",
-      "Bash(del \"C:\\\\Users\\\\Maria\\\\formedica-entregas-novo\\\\src\\\\pages\\\\DesignTest.jsx\")"
+      "Bash(del \"C:\\\\Users\\\\Maria\\\\formedica-entregas-novo\\\\src\\\\pages\\\\DesignTest.jsx\")",
+      "Bash(del nul)",
+      "Bash(curl:*)"
     ]
   }
 }

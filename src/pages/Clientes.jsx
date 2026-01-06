@@ -706,24 +706,12 @@ export default function Clientes() {
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
       {/* Header com gradiente */}
-      <div className="shadow-sm" style={{
+      <div className="py-8 shadow-sm" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-6">
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/')}
-                className="flex-shrink-0 p-2 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-white" />
-              </button>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white">Clientes</h1>
-                <p className="text-white opacity-90 mt-1">Gerencie sua base de clientes</p>
-              </div>
-            </div>
-          </div>
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="text-4xl font-bold text-white">Clientes</h1>
+          <p className="text-base text-white opacity-90 mt-1">Gerencie sua base de clientes</p>
         </div>
       </div>
 

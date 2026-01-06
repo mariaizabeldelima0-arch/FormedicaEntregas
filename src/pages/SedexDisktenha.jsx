@@ -21,6 +21,12 @@ import {
   Calendar as CalendarIcon,
   TrendingUp,
   CheckCircle,
+  ClipboardList,
+  Send,
+  Truck,
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -31,6 +37,7 @@ export default function SedexDisktenha() {
   const navigate = useNavigate();
   const [visualizacao, setVisualizacao] = useState('dia'); // 'dia' ou 'todas'
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   const [showNovaEntrega, setShowNovaEntrega] = useState(false);
   const [busca, setBusca] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('todos'); // 'todos', 'SEDEX', 'PAC', 'DISKTENHA'
@@ -44,6 +51,36 @@ export default function SedexDisktenha() {
     observacoes: '',
     data_saida: format(new Date(), 'yyyy-MM-dd'),
   });
+
+  // Função para gerar dias do mês
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push({ day: '', isCurrentMonth: false });
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dayDate = new Date(year, month, i);
+      days.push({
+        day: i,
+        isCurrentMonth: true,
+        isSelected: i === dataSelecionada.getDate() &&
+                   month === dataSelecionada.getMonth() &&
+                   year === dataSelecionada.getFullYear(),
+        date: dayDate
+      });
+    }
+
+    return days;
+  };
 
   // Buscar entregas Sedex/Disktenha
   const { data: entregas = [], isLoading, refetch } = useQuery({
@@ -128,138 +165,242 @@ export default function SedexDisktenha() {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Sedex / Disktenha</h1>
-            <p className="text-slate-600 mt-1">Gerenciamento de entregas via correios</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setVisualizacao(visualizacao === 'dia' ? 'todas' : 'dia')}
-            >
-              {visualizacao === 'dia' ? 'Mostrar todas' : 'Mostrar dia'}
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header com gradiente */}
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="text-4xl font-bold text-white">Sedex / Disktenha</h1>
+          <p className="text-base text-white opacity-90 mt-1">Gerencie entregas via Sedex, PAC e Disktenha</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-6 flex gap-6">
+        {/* Sidebar Esquerda - Calendário */}
+        <div className="w-80 flex-shrink-0">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
+            {/* Botão Nova Entrega */}
             <Button
               onClick={() => setShowNovaEntrega(true)}
-              style={{ background: '#457bba' }}
-              className="text-white"
+              className="w-full mb-4 py-6 text-base font-bold uppercase"
+              style={{ background: '#890d5d' }}
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Entrega
+              <Plus className="w-5 h-5 mr-2 font-bold" strokeWidth={4} />
+              NOVA ENTREGA
             </Button>
+
+            {/* Botões Por Dia / Todos */}
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => setVisualizacao('dia')}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                style={{
+                  backgroundColor: visualizacao === 'dia' ? '#376295' : 'white',
+                  color: visualizacao === 'dia' ? 'white' : '#64748b',
+                  border: visualizacao === 'dia' ? 'none' : '1px solid #e2e8f0'
+                }}
+              >
+                <CalendarIcon className="w-4 h-4" />
+                Por Dia
+              </button>
+
+              <button
+                onClick={() => {
+                  setVisualizacao('todas');
+                  setFiltroTipo('todos');
+                }}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                style={{
+                  backgroundColor: visualizacao === 'todas' ? '#376295' : 'white',
+                  color: visualizacao === 'todas' ? 'white' : '#64748b',
+                  border: visualizacao === 'todas' ? 'none' : '1px solid #e2e8f0'
+                }}
+              >
+                <ClipboardList className="w-4 h-4" />
+                Todos
+              </button>
+            </div>
+
+            {/* Navegação do Calendário */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => {
+                  const newDate = new Date(currentMonthDate);
+                  newDate.setMonth(newDate.getMonth() - 1);
+                  setCurrentMonthDate(newDate);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-slate-600" />
+              </button>
+
+              <span className="text-sm font-semibold text-slate-700">
+                {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+              </span>
+
+              <button
+                onClick={() => {
+                  const newDate = new Date(currentMonthDate);
+                  newDate.setMonth(newDate.getMonth() + 1);
+                  setCurrentMonthDate(newDate);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Grid do Calendário */}
+            <div className="grid grid-cols-7 gap-1 mb-4">
+              {/* Dias da Semana */}
+              {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
+                <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
+                  {dia}
+                </div>
+              ))}
+
+              {/* Dias do Mês */}
+              {getDaysInMonth(currentMonthDate).map((dayInfo, index) => {
+                if (!dayInfo.isCurrentMonth) {
+                  return <div key={index} className="aspect-square" />;
+                }
+
+                const isSelected = dayInfo.isSelected;
+                const isToday = dayInfo.date?.toDateString() === new Date().toDateString();
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setDataSelecionada(dayInfo.date);
+                      setVisualizacao('dia');
+                    }}
+                    className="aspect-square rounded-lg text-sm font-medium transition-all flex items-center justify-center hover:bg-blue-50"
+                    style={{
+                      backgroundColor: isSelected ? '#376295' : 'transparent',
+                      color: isSelected ? 'white' : isToday ? '#376295' : '#1e293b',
+                      fontWeight: isToday || isSelected ? 'bold' : 'normal'
+                    }}
+                  >
+                    {dayInfo.day}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Data Selecionada */}
+            <div className="text-center pt-4 border-t border-slate-200">
+              <div className="text-base font-semibold text-slate-700">
+                {dataSelecionada.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+              </div>
+              <div className="text-sm text-slate-500">
+                {total} entregas
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar com Calendário */}
-          <div className="lg:col-span-1 space-y-4">
-            {/* Toggle Dia/Todas */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex gap-2">
-                  <Button
-                    variant={visualizacao === 'dia' ? 'default' : 'outline'}
-                    className="flex-1"
-                    onClick={() => setVisualizacao('dia')}
-                    style={visualizacao === 'dia' ? { background: '#457bba' } : {}}
-                  >
-                    Dia
-                  </Button>
-                  <Button
-                    variant={visualizacao === 'todas' ? 'default' : 'outline'}
-                    className="flex-1"
-                    onClick={() => setVisualizacao('todas')}
-                    style={visualizacao === 'todas' ? { background: '#457bba' } : {}}
-                  >
-                    Todas
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Calendário */}
-            {visualizacao === 'dia' && (
-              <Card>
-                <CardContent className="p-4">
-                  <Calendar
-                    mode="single"
-                    selected={dataSelecionada}
-                    onSelect={(date) => date && setDataSelecionada(date)}
-                    locale={ptBR}
-                    className="rounded-md"
-                  />
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Conteúdo Principal */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Cards de Estatísticas - Clicáveis */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {/* Total - com borda */}
+        {/* Conteúdo Principal */}
+        <div className="flex-1">
+          {/* Cards de Estatísticas */}
+          <div className="grid grid-cols-5 gap-4 mb-6">
+              {/* Total */}
               <Card
-                className={`border-2 cursor-pointer transition-all hover:shadow-lg ${
-                  filtroTipo === 'todos' ? 'border-blue-500 shadow-md' : 'border-slate-200'
-                }`}
+                className="cursor-pointer transition-all hover:shadow-md bg-white rounded-xl shadow-sm"
+                style={{
+                  border: filtroTipo === 'todos' ? '2px solid #376295' : '2px solid transparent'
+                }}
                 onClick={() => setFiltroTipo('todos')}
               >
-                <CardContent className="p-6 text-center">
-                  <p className="text-sm text-slate-600 mb-2">Total</p>
-                  <p className="text-4xl font-bold text-slate-900">{total}</p>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                      <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Total</span>
+                  </div>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                    {total}
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Sedex - texto vermelho */}
+              {/* Sedex */}
               <Card
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  filtroTipo === 'SEDEX' ? 'border-2 border-red-500 shadow-md' : ''
-                }`}
-                onClick={() => setFiltroTipo('SEDEX')}
+                className="cursor-pointer transition-all hover:shadow-md bg-white rounded-xl shadow-sm"
+                style={{
+                  border: filtroTipo === 'SEDEX' ? '2px solid #890d5d' : '2px solid transparent'
+                }}
+                onClick={() => setFiltroTipo(filtroTipo === 'SEDEX' ? 'todos' : 'SEDEX')}
               >
-                <CardContent className="p-6 text-center">
-                  <p className="text-sm text-slate-600 mb-2">Sedex</p>
-                  <p className="text-4xl font-bold text-red-600">{sedex}</p>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                      <Send className="w-6 h-6" style={{ color: '#890d5d' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Sedex</span>
+                  </div>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
+                    {sedex}
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* PAC - texto azul */}
+              {/* PAC */}
               <Card
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  filtroTipo === 'PAC' ? 'border-2 border-blue-500 shadow-md' : ''
-                }`}
-                onClick={() => setFiltroTipo('PAC')}
+                className="cursor-pointer transition-all hover:shadow-md bg-white rounded-xl shadow-sm"
+                style={{
+                  border: filtroTipo === 'PAC' ? '2px solid #f97316' : '2px solid transparent'
+                }}
+                onClick={() => setFiltroTipo(filtroTipo === 'PAC' ? 'todos' : 'PAC')}
               >
-                <CardContent className="p-6 text-center">
-                  <p className="text-sm text-slate-600 mb-2">PAC</p>
-                  <p className="text-4xl font-bold text-blue-600">{pac}</p>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                      <Package className="w-6 h-6" style={{ color: '#f97316' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">PAC</span>
+                  </div>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+                    {pac}
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Diskenha - texto roxo */}
+              {/* Disktenha */}
               <Card
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  filtroTipo === 'DISKTENHA' ? 'border-2 border-purple-500 shadow-md' : ''
-                }`}
-                onClick={() => setFiltroTipo('DISKTENHA')}
+                className="cursor-pointer transition-all hover:shadow-md bg-white rounded-xl shadow-sm"
+                style={{
+                  border: filtroTipo === 'DISKTENHA' ? '2px solid #22c55e' : '2px solid transparent'
+                }}
+                onClick={() => setFiltroTipo(filtroTipo === 'DISKTENHA' ? 'todos' : 'DISKTENHA')}
               >
-                <CardContent className="p-6 text-center">
-                  <p className="text-sm text-slate-600 mb-2">Diskenha</p>
-                  <p className="text-4xl font-bold text-purple-600">{diskenha}</p>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                      <Truck className="w-6 h-6" style={{ color: '#22c55e' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Disktenha</span>
+                  </div>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+                    {diskenha}
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Total Disktenha - fundo verde */}
-              <Card className="bg-green-100">
-                <CardContent className="p-6 text-center">
-                  <p className="text-sm text-green-800 mb-2">Total Disktenha</p>
-                  <p className="text-2xl font-bold text-green-900">
+              {/* Total Disktenha */}
+              <Card className="cursor-pointer transition-all hover:shadow-md rounded-xl shadow-sm" style={{ backgroundColor: '#E8F5E8', border: '3px solid #22c55e' }}>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#d1f0d1' }}>
+                      <DollarSign className="w-6 h-6" style={{ color: '#22c55e' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Total Disktenha</span>
+                  </div>
+                  <div className="text-3xl font-bold text-center" style={{ color: '#22c55e' }}>
                     R$ {valorTotalDisktenha.toFixed(2)}
-                  </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -349,7 +490,6 @@ export default function SedexDisktenha() {
             </Card>
           </div>
         </div>
-      </div>
 
       {/* Dialog Nova Entrega */}
       <Dialog open={showNovaEntrega} onOpenChange={setShowNovaEntrega}>
