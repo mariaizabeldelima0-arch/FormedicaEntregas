@@ -47,7 +47,10 @@ import {
   DollarSign,
   Search,
   CheckCircle,
-  Clock
+  Clock,
+  Truck,
+  ClipboardList,
+  Check
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -681,12 +684,7 @@ export default function Clientes() {
   // Filtrar entregas
   const entregasFiltradas = entregasCliente.filter(e => {
     // Filtro de status
-    if (filtroStatusEntrega === "em_andamento") {
-      // Mostrar apenas entregas em andamento (não finalizadas)
-      if (e.status === 'Entregue' || e.status === 'Cancelado' || e.status === 'Não Entregue') {
-        return false;
-      }
-    } else if (filtroStatusEntrega !== "todas" && e.status !== filtroStatusEntrega) {
+    if (filtroStatusEntrega !== "todas" && e.status !== filtroStatusEntrega) {
       return false;
     }
 
@@ -701,12 +699,9 @@ export default function Clientes() {
 
   // Calcular estatísticas
   const totalEntregas = entregasCliente.length;
+  const entregasProducao = entregasCliente.filter(e => e.status === 'Produzindo no Laboratório').length;
+  const entregasCaminho = entregasCliente.filter(e => e.status === 'A Caminho').length;
   const entregasEntregues = entregasCliente.filter(e => e.status === 'Entregue').length;
-  const entregasEmAndamento = entregasCliente.filter(e =>
-    e.status !== 'Entregue' &&
-    e.status !== 'Cancelado' &&
-    e.status !== 'Não Entregue'
-  ).length;
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -728,13 +723,6 @@ export default function Clientes() {
                 <p className="text-white opacity-90 mt-1">Gerencie sua base de clientes</p>
               </div>
             </div>
-            <Button
-              style={{ background: 'white', color: '#4a90e2' }}
-              onClick={() => { setDialogOpen(true); setEditingCliente(null); }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Cliente
-            </Button>
           </div>
         </div>
       </div>
@@ -768,9 +756,9 @@ export default function Clientes() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* COLUNA ESQUERDA - Lista de Clientes */}
           <Card className="border-none shadow-lg">
-            <CardHeader>
+            <CardHeader className="space-y-3">
               <CardTitle>Lista de Clientes</CardTitle>
-              <div className="relative mt-4">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <Input
                   placeholder="Buscar cliente..."
@@ -779,6 +767,14 @@ export default function Clientes() {
                   className="pl-10"
                 />
               </div>
+              <Button
+                className="w-full"
+                style={{ background: '#376295', color: 'white' }}
+                onClick={() => { setDialogOpen(true); setEditingCliente(null); }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Cliente
+              </Button>
             </CardHeader>
             <CardContent className="p-0">
               {loading ? (
@@ -928,36 +924,85 @@ export default function Clientes() {
                       {/* Lado Direito - Estatísticas */}
                       <div>
                         <h3 className="font-semibold text-slate-900 mb-4">Estatísticas de Entregas</h3>
-                        <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="grid grid-cols-4 gap-3">
+                          {/* Card Total */}
                           <button
                             type="button"
                             onClick={() => setFiltroStatusEntrega("todas")}
-                            className={`p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-                              filtroStatusEntrega === "todas" ? "ring-2 ring-[#457bba]" : ""
-                            }`}
+                            className="bg-white rounded-xl shadow-sm p-4 cursor-pointer transition-all hover:shadow-md"
+                            style={{
+                              border: filtroStatusEntrega === "todas" ? '2px solid #376295' : '2px solid transparent'
+                            }}
                           >
-                            <div className="text-3xl font-bold text-[#457bba]">{totalEntregas}</div>
-                            <div className="text-xs text-slate-600 mt-1">Total de Entregas</div>
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                                <ClipboardList className="w-5 h-5" style={{ color: '#376295' }} />
+                              </div>
+                              <span className="text-xs font-bold text-slate-700">Total</span>
+                            </div>
+                            <div className="text-3xl font-bold text-center" style={{ color: '#376295' }}>
+                              {totalEntregas}
+                            </div>
                           </button>
+
+                          {/* Card Produção */}
+                          <button
+                            type="button"
+                            onClick={() => setFiltroStatusEntrega("Produzindo no Laboratório")}
+                            className="bg-white rounded-xl shadow-sm p-4 cursor-pointer transition-all hover:shadow-md"
+                            style={{
+                              border: filtroStatusEntrega === "Produzindo no Laboratório" ? '2px solid #890d5d' : '2px solid transparent'
+                            }}
+                          >
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                                <Package className="w-5 h-5" style={{ color: '#890d5d' }} />
+                              </div>
+                              <span className="text-xs font-bold text-slate-700">Produção</span>
+                            </div>
+                            <div className="text-3xl font-bold text-center" style={{ color: '#890d5d' }}>
+                              {entregasProducao}
+                            </div>
+                          </button>
+
+                          {/* Card A Caminho */}
+                          <button
+                            type="button"
+                            onClick={() => setFiltroStatusEntrega("A Caminho")}
+                            className="bg-white rounded-xl shadow-sm p-4 cursor-pointer transition-all hover:shadow-md"
+                            style={{
+                              border: filtroStatusEntrega === "A Caminho" ? '2px solid #f97316' : '2px solid transparent'
+                            }}
+                          >
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                                <Truck className="w-5 h-5" style={{ color: '#f97316' }} />
+                              </div>
+                              <span className="text-xs font-bold text-slate-700">A Caminho</span>
+                            </div>
+                            <div className="text-3xl font-bold text-center" style={{ color: '#f97316' }}>
+                              {entregasCaminho}
+                            </div>
+                          </button>
+
+                          {/* Card Entregues */}
                           <button
                             type="button"
                             onClick={() => setFiltroStatusEntrega("Entregue")}
-                            className={`p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-                              filtroStatusEntrega === "Entregue" ? "ring-2 ring-green-600" : ""
-                            }`}
+                            className="bg-white rounded-xl shadow-sm p-4 cursor-pointer transition-all hover:shadow-md"
+                            style={{
+                              border: filtroStatusEntrega === "Entregue" ? '2px solid #22c55e' : '2px solid transparent'
+                            }}
                           >
-                            <div className="text-3xl font-bold text-green-600">{entregasEntregues}</div>
-                            <div className="text-xs text-slate-600 mt-1">Entregues</div>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("em_andamento")}
-                            className={`p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-                              filtroStatusEntrega === "em_andamento" ? "ring-2 ring-purple-600" : ""
-                            }`}
-                          >
-                            <div className="text-3xl font-bold text-purple-600">{entregasEmAndamento}</div>
-                            <div className="text-xs text-slate-600 mt-1">Em Andamento</div>
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                                <Check className="w-5 h-5" style={{ color: '#22c55e' }} />
+                              </div>
+                              <span className="text-xs font-bold text-slate-700">Entregues</span>
+                            </div>
+                            <div className="text-3xl font-bold text-center" style={{ color: '#22c55e' }}>
+                              {entregasEntregues}
+                            </div>
                           </button>
                         </div>
                       </div>
@@ -994,11 +1039,10 @@ export default function Clientes() {
                         className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#457bba] focus:border-transparent"
                       >
                         <option value="todas">Todos os Status</option>
-                        <option value="em_andamento">Em Andamento</option>
-                        <option value="Entregue">Entregue</option>
-                        <option value="Pendente">Pendente</option>
                         <option value="Produzindo no Laboratório">Produção</option>
                         <option value="A Caminho">A Caminho</option>
+                        <option value="Entregue">Entregue</option>
+                        <option value="Pendente">Pendente</option>
                         <option value="Não Entregue">Não Entregue</option>
                         <option value="Voltou">Voltou</option>
                         <option value="Cancelado">Cancelado</option>

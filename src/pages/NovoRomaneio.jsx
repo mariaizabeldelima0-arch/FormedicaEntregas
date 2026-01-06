@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -257,9 +258,6 @@ export default function NovoRomaneio() {
       bairro: '',
       cidade: '',
       cep: '',
-      regiao: '',
-      ponto_referencia: '',
-      observacoes: '',
       is_principal: true
     }]
   });
@@ -497,7 +495,14 @@ export default function NovoRomaneio() {
   // Selecionar endereço único para o romaneio
   const selecionarEndereco = (endereco) => {
     setEnderecoSelecionado(endereco);
-    if (endereco.regiao) {
+
+    // Detectar região automaticamente baseada no bairro ou cidade
+    const regiaoDetectada = detectarRegiao(endereco.cidade, endereco.bairro);
+
+    if (regiaoDetectada) {
+      handleRegiaoChange(regiaoDetectada);
+    } else if (endereco.regiao) {
+      // Fallback: usar região salva no endereço (caso exista)
       handleRegiaoChange(endereco.regiao);
     }
   };
@@ -818,9 +823,6 @@ export default function NovoRomaneio() {
           bairro: '',
           cidade: '',
           cep: '',
-          regiao: '',
-          ponto_referencia: '',
-          observacoes: '',
           is_principal: false
         }
       ]
@@ -885,8 +887,6 @@ export default function NovoRomaneio() {
           cidade: end.cidade,
           cep: end.cep || null,
           regiao: end.regiao || null,
-          ponto_referencia: end.ponto_referencia || null,
-          observacoes: end.observacoes || null,
           is_principal: index === 0
         }));
 
@@ -916,9 +916,6 @@ export default function NovoRomaneio() {
           bairro: '',
           cidade: '',
           cep: '',
-          regiao: '',
-          ponto_referencia: '',
-          observacoes: '',
           is_principal: true
         }]
       });
@@ -2279,34 +2276,17 @@ export default function NovoRomaneio() {
                   </div>
 
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          CEP
-                        </label>
-                        <input
-                          type="text"
-                          value={endereco.cep || ""}
-                          onChange={(e) => updateEnderecoNovoCliente(index, 'cep', e.target.value)}
-                          placeholder="00000-000"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Região
-                        </label>
-                        <select
-                          value={endereco.regiao || ""}
-                          onChange={(e) => updateEnderecoNovoCliente(index, 'regiao', e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                          <option value="">Selecione a região</option>
-                          {REGIOES.map(regiao => (
-                            <option key={regiao} value={regiao}>{regiao}</option>
-                          ))}
-                        </select>
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        CEP
+                      </label>
+                      <input
+                        type="text"
+                        value={endereco.cep || ""}
+                        onChange={(e) => updateEnderecoNovoCliente(index, 'cep', e.target.value)}
+                        placeholder="00000-000"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
                     </div>
 
                     <div className="grid grid-cols-[2fr_1fr] gap-3">
@@ -2375,32 +2355,6 @@ export default function NovoRomaneio() {
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Ponto de Referência
-                      </label>
-                      <input
-                        type="text"
-                        value={endereco.ponto_referencia}
-                        onChange={(e) => updateEnderecoNovoCliente(index, 'ponto_referencia', e.target.value)}
-                        placeholder="Próximo a..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Observações
-                      </label>
-                      <textarea
-                        value={endereco.observacoes}
-                        onChange={(e) => updateEnderecoNovoCliente(index, 'observacoes', e.target.value)}
-                        placeholder="Observações importantes"
-                        rows={2}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-vertical"
-                      />
-                    </div>
                   </div>
                 </div>
               ))}
@@ -2424,9 +2378,6 @@ export default function NovoRomaneio() {
                       bairro: '',
                       cidade: '',
                       cep: '',
-                      regiao: '',
-                      ponto_referencia: '',
-                      observacoes: '',
                       is_principal: true
                     }]
                   });
