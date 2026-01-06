@@ -302,122 +302,149 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
         </div>
 
         {formData.enderecos.map((endereco, index) => (
-          <Card key={`endereco-${index}-${endereco.logradouro || 'new'}`}>
-            <CardHeader style={{ paddingBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <CardTitle style={{ fontSize: '0.875rem' }}>
-                  Endereço {index + 1} {index === 0 && "(Principal)"}
-                </CardTitle>
-                {formData.enderecos.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeEndereco(index)}
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div key={`endereco-${index}-${endereco.logradouro || 'new'}`} className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-semibold text-slate-700">
+                Endereço {index + 1} {index === 0 && "(Principal)"}
+              </h4>
+              {formData.enderecos.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeEndereco(index)}
+                  className="p-1.5 hover:bg-red-50 rounded transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>CEP</Label>
-                  <Input
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    CEP
+                  </label>
+                  <input
+                    type="text"
                     value={endereco.cep || ""}
                     onChange={(e) => updateEndereco(index, 'cep', e.target.value)}
                     placeholder="00000-000"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <div>
-                  <Label>Região</Label>
-                  <Select
-                    key={`regiao-${index}-${endereco.regiao || 'empty'}`}
-                    value={endereco.regiao}
-                    onValueChange={(value) => updateEndereco(index, 'regiao', value)}
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Região
+                  </label>
+                  <select
+                    value={endereco.regiao || ""}
+                    onChange={(e) => updateEndereco(index, 'regiao', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a região" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REGIOES.map(regiao => (
-                        <SelectItem key={regiao.value} value={regiao.value}>
-                          {regiao.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <option value="">Selecione a região</option>
+                    {REGIOES.map(regiao => (
+                      <option key={regiao.value} value={regiao.value}>
+                        {regiao.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
+              <div className="grid grid-cols-[2fr_1fr] gap-3">
                 <div>
-                  <Label>Rua/Logradouro *</Label>
-                  <Input
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Rua/Logradouro *
+                  </label>
+                  <input
+                    type="text"
                     value={endereco.logradouro}
                     onChange={(e) => updateEndereco(index, 'logradouro', e.target.value)}
                     placeholder="Nome da rua"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <div>
-                  <Label>Número *</Label>
-                  <Input
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Número *
+                  </label>
+                  <input
+                    type="text"
                     value={endereco.numero}
                     onChange={(e) => updateEndereco(index, 'numero', e.target.value)}
                     placeholder="123"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Bairro</Label>
-                  <Input
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Bairro
+                  </label>
+                  <input
+                    type="text"
                     value={endereco.bairro}
                     onChange={(e) => updateEndereco(index, 'bairro', e.target.value)}
                     placeholder="Nome do bairro"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <div>
-                  <Label>Cidade *</Label>
-                  <Input
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Cidade *
+                  </label>
+                  <input
+                    type="text"
                     value={endereco.cidade}
                     onChange={(e) => updateEndereco(index, 'cidade', e.target.value)}
                     placeholder="Ex: Balneário Camboriú"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
               </div>
 
               <div>
-                <Label>Complemento</Label>
-                <Input
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Complemento
+                </label>
+                <input
+                  type="text"
                   value={endereco.complemento}
                   onChange={(e) => updateEndereco(index, 'complemento', e.target.value)}
                   placeholder="Apto, Bloco, etc."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
               <div>
-                <Label>Ponto de Referência</Label>
-                <Input
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Ponto de Referência
+                </label>
+                <input
+                  type="text"
                   value={endereco.ponto_referencia}
                   onChange={(e) => updateEndereco(index, 'ponto_referencia', e.target.value)}
                   placeholder="Próximo a..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
               <div>
-                <Label>Observações</Label>
-                <Textarea
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Observações
+                </label>
+                <textarea
                   value={endereco.observacoes}
                   onChange={(e) => updateEndereco(index, 'observacoes', e.target.value)}
                   placeholder="Observações importantes"
                   rows={2}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-vertical"
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
 
