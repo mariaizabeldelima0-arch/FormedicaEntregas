@@ -4,6 +4,12 @@ import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Tabela de valores por região e motoboy
 const VALORES_ENTREGA = {
@@ -239,6 +245,11 @@ export default function NovoRomaneio() {
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
   const [showCadastroCliente, setShowCadastroCliente] = useState(false);
+  const [novoCliente, setNovoCliente] = useState({
+    nome: '',
+    cpf: '',
+    telefone: ''
+  });
 
   // Lista de clientes selecionados
   const [clientesSelecionados, setClientesSelecionados] = useState([]);
@@ -779,6 +790,42 @@ export default function NovoRomaneio() {
 
     setErrors(novosErros);
     return Object.keys(novosErros).length === 0;
+  };
+
+  // Cadastrar novo cliente
+  const handleCadastrarCliente = async () => {
+    if (!novoCliente.nome || !novoCliente.telefone) {
+      toast.error('Preencha pelo menos nome e telefone');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .insert([{
+          nome: novoCliente.nome,
+          cpf: novoCliente.cpf || null,
+          telefone: novoCliente.telefone
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Cliente cadastrado com sucesso!');
+
+      // Adicionar cliente à lista de selecionados
+      adicionarCliente(data);
+
+      // Limpar e fechar modal
+      setNovoCliente({ nome: '', cpf: '', telefone: '' });
+      setShowCadastroCliente(false);
+      setBuscarCliente('');
+      setClientesSugestoes([]);
+    } catch (error) {
+      console.error('Erro ao cadastrar cliente:', error);
+      toast.error('Erro ao cadastrar cliente');
+    }
   };
 
   // Salvar romaneio
@@ -2032,6 +2079,76 @@ export default function NovoRomaneio() {
         </div>
       </form>
       </div>
+
+      {/* Modal de Cadastro de Cliente */}
+      <Dialog open={showCadastroCliente} onOpenChange={setShowCadastroCliente}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle style={{ color: '#376295' }}>Cadastrar Novo Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Nome Completo *
+              </label>
+              <input
+                type="text"
+                value={novoCliente.nome}
+                onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
+                placeholder="Digite o nome completo"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                CPF
+              </label>
+              <input
+                type="text"
+                value={novoCliente.cpf}
+                onChange={(e) => setNovoCliente({ ...novoCliente, cpf: e.target.value })}
+                placeholder="000.000.000-00"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Telefone *
+              </label>
+              <input
+                type="text"
+                value={novoCliente.telefone}
+                onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
+                placeholder="(00) 00000-0000"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCadastroCliente(false);
+                  setNovoCliente({ nome: '', cpf: '', telefone: '' });
+                }}
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCadastrarCliente}
+                className="flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors"
+                style={{ backgroundColor: '#376295' }}
+              >
+                Cadastrar
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
