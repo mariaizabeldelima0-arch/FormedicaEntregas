@@ -9,16 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   ClipboardList,
@@ -29,8 +19,6 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Edit,
-  Trash2,
   Clock,
   Banknote,
   Phone,
@@ -129,8 +117,6 @@ export default function EntregasMoto() {
   // Estados para modals
   const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [entregaSelecionada, setEntregaSelecionada] = useState(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [entregaParaExcluir, setEntregaParaExcluir] = useState(null);
 
   // Função para gerar dias do mês
   const getDaysInMonth = (date) => {
@@ -665,36 +651,6 @@ export default function EntregasMoto() {
       console.error('Erro ao alterar status:', error);
       toast.error('Erro ao alterar status', { id: toastId });
     }
-  };
-
-  // Excluir entrega
-  const handleExcluir = async () => {
-    if (!entregaParaExcluir) return;
-
-    const toastId = toast.loading('Excluindo entrega...');
-
-    try {
-      const { error } = await supabase
-        .from('entregas')
-        .delete()
-        .eq('id', entregaParaExcluir.id);
-
-      if (error) throw error;
-
-      toast.success('Entrega excluída com sucesso!', { id: toastId });
-      setDeleteDialogOpen(false);
-      setEntregaParaExcluir(null);
-      setDetalhesOpen(false);
-      loadEntregas();
-    } catch (error) {
-      console.error('Erro ao excluir entrega:', error);
-      toast.error('Erro ao excluir entrega', { id: toastId });
-    }
-  };
-
-  const confirmarExclusao = (entrega) => {
-    setEntregaParaExcluir(entrega);
-    setDeleteDialogOpen(true);
   };
 
   const visualizarDetalhes = (entrega) => {
@@ -1308,38 +1264,13 @@ export default function EntregasMoto() {
                               </div>
                             )}
 
-                            {/* Valor, Região e Botões */}
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <div className="text-2xl font-bold" style={{ color: '#376295' }}>
-                                  R$ {entrega.valor?.toFixed(2) || '0.00'}
-                                </div>
-                                <div className="text-sm font-medium" style={{ color: '#376295' }}>
-                                  {entrega.regiao}
-                                </div>
+                            {/* Valor e Região */}
+                            <div className="text-right">
+                              <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                                R$ {entrega.valor?.toFixed(2) || '0.00'}
                               </div>
-
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate('/editar-romaneio', { state: { entrega } });
-                                  }}
-                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-                                  title="Editar"
-                                >
-                                  <Edit className="w-4 h-4" style={{ color: '#376295' }} />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    confirmarExclusao(entrega);
-                                  }}
-                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
-                                  title="Excluir"
-                                >
-                                  <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
-                                </button>
+                              <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                                {entrega.regiao}
                               </div>
                             </div>
                           </div>
@@ -1486,38 +1417,13 @@ export default function EntregasMoto() {
                               </div>
                             )}
 
-                            {/* Valor, Região e Botões */}
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <div className="text-2xl font-bold" style={{ color: '#376295' }}>
-                                  R$ {entrega.valor?.toFixed(2) || '0.00'}
-                                </div>
-                                <div className="text-sm font-medium" style={{ color: '#376295' }}>
-                                  {entrega.regiao}
-                                </div>
+                            {/* Valor e Região */}
+                            <div className="text-right">
+                              <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                                R$ {entrega.valor?.toFixed(2) || '0.00'}
                               </div>
-
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate('/editar-romaneio', { state: { entrega } });
-                                  }}
-                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-                                  title="Editar"
-                                >
-                                  <Edit className="w-4 h-4" style={{ color: '#376295' }} />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    confirmarExclusao(entrega);
-                                  }}
-                                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
-                                  title="Excluir"
-                                >
-                                  <Trash2 className="w-4 h-4" style={{ color: '#ef4444' }} />
-                                </button>
+                              <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                                {entrega.regiao}
                               </div>
                             </div>
                           </div>
@@ -1631,29 +1537,6 @@ export default function EntregasMoto() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Confirmação de Exclusão */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle style={{ color: '#376295' }}>
-              Confirmar Exclusão
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir esta entrega? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleExcluir}
-              style={{ backgroundColor: '#C70D12' }}
-              className="text-white hover:opacity-90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
