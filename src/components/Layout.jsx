@@ -131,13 +131,14 @@ export default function Layout({ children }) {
       }}>
         {/* Logo */}
         <div style={{
-          padding: '1.5rem 1rem',
+          padding: '2rem 1rem',
           borderBottom: `1px solid ${theme.colors.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: isMenuExpanded ? 'flex-start' : 'center',
           gap: '0.75rem',
-          position: 'relative'
+          height: '132px',
+          boxSizing: 'border-box'
         }}>
           <div style={{
             width: '36px',
@@ -157,7 +158,8 @@ export default function Layout({ children }) {
           {isMenuExpanded && (
             <div style={{
               overflow: 'hidden',
-              transition: 'opacity 0.3s ease'
+              transition: 'opacity 0.3s ease',
+              flex: 1
             }}>
               <h2 style={{
                 fontSize: '1rem',
@@ -184,9 +186,7 @@ export default function Layout({ children }) {
 
         {/* Botão Toggle */}
         <div style={{
-          padding: '0.5rem',
-          display: 'flex',
-          justifyContent: 'center',
+          padding: '0.75rem 1rem',
           borderBottom: `1px solid ${theme.colors.border}`
         }}>
           <button
@@ -194,17 +194,18 @@ export default function Layout({ children }) {
             style={{
               padding: '0.5rem',
               background: 'transparent',
-              border: 'none',
+              border: `1px solid ${theme.colors.border}`,
               cursor: 'pointer',
               color: theme.colors.primary,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: '0.375rem',
-              transition: 'background 0.15s'
+              transition: 'background 0.15s',
+              width: '100%'
             }}
-            onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
-            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f0f0f0'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             title={isMenuExpanded ? 'Recolher menu' : 'Expandir menu'}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
