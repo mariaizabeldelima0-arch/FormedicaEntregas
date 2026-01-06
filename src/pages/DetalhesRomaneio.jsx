@@ -129,7 +129,7 @@ export default function DetalhesRomaneio() {
       if (error) throw error;
 
       toast.success('Romaneio excluído com sucesso!');
-      navigate('/entregas-moto');
+      navigate('/');
     } catch (error) {
       console.error('Erro ao excluir:', error);
       toast.error('Erro ao excluir romaneio');
@@ -206,7 +206,7 @@ export default function DetalhesRomaneio() {
               </div>
             )}
             <button
-              onClick={() => navigate('/entregas-moto')}
+              onClick={() => navigate('/')}
               className="px-4 py-2 rounded-lg font-semibold text-sm"
               style={{ backgroundColor: '#376295', color: 'white' }}
             >
@@ -258,7 +258,7 @@ export default function DetalhesRomaneio() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => navigate('/entregas-moto')}
+                  onClick={() => navigate('/')}
                   className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
                 >
                   <ChevronLeft size={20} style={{ color: '#376295' }} />
@@ -277,16 +277,18 @@ export default function DetalhesRomaneio() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate(`/editar-romaneio?id=${romaneioId}`)}
-                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                  style={{ backgroundColor: '#376295', color: 'white' }}
                   title="Editar"
                 >
-                  <Edit size={18} style={{ color: '#376295' }} />
+                  <Edit size={16} />
+                  Editar
                 </button>
 
                 <button
                   onClick={() => window.print()}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                  style={{ backgroundColor: '#376295', color: 'white' }}
+                  style={{ backgroundColor: '#890d5d', color: 'white' }}
                   title="Imprimir"
                 >
                   <Printer size={16} />
@@ -295,10 +297,12 @@ export default function DetalhesRomaneio() {
 
                 <button
                   onClick={handleDelete}
-                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-red-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                  style={{ backgroundColor: '#ef4444', color: 'white' }}
                   title="Excluir"
                 >
-                  <Trash2 size={18} style={{ color: '#ef4444' }} />
+                  <Trash2 size={16} />
+                  Excluir
                 </button>
               </div>
             </div>
