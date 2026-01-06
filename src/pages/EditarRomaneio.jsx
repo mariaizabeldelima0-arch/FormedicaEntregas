@@ -242,7 +242,20 @@ export default function EditarRomaneio() {
   const [novoCliente, setNovoCliente] = useState({
     nome: '',
     cpf: '',
-    telefone: ''
+    telefone: '',
+    email: '',
+    enderecos: [{
+      logradouro: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      cep: '',
+      regiao: '',
+      ponto_referencia: '',
+      observacoes: '',
+      is_principal: true
+    }]
   });
   const [clientesSelecionados, setClientesSelecionados] = useState([]);
 
@@ -277,6 +290,40 @@ export default function EditarRomaneio() {
   });
 
   const [errors, setErrors] = useState({});
+
+  // Funções para gerenciar endereços do novo cliente
+  const addEnderecoNovoCliente = () => {
+    setNovoCliente({
+      ...novoCliente,
+      enderecos: [...novoCliente.enderecos, {
+        logradouro: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        cidade: '',
+        cep: '',
+        regiao: '',
+        ponto_referencia: '',
+        observacoes: '',
+        is_principal: false
+      }]
+    });
+  };
+
+  const removeEnderecoNovoCliente = (index) => {
+    if (novoCliente.enderecos.length === 1) {
+      toast.error('É necessário pelo menos um endereço');
+      return;
+    }
+    const novosEnderecos = novoCliente.enderecos.filter((_, i) => i !== index);
+    setNovoCliente({ ...novoCliente, enderecos: novosEnderecos });
+  };
+
+  const updateEnderecoNovoCliente = (index, field, value) => {
+    const novosEnderecos = [...novoCliente.enderecos];
+    novosEnderecos[index] = { ...novosEnderecos[index], [field]: value };
+    setNovoCliente({ ...novoCliente, enderecos: novosEnderecos });
+  };
 
   // Detectar região automaticamente quando cidade ou bairro do novo endereço mudam
   useEffect(() => {
@@ -692,32 +739,93 @@ export default function EditarRomaneio() {
       return;
     }
 
+    // Validar que pelo menos um endereço está completo
+    const enderecoValido = novoCliente.enderecos.some(end =>
+      end.logradouro && end.numero && end.cidade
+    );
+
+    if (!enderecoValido) {
+      toast.error('Preencha pelo menos um endereço completo (Rua, Número e Cidade)');
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
+      // 1. Criar cliente
+      const { data: clienteData, error: clienteError } = await supabase
         .from('clientes')
         .insert([{
           nome: novoCliente.nome,
           cpf: novoCliente.cpf || null,
-          telefone: novoCliente.telefone
+          telefone: novoCliente.telefone,
+          email: novoCliente.email || null
         }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (clienteError) throw clienteError;
+
+      // 2. Criar endereços
+      const enderecosParaInserir = novoCliente.enderecos
+        .filter(end => end.logradouro && end.numero && end.cidade)
+        .map((end, index) => {
+          const enderecoCompleto = `${end.logradouro}, ${end.numero}${end.complemento ? ' - ' + end.complemento : ''} - ${end.bairro}, ${end.cidade} - SC`;
+
+          // Detectar região automaticamente
+          const regiaoDetectada = detectarRegiao(end.cidade, end.bairro);
+
+          return {
+            cliente_id: clienteData.id,
+            logradouro: end.logradouro,
+            numero: end.numero,
+            complemento: end.complemento || null,
+            bairro: end.bairro || null,
+            cidade: end.cidade,
+            estado: 'SC',
+            cep: end.cep || null,
+            regiao: regiaoDetectada || end.regiao || null,
+            ponto_referencia: end.ponto_referencia || null,
+            observacoes: end.observacoes || null,
+            is_principal: index === 0,
+            endereco_completo: enderecoCompleto
+          };
+        });
+
+      const { error: enderecosError } = await supabase
+        .from('enderecos')
+        .insert(enderecosParaInserir);
+
+      if (enderecosError) throw enderecosError;
 
       toast.success('Cliente cadastrado com sucesso!');
 
       // Adicionar cliente à lista de selecionados
-      adicionarCliente(data);
+      adicionarCliente(clienteData);
 
       // Limpar e fechar modal
-      setNovoCliente({ nome: '', cpf: '', telefone: '' });
+      setNovoCliente({
+        nome: '',
+        cpf: '',
+        telefone: '',
+        email: '',
+        enderecos: [{
+          logradouro: '',
+          numero: '',
+          complemento: '',
+          bairro: '',
+          cidade: '',
+          cep: '',
+          regiao: '',
+          ponto_referencia: '',
+          observacoes: '',
+          is_principal: true
+        }]
+      });
       setShowCadastroCliente(false);
       setBuscarCliente('');
       setClientesSugestoes([]);
     } catch (error) {
       console.error('Erro ao cadastrar cliente:', error);
-      toast.error('Erro ao cadastrar cliente');
+      toast.error('Erro ao cadastrar cliente: ' + error.message);
     }
   };
 
@@ -1869,50 +1977,228 @@ export default function EditarRomaneio() {
 
       {/* Modal de Cadastro de Cliente */}
       <Dialog open={showCadastroCliente} onOpenChange={setShowCadastroCliente}>
-        <DialogContent className="max-w-md">
+        <DialogContent style={{ maxWidth: '900px' }}>
           <DialogHeader>
             <DialogTitle style={{ color: '#376295' }}>Cadastrar Novo Cliente</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Nome Completo *
-              </label>
-              <input
-                type="text"
-                value={novoCliente.nome}
-                onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
-                placeholder="Digite o nome completo"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
+            {/* Dados do Cliente */}
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">Dados do Cliente</h3>
+
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Nome Completo *
+                </label>
+                <input
+                  type="text"
+                  value={novoCliente.nome}
+                  onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
+                  placeholder="Digite o nome completo"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    CPF
+                  </label>
+                  <input
+                    type="text"
+                    value={novoCliente.cpf}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, cpf: e.target.value })}
+                    placeholder="000.000.000-00"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Telefone *
+                  </label>
+                  <input
+                    type="text"
+                    value={novoCliente.telefone}
+                    onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
+                    placeholder="(00) 00000-0000"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  value={novoCliente.email}
+                  onChange={(e) => setNovoCliente({ ...novoCliente, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  CPF
-                </label>
-                <input
-                  type="text"
-                  value={novoCliente.cpf}
-                  onChange={(e) => setNovoCliente({ ...novoCliente, cpf: e.target.value })}
-                  placeholder="000.000.000-00"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
+            {/* Endereços */}
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-slate-700">Endereços *</h3>
+                <button
+                  type="button"
+                  onClick={addEnderecoNovoCliente}
+                  className="px-3 py-1 text-xs font-medium rounded-lg transition-colors"
+                  style={{ backgroundColor: '#376295', color: 'white' }}
+                >
+                  + Adicionar Endereço
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Telefone *
-                </label>
-                <input
-                  type="text"
-                  value={novoCliente.telefone}
-                  onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
-                  placeholder="(00) 00000-0000"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
+              {novoCliente.enderecos.map((endereco, index) => (
+                <div key={index} className="bg-white p-4 rounded-lg mb-3 border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-semibold text-slate-600">
+                      Endereço {index + 1} {index === 0 && '(Principal)'}
+                    </h4>
+                    {novoCliente.enderecos.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeEnderecoNovoCliente(index)}
+                        className="text-red-600 hover:text-red-800 text-xs font-medium"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        CEP
+                      </label>
+                      <input
+                        type="text"
+                        value={endereco.cep}
+                        onChange={(e) => updateEnderecoNovoCliente(index, 'cep', e.target.value)}
+                        placeholder="00000-000"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Região
+                      </label>
+                      <select
+                        value={endereco.regiao}
+                        onChange={(e) => updateEnderecoNovoCliente(index, 'regiao', e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      >
+                        <option value="">Selecione</option>
+                        {REGIOES.map(regiao => (
+                          <option key={regiao} value={regiao}>{regiao}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Rua/Logradouro *
+                      </label>
+                      <input
+                        type="text"
+                        value={endereco.logradouro}
+                        onChange={(e) => updateEnderecoNovoCliente(index, 'logradouro', e.target.value)}
+                        placeholder="Nome da rua"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Número *
+                      </label>
+                      <input
+                        type="text"
+                        value={endereco.numero}
+                        onChange={(e) => updateEnderecoNovoCliente(index, 'numero', e.target.value)}
+                        placeholder="123"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Bairro
+                      </label>
+                      <input
+                        type="text"
+                        value={endereco.bairro}
+                        onChange={(e) => updateEnderecoNovoCliente(index, 'bairro', e.target.value)}
+                        placeholder="Nome do bairro"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Cidade *
+                      </label>
+                      <input
+                        type="text"
+                        value={endereco.cidade}
+                        onChange={(e) => updateEnderecoNovoCliente(index, 'cidade', e.target.value)}
+                        placeholder="Nome da cidade"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Complemento
+                    </label>
+                    <input
+                      type="text"
+                      value={endereco.complemento}
+                      onChange={(e) => updateEnderecoNovoCliente(index, 'complemento', e.target.value)}
+                      placeholder="Apto, Bloco, etc."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Ponto de Referência
+                    </label>
+                    <input
+                      type="text"
+                      value={endereco.ponto_referencia}
+                      onChange={(e) => updateEnderecoNovoCliente(index, 'ponto_referencia', e.target.value)}
+                      placeholder="Próximo a..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Observações
+                    </label>
+                    <textarea
+                      value={endereco.observacoes}
+                      onChange={(e) => updateEnderecoNovoCliente(index, 'observacoes', e.target.value)}
+                      placeholder="Informações adicionais"
+                      rows={2}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -1920,7 +2206,24 @@ export default function EditarRomaneio() {
                 type="button"
                 onClick={() => {
                   setShowCadastroCliente(false);
-                  setNovoCliente({ nome: '', cpf: '', telefone: '' });
+                  setNovoCliente({
+                    nome: '',
+                    cpf: '',
+                    telefone: '',
+                    email: '',
+                    enderecos: [{
+                      logradouro: '',
+                      numero: '',
+                      complemento: '',
+                      bairro: '',
+                      cidade: '',
+                      cep: '',
+                      regiao: '',
+                      ponto_referencia: '',
+                      observacoes: '',
+                      is_principal: true
+                    }]
+                  });
                 }}
                 className="flex-1 px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
@@ -1932,7 +2235,7 @@ export default function EditarRomaneio() {
                 className="flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors"
                 style={{ backgroundColor: '#376295' }}
               >
-                Cadastrar
+                Cadastrar Cliente
               </button>
             </div>
           </div>
