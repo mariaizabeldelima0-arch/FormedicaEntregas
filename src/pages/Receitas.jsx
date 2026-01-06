@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,7 +18,7 @@ import {
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function Receitas() {
@@ -30,8 +27,8 @@ export default function Receitas() {
 
   // TODOS os useState juntos (regra dos hooks)
   const [mesAtual, setMesAtual] = useState(new Date());
-  const [dataSelecionada, setDataSelecionada] = useState(null);
-  const [verTodas, setVerTodas] = useState(true);
+  const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [verTodas, setVerTodas] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -228,268 +225,282 @@ export default function Receitas() {
   const proximoMes = () => setMesAtual(addMonths(mesAtual, 1));
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">Receitas</h1>
-          <p className="text-slate-600 mt-1">Gerenciamento de receitas retidas</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header Customizado */}
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="text-4xl font-bold text-white">Receitas</h1>
+          <p className="text-base text-white opacity-90 mt-1">Gerenciamento de receitas retidas</p>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-6">
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar - Filtros */}
           <div className="lg:col-span-1">
-            <Card className="border-none shadow-lg" key={`filter-${verTodas}-${dataSelecionada?.getTime() || 'all'}`}>
-              <CardHeader>
-                <CardTitle className="text-lg">Filtrar por dados</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Checkbox Ver Todas */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="ver-todas"
-                    checked={verTodas}
-                    onCheckedChange={(checked) => {
-                      setVerTodas(checked);
-                      if (checked) setDataSelecionada(null);
-                    }}
-                  />
-                  <label
-                    htmlFor="ver-todas"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6" key={`filter-${verTodas}-${dataSelecionada?.getTime() || 'all'}`}>
+              <h3 className="text-lg font-bold text-slate-900 mb-4">Filtrar por dados</h3>
+
+              {/* Checkbox Ver Todas */}
+              <div className="flex items-center space-x-2 mb-4">
+                <Checkbox
+                  id="ver-todas"
+                  checked={verTodas}
+                  onCheckedChange={(checked) => {
+                    setVerTodas(checked);
+                    if (checked) setDataSelecionada(null);
+                  }}
+                />
+                <label
+                  htmlFor="ver-todas"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Ver todas as receitas
+                </label>
+              </div>
+
+              {/* Calendário */}
+              <div className="border rounded-lg p-3 mb-4" key={format(mesAtual, 'yyyy-MM')}>
+                {/* Header do Calendário */}
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    onClick={mesAnterior}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                   >
-                    Ver todas as receitas
-                  </label>
+                    <ChevronLeft className="h-4 w-4 text-slate-600" />
+                  </button>
+                  <div className="text-sm font-semibold text-slate-700">
+                    {format(mesAtual, "MMMM 'de' yyyy", { locale: ptBR })}
+                  </div>
+                  <button
+                    onClick={proximoMes}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4 text-slate-600" />
+                  </button>
                 </div>
 
-                {/* Calendário */}
-                <div className="border rounded-lg p-3" key={format(mesAtual, 'yyyy-MM')}>
-                  {/* Header do Calendário */}
-                  <div className="flex items-center justify-between mb-3">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={mesAnterior}
-                      className="h-7 w-7"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <div className="text-sm font-semibold">
-                      {format(mesAtual, "MMMM 'de' yyyy", { locale: ptBR })}
+                {/* Dias da semana */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
+                    <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
+                      {dia}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={proximoMes}
-                      className="h-7 w-7"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Dias da semana */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].map((dia) => (
-                      <div key={dia} className="text-center text-xs font-medium text-slate-600">
-                        {dia}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Dias do mês */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {todosDias.map((dia, index) => {
-                      if (!dia) {
-                        return <div key={`vazio-${index}`} className="aspect-square" />;
-                      }
-
-                      const dataKey = format(dia, 'yyyy-MM-dd');
-                      const qtdReceitas = receitasPorDia[dataKey] || 0;
-                      const temReceitas = qtdReceitas > 0;
-                      const estaSelecionado = dataSelecionada && isSameDay(dia, dataSelecionada);
-                      const ehHoje = isSameDay(dia, new Date());
-
-                      return (
-                        <button
-                          key={dataKey}
-                          onClick={() => handleDiaClick(dia)}
-                          disabled={verTodas}
-                          className={`
-                            aspect-square rounded-md text-sm flex flex-col items-center justify-center relative
-                            transition-all
-                            ${estaSelecionado ? 'bg-[#457bba] text-white font-bold shadow-md' : ''}
-                            ${!estaSelecionado && ehHoje ? 'bg-slate-200 font-semibold ring-2 ring-slate-400' : ''}
-                            ${!estaSelecionado && !ehHoje && temReceitas ? 'bg-orange-50 font-semibold text-orange-900 hover:bg-orange-100 ring-2 ring-orange-200' : ''}
-                            ${!estaSelecionado && !ehHoje && !temReceitas ? 'hover:bg-slate-100 text-slate-600' : ''}
-                            ${verTodas ? 'opacity-50 cursor-not-allowed' : ''}
-                          `}
-                        >
-                          <span>{format(dia, 'd')}</span>
-                          {temReceitas && !estaSelecionado && (
-                            <span className="text-[10px] font-bold text-orange-600">
-                              {qtdReceitas}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  ))}
                 </div>
 
-                {/* Info da data selecionada */}
-                <div className="text-center text-sm">
-                  {dataSelecionada && !verTodas && (
-                    <p className="font-medium">{format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}</p>
-                  )}
-                  <p className="text-slate-500">
-                    {receitasFiltradas.length} receita{receitasFiltradas.length !== 1 ? 's' : ''}
-                  </p>
+                {/* Dias do mês */}
+                <div className="grid grid-cols-7 gap-1">
+                  {todosDias.map((dia, index) => {
+                    if (!dia) {
+                      return <div key={`vazio-${index}`} className="aspect-square" />;
+                    }
+
+                    const dataKey = format(dia, 'yyyy-MM-dd');
+                    const qtdReceitas = receitasPorDia[dataKey] || 0;
+                    const temReceitas = qtdReceitas > 0;
+                    const estaSelecionado = dataSelecionada && isSameDay(dia, dataSelecionada);
+                    const ehHoje = isSameDay(dia, new Date());
+
+                    return (
+                      <button
+                        key={dataKey}
+                        onClick={() => handleDiaClick(dia)}
+                        disabled={verTodas}
+                        className={`
+                          aspect-square rounded-lg text-sm flex flex-col items-center justify-center relative
+                          transition-all hover:bg-blue-50
+                          ${verTodas ? 'opacity-50 cursor-not-allowed' : ''}
+                        `}
+                        style={{
+                          backgroundColor: estaSelecionado ? '#376295' :
+                            !estaSelecionado && ehHoje ? '#e2e8f0' :
+                            !estaSelecionado && !ehHoje && temReceitas ? '#f5e8f5' : 'transparent',
+                          color: estaSelecionado ? 'white' :
+                            estaSelecionado === false && ehHoje ? '#376295' :
+                            !estaSelecionado && !ehHoje && temReceitas ? '#b76bb7' : '#1e293b',
+                          fontWeight: estaSelecionado || ehHoje || temReceitas ? 'bold' : 'normal',
+                          boxShadow: estaSelecionado ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+                        }}
+                      >
+                        <span>{format(dia, 'd')}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Info da data selecionada */}
+              <div className="text-center pt-4 border-t border-slate-200">
+                {dataSelecionada && !verTodas && (
+                  <div className="text-base font-semibold text-slate-700">
+                    {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
+                  </div>
+                )}
+                <div className="text-sm text-slate-500">
+                  {receitasFiltradas.length} receita{receitasFiltradas.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Área Principal */}
           <div className="lg:col-span-3 space-y-6">
             {/* Busca */}
-            <Card className="border-none shadow-lg">
-              <CardContent className="pt-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    placeholder="Buscar por número, nome, telefone ou CPF..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-lg font-bold text-slate-900 mb-4">Buscar</h2>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar por número, nome, telefone ou CPF..."
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                />
+              </div>
+            </div>
 
             {/* Cards de Status - Clicáveis */}
             <div className="grid grid-cols-2 gap-4">
-              <Card
-                className={`cursor-pointer hover:shadow-xl transition-all ${
-                  filtroStatus === "pendentes" ? "ring-2 ring-red-500" : ""
-                }`}
+              <div
                 onClick={() => setFiltroStatus(filtroStatus === "pendentes" ? "todos" : "pendentes")}
+                className="rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md text-center"
+                style={{
+                  backgroundColor: "#E8F0F8",
+                  padding: "1.5rem",
+                  border: filtroStatus === "pendentes" ? "2px solid #376295" : "2px solid transparent"
+                }}
               >
-                <CardContent className="p-6 text-center bg-red-50">
-                  <p className="text-5xl font-bold text-red-600 mb-2">{pendentes}</p>
-                  <p className="text-sm text-red-700 font-medium">Pendentes</p>
-                </CardContent>
-              </Card>
+                <p className="text-5xl font-bold mb-2" style={{ color: "#376295" }}>{pendentes}</p>
+                <p className="text-sm font-medium" style={{ color: "#376295" }}>Pendentes</p>
+              </div>
 
-              <Card
-                className={`cursor-pointer hover:shadow-xl transition-all ${
-                  filtroStatus === "recebidas" ? "ring-2 ring-green-500" : ""
-                }`}
+              <div
                 onClick={() => setFiltroStatus(filtroStatus === "recebidas" ? "todos" : "recebidas")}
+                className="rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md text-center"
+                style={{
+                  backgroundColor: "#F5E8F5",
+                  padding: "1.5rem",
+                  border: filtroStatus === "recebidas" ? "2px solid #890d5d" : "2px solid transparent"
+                }}
               >
-                <CardContent className="p-6 text-center bg-green-50">
-                  <p className="text-5xl font-bold text-green-600 mb-2">{recebidas}</p>
-                  <p className="text-sm text-green-700 font-medium">Recebidas</p>
-                </CardContent>
-              </Card>
+                <p className="text-5xl font-bold mb-2" style={{ color: "#890d5d" }}>{recebidas}</p>
+                <p className="text-sm font-medium" style={{ color: "#890d5d" }}>Recebidas</p>
+              </div>
             </div>
 
             {/* Lista de Receitas */}
-            <Card className="border-none shadow-lg">
-              <CardContent className="p-6">
-                {queryError ? (
-                  <div className="text-center py-12">
-                    <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-                    <p className="text-red-600 font-semibold mb-2">Erro ao carregar receitas</p>
-                    <p className="text-slate-500 text-sm mb-4">{queryError.message}</p>
-                    <Button onClick={() => refetch()} variant="outline" size="sm">
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Tentar Novamente
-                    </Button>
-                  </div>
-                ) : isLoading ? (
-                  <div className="text-center py-12 text-slate-500">
-                    Carregando receitas...
-                  </div>
-                ) : receitasFiltradas.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500">Nenhuma receita</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {receitasFiltradas.map((receita) => (
-                      <div
-                        key={receita.id}
-                        onClick={() => navigate(`/detalhes-romaneio?id=${receita.id}`)}
-                        className="border rounded-lg p-4 hover:bg-slate-50 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Link
-                                to={`/detalhes-romaneio?id=${receita.id}`}
-                                className="text-base font-semibold text-slate-900 hover:text-[#457bba]"
-                              >
-                                # {receita.requisicao}
-                              </Link>
-                              <Badge className={receita.receita_anexo ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"}>
-                                {receita.receita_anexo ? "Recebida" : "Pendente"}
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600">
-                              <div>
-                                <span className="font-medium">Cliente:</span> {receita.cliente?.nome || receita.cliente_nome}
-                              </div>
-                              <div>
-                                <span className="font-medium">Telefone:</span> {receita.cliente?.telefone || receita.cliente_telefone}
-                              </div>
-                              {receita.cliente?.cpf && (
-                                <div>
-                                  <span className="font-medium">CPF:</span> {receita.cliente.cpf}
-                                </div>
-                              )}
-                              {receita.data_entrega && (
-                                <div>
-                                  <span className="font-medium">Data:</span>{' '}
-                                  {format(parseISO(receita.data_entrega), "dd/MM/yyyy")}
-                                </div>
-                              )}
-                            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              {queryError ? (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                  <p className="text-red-600 font-semibold mb-2">Erro ao carregar receitas</p>
+                  <p className="text-slate-500 text-sm mb-4">{queryError.message}</p>
+                  <Button onClick={() => refetch()} variant="outline" size="sm">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Tentar Novamente
+                  </Button>
+                </div>
+              ) : isLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-4 rounded-full animate-spin mb-4"
+                    style={{ borderTopColor: '#376295' }}
+                  />
+                  <p className="text-slate-600">Carregando receitas...</p>
+                </div>
+              ) : receitasFiltradas.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    Nenhuma receita encontrada
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    {searchTerm || filtroStatus !== "todos"
+                      ? 'Tente ajustar os filtros de busca'
+                      : 'Não há receitas cadastradas'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {receitasFiltradas.map((receita) => (
+                    <div
+                      key={receita.id}
+                      onClick={() => navigate(`/detalhes-romaneio?id=${receita.id}`)}
+                      className="border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                              #{receita.requisicao}
+                            </span>
+                            <span
+                              className="px-3 py-1 rounded text-xs font-medium"
+                              style={{
+                                backgroundColor: receita.receita_anexo ? "#F5E8F5" : "#E8F0F8",
+                                color: receita.receita_anexo ? "#890d5d" : "#376295"
+                              }}
+                            >
+                              {receita.receita_anexo ? "Recebida" : "Pendente"}
+                            </span>
                           </div>
-
-                          <div className="flex items-center gap-2 ml-4">
-                            {receita.receita_anexo ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(receita.receita_anexo, '_blank');
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Ver Receita
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  abrirModalUpload(receita);
-                                }}
-                              >
-                                <Upload className="w-4 h-4 mr-1" />
-                                Anexar
-                              </Button>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 mb-3">
+                            <div>
+                              <span className="font-medium">Cliente:</span> {receita.cliente?.nome || receita.cliente_nome}
+                            </div>
+                            <div>
+                              <span className="font-medium">Telefone:</span> {receita.cliente?.telefone || receita.cliente_telefone}
+                            </div>
+                            {receita.cliente?.cpf && (
+                              <div>
+                                <span className="font-medium">CPF:</span> {receita.cliente.cpf}
+                              </div>
+                            )}
+                            {receita.data_entrega && (
+                              <div>
+                                <span className="font-medium">Data:</span>{' '}
+                                {format(parseISO(receita.data_entrega), "dd/MM/yyyy")}
+                              </div>
                             )}
                           </div>
                         </div>
+
+                        <div className="flex items-center gap-2 ml-4">
+                          {receita.receita_anexo ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(receita.receita_anexo, '_blank');
+                              }}
+                              className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-medium text-slate-700"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver Receita
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                abrirModalUpload(receita);
+                              }}
+                              className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium text-white"
+                              style={{ backgroundColor: '#376295' }}
+                            >
+                              <Upload className="w-4 h-4" />
+                              Anexar
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -523,11 +534,11 @@ export default function Receitas() {
             {/* Upload de Arquivo */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Arquivo *</label>
-              <Input
+              <input
                 type="file"
                 accept="image/*,.pdf"
                 onChange={(e) => setArquivoSelecionado(e.target.files?.[0] || null)}
-                className="cursor-pointer"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
               {arquivoSelecionado && (
                 <p className="text-xs text-slate-500">
@@ -576,7 +587,8 @@ export default function Receitas() {
             <Button
               onClick={handleUploadAnexo}
               disabled={uploading || !arquivoSelecionado || !tipoAnexo}
-              style={{ background: uploading ? '#94a3b8' : '#457bba' }}
+              style={{ background: uploading ? '#94a3b8' : '#376295' }}
+              className="text-white"
             >
               {uploading ? 'Enviando...' : 'Enviar Anexo'}
             </Button>
