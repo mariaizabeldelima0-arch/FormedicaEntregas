@@ -227,56 +227,78 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Informações Básicas */}
+      <div className="space-y-4">
         <div>
-          <Label htmlFor="nome">Nome Completo *</Label>
-          <Input
-            id="nome"
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Nome Completo *
+          </label>
+          <input
+            type="text"
             value={formData.nome}
             onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-            placeholder="Nome do cliente"
+            placeholder="Digite o nome completo"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             required
           />
         </div>
-        <div>
-          <Label htmlFor="cpf">CPF</Label>
-          <Input
-            id="cpf"
-            value={formData.cpf}
-            onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-            placeholder="000.000.000-00"
-          />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              CPF
+            </label>
+            <input
+              type="text"
+              value={formData.cpf}
+              onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+              placeholder="000.000.000-00"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Telefone *
+            </label>
+            <input
+              type="text"
+              value={formData.telefone}
+              onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+              placeholder="(00) 00000-0000"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              required
+            />
+          </div>
         </div>
+
         <div>
-          <Label htmlFor="telefone">Telefone *</Label>
-          <Input
-            id="telefone"
-            value={formData.telefone}
-            onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-            placeholder="(00) 00000-0000"
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="email">E-mail</Label>
-          <Input
-            id="email"
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            E-mail
+          </label>
+          <input
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             placeholder="cliente@email.com"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontWeight: 600, fontSize: '0.875rem' }}>Endereços</h3>
-          <Button type="button" variant="outline" size="sm" onClick={addEndereco}>
-            <Plus className="w-4 h-4 mr-2" />
+      {/* Seção de Endereços */}
+      <div className="space-y-3 pt-2 border-t border-slate-200">
+        <div className="flex justify-between items-center pt-2">
+          <h3 className="text-sm font-semibold text-slate-700">Endereços</h3>
+          <button
+            type="button"
+            onClick={addEndereco}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
             Adicionar Endereço
-          </Button>
+          </button>
         </div>
 
         {formData.enderecos.map((endereco, index) => (
@@ -399,17 +421,23 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
         ))}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '1rem' }}>
-        <Button type="button" variant="outline" onClick={onCancel}>
+      {/* Botões de Ação */}
+      <div className="flex gap-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+        >
           Cancelar
-        </Button>
-        <Button
+        </button>
+        <button
           type="submit"
-          style={{ background: '#457bba' }}
           disabled={saving}
+          className="flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors"
+          style={{ backgroundColor: saving ? '#94a3b8' : '#376295', cursor: saving ? 'not-allowed' : 'pointer' }}
         >
           {saving ? 'Salvando...' : (cliente?.id ? 'Atualizar' : 'Cadastrar')}
-        </Button>
+        </button>
       </div>
     </form>
   );
@@ -692,7 +720,7 @@ export default function Clientes() {
             style={{ maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto' }}
           >
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle style={{ color: '#376295' }}>
                 {editingCliente ? 'Editar Cliente' : 'Novo Cliente'}
               </DialogTitle>
               <DialogDescription>
