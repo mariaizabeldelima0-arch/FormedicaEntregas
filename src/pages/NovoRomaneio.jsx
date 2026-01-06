@@ -873,49 +873,41 @@ export default function NovoRomaneio() {
   };
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: theme.colors.primary,
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            marginBottom: '1rem'
-          }}
-        >
-          ← Voltar
-        </button>
-        <h1 style={{ 
-          fontSize: '1.875rem', 
-          fontWeight: '700',
-          color: theme.colors.text,
-          marginBottom: '0.25rem'
-        }}>
-          Novo Romaneio
-        </h1>
-        <p style={{ color: theme.colors.textLight, fontSize: '0.875rem' }}>
-          Crie uma nova ordem de entrega
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header Customizado */}
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="text-4xl font-bold text-white">Novo Romaneio</h1>
+          <p className="text-base text-white opacity-90 mt-1">Crie uma nova ordem de entrega</p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Cabeçalho com botão voltar */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+            >
+              <svg className="w-5 h-5" style={{ color: '#376295' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Criar Novo Romaneio</h2>
+              <p className="text-sm text-slate-600 mt-1">Preencha as informações abaixo</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit}>
         {/* Informações do Romaneio */}
-        <div style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '0.5rem',
-          border: `1px solid ${theme.colors.border}`,
-          marginBottom: '1.5rem'
-        }}>
-          <h3 style={{
-            fontSize: '1rem',
-            fontWeight: '600',
-            color: theme.colors.text,
-            marginBottom: '1.5rem'
-          }}>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-6">
             Informações do Romaneio
           </h3>
 
@@ -1898,79 +1890,80 @@ export default function NovoRomaneio() {
             </div>
           </div>
 
-          {/* Item de Geladeira */}
-          <div style={{
-            padding: '1rem',
-            background: formData.item_geladeira ? '#fef3c7' : theme.colors.background,
-            borderRadius: '0.375rem',
-            marginBottom: '1rem'
-          }}>
-            <label style={{
-              display: 'block',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              color: theme.colors.text,
-              marginBottom: '0.5rem'
+          {/* Grid: Item de Geladeira e Buscar Receita */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            {/* Item de Geladeira */}
+            <div style={{
+              padding: '1rem',
+              background: formData.item_geladeira ? '#fef3c7' : theme.colors.background,
+              borderRadius: '0.375rem'
             }}>
-              Item de Geladeira? *
-            </label>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="geladeira"
-                  checked={formData.item_geladeira === true}
-                  onChange={() => setFormData({...formData, item_geladeira: true})}
-                />
-                <span style={{ fontSize: '0.875rem' }}>Sim</span>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Item de Geladeira? *
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="geladeira"
-                  checked={formData.item_geladeira === false}
-                  onChange={() => setFormData({...formData, item_geladeira: false})}
-                />
-                <span style={{ fontSize: '0.875rem' }}>Não</span>
-              </label>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="geladeira"
+                    checked={formData.item_geladeira === true}
+                    onChange={() => setFormData({...formData, item_geladeira: true})}
+                  />
+                  <span style={{ fontSize: '0.875rem' }}>Sim</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="geladeira"
+                    checked={formData.item_geladeira === false}
+                    onChange={() => setFormData({...formData, item_geladeira: false})}
+                  />
+                  <span style={{ fontSize: '0.875rem' }}>Não</span>
+                </label>
+              </div>
             </div>
-          </div>
 
-          {/* Buscar Receita */}
-          <div style={{
-            padding: '1rem',
-            background: formData.buscar_receita ? '#fef3c7' : theme.colors.background,
-            borderRadius: '0.375rem',
-            marginBottom: '1rem'
-          }}>
-            <label style={{
-              display: 'block',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              color: theme.colors.text,
-              marginBottom: '0.5rem'
+            {/* Buscar Receita */}
+            <div style={{
+              padding: '1rem',
+              background: formData.buscar_receita ? '#fef3c7' : theme.colors.background,
+              borderRadius: '0.375rem'
             }}>
-              Buscar Receita? *
-            </label>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="receita"
-                  checked={formData.buscar_receita === true}
-                  onChange={() => setFormData({...formData, buscar_receita: true})}
-                />
-                <span style={{ fontSize: '0.875rem' }}>Sim</span>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Buscar Receita? *
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="receita"
-                  checked={formData.buscar_receita === false}
-                  onChange={() => setFormData({...formData, buscar_receita: false})}
-                />
-                <span style={{ fontSize: '0.875rem' }}>Não</span>
-              </label>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="receita"
+                    checked={formData.buscar_receita === true}
+                    onChange={() => setFormData({...formData, buscar_receita: true})}
+                  />
+                  <span style={{ fontSize: '0.875rem' }}>Sim</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="receita"
+                    checked={formData.buscar_receita === false}
+                    onChange={() => setFormData({...formData, buscar_receita: false})}
+                  />
+                  <span style={{ fontSize: '0.875rem' }}>Não</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -2038,6 +2031,7 @@ export default function NovoRomaneio() {
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
