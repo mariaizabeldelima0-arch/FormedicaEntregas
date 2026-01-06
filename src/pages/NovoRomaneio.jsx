@@ -2100,30 +2100,32 @@ export default function NovoRomaneio() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                CPF
-              </label>
-              <input
-                type="text"
-                value={novoCliente.cpf}
-                onChange={(e) => setNovoCliente({ ...novoCliente, cpf: e.target.value })}
-                placeholder="000.000.000-00"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  CPF
+                </label>
+                <input
+                  type="text"
+                  value={novoCliente.cpf}
+                  onChange={(e) => setNovoCliente({ ...novoCliente, cpf: e.target.value })}
+                  placeholder="000.000.000-00"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Telefone *
-              </label>
-              <input
-                type="text"
-                value={novoCliente.telefone}
-                onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
-                placeholder="(00) 00000-0000"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Telefone *
+                </label>
+                <input
+                  type="text"
+                  value={novoCliente.telefone}
+                  onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
