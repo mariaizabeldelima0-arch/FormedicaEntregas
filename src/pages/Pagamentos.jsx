@@ -18,6 +18,10 @@ import {
   CheckCircle2,
   Circle,
   Edit,
+  Calendar,
+  ClipboardList,
+  AlertCircle,
+  Check,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -225,65 +229,87 @@ export default function Pagamentos() {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">Pagamentos</h1>
-          <p className="text-slate-600 mt-1">Gerenciamento de pagamentos das entregas</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header Customizado */}
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="text-4xl font-bold text-white">Pagamentos</h1>
+          <p className="text-base text-white opacity-90 mt-1">Gerenciamento de pagamentos das entregas</p>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-6">
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar com filtros */}
           <div className="lg:col-span-1">
-            <Card className="border-none shadow-lg sticky top-4">
-              <CardHeader>
-                <CardTitle className="text-lg">Filtrar por dados</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Checkbox Ver Todos */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="ver-todos"
-                    checked={verTodos}
-                    onCheckedChange={setVerTodos}
-                  />
-                  <label
-                    htmlFor="ver-todos"
-                    className="text-sm font-medium leading-none cursor-pointer"
-                  >
-                    Ver todos os pagamentos
-                  </label>
-                </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-4">Filtrar por dados</h3>
+
+              {/* Botões Por Dia / Todos */}
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => {
+                    setVerTodos(false);
+                    if (!dataSelecionada) {
+                      setDataSelecionada(new Date());
+                    }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                  style={{
+                    backgroundColor: !verTodos ? '#376295' : 'white',
+                    color: !verTodos ? 'white' : '#64748b',
+                    border: !verTodos ? 'none' : '1px solid #e2e8f0'
+                  }}
+                >
+                  <Calendar className="w-4 h-4" />
+                  Por Dia
+                </button>
+
+                <button
+                  onClick={() => {
+                    setVerTodos(true);
+                    setDataSelecionada(null);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                  style={{
+                    backgroundColor: verTodos ? '#376295' : 'white',
+                    color: verTodos ? 'white' : '#64748b',
+                    border: verTodos ? 'none' : '1px solid #e2e8f0'
+                  }}
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  Todos
+                </button>
+              </div>
 
                 {/* Calendário */}
-                <div className="border rounded-lg p-3 bg-white">
+                <div className="border rounded-lg p-3">
                   {/* Header do calendário */}
                   <div className="flex items-center justify-between mb-3">
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                    <button
                       onClick={mesAnterior}
-                      className="h-8 w-8"
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                     >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm font-semibold">
+                      <ChevronLeft className="h-4 w-4 text-slate-600" />
+                    </button>
+                    <span className="text-sm font-semibold text-slate-700">
                       {format(mesAtual, "MMMM 'de' yyyy", { locale: ptBR })}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                    <button
                       onClick={proximoMes}
-                      className="h-8 w-8"
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                     >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                      <ChevronRight className="h-4 w-4 text-slate-600" />
+                    </button>
                   </div>
 
                   {/* Dias da semana */}
                   <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].map(dia => (
-                      <div key={dia} className="text-center text-xs font-medium text-slate-600">
+                    {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map(dia => (
+                      <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
                         {dia}
                       </div>
                     ))}
@@ -303,53 +329,54 @@ export default function Pagamentos() {
                         <button
                           key={dia.toISOString()}
                           onClick={() => selecionarDia(dia)}
-                          disabled={verTodos}
-                          className={`
-                            aspect-square p-1 text-xs rounded-lg transition-all relative
-                            ${isSelected ? 'bg-[#457bba] text-white font-bold' : ''}
-                            ${!isSelected && isToday ? 'bg-blue-50 border border-[#457bba]' : ''}
-                            ${!isSelected && !isToday ? 'hover:bg-slate-100' : ''}
-                            ${verTodos ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                          `}
+                          className="aspect-square rounded-lg text-sm flex flex-col items-center justify-center relative transition-all hover:bg-blue-50"
+                          style={{
+                            backgroundColor: isSelected ? '#376295' :
+                              !isSelected && isToday ? '#e2e8f0' :
+                              !isSelected && !isToday && count > 0 ? '#F5E8F5' : 'transparent',
+                            color: isSelected ? 'white' :
+                              isSelected === false && isToday ? '#376295' :
+                              !isSelected && !isToday && count > 0 ? '#890d5d' : '#1e293b',
+                            fontWeight: isSelected || isToday || count > 0 ? 'bold' : 'normal',
+                            boxShadow: isSelected ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+                          }}
                         >
-                          {format(dia, 'd')}
-                          {count > 0 && !isSelected && (
-                            <div className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#457bba] rounded-full" />
-                          )}
+                          <span>{format(dia, 'd')}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Data e contador */}
-                {!verTodos && dataSelecionada && (
-                  <div className="text-center py-3 bg-slate-50 rounded-lg">
-                    <div className="text-sm font-semibold text-slate-900">
-                      {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
-                    </div>
-                    <div className="text-xs text-slate-600 mt-1">
-                      {entregasFiltradas.length} pagamento{entregasFiltradas.length !== 1 ? 's' : ''}
-                    </div>
+              {/* Data e contador */}
+              <div className="text-center pt-4 border-t border-slate-200">
+                {dataSelecionada && !verTodos && (
+                  <div className="text-base font-semibold text-slate-700">
+                    {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                <div className="text-sm text-slate-500">
+                  {entregasFiltradas.length} pagamento{entregasFiltradas.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Área principal */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Filtros superiores */}
-            <Card className="border-none shadow-lg">
-              <CardContent className="pt-6 space-y-4">
+            {/* Busca e Filtros */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-lg font-bold text-slate-900 mb-4">Buscar e Filtrar</h2>
+              <div className="space-y-4">
                 {/* Busca */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                  <input
+                    type="text"
                     placeholder="Buscar por número, nome ou telefone..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
 
@@ -365,143 +392,145 @@ export default function Pagamentos() {
                     ))}
                   </SelectContent>
                 </Select>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Cards de estatísticas */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Pendentes */}
-              <Card className="border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer bg-gradient-to-br from-yellow-50 to-orange-50">
-                <CardContent className="p-6 text-center">
-                  <div className="text-4xl font-bold text-orange-600 mb-1">
-                    {stats.pendentes}
+              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                    <AlertCircle className="w-6 h-6" style={{ color: '#f97316' }} />
                   </div>
-                  <div className="text-sm text-slate-600 font-medium">Pendentes</div>
-                </CardContent>
-              </Card>
+                  <span className="text-sm font-bold text-slate-700">Pendentes</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+                  {stats.pendentes}
+                </div>
+              </div>
 
               {/* Recebidos */}
-              <Card className="border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer bg-gradient-to-br from-green-50 to-emerald-50">
-                <CardContent className="p-6 text-center">
-                  <div className="text-4xl font-bold text-green-600 mb-1">
-                    {stats.recebidos}
+              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                    <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
                   </div>
-                  <div className="text-sm text-slate-600 font-medium">Recebidos</div>
-                </CardContent>
-              </Card>
+                  <span className="text-sm font-bold text-slate-700">Recebidos</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+                  {stats.recebidos}
+                </div>
+              </div>
 
               {/* Dinheiro */}
-              <Card className="border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer bg-gradient-to-br from-blue-50 to-cyan-50">
-                <CardContent className="p-6 text-center">
-                  <div className="text-2xl font-bold text-blue-600 mb-1">
-                    R$ {stats.dinheiro.toFixed(2)}
+              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <Banknote className="w-6 h-6" style={{ color: '#376295' }} />
                   </div>
-                  <div className="text-sm text-slate-600 font-medium">Dinheiro</div>
-                </CardContent>
-              </Card>
+                  <span className="text-sm font-bold text-slate-700">Dinheiro</span>
+                </div>
+                <div className="text-2xl font-bold text-center" style={{ color: '#376295' }}>
+                  R$ {stats.dinheiro.toFixed(2)}
+                </div>
+              </div>
 
               {/* Cartão */}
-              <Card className="border-none shadow-lg hover:shadow-xl transition-shadow cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50">
-                <CardContent className="p-6 text-center">
-                  <div className="text-2xl font-bold text-purple-600 mb-1">
-                    R$ {stats.cartao.toFixed(2)}
+              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                    <CreditCard className="w-6 h-6" style={{ color: '#890d5d' }} />
                   </div>
-                  <div className="text-sm text-slate-600 font-medium">Cartão</div>
-                </CardContent>
-              </Card>
+                  <span className="text-sm font-bold text-slate-700">Cartão</span>
+                </div>
+                <div className="text-2xl font-bold text-center" style={{ color: '#890d5d' }}>
+                  R$ {stats.cartao.toFixed(2)}
+                </div>
+              </div>
             </div>
 
             {/* Lista de pagamentos */}
-            {entregasFiltradas.length === 0 ? (
-              <Card className="border-none shadow-lg">
-                <CardContent className="py-16">
-                  <div className="text-center text-slate-400">
-                    <DollarSign className="w-24 h-24 mx-auto mb-4 opacity-20" />
-                    <p className="text-lg font-medium">Nenhum pagamento</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-none shadow-lg">
-                <CardHeader>
-                  <CardTitle>Pagamentos ({entregasFiltradas.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              {entregasFiltradas.length === 0 ? (
+                <div className="text-center py-12">
+                  <DollarSign className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    Nenhum pagamento encontrado
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    {searchTerm || filtroMotoboy !== "todos"
+                      ? 'Tente ajustar os filtros de busca'
+                      : 'Não há pagamentos cadastrados'}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="space-y-3">
                     {entregasFiltradas.map(entrega => (
                       <Link
                         key={entrega.id}
                         to={`/detalhes-romaneio?id=${entrega.id}`}
-                        className="block p-4 rounded-lg border border-slate-200 hover:border-[#457bba] hover:bg-slate-50 transition-all"
+                        className="block p-5 rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-slate-900">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
                                 #{entrega.requisicao}
                               </span>
-                              <span className="text-slate-600">-</span>
-                              <span className="text-slate-700">
-                                {entrega.cliente?.nome || entrega.cliente_nome}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-slate-600">
-                              <span>{entrega.motoboy?.nome || 'Sem motoboy'}</span>
-                              <span>•</span>
-                              <span>{entrega.data_entrega ? format(parseISO(entrega.data_entrega), "dd/MM/yyyy") : '-'}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            {entrega.valor && (
-                              <div className="text-right">
-                                <div className="font-bold text-lg text-slate-900">
-                                  R$ {parseFloat(entrega.valor).toFixed(2)}
-                                </div>
-                                {entrega.forma_pagamento && (
-                                  <div className="text-xs text-slate-600 flex items-center gap-1 justify-end">
-                                    {entrega.forma_pagamento === 'Dinheiro' || entrega.forma_pagamento === 'dinheiro' ? (
-                                      <>
-                                        <Banknote className="w-3 h-3" />
-                                        Dinheiro
-                                      </>
-                                    ) : (
-                                      <>
-                                        <CreditCard className="w-3 h-3" />
-                                        Cartão
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2">
                               <Badge
-                                className={
-                                  entrega.pagamento_recebido
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-orange-100 text-orange-700"
-                                }
+                                className="px-3 py-1 rounded text-xs font-medium"
+                                style={{
+                                  backgroundColor: entrega.pagamento_recebido ? "#E8F5E8" : "#FEF3E8",
+                                  color: entrega.pagamento_recebido ? "#22c55e" : "#f97316"
+                                }}
                               >
                                 {entrega.pagamento_recebido ? "Recebido" : "Pendente"}
                               </Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => abrirModalEditar(e, entrega)}
-                                className="h-8 w-8 p-0"
-                                title="Editar pagamento"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
                             </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 mb-3">
+                              <div>
+                                <span className="font-medium">Cliente:</span> {entrega.cliente?.nome || entrega.cliente_nome}
+                              </div>
+                              <div>
+                                <span className="font-medium">Motoboy:</span> {entrega.motoboy?.nome || 'Sem motoboy'}
+                              </div>
+                              <div>
+                                <span className="font-medium">Data:</span>{' '}
+                                {entrega.data_entrega ? format(parseISO(entrega.data_entrega), "dd/MM/yyyy") : '-'}
+                              </div>
+                              {entrega.forma_pagamento && (
+                                <div>
+                                  <span className="font-medium">Forma:</span> {entrega.forma_pagamento}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            {entrega.valor && (
+                              <div className="text-right mr-3">
+                                <div className="font-bold text-xl" style={{ color: '#376295' }}>
+                                  R$ {parseFloat(entrega.valor).toFixed(2)}
+                                </div>
+                              </div>
+                            )}
+                            <button
+                              onClick={(e) => abrirModalEditar(e, entrega)}
+                              className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-medium text-slate-700"
+                              title="Editar pagamento"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Editar
+                            </button>
                           </div>
                         </div>
                       </Link>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -605,7 +634,8 @@ export default function Pagamentos() {
             <Button
               onClick={salvarAlteracoes}
               disabled={updatePagamentoMutation.isPending}
-              className="bg-[#457bba] hover:bg-[#3a6ba0]"
+              style={{ background: updatePagamentoMutation.isPending ? '#94a3b8' : '#376295' }}
+              className="text-white"
             >
               {updatePagamentoMutation.isPending ? 'Salvando...' : 'Salvar'}
             </Button>

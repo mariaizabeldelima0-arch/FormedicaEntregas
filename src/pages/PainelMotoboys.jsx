@@ -288,20 +288,22 @@ export default function PainelMotoboys() {
   }, {});
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-6 shadow-lg">
-        <div className="max-w-7xl mx-auto">
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold mb-1">Painel do Motoboy</h1>
-              <p className="text-blue-100 text-sm">Gerencie suas entregas</p>
+              <h1 className="text-4xl font-bold text-white mb-1">Painel do Motoboy</h1>
+              <p className="text-base text-white opacity-90">Gerencie suas entregas</p>
             </div>
           </div>
 
           {/* Seletor de Motoboy */}
           <div className="flex items-center gap-3 mb-4">
-            <User className="w-5 h-5 text-blue-200" />
+            <User className="w-5 h-5 text-white opacity-90" />
             <select
               value={motoboyId || ''}
               onChange={(e) => setMotoboyId(e.target.value)}
@@ -322,21 +324,21 @@ export default function PainelMotoboys() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setModoVisualizacao('dia')}
-                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                    modoVisualizacao === 'dia'
-                      ? 'bg-white text-blue-600'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                  }`}
+                  className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                  style={{
+                    backgroundColor: modoVisualizacao === 'dia' ? 'white' : 'rgba(255, 255, 255, 0.2)',
+                    color: modoVisualizacao === 'dia' ? '#376295' : 'white'
+                  }}
                 >
                   Dia
                 </button>
                 <button
                   onClick={() => setModoVisualizacao('semana')}
-                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                    modoVisualizacao === 'semana'
-                      ? 'bg-white text-blue-600'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                  }`}
+                  className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                  style={{
+                    backgroundColor: modoVisualizacao === 'semana' ? 'white' : 'rgba(255, 255, 255, 0.2)',
+                    color: modoVisualizacao === 'semana' ? '#376295' : 'white'
+                  }}
                 >
                   Semana
                 </button>
@@ -400,17 +402,18 @@ export default function PainelMotoboys() {
               e.stopPropagation();
               setFiltroStatus('todos');
             }}
-            className={`rounded-xl shadow-md p-4 border-l-4 border-blue-500 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-              filtroStatus === 'todos' ? 'bg-blue-50 ring-2 ring-blue-500' : 'bg-white'
-            }`}
+            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md bg-white"
+            style={{
+              border: filtroStatus === 'todos' ? '2px solid #376295' : '2px solid transparent'
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-slate-600 mb-1">Total</div>
-                <div className="text-2xl font-bold text-slate-900">{statsTotal.total}</div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                <Package className="w-6 h-6" style={{ color: '#376295' }} />
               </div>
-              <Package className="w-8 h-8 text-blue-500 opacity-70" />
+              <span className="text-sm font-bold text-slate-700">Total</span>
             </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>{statsTotal.total}</div>
           </div>
 
           <div
@@ -418,17 +421,18 @@ export default function PainelMotoboys() {
               e.stopPropagation();
               setFiltroStatus('entregues');
             }}
-            className={`rounded-xl shadow-md p-4 border-l-4 border-green-500 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-              filtroStatus === 'entregues' ? 'bg-green-50 ring-2 ring-green-500' : 'bg-white'
-            }`}
+            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md bg-white"
+            style={{
+              border: filtroStatus === 'entregues' ? '2px solid #22c55e' : '2px solid transparent'
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-slate-600 mb-1">Entregues</div>
-                <div className="text-2xl font-bold text-green-600">{statsTotal.entregues}</div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                <CheckCircle className="w-6 h-6" style={{ color: '#22c55e' }} />
               </div>
-              <CheckCircle className="w-8 h-8 text-green-500 opacity-70" />
+              <span className="text-sm font-bold text-slate-700">Entregues</span>
             </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>{statsTotal.entregues}</div>
           </div>
 
           <div
@@ -436,17 +440,18 @@ export default function PainelMotoboys() {
               e.stopPropagation();
               setFiltroStatus('a_caminho');
             }}
-            className={`rounded-xl shadow-md p-4 border-l-4 border-yellow-500 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-              filtroStatus === 'a_caminho' ? 'bg-yellow-50 ring-2 ring-yellow-500' : 'bg-white'
-            }`}
+            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md bg-white"
+            style={{
+              border: filtroStatus === 'a_caminho' ? '2px solid #f97316' : '2px solid transparent'
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-slate-600 mb-1">A Caminho</div>
-                <div className="text-2xl font-bold text-yellow-600">{statsTotal.aCaminho}</div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                <Clock className="w-6 h-6" style={{ color: '#f97316' }} />
               </div>
-              <Clock className="w-8 h-8 text-yellow-500 opacity-70" />
+              <span className="text-sm font-bold text-slate-700">A Caminho</span>
             </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>{statsTotal.aCaminho}</div>
           </div>
 
           <div
@@ -454,56 +459,58 @@ export default function PainelMotoboys() {
               e.stopPropagation();
               setFiltroStatus('pendentes');
             }}
-            className={`rounded-xl shadow-md p-4 border-l-4 border-slate-500 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-              filtroStatus === 'pendentes' ? 'bg-slate-50 ring-2 ring-slate-500' : 'bg-white'
-            }`}
+            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md bg-white"
+            style={{
+              border: filtroStatus === 'pendentes' ? '2px solid #890d5d' : '2px solid transparent'
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-slate-600 mb-1">Pendentes</div>
-                <div className="text-2xl font-bold text-slate-600">{statsTotal.pendentes}</div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
               </div>
-              <Package className="w-8 h-8 text-slate-500 opacity-70" />
+              <span className="text-sm font-bold text-slate-700">Pendentes</span>
+            </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>{statsTotal.pendentes}</div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                <DollarSign className="w-6 h-6" style={{ color: '#376295' }} />
+              </div>
+              <span className="text-sm font-bold text-slate-700">Valor Total</span>
+            </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+              R$ {stats.valorTotal.toFixed(2)}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-purple-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-slate-600 mb-1">Valor Total</div>
-                <div className="text-lg font-bold text-purple-600">
-                  R$ {stats.valorTotal.toFixed(2)}
-                </div>
+          <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                <TrendingUp className="w-6 h-6" style={{ color: '#22c55e' }} />
               </div>
-              <DollarSign className="w-8 h-8 text-purple-500 opacity-70" />
+              <span className="text-sm font-bold text-slate-700">Ganhos</span>
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-emerald-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-slate-600 mb-1">Ganhos</div>
-                <div className="text-lg font-bold text-emerald-600">
-                  R$ {stats.taxaTotal.toFixed(2)}
-                </div>
-              </div>
-              <TrendingUp className="w-8 h-8 text-emerald-500 opacity-70" />
+            <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+              R$ {stats.taxaTotal.toFixed(2)}
             </div>
           </div>
         </div>
 
         {/* Barra de Progresso */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-semibold text-slate-700">Progresso do Dia</div>
-            <div className="text-sm font-bold text-blue-600">
+            <div className="text-sm font-bold" style={{ color: '#376295' }}>
               {stats.total > 0 ? Math.round((stats.entregues / stats.total) * 100) : 0}%
             </div>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+              className="h-3 rounded-full transition-all duration-500"
               style={{
+                background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)',
                 width: `${stats.total > 0 ? (stats.entregues / stats.total) * 100 : 0}%`
               }}
             />
@@ -511,18 +518,18 @@ export default function PainelMotoboys() {
         </div>
 
         {/* Tabela de Ganhos Semanais */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-4">
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+          <div className="px-6 py-4" style={{ backgroundColor: '#22c55e' }}>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold">Ganhos da Semana</h2>
-                <p className="text-sm text-emerald-100">
+                <h2 className="text-lg font-bold text-white">Ganhos da Semana</h2>
+                <p className="text-sm text-white opacity-90">
                   {intervaloSemanaTrabalho || 'Terça-feira a Segunda-feira'}
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-sm text-emerald-100">Total Semanal</div>
-                <div className="text-2xl font-bold">R$ {totalSemanal.toFixed(2)}</div>
+                <div className="text-sm text-white opacity-90">Total Semanal</div>
+                <div className="text-2xl font-bold text-white">R$ {totalSemanal.toFixed(2)}</div>
               </div>
             </div>
           </div>
@@ -542,19 +549,18 @@ export default function PainelMotoboys() {
                 {semanaTrabalho.map((dia, index) => (
                   <tr
                     key={dia.dataStr}
-                    className={`border-b border-slate-100 transition-colors ${
-                      dia.isHoje
-                        ? 'bg-blue-50 hover:bg-blue-100'
-                        : 'hover:bg-slate-50'
-                    }`}
+                    className="border-b border-slate-100 transition-colors hover:bg-slate-50"
+                    style={{
+                      backgroundColor: dia.isHoje ? '#E8F0F8' : 'white'
+                    }}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <span className={`font-medium ${dia.isHoje ? 'text-blue-700' : 'text-slate-900'}`}>
+                        <span className="font-medium text-slate-900" style={{ color: dia.isHoje ? '#376295' : undefined }}>
                           {dia.nome}
                         </span>
                         {dia.isHoje && (
-                          <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                          <span className="text-white text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#376295' }}>
                             HOJE
                           </span>
                         )}
@@ -564,17 +570,17 @@ export default function PainelMotoboys() {
                       {format(dia.data, "dd/MM/yyyy", { locale: ptBR })}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`font-semibold ${dia.entregas > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                      <span className={`font-semibold ${dia.entregas > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.entregas > 0 ? '#376295' : undefined }}>
                         {dia.entregas}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`font-semibold ${dia.entregues > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                      <span className={`font-semibold ${dia.entregues > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.entregues > 0 ? '#22c55e' : undefined }}>
                         {dia.entregues}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className={`font-bold text-lg ${dia.taxa > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      <span className={`font-bold text-lg ${dia.taxa > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.taxa > 0 ? '#22c55e' : undefined }}>
                         R$ {dia.taxa.toFixed(2)}
                       </span>
                     </td>
@@ -587,7 +593,7 @@ export default function PainelMotoboys() {
                     Total da Semana:
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-2xl font-bold text-emerald-600">
+                    <span className="text-2xl font-bold" style={{ color: '#22c55e' }}>
                       R$ {totalSemanal.toFixed(2)}
                     </span>
                   </td>
@@ -611,7 +617,9 @@ export default function PainelMotoboys() {
                 return (
                   <div key={data} className="space-y-4">
                     {/* Cabeçalho do Dia */}
-                    <div className="bg-gradient-to-r from-slate-700 to-slate-600 text-white px-4 py-3 rounded-lg shadow-md">
+                    <div className="text-white px-4 py-3 rounded-lg shadow-sm" style={{
+                      background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+                    }}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <CalendarIcon className="w-5 h-5" />
@@ -619,13 +627,13 @@ export default function PainelMotoboys() {
                             <div className="font-bold text-lg">
                               {format(dataObj, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                             </div>
-                            <div className="text-xs text-slate-200">
+                            <div className="text-xs opacity-90">
                               {entregasDoDia.length} entrega{entregasDoDia.length !== 1 ? 's' : ''}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xs text-slate-200">Entregues</div>
+                          <div className="text-xs opacity-90">Entregues</div>
                           <div className="text-lg font-bold">
                             {entregasDoDia.filter(e => e.status === 'Entregue').length}/{entregasDoDia.length}
                           </div>
@@ -636,7 +644,7 @@ export default function PainelMotoboys() {
                     {/* Entregas da Manhã */}
                     {entregasManha.length > 0 && (
                       <div>
-                        <div className="bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold text-sm mb-3">
+                        <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm mb-3" style={{ backgroundColor: '#f97316' }}>
                           ☀️ MANHÃ ({entregasManha.length})
                         </div>
                         <div className="space-y-3">
@@ -672,7 +680,7 @@ export default function PainelMotoboys() {
                     {/* Entregas da Tarde */}
                     {entregasTarde.length > 0 && (
                       <div>
-                        <div className="bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold text-sm mb-3">
+                        <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm mb-3" style={{ backgroundColor: '#f97316' }}>
                           🌅 TARDE ({entregasTarde.length})
                         </div>
                         <div className="space-y-3">
@@ -716,7 +724,7 @@ export default function PainelMotoboys() {
               {entregasPorPeriodo.manha.length > 0 && (
                 <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
                   ☀️ MANHÃ ({entregasPorPeriodo.manha.length})
                 </div>
               </div>
@@ -755,7 +763,7 @@ export default function PainelMotoboys() {
               {entregasPorPeriodo.tarde.length > 0 && (
                 <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
                   🌅 TARDE ({entregasPorPeriodo.tarde.length})
                 </div>
               </div>
@@ -851,15 +859,15 @@ function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case 'Entregue':
-        return 'bg-green-500 text-white';
+        return { backgroundColor: '#22c55e', color: 'white' };
       case 'A Caminho':
-        return 'bg-yellow-500 text-white';
+        return { backgroundColor: '#f97316', color: 'white' };
       case 'Não Entregue':
-        return 'bg-red-500 text-white';
+        return { backgroundColor: '#ef4444', color: 'white' };
       case 'Pendente':
-        return 'bg-slate-400 text-white';
+        return { backgroundColor: '#890d5d', color: 'white' };
       default:
-        return 'bg-blue-500 text-white';
+        return { backgroundColor: '#376295', color: 'white' };
     }
   };
 
@@ -880,7 +888,7 @@ function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
                 {entrega.cliente?.nome || 'Cliente'}
               </h3>
               {entrega.recibo_medico && (
-                <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded font-semibold">
+                <span className="text-white text-xs px-2 py-0.5 rounded font-semibold" style={{ backgroundColor: '#376295' }}>
                   RECEITA
                 </span>
               )}
@@ -889,7 +897,7 @@ function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
               Requisição: <span className="font-mono font-semibold">{entrega.requisicao || '-'}</span>
             </div>
           </div>
-          <div className={`px-3 py-1 rounded-lg text-xs font-bold ${getStatusBadgeColor(entrega.status)}`}>
+          <div className="px-3 py-1 rounded-lg text-xs font-bold" style={getStatusBadgeColor(entrega.status)}>
             {entrega.status || 'Pendente'}
           </div>
         </div>
@@ -932,7 +940,7 @@ function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
             </div>
             {entrega.valor && (
               <div className="text-slate-700">
-                Valor: <span className="font-bold text-blue-600">R$ {parseFloat(entrega.valor).toFixed(2)}</span>
+                Valor: <span className="font-bold" style={{ color: '#376295' }}>R$ {parseFloat(entrega.valor).toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -949,7 +957,8 @@ function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
                     onStatusChange(entrega.id, 'A Caminho');
                   }}
                   disabled={isUpdating}
-                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                  className="flex-1 text-white font-semibold py-2 px-4 rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50 text-sm"
+                  style={{ backgroundColor: '#f97316' }}
                 >
                   🚀 A Caminho
                 </button>
@@ -960,7 +969,8 @@ function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
                   onStatusChange(entrega.id, 'Entregue');
                 }}
                 disabled={isUpdating}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                className="flex-1 text-white font-semibold py-2 px-4 rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50 text-sm"
+                style={{ backgroundColor: '#22c55e' }}
               >
                 ✓ Entregar
               </button>
@@ -970,14 +980,15 @@ function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
                   onStatusChange(entrega.id, 'Não Entregue');
                 }}
                 disabled={isUpdating}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                className="flex-1 text-white font-semibold py-2 px-4 rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50 text-sm"
+                style={{ backgroundColor: '#ef4444' }}
               >
                 ✗ Não Entregue
               </button>
             </>
           )}
           {entrega.status === 'Entregue' && (
-            <div className="flex-1 bg-green-100 text-green-800 font-semibold py-2 px-4 rounded-lg text-center text-sm">
+            <div className="flex-1 font-semibold py-2 px-4 rounded-lg text-center text-sm" style={{ backgroundColor: '#E8F5E8', color: '#22c55e' }}>
               ✓ Entrega Concluída
             </div>
           )}

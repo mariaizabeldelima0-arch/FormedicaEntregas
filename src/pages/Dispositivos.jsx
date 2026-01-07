@@ -138,18 +138,20 @@ export default function Dispositivos() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-6 shadow-sm">
-        <div className="max-w-7xl mx-auto">
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
+              <ArrowLeft className="w-5 h-5 text-white" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Gerenciar Dispositivos</h1>
-              <p className="text-sm text-slate-600">Autorizar ou bloquear dispositivos de acesso</p>
+              <h1 className="text-4xl font-bold text-white">Gerenciar Dispositivos</h1>
+              <p className="text-base text-white opacity-90 mt-1">Autorizar ou bloquear dispositivos de acesso</p>
             </div>
           </div>
         </div>
@@ -160,42 +162,66 @@ export default function Dispositivos() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div
             onClick={() => setFiltroStatus('todos')}
-            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500 cursor-pointer transition-all hover:shadow-md ${
-              filtroStatus === 'todos' ? 'ring-2 ring-blue-500' : ''
-            }`}
+            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            style={{
+              border: filtroStatus === 'todos' ? '2px solid #376295' : '2px solid transparent'
+            }}
           >
-            <div className="text-sm text-slate-600 mb-1">Total</div>
-            <div className="text-3xl font-bold text-slate-900">{stats.total}</div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                <Monitor className="w-6 h-6" style={{ color: '#376295' }} />
+              </div>
+              <span className="text-sm font-bold text-slate-700">Total</span>
+            </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>{stats.total}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('autorizados')}
-            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500 cursor-pointer transition-all hover:shadow-md ${
-              filtroStatus === 'autorizados' ? 'ring-2 ring-green-500' : ''
-            }`}
+            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            style={{
+              border: filtroStatus === 'autorizados' ? '2px solid #22c55e' : '2px solid transparent'
+            }}
           >
-            <div className="text-sm text-slate-600 mb-1">Autorizados</div>
-            <div className="text-3xl font-bold text-green-600">{stats.autorizados}</div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                <CheckCircle className="w-6 h-6" style={{ color: '#22c55e' }} />
+              </div>
+              <span className="text-sm font-bold text-slate-700">Autorizados</span>
+            </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>{stats.autorizados}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('pendentes')}
-            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500 cursor-pointer transition-all hover:shadow-md ${
-              filtroStatus === 'pendentes' ? 'ring-2 ring-yellow-500' : ''
-            }`}
+            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            style={{
+              border: filtroStatus === 'pendentes' ? '2px solid #f97316' : '2px solid transparent'
+            }}
           >
-            <div className="text-sm text-slate-600 mb-1">Pendentes</div>
-            <div className="text-3xl font-bold text-yellow-600">{stats.pendentes}</div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                <Clock className="w-6 h-6" style={{ color: '#f97316' }} />
+              </div>
+              <span className="text-sm font-bold text-slate-700">Pendentes</span>
+            </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>{stats.pendentes}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('bloqueados')}
-            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500 cursor-pointer transition-all hover:shadow-md ${
-              filtroStatus === 'bloqueados' ? 'ring-2 ring-red-500' : ''
-            }`}
+            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            style={{
+              border: filtroStatus === 'bloqueados' ? '2px solid #ef4444' : '2px solid transparent'
+            }}
           >
-            <div className="text-sm text-slate-600 mb-1">Bloqueados</div>
-            <div className="text-3xl font-bold text-red-600">{stats.bloqueados}</div>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#fef2f2' }}>
+                <XCircle className="w-6 h-6" style={{ color: '#ef4444' }} />
+              </div>
+              <span className="text-sm font-bold text-slate-700">Bloqueados</span>
+            </div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#ef4444' }}>{stats.bloqueados}</div>
           </div>
         </div>
 
@@ -208,7 +234,12 @@ export default function Dispositivos() {
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por e-mail, dispositivo ou impressão digital..."
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 transition-all"
+              style={{
+                '--tw-ring-color': '#376295'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#376295'}
+              onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
             />
           </div>
         </div>
@@ -264,21 +295,21 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
     switch (status) {
       case 'Autorizado':
         return (
-          <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#E8F5E8', color: '#22c55e' }}>
             <CheckCircle className="w-3 h-3" />
             Autorizado
           </span>
         );
       case 'Pendente':
         return (
-          <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#FEF3E8', color: '#f97316' }}>
             <Clock className="w-3 h-3" />
             Pendente
           </span>
         );
       case 'Bloqueado':
         return (
-          <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#fef2f2', color: '#ef4444' }}>
             <XCircle className="w-3 h-3" />
             Bloqueado
           </span>
@@ -345,7 +376,8 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
               <button
                 onClick={() => onAutorizar(dispositivo.id)}
                 disabled={isUpdating}
-                className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: '#22c55e' }}
               >
                 <CheckCircle className="w-4 h-4" />
                 Autorizar
@@ -353,7 +385,8 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
               <button
                 onClick={() => onBloquear(dispositivo.id)}
                 disabled={isUpdating}
-                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: '#ef4444' }}
               >
                 <XCircle className="w-4 h-4" />
                 Bloquear
@@ -365,7 +398,8 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
             <button
               onClick={() => onBloquear(dispositivo.id)}
               disabled={isUpdating}
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: '#ef4444' }}
             >
               <XCircle className="w-4 h-4" />
               Bloquear
@@ -376,7 +410,8 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
             <button
               onClick={() => onAutorizar(dispositivo.id)}
               disabled={isUpdating}
-              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: '#22c55e' }}
             >
               <CheckCircle className="w-4 h-4" />
               Autorizar

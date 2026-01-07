@@ -15,6 +15,8 @@ import {
   ChevronRight,
   AlertCircle,
   RefreshCw,
+  Calendar,
+  ClipboardList,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -218,7 +220,9 @@ export default function Receitas() {
 
   const handleDiaClick = (dia) => {
     setDataSelecionada(dia);
-    setVerTodas(false);
+    if (verTodas) {
+      setVerTodas(false);
+    }
   };
 
   const mesAnterior = () => setMesAtual(subMonths(mesAtual, 1));
@@ -244,22 +248,41 @@ export default function Receitas() {
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6" key={`filter-${verTodas}-${dataSelecionada?.getTime() || 'all'}`}>
               <h3 className="text-lg font-bold text-slate-900 mb-4">Filtrar por dados</h3>
 
-              {/* Checkbox Ver Todas */}
-              <div className="flex items-center space-x-2 mb-4">
-                <Checkbox
-                  id="ver-todas"
-                  checked={verTodas}
-                  onCheckedChange={(checked) => {
-                    setVerTodas(checked);
-                    if (checked) setDataSelecionada(null);
+              {/* Botões Por Dia / Todos */}
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => {
+                    setVerTodas(false);
+                    if (!dataSelecionada) {
+                      setDataSelecionada(new Date());
+                    }
                   }}
-                />
-                <label
-                  htmlFor="ver-todas"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                  style={{
+                    backgroundColor: !verTodas ? '#376295' : 'white',
+                    color: !verTodas ? 'white' : '#64748b',
+                    border: !verTodas ? 'none' : '1px solid #e2e8f0'
+                  }}
                 >
-                  Ver todas as receitas
-                </label>
+                  <Calendar className="w-4 h-4" />
+                  Por Dia
+                </button>
+
+                <button
+                  onClick={() => {
+                    setVerTodas(true);
+                    setDataSelecionada(null);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                  style={{
+                    backgroundColor: verTodas ? '#376295' : 'white',
+                    color: verTodas ? 'white' : '#64748b',
+                    border: verTodas ? 'none' : '1px solid #e2e8f0'
+                  }}
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  Todos
+                </button>
               </div>
 
               {/* Calendário */}
@@ -309,19 +332,17 @@ export default function Receitas() {
                       <button
                         key={dataKey}
                         onClick={() => handleDiaClick(dia)}
-                        disabled={verTodas}
                         className={`
                           aspect-square rounded-lg text-sm flex flex-col items-center justify-center relative
                           transition-all hover:bg-blue-50
-                          ${verTodas ? 'opacity-50 cursor-not-allowed' : ''}
                         `}
                         style={{
                           backgroundColor: estaSelecionado ? '#376295' :
                             !estaSelecionado && ehHoje ? '#e2e8f0' :
-                            !estaSelecionado && !ehHoje && temReceitas ? '#f5e8f5' : 'transparent',
+                            !estaSelecionado && !ehHoje && temReceitas ? '#F5E8F5' : 'transparent',
                           color: estaSelecionado ? 'white' :
                             estaSelecionado === false && ehHoje ? '#376295' :
-                            !estaSelecionado && !ehHoje && temReceitas ? '#b76bb7' : '#1e293b',
+                            !estaSelecionado && !ehHoje && temReceitas ? '#890d5d' : '#1e293b',
                           fontWeight: estaSelecionado || ehHoje || temReceitas ? 'bold' : 'normal',
                           boxShadow: estaSelecionado ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
                         }}

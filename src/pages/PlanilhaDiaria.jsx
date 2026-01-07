@@ -209,9 +209,13 @@ export default function PlanilhaDiaria() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-slate-900">Planilha Diária</h1>
-        <p className="text-sm text-slate-600 mt-1">Visualize e edite todas as entregas do dia</p>
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="text-4xl font-bold text-white">Planilha Diária</h1>
+          <p className="text-base text-white opacity-90 mt-1">Visualize e edite todas as entregas do dia</p>
+        </div>
       </div>
 
       <div className="p-6">
@@ -295,7 +299,7 @@ export default function PlanilhaDiaria() {
           <div className="space-y-6">
             {/* Tabela Principal - Romaneios */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-              <div className="bg-[#4472C4] px-4 py-3">
+              <div className="px-4 py-3" style={{ backgroundColor: '#376295' }}>
                 <h2 className="text-white font-bold text-lg">ATENDIMENTO</h2>
               </div>
 
@@ -343,7 +347,8 @@ export default function PlanilhaDiaria() {
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <Link
                               to={`/?id=${rom.id}`}
-                              className="text-[#457bba] hover:text-[#3a6ba0]"
+                              className="hover:opacity-80 transition-opacity"
+                              style={{ color: '#376295' }}
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                             </Link>
@@ -368,11 +373,15 @@ export default function PlanilhaDiaria() {
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              rom.forma_pagamento === 'Pago' ? 'bg-green-100 text-green-800' :
-                              rom.forma_pagamento === 'Dinheiro' ? 'bg-blue-100 text-blue-800' :
-                              rom.forma_pagamento === 'Cartão' ? 'bg-purple-100 text-purple-800' :
+                              rom.forma_pagamento === 'Pago' ? 'text-green-700' :
+                              rom.forma_pagamento === 'Dinheiro' ? 'text-blue-700' :
+                              rom.forma_pagamento === 'Cartão' ? 'text-purple-700' :
                               'bg-slate-100 text-slate-700'
-                            }`}>
+                            }`} style={{
+                              backgroundColor: rom.forma_pagamento === 'Pago' ? '#E8F5E8' :
+                                rom.forma_pagamento === 'Dinheiro' ? '#E8F0F8' :
+                                rom.forma_pagamento === 'Cartão' ? '#F5E8F5' : undefined
+                            }}>
                               {rom.forma_pagamento || '-'}
                             </span>
                           </td>
@@ -384,8 +393,10 @@ export default function PlanilhaDiaria() {
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              rom.periodo === 'Manhã' ? 'bg-amber-100 text-amber-800' : 'bg-orange-100 text-orange-800'
-                            }`}>
+                              rom.periodo === 'Manhã' ? 'text-orange-800' : 'text-orange-800'
+                            }`} style={{
+                              backgroundColor: '#FEF3E8'
+                            }}>
                               {rom.periodo || '-'}
                             </span>
                           </td>
@@ -432,7 +443,7 @@ export default function PlanilhaDiaria() {
 
             {/* Tabela Sedex/Disktenha */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-              <div className="bg-[#6BA3D8] px-4 py-3">
+              <div className="px-4 py-3" style={{ backgroundColor: '#890d5d' }}>
                 <h2 className="text-white font-bold text-lg">SEDEX / DISKTENHA</h2>
               </div>
 
@@ -525,23 +536,51 @@ export default function PlanilhaDiaria() {
 
             {/* Resumo */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg border border-slate-200 p-4">
-                <div className="text-xs text-slate-600 mb-1">Total Romaneios</div>
-                <div className="text-2xl font-bold text-slate-900">{romaneiosOrdenados.length}</div>
+              <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <svg className="w-6 h-6" style={{ color: '#376295' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Total Romaneios</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>{romaneiosOrdenados.length}</div>
               </div>
-              <div className="bg-white rounded-lg border border-slate-200 p-4">
-                <div className="text-xs text-slate-600 mb-1">Entregues</div>
-                <div className="text-2xl font-bold text-green-600">
+              <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                    <svg className="w-6 h-6" style={{ color: '#22c55e' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Entregues</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
                   {romaneiosOrdenados.filter(r => r.status === 'Entregue').length}
                 </div>
               </div>
-              <div className="bg-white rounded-lg border border-slate-200 p-4">
-                <div className="text-xs text-slate-600 mb-1">Total Sedex/Disk</div>
-                <div className="text-2xl font-bold text-blue-600">{sedexDisktenha.length}</div>
+              <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                    <svg className="w-6 h-6" style={{ color: '#890d5d' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Sedex/Disk</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>{sedexDisktenha.length}</div>
               </div>
-              <div className="bg-white rounded-lg border border-slate-200 p-4">
-                <div className="text-xs text-slate-600 mb-1">Valor Total</div>
-                <div className="text-2xl font-bold text-slate-900">
+              <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <svg className="w-6 h-6" style={{ color: '#376295' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Valor Total</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
                   R$ {(
                     romaneiosOrdenados.reduce((sum, r) => sum + (parseFloat(r.valor) || 0), 0) +
                     sedexDisktenha.reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0)
