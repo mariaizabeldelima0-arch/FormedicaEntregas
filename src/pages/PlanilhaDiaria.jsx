@@ -219,79 +219,66 @@ export default function PlanilhaDiaria() {
       </div>
 
       <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
-          {/* Sidebar - Calendário e Filtros */}
-          <div className="space-y-4">
-            {/* Seletor de data */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-900 mb-3">Selecione um dado</h3>
+        <div className="max-w-7xl mx-auto">
+          {/* Linha de Filtros no Topo */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+            <div className="flex items-center gap-4">
+              {/* Botões Todas / Por Dia */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setVisualizarTodas(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap"
+                  style={{
+                    backgroundColor: visualizarTodas ? '#376295' : 'white',
+                    color: visualizarTodas ? 'white' : '#64748b',
+                    border: visualizarTodas ? 'none' : '1px solid #e2e8f0'
+                  }}
+                >
+                  Todas
+                </button>
 
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="checkbox"
-                  id="ver-todas"
-                  checked={visualizarTodas}
-                  onChange={(e) => setVisualizarTodas(e.target.checked)}
-                  className="rounded border-slate-300"
-                />
-                <label htmlFor="ver-todas" className="text-sm text-slate-700 cursor-pointer">
-                  Ver todas
-                </label>
+                <button
+                  onClick={() => setVisualizarTodas(false)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap"
+                  style={{
+                    backgroundColor: !visualizarTodas ? '#376295' : 'white',
+                    color: !visualizarTodas ? 'white' : '#64748b',
+                    border: !visualizarTodas ? 'none' : '1px solid #e2e8f0'
+                  }}
+                >
+                  Por Dia
+                </button>
               </div>
 
+              {/* Campo de Busca por Data */}
               {!visualizarTodas && (
-                <>
-                  <div className="flex items-center justify-between mb-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handlePrevDay}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <div className="text-center">
-                      <div className="font-semibold text-slate-900">
-                        {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {romaneiosFiltrados.length} entrega{romaneiosFiltrados.length !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleNextDay}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    locale={ptBR}
-                    className="rounded-md border border-slate-200"
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={format(selectedDate, 'yyyy-MM-dd')}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setSelectedDate(new Date(e.target.value + 'T00:00:00'));
+                      }
+                    }}
+                    className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
                   />
-                </>
+                </div>
               )}
-            </div>
 
-            {/* Filtro Motoboy */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-900 mb-3">Filtrar</h3>
-              <select
-                value={filtroMotoboy}
-                onChange={(e) => setFiltroMotoboy(e.target.value)}
-                className="w-full p-2 border border-slate-300 rounded-md text-sm"
-              >
-                <option value="todos">Todos os Motoboys</option>
-                {motoboysUnicos.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+              {/* Filtro por Motoboy */}
+              <div className="flex-1 max-w-xs">
+                <select
+                  value={filtroMotoboy}
+                  onChange={(e) => setFiltroMotoboy(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                >
+                  <option value="todos">Todos os Motoboys</option>
+                  {motoboysUnicos.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -300,7 +287,7 @@ export default function PlanilhaDiaria() {
             {/* Tabela Principal - Romaneios */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
               <div className="px-4 py-3" style={{ backgroundColor: '#376295' }}>
-                <h2 className="text-white font-bold text-lg">ATENDIMENTO</h2>
+                <h2 className="text-white font-bold text-lg">ENTREGAS MOTO</h2>
               </div>
 
               <div className="overflow-x-auto">
