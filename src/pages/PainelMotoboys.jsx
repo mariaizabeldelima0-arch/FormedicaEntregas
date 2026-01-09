@@ -519,17 +519,17 @@ export default function PainelMotoboys() {
 
         {/* Tabela de Ganhos Semanais */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-          <div className="px-6 py-4" style={{ backgroundColor: '#22c55e' }}>
+          <div className="px-4 py-3" style={{ backgroundColor: '#22c55e' }}>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white">Ganhos da Semana</h2>
-                <p className="text-sm text-white opacity-90">
+                <h2 className="text-base font-bold text-white">Ganhos da Semana</h2>
+                <p className="text-xs text-white opacity-90">
                   {intervaloSemanaTrabalho || 'Terça-feira a Segunda-feira'}
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-sm text-white opacity-90">Total Semanal</div>
-                <div className="text-2xl font-bold text-white">R$ {totalSemanal.toFixed(2)}</div>
+                <div className="text-xs text-white opacity-90">Total Semanal</div>
+                <div className="text-xl font-bold text-white">R$ {totalSemanal.toFixed(2)}</div>
               </div>
             </div>
           </div>
@@ -537,12 +537,11 @@ export default function PainelMotoboys() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 border-b-2 border-slate-200">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Dia</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Data</th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase">Entregas</th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase">Entregues</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Ganhos</th>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Dia</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Data</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600">Entregues</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-slate-600">Ganhos</th>
                 </tr>
               </thead>
               <tbody>
@@ -554,33 +553,28 @@ export default function PainelMotoboys() {
                       backgroundColor: dia.isHoje ? '#E8F0F8' : 'white'
                     }}
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-900" style={{ color: dia.isHoje ? '#376295' : undefined }}>
+                        <span className="font-medium text-sm text-slate-900" style={{ color: dia.isHoje ? '#376295' : undefined }}>
                           {dia.nome}
                         </span>
                         {dia.isHoje && (
-                          <span className="text-white text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#376295' }}>
+                          <span className="text-white text-xs px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: '#376295' }}>
                             HOJE
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-3 py-2 text-sm text-slate-600">
                       {format(dia.data, "dd/MM/yyyy", { locale: ptBR })}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`font-semibold ${dia.entregas > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.entregas > 0 ? '#376295' : undefined }}>
-                        {dia.entregas}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`font-semibold ${dia.entregues > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.entregues > 0 ? '#22c55e' : undefined }}>
+                    <td className="px-3 py-2 text-center">
+                      <span className={`font-semibold text-sm ${dia.entregues > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.entregues > 0 ? '#22c55e' : undefined }}>
                         {dia.entregues}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={`font-bold text-lg ${dia.taxa > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.taxa > 0 ? '#22c55e' : undefined }}>
+                    <td className="px-3 py-2 text-right">
+                      <span className={`font-bold text-sm ${dia.taxa > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.taxa > 0 ? '#22c55e' : undefined }}>
                         R$ {dia.taxa.toFixed(2)}
                       </span>
                     </td>
@@ -589,11 +583,11 @@ export default function PainelMotoboys() {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 border-t-2 border-slate-300">
-                  <td colSpan="4" className="px-6 py-4 text-right font-bold text-slate-700">
+                  <td colSpan="3" className="px-3 py-2 text-right font-bold text-sm text-slate-700">
                     Total da Semana:
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-2xl font-bold" style={{ color: '#22c55e' }}>
+                  <td className="px-3 py-2 text-right">
+                    <span className="text-lg font-bold" style={{ color: '#22c55e' }}>
                       R$ {totalSemanal.toFixed(2)}
                     </span>
                   </td>
