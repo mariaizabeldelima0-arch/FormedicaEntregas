@@ -294,34 +294,33 @@ export default function PlanilhaDiaria() {
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-300">
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Ver</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Atendente</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Requisição</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Cliente</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Observações</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Telefone</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Observação</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Local</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Requisições</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Forma de Pgto</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Valor</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Valor a Cobrar</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Troco</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Período</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Hora</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Status</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Receita</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Motoboy</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700">Taxa</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Moto</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Taxa</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700">Ver</th>
                     </tr>
                   </thead>
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan="16" className="p-8 text-center text-slate-500">
+                        <td colSpan="15" className="p-8 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : romaneiosOrdenados.length === 0 ? (
                       <tr>
-                        <td colSpan="16" className="p-8 text-center text-slate-500">
+                        <td colSpan="15" className="p-8 text-center text-slate-500">
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
@@ -331,32 +330,23 @@ export default function PlanilhaDiaria() {
                           key={rom.id}
                           className={`border-b border-slate-200 hover:bg-slate-50 ${getRowColor(rom.status, rom.forma_pagamento)}`}
                         >
-                          <td className="px-2 py-1.5 border-r border-slate-200">
-                            <Link
-                              to={`/?id=${rom.id}`}
-                              className="hover:opacity-80 transition-opacity"
-                              style={{ color: '#376295' }}
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Link>
-                          </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.motoboy?.nome || '-'}
+                            {rom.atendente || '-'}
+                          </td>
+                          <td className="px-2 py-1.5 border-r border-slate-200 font-mono text-slate-700">
+                            {rom.requisicao || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 font-medium text-slate-800">
                             {rom.cliente?.nome || '-'}
+                          </td>
+                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
+                            {rom.cliente?.telefone || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate">
                             {rom.observacoes || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.cliente?.telefone || '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                             {rom.endereco?.cidade || '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 font-mono text-slate-700">
-                            {rom.requisicao || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -387,9 +377,6 @@ export default function PlanilhaDiaria() {
                               {rom.periodo || '-'}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.horario || '-'}
-                          </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <select
                               value={rom.status || 'Pendente'}
@@ -417,8 +404,17 @@ export default function PlanilhaDiaria() {
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-medium">
                             {rom.motoboy?.nome || '-'}
                           </td>
-                          <td className="px-2 py-1.5 text-slate-700 font-semibold">
+                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-semibold">
                             R$ {rom.taxa ? parseFloat(rom.taxa).toFixed(2) : '0.00'}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <Link
+                              to={`/?id=${rom.id}`}
+                              className="hover:opacity-80 transition-opacity"
+                              style={{ color: '#376295' }}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
                           </td>
                         </tr>
                       ))
