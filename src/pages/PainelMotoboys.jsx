@@ -396,7 +396,7 @@ export default function PainelMotoboys() {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <div
             onClick={(e) => {
               e.stopPropagation();
@@ -433,25 +433,6 @@ export default function PainelMotoboys() {
               <span className="text-sm font-bold text-slate-700">Entregues</span>
             </div>
             <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>{statsTotal.entregues}</div>
-          </div>
-
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setFiltroStatus('a_caminho');
-            }}
-            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md bg-white"
-            style={{
-              border: filtroStatus === 'a_caminho' ? '2px solid #f97316' : '2px solid transparent'
-            }}
-          >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                <Clock className="w-6 h-6" style={{ color: '#f97316' }} />
-              </div>
-              <span className="text-sm font-bold text-slate-700">A Caminho</span>
-            </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>{statsTotal.aCaminho}</div>
           </div>
 
           <div
@@ -518,7 +499,7 @@ export default function PainelMotoboys() {
         </div>
 
         {/* Tabela de Ganhos Semanais */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6 max-w-2xl">
           <div className="px-3 py-2 flex items-center justify-between" style={{ backgroundColor: '#22c55e' }}>
             <h2 className="text-sm font-bold text-white">Ganhos da Semana</h2>
             <div className="text-right">
