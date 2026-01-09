@@ -260,6 +260,10 @@ export default function EditarRomaneio() {
   const [clientesSelecionados, setClientesSelecionados] = useState([]);
 
   const [clienteEnderecos, setClienteEnderecos] = useState([]);
+  // Todos os endereços de todos os clientes (para seleção quando há múltiplos clientes)
+  const [todosEnderecos, setTodosEnderecos] = useState([]);
+  // Endereço único selecionado para o romaneio
+  const [enderecoSelecionado, setEnderecoSelecionado] = useState(null);
   const [showNovoEndereco, setShowNovoEndereco] = useState(false);
   const [enderecoEditando, setEnderecoEditando] = useState(null);
   const [novoEndereco, setNovoEndereco] = useState({
@@ -268,7 +272,8 @@ export default function EditarRomaneio() {
     complemento: '',
     bairro: '',
     cidade: '',
-    cep: ''
+    cep: '',
+    observacoes: ''
   });
 
   const [formData, setFormData] = useState({
@@ -424,9 +429,43 @@ export default function EditarRomaneio() {
         setClientesSelecionados(clientesSelecionadosTemp);
         setBuscarCliente('');
 
-        // Carregar endereços do cliente principal
+        // Carregar endereços de todos os clientes
+        const todosEnderecosTemp = [];
+        for (const cliente of clientesSelecionadosTemp) {
+          const { data: enderecosCliente, error: errorEnderecos } = await supabase
+            .from('enderecos')
+            .select('*')
+            .eq('cliente_id', cliente.id)
+            .order('is_principal', { ascending: false });
+
+          if (!errorEnderecos && enderecosCliente) {
+            const enderecosComCliente = enderecosCliente.map(end => ({
+              ...end,
+              cliente_nome: cliente.nome
+            }));
+            todosEnderecosTemp.push(...enderecosComCliente);
+          }
+        }
+        setTodosEnderecos(todosEnderecosTemp);
+
+        // Carregar endereços do cliente principal (para compatibilidade)
         if (entrega.cliente_id) {
           await carregarEnderecosCliente(entrega.cliente_id);
+        }
+
+        // Definir endereço selecionado baseado no endereco_id da entrega
+        if (entrega.endereco_id) {
+          const enderecoAtual = todosEnderecosTemp.find(e => e.id === entrega.endereco_id);
+          if (enderecoAtual) {
+            setEnderecoSelecionado(enderecoAtual);
+          } else if (enderecoDisplay) {
+            // Se não encontrar nas listas, usar o snapshot
+            setEnderecoSelecionado({
+              ...enderecoDisplay,
+              cliente_id: entrega.cliente_id,
+              cliente_nome: entrega.cliente?.nome || ''
+            });
+          }
         }
 
         setLoadingEntrega(false);
@@ -487,6 +526,32 @@ export default function EditarRomaneio() {
       await carregarEnderecosCliente(cliente.id);
     }
 
+    // Buscar e adicionar endereços do cliente à lista global
+    try {
+      const { data, error } = await supabase
+        .from('enderecos')
+        .select('*')
+        .eq('cliente_id', cliente.id)
+        .order('is_principal', { ascending: false });
+
+      if (!error && data) {
+        const enderecosComCliente = data.map(end => ({
+          ...end,
+          cliente_nome: cliente.nome
+        }));
+        setTodosEnderecos(prev => {
+          const novosEnderecos = [...prev, ...enderecosComCliente];
+          // Se é o primeiro endereço adicionado, seleciona automaticamente
+          if (prev.length === 0 && enderecosComCliente.length > 0) {
+            setEnderecoSelecionado(enderecosComCliente[0]);
+          }
+          return novosEnderecos;
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar endereços do cliente:', error);
+    }
+
     setBuscarCliente('');
     setClientesSugestoes([]);
     toast.success(`Cliente ${cliente.nome} adicionado!`);
@@ -500,8 +565,25 @@ export default function EditarRomaneio() {
       return;
     }
 
+    // Cancelar edição se o endereço sendo editado pertence a este cliente
+    const enderecoEditadoDoCliente = todosEnderecos.find(
+      e => e.id === enderecoEditando?.id && e.cliente_id === clienteId
+    );
+    if (enderecoEditadoDoCliente) {
+      setEnderecoEditando(null);
+    }
+
     // Remover cliente
     setClientesSelecionados(clientesSelecionados.filter(c => c.id !== clienteId));
+
+    // Remover endereços do cliente da lista global
+    const novosEnderecos = todosEnderecos.filter(e => e.cliente_id !== clienteId);
+    setTodosEnderecos(novosEnderecos);
+
+    // Se o endereço selecionado era desse cliente, limpar seleção
+    if (enderecoSelecionado && enderecoSelecionado.cliente_id === clienteId) {
+      setEnderecoSelecionado(null);
+    }
 
     // Se removeu o cliente principal, atualizar para o próximo
     if (formData.cliente_id === clienteId) {
@@ -547,6 +629,8 @@ export default function EditarRomaneio() {
   // Selecionar endereço
   const selecionarEndereco = (endereco) => {
     console.log('Selecionando endereço:', endereco);
+
+    setEnderecoSelecionado(endereco);
 
     setFormData(prevFormData => ({
       ...prevFormData,
@@ -714,12 +798,9 @@ export default function EditarRomaneio() {
     if (clientesSelecionados.length === 0) novosErros.cliente = 'Adicione pelo menos um cliente';
     if (!formData.numero_requisicao) novosErros.requisicao = 'Número de requisição obrigatório';
 
-    // Validar endereço
-    if (!formData.endereco_id) {
-      // Se não tem endereço cadastrado selecionado, validar novo endereço
-      if (!novoEndereco.logradouro || !novoEndereco.numero || !novoEndereco.bairro || !novoEndereco.cidade) {
-        novosErros.endereco = 'Preencha todos os campos do endereço';
-      }
+    // Validar endereço - usar enderecoSelecionado
+    if (!enderecoSelecionado) {
+      novosErros.endereco = 'Selecione um endereço para a entrega';
     }
 
     if (!formData.regiao) novosErros.regiao = 'Selecione a região';
@@ -856,65 +937,19 @@ export default function EditarRomaneio() {
         return;
       }
 
-      // Se não tem endereço selecionado, criar novo endereço no banco
-      let enderecoIdFinal = formData.endereco_id;
-      let enderecoTexto = formData.endereco;
-      let enderecoSnapshot = {};
+      // Usar enderecoSelecionado diretamente
+      const enderecoTexto = enderecoSelecionado.endereco_completo ||
+        `${enderecoSelecionado.logradouro}, ${enderecoSelecionado.numero} - ${enderecoSelecionado.bairro}, ${enderecoSelecionado.cidade}`;
 
-      if (!formData.endereco_id && novoEndereco.logradouro) {
-        console.log('📍 Criando novo endereço:', novoEndereco);
-        const enderecoCompleto = `${novoEndereco.logradouro}, ${novoEndereco.numero}${novoEndereco.complemento ? ' - ' + novoEndereco.complemento : ''} - ${novoEndereco.bairro}, ${novoEndereco.cidade} - SC`;
-
-        const enderecoParaInserir = {
-          cliente_id: formData.cliente_id,
-          logradouro: novoEndereco.logradouro,
-          numero: novoEndereco.numero,
-          complemento: novoEndereco.complemento || null,
-          bairro: novoEndereco.bairro,
-          cidade: novoEndereco.cidade,
-          estado: 'SC',
-          cep: novoEndereco.cep || null,
-          regiao: formData.regiao,
-          is_principal: false,
-          endereco_completo: enderecoCompleto
-        };
-
-        console.log('📍 Dados do endereço a inserir:', enderecoParaInserir);
-
-        const { data: novoEnd, error: endError } = await supabase
-          .from('enderecos')
-          .insert([enderecoParaInserir])
-          .select()
-          .single();
-
-        if (endError) {
-          console.error('❌ Erro ao criar endereço:', endError);
-          toast.error('Erro ao criar endereço: ' + endError.message, { id: toastId });
-          setLoading(false);
-          return;
-        } else {
-          console.log('✅ Endereço criado com sucesso:', novoEnd);
-          enderecoIdFinal = novoEnd.id;
-          enderecoTexto = enderecoCompleto;
-
-          // Preparar snapshot do novo endereço
-          enderecoSnapshot = {
-            endereco_logradouro: novoEnd.logradouro,
-            endereco_numero: novoEnd.numero,
-            endereco_complemento: novoEnd.complemento,
-            endereco_bairro: novoEnd.bairro,
-            endereco_cidade: novoEnd.cidade,
-            endereco_cep: novoEnd.cep
-          };
-
-          // Adicionar o novo endereço à lista local
-          setClienteEnderecos(prev => {
-            const novos = [...prev, novoEnd];
-            console.log('📋 Lista de endereços atualizada:', novos);
-            return novos;
-          });
-        }
-      }
+      // Snapshot dos dados do endereço no momento da atualização
+      const enderecoSnapshot = {
+        endereco_logradouro: enderecoSelecionado.logradouro,
+        endereco_numero: enderecoSelecionado.numero,
+        endereco_complemento: enderecoSelecionado.complemento,
+        endereco_bairro: enderecoSelecionado.bairro,
+        endereco_cidade: enderecoSelecionado.cidade,
+        endereco_cep: enderecoSelecionado.cep
+      };
 
       // Buscar ID do motoboy pelo nome
       let motoboyId = null;
@@ -928,26 +963,6 @@ export default function EditarRomaneio() {
         motoboyId = motoboy?.id || null;
       }
 
-      // Buscar dados atuais do endereço para fazer snapshot (se ainda não foi definido)
-      if (enderecoIdFinal && Object.keys(enderecoSnapshot).length === 0) {
-        const { data: enderecoAtual } = await supabase
-          .from('enderecos')
-          .select('logradouro, numero, complemento, bairro, cidade, cep')
-          .eq('id', enderecoIdFinal)
-          .maybeSingle();
-
-        if (enderecoAtual) {
-          enderecoSnapshot = {
-            endereco_logradouro: enderecoAtual.logradouro,
-            endereco_numero: enderecoAtual.numero,
-            endereco_complemento: enderecoAtual.complemento,
-            endereco_bairro: enderecoAtual.bairro,
-            endereco_cidade: enderecoAtual.cidade,
-            endereco_cep: enderecoAtual.cep
-          };
-        }
-      }
-
       // Preparar array com IDs dos clientes adicionais (todos exceto o primeiro)
       const clientesAdicionais = clientesSelecionados.slice(1).map(c => c.id);
 
@@ -956,7 +971,7 @@ export default function EditarRomaneio() {
         .from('entregas')
         .update({
           cliente_id: formData.cliente_id,
-          endereco_id: enderecoIdFinal || null,
+          endereco_id: enderecoSelecionado.id,
           requisicao: formData.numero_requisicao,
           endereco_destino: enderecoTexto,
           regiao: formData.regiao,
@@ -1121,51 +1136,265 @@ export default function EditarRomaneio() {
             </div>
           )}
 
-          {/* Endereço de Entrega */}
-          {formData.cliente_id && (
+          {/* Seleção de Endereço - Agrupado por Cliente */}
+          {clientesSelecionados.length > 0 && (
             <div style={{ marginBottom: '1rem' }}>
               <label style={{
                 display: 'block',
                 fontSize: '0.875rem',
-                fontWeight: '500',
+                fontWeight: '600',
                 color: theme.colors.text,
-                marginBottom: '0.5rem'
+                marginBottom: '0.75rem'
               }}>
                 Endereço de Entrega *
               </label>
+              {clientesSelecionados.map(cliente => {
+                const enderecosDoCliente = todosEnderecos.filter(e => e.cliente_id === cliente.id);
 
-              {!showNovoEndereco && clienteEnderecos.length > 0 ? (
-                <div>
-                  {/* Lista de endereços com opções de editar/excluir */}
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    {clienteEnderecos.map(endereco => {
-                      const selecionado = formData.endereco_id === endereco.id;
-                      const estaEditando = enderecoEditando?.id === endereco.id;
+                return (
+                  <div
+                    key={cliente.id}
+                    style={{
+                      marginBottom: '1rem',
+                      padding: '1rem',
+                      background: theme.colors.background,
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${theme.colors.border}`
+                    }}
+                  >
+                    {/* Cabeçalho do cliente */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '0.75rem'
+                    }}>
+                      <h4 style={{
+                        margin: 0,
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: theme.colors.primary
+                      }}>
+                        {cliente.nome}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setShowNovoEndereco(showNovoEndereco === cliente.id ? null : cliente.id)}
+                        style={{
+                          padding: '0.25rem 0.75rem',
+                          background: 'white',
+                          color: theme.colors.primary,
+                          border: `1px solid ${theme.colors.primary}`,
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {showNovoEndereco === cliente.id ? 'Cancelar' : '+ Novo Endereço'}
+                      </button>
+                    </div>
 
-                      return (
-                        <div
-                          key={endereco.id}
+                    {/* Formulário de Novo Endereço */}
+                    {showNovoEndereco === cliente.id && (
+                      <div style={{
+                        padding: '1rem',
+                        background: 'white',
+                        borderRadius: '0.375rem',
+                        border: `1px solid ${theme.colors.border}`,
+                        marginBottom: '0.75rem'
+                      }}>
+                        <h5 style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.75rem' }}>
+                          Cadastrar Novo Endereço
+                        </h5>
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                          <input
+                            type="text"
+                            value={novoEndereco.logradouro}
+                            onChange={(e) => setNovoEndereco({ ...novoEndereco, logradouro: e.target.value })}
+                            placeholder="Rua *"
+                            style={{
+                              padding: '0.5rem',
+                              border: `1px solid ${theme.colors.border}`,
+                              borderRadius: '0.375rem',
+                              fontSize: '0.875rem'
+                            }}
+                          />
+                          <input
+                            type="text"
+                            value={novoEndereco.numero}
+                            onChange={(e) => setNovoEndereco({ ...novoEndereco, numero: e.target.value })}
+                            placeholder="Número *"
+                            style={{
+                              padding: '0.5rem',
+                              border: `1px solid ${theme.colors.border}`,
+                              borderRadius: '0.375rem',
+                              fontSize: '0.875rem'
+                            }}
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={novoEndereco.complemento}
+                          onChange={(e) => setNovoEndereco({ ...novoEndereco, complemento: e.target.value })}
+                          placeholder="Complemento"
                           style={{
-                            padding: '0.75rem',
-                            border: `2px solid ${selecionado ? theme.colors.primary : theme.colors.border}`,
+                            width: '100%',
+                            padding: '0.5rem',
+                            border: `1px solid ${theme.colors.border}`,
                             borderRadius: '0.375rem',
-                            marginBottom: '0.5rem',
-                            background: selecionado ? '#f0f9ff' : 'white'
+                            fontSize: '0.875rem',
+                            marginBottom: '0.5rem'
+                          }}
+                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                          <input
+                            type="text"
+                            value={novoEndereco.bairro}
+                            onChange={(e) => setNovoEndereco({ ...novoEndereco, bairro: e.target.value })}
+                            placeholder="Bairro *"
+                            list="bairros-sugestoes"
+                            style={{
+                              padding: '0.5rem',
+                              border: `1px solid ${theme.colors.border}`,
+                              borderRadius: '0.375rem',
+                              fontSize: '0.875rem'
+                            }}
+                          />
+                          <input
+                            type="text"
+                            value={novoEndereco.cidade}
+                            onChange={(e) => {
+                              const cidadeNormalizada = normalizarCidade(e.target.value);
+                              setNovoEndereco({ ...novoEndereco, cidade: cidadeNormalizada });
+                            }}
+                            placeholder="Cidade *"
+                            list="cidades-sugestoes"
+                            style={{
+                              padding: '0.5rem',
+                              border: `1px solid ${theme.colors.border}`,
+                              borderRadius: '0.375rem',
+                              fontSize: '0.875rem'
+                            }}
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={novoEndereco.cep}
+                          onChange={(e) => setNovoEndereco({ ...novoEndereco, cep: e.target.value })}
+                          placeholder="CEP"
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: '0.375rem',
+                            fontSize: '0.875rem',
+                            marginBottom: '0.5rem'
+                          }}
+                        />
+                        <textarea
+                          value={novoEndereco.observacoes}
+                          onChange={(e) => setNovoEndereco({ ...novoEndereco, observacoes: e.target.value })}
+                          placeholder="Observações (opcional)"
+                          rows={2}
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: '0.375rem',
+                            fontSize: '0.875rem',
+                            marginBottom: '0.75rem',
+                            resize: 'vertical'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!novoEndereco.logradouro || !novoEndereco.numero || !novoEndereco.bairro || !novoEndereco.cidade) {
+                              toast.error('Preencha todos os campos obrigatórios');
+                              return;
+                            }
+                            try {
+                              const enderecoCompleto = `${novoEndereco.logradouro}, ${novoEndereco.numero}${novoEndereco.complemento ? ' - ' + novoEndereco.complemento : ''} - ${novoEndereco.bairro}, ${novoEndereco.cidade} - SC`;
+                              const regiaoDetectada = detectarRegiao(novoEndereco.cidade, novoEndereco.bairro);
+
+                              const { data, error } = await supabase
+                                .from('enderecos')
+                                .insert([{
+                                  cliente_id: cliente.id,
+                                  logradouro: novoEndereco.logradouro,
+                                  numero: novoEndereco.numero,
+                                  complemento: novoEndereco.complemento || null,
+                                  bairro: novoEndereco.bairro,
+                                  cidade: novoEndereco.cidade,
+                                  estado: 'SC',
+                                  cep: novoEndereco.cep || null,
+                                  regiao: regiaoDetectada || '',
+                                  is_principal: false,
+                                  endereco_completo: enderecoCompleto,
+                                  observacoes: novoEndereco.observacoes || null
+                                }])
+                                .select()
+                                .single();
+
+                              if (error) throw error;
+
+                              const novoEnderecoSalvo = {
+                                ...data,
+                                cliente_nome: cliente.nome
+                              };
+                              setTodosEnderecos([...todosEnderecos, novoEnderecoSalvo]);
+                              setEnderecoSelecionado(novoEnderecoSalvo);
+                              if (regiaoDetectada) {
+                                handleRegiaoChange(regiaoDetectada);
+                              }
+                              setNovoEndereco({ logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', cep: '', observacoes: '' });
+                              setShowNovoEndereco(null);
+                              toast.success('Endereço cadastrado com sucesso!');
+                            } catch (error) {
+                              console.error('Erro ao salvar endereço:', error);
+                              toast.error('Erro ao salvar endereço');
+                            }
+                          }}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            background: theme.colors.primary,
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.875rem',
+                            cursor: 'pointer'
                           }}
                         >
-                          {estaEditando ? (
-                            // Formulário de edição inline
-                            <div style={{ padding: '0.5rem' }}>
-                              <h4 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '1rem' }}>
-                                Editando Endereço
-                              </h4>
+                          Salvar Endereço
+                        </button>
+                      </div>
+                    )}
 
+                    {/* Lista de Endereços do Cliente */}
+                    {enderecosDoCliente.length > 0 ? (
+                      enderecosDoCliente.map((endereco) => {
+                        // Se este endereço está sendo editado, mostrar formulário de edição
+                        if (enderecoEditando?.id === endereco.id) {
+                          return (
+                            <div
+                              key={endereco.id}
+                              style={{
+                                padding: '0.75rem',
+                                border: `2px solid ${theme.colors.primary}`,
+                                borderRadius: '0.375rem',
+                                marginBottom: '0.5rem',
+                                background: 'white'
+                              }}
+                            >
+                              <h5 style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.75rem' }}>
+                                Editando Endereço
+                              </h5>
                               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                 <input
                                   type="text"
                                   value={enderecoEditando.logradouro}
                                   onChange={(e) => setEnderecoEditando({...enderecoEditando, logradouro: e.target.value})}
-                                  placeholder="Logradouro *"
+                                  placeholder="Rua *"
                                   style={{
                                     padding: '0.5rem',
                                     border: `1px solid ${theme.colors.border}`,
@@ -1186,7 +1415,6 @@ export default function EditarRomaneio() {
                                   }}
                                 />
                               </div>
-
                               <input
                                 type="text"
                                 value={enderecoEditando.complemento}
@@ -1201,7 +1429,6 @@ export default function EditarRomaneio() {
                                   marginBottom: '0.5rem'
                                 }}
                               />
-
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                 <input
                                   type="text"
@@ -1233,7 +1460,6 @@ export default function EditarRomaneio() {
                                   }}
                                 />
                               </div>
-
                               <input
                                 type="text"
                                 value={enderecoEditando.cep}
@@ -1248,11 +1474,60 @@ export default function EditarRomaneio() {
                                   marginBottom: '0.75rem'
                                 }}
                               />
-
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button
                                   type="button"
-                                  onClick={handleSalvarEdicaoEndereco}
+                                  onClick={async () => {
+                                    if (!enderecoEditando.logradouro || !enderecoEditando.numero || !enderecoEditando.bairro || !enderecoEditando.cidade) {
+                                      toast.error('Preencha todos os campos obrigatórios');
+                                      return;
+                                    }
+                                    try {
+                                      const enderecoCompleto = `${enderecoEditando.logradouro}, ${enderecoEditando.numero}${enderecoEditando.complemento ? ' - ' + enderecoEditando.complemento : ''} - ${enderecoEditando.bairro}, ${enderecoEditando.cidade} - SC`;
+                                      const regiaoDetectada = detectarRegiao(enderecoEditando.cidade, enderecoEditando.bairro);
+
+                                      const { error } = await supabase
+                                        .from('enderecos')
+                                        .update({
+                                          logradouro: enderecoEditando.logradouro,
+                                          numero: enderecoEditando.numero,
+                                          complemento: enderecoEditando.complemento || null,
+                                          bairro: enderecoEditando.bairro,
+                                          cidade: enderecoEditando.cidade,
+                                          cep: enderecoEditando.cep || null,
+                                          regiao: regiaoDetectada || enderecoEditando.regiao,
+                                          endereco_completo: enderecoCompleto
+                                        })
+                                        .eq('id', enderecoEditando.id);
+
+                                      if (error) throw error;
+
+                                      // Atualizar a lista local de endereços
+                                      const enderecoAtualizado = {
+                                        ...endereco,
+                                        ...enderecoEditando,
+                                        endereco_completo: enderecoCompleto,
+                                        regiao: regiaoDetectada || enderecoEditando.regiao
+                                      };
+                                      setTodosEnderecos(todosEnderecos.map(e =>
+                                        e.id === enderecoEditando.id ? enderecoAtualizado : e
+                                      ));
+
+                                      // Se o endereço editado estava selecionado, atualizar
+                                      if (enderecoSelecionado?.id === enderecoEditando.id) {
+                                        setEnderecoSelecionado(enderecoAtualizado);
+                                        if (regiaoDetectada) {
+                                          handleRegiaoChange(regiaoDetectada);
+                                        }
+                                      }
+
+                                      setEnderecoEditando(null);
+                                      toast.success('Endereço atualizado com sucesso!');
+                                    } catch (error) {
+                                      console.error('Erro ao atualizar endereço:', error);
+                                      toast.error('Erro ao atualizar endereço');
+                                    }
+                                  }}
                                   style={{
                                     flex: 1,
                                     padding: '0.5rem',
@@ -1268,7 +1543,7 @@ export default function EditarRomaneio() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={handleCancelarEdicao}
+                                  onClick={() => setEnderecoEditando(null)}
                                   style={{
                                     flex: 1,
                                     padding: '0.5rem',
@@ -1284,335 +1559,151 @@ export default function EditarRomaneio() {
                                 </button>
                               </div>
                             </div>
-                          ) : (
-                            // Exibição normal do endereço
-                            <div
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => selecionarEndereco(endereco)}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                    <input
-                                      type="radio"
-                                      name="endereco"
-                                      checked={selecionado}
-                                      onChange={() => selecionarEndereco(endereco)}
-                                      style={{ cursor: 'pointer' }}
-                                    />
-                                    <p style={{
-                                      margin: 0,
-                                      fontWeight: '500',
-                                      fontSize: '0.875rem'
-                                    }}>
-                                      {endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}, ${endereco.cidade}`}
-                                      {endereco.is_principal && (
-                                        <span style={{
-                                          marginLeft: '0.5rem',
-                                          padding: '0.125rem 0.5rem',
-                                          background: theme.colors.primary,
-                                          color: 'white',
-                                          borderRadius: '0.25rem',
-                                          fontSize: '0.65rem',
-                                          fontWeight: '600'
-                                        }}>
-                                          PRINCIPAL
-                                        </span>
-                                      )}
-                                    </p>
-                                  </div>
+                          );
+                        }
+
+                        // Caso contrário, mostrar endereço normal
+                        return (
+                          <div
+                            key={endereco.id}
+                            style={{
+                              padding: '0.75rem',
+                              border: `2px solid ${enderecoSelecionado?.id === endereco.id ? theme.colors.primary : theme.colors.border}`,
+                              borderRadius: '0.375rem',
+                              marginBottom: '0.5rem',
+                              background: enderecoSelecionado?.id === endereco.id ? '#f0f9ff' : 'white',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => selecionarEndereco(endereco)}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <input
+                                  type="radio"
+                                  name="endereco"
+                                  checked={enderecoSelecionado?.id === endereco.id}
+                                  onChange={() => selecionarEndereco(endereco)}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                                <div>
+                                  <p style={{ margin: 0, fontWeight: '500', fontSize: '0.875rem' }}>
+                                    {endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}, ${endereco.cidade}`}
+                                  </p>
                                   {endereco.regiao && (
                                     <p style={{
                                       margin: 0,
                                       fontSize: '0.75rem',
-                                      color: theme.colors.textLight,
-                                      marginLeft: '1.5rem'
+                                      color: theme.colors.textLight
                                     }}>
                                       Região: {endereco.regiao}
                                     </p>
                                   )}
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditarEndereco(endereco);
-                                    }}
-                                    style={{
-                                      padding: '0.25rem 0.5rem',
-                                      background: 'white',
-                                      color: theme.colors.primary,
-                                      border: `1px solid ${theme.colors.primary}`,
-                                      borderRadius: '0.25rem',
-                                      fontSize: '0.75rem',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Editar
-                                  </button>
-                                  {clienteEnderecos.length > 1 && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleExcluirEndereco(endereco.id);
-                                      }}
-                                      style={{
-                                        padding: '0.25rem 0.5rem',
-                                        background: 'none',
-                                        color: theme.colors.danger,
-                                        border: `1px solid ${theme.colors.danger}`,
-                                        borderRadius: '0.25rem',
-                                        fontSize: '0.75rem',
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      Excluir
-                                    </button>
-                                  )}
-                                </div>
                               </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditarEndereco(endereco);
+                                }}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  background: 'white',
+                                  color: theme.colors.primary,
+                                  border: `1px solid ${theme.colors.primary}`,
+                                  borderRadius: '0.25rem',
+                                  fontSize: '0.75rem',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Editar
+                              </button>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowNovoEndereco(true)}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      background: 'white',
-                      color: theme.colors.primary,
-                      border: `1px solid ${theme.colors.primary}`,
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    + Usar outro endereço
-                  </button>
-                </div>
-              ) : (
-                <div style={{
-                  padding: '1rem',
-                  background: theme.colors.background,
-                  borderRadius: '0.375rem',
-                  border: `1px solid ${theme.colors.border}`
-                }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '1rem' }}>
-                    Novo Endereço
-                  </h4>
-
-                  {/* Grid: Logradouro e Número */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
-                        Rua/Logradouro *
-                      </label>
-                      <input
-                        type="text"
-                        value={novoEndereco.logradouro}
-                        onChange={(e) => setNovoEndereco({...novoEndereco, logradouro: e.target.value})}
-                        placeholder="Ex: Rua das Flores"
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: `1px solid ${theme.colors.border}`,
-                          borderRadius: '0.375rem',
-                          fontSize: '0.875rem'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
-                        Número *
-                      </label>
-                      <input
-                        type="text"
-                        value={novoEndereco.numero}
-                        onChange={(e) => setNovoEndereco({...novoEndereco, numero: e.target.value})}
-                        placeholder="123"
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: `1px solid ${theme.colors.border}`,
-                          borderRadius: '0.375rem',
-                          fontSize: '0.875rem'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Complemento */}
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
-                      Complemento
-                    </label>
-                    <input
-                      type="text"
-                      value={novoEndereco.complemento}
-                      onChange={(e) => setNovoEndereco({...novoEndereco, complemento: e.target.value})}
-                      placeholder="Ex: Apto 101, Casa 2"
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: '0.375rem',
-                        fontSize: '0.875rem'
-                      }}
-                    />
-                  </div>
-
-                  {/* Grid: Bairro e Cidade */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
-                        Bairro *
-                      </label>
-                      <input
-                        type="text"
-                        value={novoEndereco.bairro}
-                        onChange={(e) => {
-                          const novoBairro = e.target.value;
-                          const novoEnderecoAtualizado = {...novoEndereco, bairro: novoBairro};
-                          setNovoEndereco(novoEnderecoAtualizado);
-                          // Detectar região automaticamente com os valores atualizados
-                          const regiaoDetectada = detectarRegiao(novoEnderecoAtualizado.cidade, novoBairro);
-                          if (regiaoDetectada) {
-                            handleRegiaoChange(regiaoDetectada);
-                          }
-                        }}
-                        placeholder="Ex: Centro"
-                        list="bairros-sugestoes"
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: `1px solid ${theme.colors.border}`,
-                          borderRadius: '0.375rem',
-                          fontSize: '0.875rem'
-                        }}
-                      />
-                      <datalist id="bairros-sugestoes">
-                        <option value="Centro" />
-                        <option value="Estados" />
-                        <option value="Pioneiros" />
-                        <option value="Nova Esperança" />
-                        <option value="Nações" />
-                        <option value="Barra" />
-                        <option value="Barra Sul" />
-                        <option value="Estaleiro" />
-                        <option value="Estaleirinho" />
-                        <option value="Taquaras" />
-                        <option value="Laranjeiras" />
-                        <option value="Praia dos Amores" />
-                        <option value="Praia Brava" />
-                        <option value="Tabuleiro" />
-                        <option value="Monte Alegre" />
-                        <option value="Vila Real" />
-                        <option value="Espinheiros" />
-                      </datalist>
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
-                        Cidade *
-                      </label>
-                      <input
-                        type="text"
-                        value={novoEndereco.cidade}
-                        onChange={(e) => {
-                          let novaCidade = e.target.value;
-
-                          // Normalizar BC para Balneário Camboriú
-                          novaCidade = normalizarCidade(novaCidade);
-
-                          const novoEnderecoAtualizado = {...novoEndereco, cidade: novaCidade};
-                          setNovoEndereco(novoEnderecoAtualizado);
-                          // Detectar região automaticamente com os valores atualizados
-                          const regiaoDetectada = detectarRegiao(novaCidade, novoEnderecoAtualizado.bairro);
-                          if (regiaoDetectada) {
-                            handleRegiaoChange(regiaoDetectada);
-                          }
-                        }}
-                        onBlur={(e) => {
-                          // Ao sair do campo, normalizar novamente
-                          const cidadeNormalizada = normalizarCidade(e.target.value);
-                          setNovoEndereco({...novoEndereco, cidade: cidadeNormalizada});
-                        }}
-                        placeholder="Ex: Balneário Camboriú ou BC"
-                        list="cidades-sugestoes"
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: `1px solid ${theme.colors.border}`,
-                          borderRadius: '0.375rem',
-                          fontSize: '0.875rem'
-                        }}
-                      />
-                      <datalist id="cidades-sugestoes">
-                        <option value="Balneário Camboriú" />
-                        <option value="Camboriú" />
-                        <option value="Itajaí" />
-                        <option value="Itapema" />
-                        <option value="Navegantes" />
-                        <option value="Penha" />
-                        <option value="Porto Belo" />
-                        <option value="Tijucas" />
-                        <option value="Piçarras" />
-                        <option value="Bombinhas" />
-                      </datalist>
-                    </div>
-                  </div>
-
-                  {/* CEP */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', marginBottom: '0.25rem' }}>
-                      CEP
-                    </label>
-                    <input
-                      type="text"
-                      value={novoEndereco.cep}
-                      onChange={(e) => setNovoEndereco({...novoEndereco, cep: e.target.value})}
-                      placeholder="88330-000"
-                      style={{
-                        width: '200px',
-                        padding: '0.5rem',
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: '0.375rem',
-                        fontSize: '0.875rem'
-                      }}
-                    />
-                  </div>
-
-                  {clienteEnderecos.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowNovoEndereco(false);
-                        setNovoEndereco({ logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', cep: '' });
-                      }}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        background: 'white',
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p style={{
                         color: theme.colors.textLight,
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: '0.375rem',
                         fontSize: '0.875rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ← Voltar aos endereços cadastrados
-                    </button>
-                  )}
-                </div>
-              )}
+                        fontStyle: 'italic',
+                        margin: 0
+                      }}>
+                        Nenhum endereço cadastrado. Clique em "+ Novo Endereço" para adicionar.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
               {errors.endereco && (
                 <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
                   {errors.endereco}
                 </p>
               )}
+
+              {/* Datalists para sugestões */}
+              <datalist id="bairros-sugestoes">
+                <option value="Centro" />
+                <option value="Estados" />
+                <option value="Pioneiros" />
+                <option value="Nova Esperança" />
+                <option value="Nações" />
+                <option value="Barra" />
+                <option value="Barra Sul" />
+                <option value="Estaleiro" />
+                <option value="Estaleirinho" />
+                <option value="Taquaras" />
+                <option value="Laranjeiras" />
+                <option value="Praia dos Amores" />
+                <option value="Praia Brava" />
+                <option value="Tabuleiro" />
+                <option value="Monte Alegre" />
+                <option value="Vila Real" />
+                <option value="Espinheiros" />
+              </datalist>
+              <datalist id="cidades-sugestoes">
+                <option value="Balneário Camboriú" />
+                <option value="Camboriú" />
+                <option value="Itajaí" />
+                <option value="Itapema" />
+                <option value="Navegantes" />
+                <option value="Penha" />
+                <option value="Porto Belo" />
+                <option value="Tijucas" />
+                <option value="Piçarras" />
+                <option value="Bombinhas" />
+              </datalist>
+              <datalist id="bairros-sugestoes-edit">
+                <option value="Centro" />
+                <option value="Estados" />
+                <option value="Pioneiros" />
+                <option value="Nova Esperança" />
+                <option value="Nações" />
+                <option value="Barra" />
+                <option value="Barra Sul" />
+                <option value="Estaleiro" />
+                <option value="Estaleirinho" />
+                <option value="Taquaras" />
+                <option value="Laranjeiras" />
+                <option value="Praia dos Amores" />
+                <option value="Praia Brava" />
+                <option value="Tabuleiro" />
+                <option value="Monte Alegre" />
+                <option value="Vila Real" />
+                <option value="Espinheiros" />
+              </datalist>
+              <datalist id="cidades-sugestoes-edit">
+                <option value="Balneário Camboriú" />
+                <option value="Camboriú" />
+                <option value="Itajaí" />
+                <option value="Itapema" />
+                <option value="Navegantes" />
+                <option value="Penha" />
+                <option value="Porto Belo" />
+                <option value="Tijucas" />
+                <option value="Piçarras" />
+                <option value="Bombinhas" />
+              </datalist>
             </div>
           )}
 
