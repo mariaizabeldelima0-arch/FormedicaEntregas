@@ -340,7 +340,7 @@ export default function PlanilhaDiaria() {
                             {rom.cliente?.nome || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.cliente?.telefone || '-'}
+                            {rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate">
                             {rom.observacoes || '-'}
