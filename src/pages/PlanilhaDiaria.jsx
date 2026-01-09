@@ -409,7 +409,7 @@ export default function PlanilhaDiaria() {
                           </td>
                           <td className="px-2 py-1.5">
                             <Link
-                              to={`/?id=${rom.id}`}
+                              to={`/detalhes-romaneio?id=${rom.id}`}
                               className="hover:opacity-80 transition-opacity"
                               style={{ color: '#376295' }}
                             >
