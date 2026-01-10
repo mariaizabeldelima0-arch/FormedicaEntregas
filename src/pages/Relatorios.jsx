@@ -15,7 +15,11 @@ import {
 import {
   ArrowLeft,
   Printer,
-  Search
+  Search,
+  Check,
+  Truck,
+  Sun,
+  Moon
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -178,13 +182,13 @@ export default function Relatorios() {
     const config = configs[status] || configs["Pendente"];
     return (
       <Badge
-        className="text-xs"
+        className="text-xs flex items-center gap-1"
         style={{
           backgroundColor: config.bgColor,
           color: config.textColor
         }}
       >
-        {status === "Entregue" ? "✓" : "🚛"} {config.label}
+        {status === "Entregue" ? <Check className="w-3 h-3" /> : <Truck className="w-3 h-3" />} {config.label}
       </Badge>
     );
   };
@@ -426,7 +430,9 @@ export default function Relatorios() {
                       {/* Manhã */}
                       {entregas.filter(e => e.periodo_entrega === 'Manhã').length > 0 && (
                         <div className="mb-3">
-                          <p className="text-sm font-semibold text-slate-700 mb-2">☀️ Manhã</p>
+                          <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1">
+                            <Sun className="w-4 h-4" /> Manhã
+                          </p>
                           <div className="space-y-2 pl-4">
                             {entregas.filter(e => e.periodo_entrega === 'Manhã').map(e => (
                               <Link
@@ -459,7 +465,9 @@ export default function Relatorios() {
                       {/* Tarde */}
                       {entregas.filter(e => e.periodo_entrega === 'Tarde').length > 0 && (
                         <div>
-                          <p className="text-sm font-semibold text-slate-700 mb-2">🌙 Tarde</p>
+                          <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1">
+                            <Moon className="w-4 h-4" /> Tarde
+                          </p>
                           <div className="space-y-2 pl-4">
                             {entregas.filter(e => e.periodo_entrega === 'Tarde').map(e => (
                               <Link

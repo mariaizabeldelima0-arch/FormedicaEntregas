@@ -62,6 +62,31 @@ const VALORES_ENTREGA = {
   }
 };
 
+// Valores para entrega única do Bruno (quando só tem 1 entrega no período)
+const VALORES_ENTREGA_UNICA_BRUNO = {
+  'BC': 12,
+  'NOVA ESPERANÇA': 15,
+  'CAMBORIÚ': 20,
+  'TABULEIRO': 15,
+  'MONTE ALEGRE': 15,
+  'BARRA': 15,
+  'ESTALEIRO': 25,
+  'TAQUARAS': 25,
+  'LARANJEIRAS': 25,
+  'ITAJAI': 25,
+  'ESPINHEIROS': 35,
+  'PRAIA DOS AMORES': 15,
+  'PRAIA BRAVA': 15,
+  'ITAPEMA': 35,
+  'NAVEGANTES': 50,
+  'PENHA': 75,
+  'PORTO BELO': 60,
+  'TIJUCAS': 87,
+  'PIÇARRAS': 80,
+  'BOMBINHAS': 90,
+  'CLINICA': 12
+};
+
 // Motoboy automático por região
 const MOTOBOY_POR_REGIAO = {
   'BC': 'Marcio',
@@ -304,6 +329,10 @@ export default function NovoRomaneio() {
     regiao: ''
   });
 
+  // Controle de entrega única para Bruno
+  const [isEntregaUnica, setIsEntregaUnica] = useState(false);
+  const [verificandoEntregaUnica, setVerificandoEntregaUnica] = useState(false);
+
   const [formData, setFormData] = useState({
     numero_requisicao: '',
     regiao: '',
@@ -317,7 +346,8 @@ export default function NovoRomaneio() {
     buscar_receita: false,
     observacoes: '',
     precisa_troco: false,
-    valor_troco: 0
+    valor_troco: 0,
+    valor_venda: 0
   });
 
   const [errors, setErrors] = useState({});
@@ -745,11 +775,91 @@ export default function NovoRomaneio() {
     }
   }, [formData.forma_pagamento]);
 
-  // Calcular valor automaticamente
-  const calcularValor = (regiao, motoboy) => {
+  // Formas de pagamento que precisam informar valor da venda
+  const formasPagamentoComValorVenda = ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'];
+
+  // Resetar valor_venda quando forma de pagamento mudar para uma que não precisa
+  useEffect(() => {
+    if (!formasPagamentoComValorVenda.includes(formData.forma_pagamento)) {
+      setFormData(prev => ({
+        ...prev,
+        valor_venda: 0
+      }));
+    }
+  }, [formData.forma_pagamento]);
+
+  // Verificar se Bruno tem entrega única no período
+  const verificarEntregaUnicaBruno = async (data, periodo, motoboy) => {
+    if (motoboy !== 'Bruno') {
+      setIsEntregaUnica(false);
+      return false;
+    }
+
+    setVerificandoEntregaUnica(true);
+    try {
+      // Buscar o ID do Bruno
+      const { data: motoboyData } = await supabase
+        .from('motoboys')
+        .select('id')
+        .eq('nome', 'Bruno')
+        .single();
+
+      if (!motoboyData) {
+        setIsEntregaUnica(false);
+        return false;
+      }
+
+      // Contar entregas do Bruno na data e período
+      const { count } = await supabase
+        .from('entregas')
+        .select('*', { count: 'exact', head: true })
+        .eq('motoboy_id', motoboyData.id)
+        .eq('data_entrega', data)
+        .eq('periodo', periodo);
+
+      const isUnica = count === 0; // Se não tem nenhuma, esta será a única
+      setIsEntregaUnica(isUnica);
+      return isUnica;
+    } catch (error) {
+      console.error('Erro ao verificar entrega única:', error);
+      setIsEntregaUnica(false);
+      return false;
+    } finally {
+      setVerificandoEntregaUnica(false);
+    }
+  };
+
+  // Verificar entrega única quando motoboy, data ou período mudar
+  useEffect(() => {
+    if (formData.motoboy === 'Bruno' && formData.data_entrega && formData.periodo) {
+      verificarEntregaUnicaBruno(formData.data_entrega, formData.periodo, formData.motoboy);
+    } else {
+      setIsEntregaUnica(false);
+    }
+  }, [formData.motoboy, formData.data_entrega, formData.periodo]);
+
+  // Calcular valor automaticamente (considera entrega única para Bruno)
+  const calcularValor = (regiao, motoboy, entregaUnica = isEntregaUnica) => {
     if (regiao === 'OUTRO' || !regiao || !motoboy) return 0;
+
+    // Se for Bruno e entrega única, usar tabela especial
+    if (motoboy === 'Bruno' && entregaUnica) {
+      return VALORES_ENTREGA_UNICA_BRUNO[regiao] || 0;
+    }
+
     return VALORES_ENTREGA[motoboy]?.[regiao] || 0;
   };
+
+  // Recalcular valor quando isEntregaUnica mudar
+  useEffect(() => {
+    if (formData.motoboy === 'Bruno' && formData.regiao && formData.regiao !== 'OUTRO') {
+      const novoValor = calcularValor(formData.regiao, formData.motoboy, isEntregaUnica);
+      setFormData(prev => ({
+        ...prev,
+        valor_entrega: novoValor
+      }));
+    }
+  }, [isEntregaUnica]);
 
   // Atualizar região
   const handleRegiaoChange = (regiao) => {
@@ -757,9 +867,9 @@ export default function NovoRomaneio() {
 
     setFormData(prevFormData => {
       const motoboy = regiao === 'OUTRO' ? prevFormData.motoboy : (MOTOBOY_POR_REGIAO[regiao] || 'Marcio');
-      const valor = calcularValor(regiao, motoboy);
+      const valor = calcularValor(regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
 
-      console.log('Novo motoboy:', motoboy, 'Novo valor:', valor);
+      console.log('Novo motoboy:', motoboy, 'Novo valor:', valor, 'Entrega única:', isEntregaUnica);
 
       return {
         ...prevFormData,
@@ -772,7 +882,7 @@ export default function NovoRomaneio() {
 
   // Atualizar motoboy
   const handleMotoboyChange = (motoboy) => {
-    const valor = calcularValor(formData.regiao, motoboy);
+    const valor = calcularValor(formData.regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
     setFormData({
       ...formData,
       motoboy,
@@ -803,6 +913,13 @@ export default function NovoRomaneio() {
     if (formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco) {
       if (!formData.valor_troco || formData.valor_troco <= 0) {
         novosErros.valor_troco = 'Informe o valor do troco';
+      }
+    }
+
+    // Validar valor da venda quando forma de pagamento exige
+    if (formasPagamentoComValorVenda.includes(formData.forma_pagamento)) {
+      if (!formData.valor_venda || formData.valor_venda <= 0) {
+        novosErros.valor_venda = 'Informe o valor a cobrar';
       }
     }
 
@@ -944,13 +1061,13 @@ export default function NovoRomaneio() {
       // Buscar ID do motoboy pelo nome
       let motoboyId = null;
       if (formData.motoboy) {
-        const { data: motoboy } = await supabase
+        const { data: motoboyData } = await supabase
           .from('motoboys')
           .select('id')
           .eq('nome', formData.motoboy)
-          .maybeSingle();
+          .limit(1);
 
-        motoboyId = motoboy?.id || null;
+        motoboyId = motoboyData?.[0]?.id || null;
       }
 
       const enderecoTexto = enderecoSelecionado.endereco_completo ||
@@ -984,6 +1101,7 @@ export default function NovoRomaneio() {
         clientes_adicionais: clientesAdicionais,
         precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,
         valor_troco: formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco ? formData.valor_troco : 0,
+        valor_venda: formasPagamentoComValorVenda.includes(formData.forma_pagamento) ? formData.valor_venda : 0,
         // Snapshot dos dados do endereço no momento da criação
         endereco_logradouro: enderecoSelecionado.logradouro,
         endereco_numero: enderecoSelecionado.numero,
@@ -1884,6 +2002,75 @@ export default function NovoRomaneio() {
             </div>
           </div>
 
+          {/* Valor a Cobrar - aparece para Receber Dinheiro, Receber Máquina e Pagar MP */}
+          {formasPagamentoComValorVenda.includes(formData.forma_pagamento) && (
+            <div style={{
+              marginBottom: '1rem',
+              padding: '1rem',
+              background: '#e8f5e9',
+              border: '2px solid #4caf50',
+              borderRadius: '0.5rem'
+            }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: '#2e7d32',
+                marginBottom: '0.5rem'
+              }}>
+                Valor a Cobrar (R$) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.valor_venda || ''}
+                onChange={(e) => setFormData({...formData, valor_venda: parseFloat(e.target.value) || 0})}
+                placeholder="Ex: 150.00"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${errors.valor_venda ? theme.colors.danger : '#4caf50'}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  background: 'white'
+                }}
+              />
+              {errors.valor_venda && (
+                <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  {errors.valor_venda}
+                </p>
+              )}
+              {!errors.valor_venda && formData.valor_venda > 0 && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  padding: '0.75rem',
+                  background: '#1b5e20',
+                  borderRadius: '0.375rem',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ margin: 0, color: 'white', fontSize: '0.875rem', fontWeight: '500' }}>
+                    {formData.forma_pagamento === 'Receber Máquina' ? 'Receber na Máquina:' :
+                     formData.forma_pagamento === 'Pagar MP' ? 'Cobrar via MP:' : 'Valor a Receber:'}
+                  </p>
+                  <p style={{ margin: '0.25rem 0 0 0', color: 'white', fontSize: '1.5rem', fontWeight: '700' }}>
+                    R$ {formData.valor_venda.toFixed(2).replace('.', ',')}
+                  </p>
+                </div>
+              )}
+              {!formData.valor_venda && (
+                <p style={{
+                  fontSize: '0.75rem',
+                  color: '#2e7d32',
+                  marginTop: '0.25rem',
+                  fontWeight: '500'
+                }}>
+                  Informe o valor a ser cobrado nesta entrega.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Pergunta de Troco - aparece apenas quando forma de pagamento é "Receber Dinheiro" */}
           {formData.forma_pagamento === 'Receber Dinheiro' && (
             <div style={{
@@ -1952,7 +2139,7 @@ export default function NovoRomaneio() {
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formData.valor_troco}
+                    value={formData.valor_troco || ''}
                     onChange={(e) => setFormData({...formData, valor_troco: parseFloat(e.target.value) || 0})}
                     placeholder="Ex: 50.00"
                     style={{
@@ -2018,6 +2205,29 @@ export default function NovoRomaneio() {
                 marginBottom: '0.5rem'
               }}>
                 Valor da Entrega (R$)
+                {formData.motoboy === 'Bruno' && isEntregaUnica && (
+                  <span style={{
+                    marginLeft: '0.5rem',
+                    padding: '2px 8px',
+                    backgroundColor: '#fef3c7',
+                    color: '#92400e',
+                    fontSize: '0.7rem',
+                    fontWeight: 'bold',
+                    borderRadius: '4px',
+                    border: '1px solid #fbbf24'
+                  }}>
+                    ENTREGA ÚNICA
+                  </span>
+                )}
+                {verificandoEntregaUnica && (
+                  <span style={{
+                    marginLeft: '0.5rem',
+                    fontSize: '0.7rem',
+                    color: theme.colors.muted
+                  }}>
+                    verificando...
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -2027,11 +2237,12 @@ export default function NovoRomaneio() {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
+                  border: `1px solid ${isEntregaUnica && formData.motoboy === 'Bruno' ? '#fbbf24' : theme.colors.border}`,
                   borderRadius: '0.375rem',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: theme.colors.primary
+                  color: theme.colors.primary,
+                  backgroundColor: isEntregaUnica && formData.motoboy === 'Bruno' ? '#fffbeb' : 'white'
                 }}
               />
             </div>

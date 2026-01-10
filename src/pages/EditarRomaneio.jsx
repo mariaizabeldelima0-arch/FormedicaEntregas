@@ -291,8 +291,12 @@ export default function EditarRomaneio() {
     valor_entrega: 0,
     item_geladeira: false,
     buscar_receita: false,
-    observacoes: ''
+    observacoes: '',
+    valor_venda: 0
   });
+
+  // Formas de pagamento que precisam informar valor da venda
+  const formasPagamentoComValorVenda = ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'];
 
   const [errors, setErrors] = useState({});
 
@@ -405,7 +409,8 @@ export default function EditarRomaneio() {
           valor_entrega: entrega.valor || 0,
           item_geladeira: entrega.item_geladeira || false,
           buscar_receita: entrega.buscar_receita || false,
-          observacoes: entrega.observacoes || ''
+          observacoes: entrega.observacoes || '',
+          valor_venda: entrega.valor_venda || 0
         });
 
         // Carregar cliente principal
@@ -809,6 +814,13 @@ export default function EditarRomaneio() {
     if (!formData.forma_pagamento) novosErros.pagamento = 'Forma de pagamento obrigatória';
     if (!formData.motoboy) novosErros.motoboy = 'Selecione o motoboy';
 
+    // Validar valor da venda quando forma de pagamento exige
+    if (formasPagamentoComValorVenda.includes(formData.forma_pagamento)) {
+      if (!formData.valor_venda || formData.valor_venda <= 0) {
+        novosErros.valor_venda = 'Informe o valor a cobrar';
+      }
+    }
+
     setErrors(novosErros);
     return Object.keys(novosErros).length === 0;
   };
@@ -954,17 +966,27 @@ export default function EditarRomaneio() {
       // Buscar ID do motoboy pelo nome
       let motoboyId = null;
       if (formData.motoboy) {
-        const { data: motoboy } = await supabase
+        const { data: motoboyData, error: motoboyError } = await supabase
           .from('motoboys')
           .select('id')
           .eq('nome', formData.motoboy)
-          .maybeSingle();
+          .limit(1);
 
-        motoboyId = motoboy?.id || null;
+        if (motoboyError) {
+          console.error('Erro ao buscar motoboy:', motoboyError);
+        }
+        motoboyId = motoboyData?.[0]?.id || null;
+        console.log('Motoboy selecionado:', formData.motoboy, 'ID encontrado:', motoboyId);
       }
 
       // Preparar array com IDs dos clientes adicionais (todos exceto o primeiro)
       const clientesAdicionais = clientesSelecionados.slice(1).map(c => c.id);
+
+      console.log('Salvando entrega com:', {
+        motoboy_id: motoboyId,
+        valor: formData.valor_entrega,
+        regiao: formData.regiao
+      });
 
       // Atualizar entrega com snapshot do endereço
       const { data, error } = await supabase
@@ -985,6 +1007,7 @@ export default function EditarRomaneio() {
           buscar_receita: formData.buscar_receita,
           observacoes: formData.observacoes,
           clientes_adicionais: clientesAdicionais,
+          valor_venda: formasPagamentoComValorVenda.includes(formData.forma_pagamento) ? formData.valor_venda : 0,
           // Atualizar snapshot com dados atuais do endereço
           ...enderecoSnapshot
         })
@@ -1877,6 +1900,75 @@ export default function EditarRomaneio() {
               </select>
             </div>
           </div>
+
+          {/* Valor a Cobrar - aparece para Receber Dinheiro, Receber Máquina e Pagar MP */}
+          {formasPagamentoComValorVenda.includes(formData.forma_pagamento) && (
+            <div style={{
+              marginBottom: '1rem',
+              padding: '1rem',
+              background: '#e8f5e9',
+              border: '2px solid #4caf50',
+              borderRadius: '0.5rem'
+            }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: '#2e7d32',
+                marginBottom: '0.5rem'
+              }}>
+                Valor a Cobrar (R$) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.valor_venda || ''}
+                onChange={(e) => setFormData({...formData, valor_venda: parseFloat(e.target.value) || 0})}
+                placeholder="Ex: 150.00"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${errors.valor_venda ? theme.colors.danger : '#4caf50'}`,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  background: 'white'
+                }}
+              />
+              {errors.valor_venda && (
+                <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  {errors.valor_venda}
+                </p>
+              )}
+              {!errors.valor_venda && formData.valor_venda > 0 && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  padding: '0.75rem',
+                  background: '#1b5e20',
+                  borderRadius: '0.375rem',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ margin: 0, color: 'white', fontSize: '0.875rem', fontWeight: '500' }}>
+                    {formData.forma_pagamento === 'Receber Máquina' ? 'Receber na Máquina:' :
+                     formData.forma_pagamento === 'Pagar MP' ? 'Cobrar via MP:' : 'Valor a Receber:'}
+                  </p>
+                  <p style={{ margin: '0.25rem 0 0 0', color: 'white', fontSize: '1.5rem', fontWeight: '700' }}>
+                    R$ {formData.valor_venda.toFixed(2).replace('.', ',')}
+                  </p>
+                </div>
+              )}
+              {!formData.valor_venda && (
+                <p style={{
+                  fontSize: '0.75rem',
+                  color: '#2e7d32',
+                  marginTop: '0.25rem',
+                  fontWeight: '500'
+                }}>
+                  Informe o valor a ser cobrado nesta entrega.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Grid: Motoboy e Valor */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>

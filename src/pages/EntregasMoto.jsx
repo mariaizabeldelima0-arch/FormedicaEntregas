@@ -1212,9 +1212,26 @@ export default function EntregasMoto() {
                                 </div>
                               )}
                               {entrega.forma_pagamento && (
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.forma_pagamento}</span>
+                                  {entrega.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(entrega.forma_pagamento) && (
+                                    <span style={{
+                                      backgroundColor: '#e8f5e9',
+                                      color: '#1b5e20',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 'bold',
+                                      marginLeft: '4px',
+                                      border: '1px solid #4caf50',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      COBRAR: R$ {entrega.valor_venda.toFixed(2)}
+                                    </span>
+                                  )}
                                   {entrega.precisa_troco && entrega.valor_troco > 0 && (
                                     <span style={{
                                       backgroundColor: '#fff3e0',
@@ -1365,9 +1382,26 @@ export default function EntregasMoto() {
                                 </div>
                               )}
                               {entrega.forma_pagamento && (
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.forma_pagamento}</span>
+                                  {entrega.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(entrega.forma_pagamento) && (
+                                    <span style={{
+                                      backgroundColor: '#e8f5e9',
+                                      color: '#1b5e20',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 'bold',
+                                      marginLeft: '4px',
+                                      border: '1px solid #4caf50',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      COBRAR: R$ {entrega.valor_venda.toFixed(2)}
+                                    </span>
+                                  )}
                                   {entrega.precisa_troco && entrega.valor_troco > 0 && (
                                     <span style={{
                                       backgroundColor: '#fff3e0',

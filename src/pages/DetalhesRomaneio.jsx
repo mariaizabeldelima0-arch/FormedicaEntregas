@@ -465,9 +465,27 @@ export default function DetalhesRomaneio() {
                       <div className="text-base font-semibold text-slate-900">
                         {romaneio.forma_pagamento}
                       </div>
-                      <div className="text-lg font-bold mt-1" style={{ color: '#376295' }}>
-                        R$ {(romaneio.valor || 0).toFixed(2)}
-                      </div>
+                      {romaneio.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento) ? (
+                        <div style={{
+                          marginTop: '0.5rem',
+                          padding: '0.75rem',
+                          background: '#1b5e20',
+                          borderRadius: '0.375rem',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ color: 'white', fontSize: '0.75rem', fontWeight: '500' }}>
+                            {romaneio.forma_pagamento === 'Receber Máquina' ? 'Receber na Máquina:' :
+                             romaneio.forma_pagamento === 'Pagar MP' ? 'Cobrar via MP:' : 'Valor a Receber:'}
+                          </div>
+                          <div style={{ color: 'white', fontSize: '1.25rem', fontWeight: '700' }}>
+                            R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-lg font-bold mt-1" style={{ color: '#376295' }}>
+                          R$ {(romaneio.valor || 0).toFixed(2)}
+                        </div>
+                      )}
                     </div>
                   </div>
 
