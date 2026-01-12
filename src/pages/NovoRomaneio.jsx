@@ -788,7 +788,7 @@ export default function NovoRomaneio() {
     }
   }, [formData.forma_pagamento]);
 
-  // Verificar se Bruno tem entrega única no período
+  // Verificar se Bruno tem entrega única em AMBOS os períodos (manhã E tarde)
   const verificarEntregaUnicaBruno = async (data, periodo, motoboy) => {
     if (motoboy !== 'Bruno') {
       setIsEntregaUnica(false);
@@ -809,15 +809,32 @@ export default function NovoRomaneio() {
         return false;
       }
 
-      // Contar entregas do Bruno na data e período
-      const { count } = await supabase
+      // Contar entregas do Bruno na data para MANHÃ
+      const { count: countManha } = await supabase
         .from('entregas')
         .select('*', { count: 'exact', head: true })
         .eq('motoboy_id', motoboyData.id)
         .eq('data_entrega', data)
-        .eq('periodo', periodo);
+        .eq('periodo', 'Manhã');
 
-      const isUnica = count === 0; // Se não tem nenhuma, esta será a única
+      // Contar entregas do Bruno na data para TARDE
+      const { count: countTarde } = await supabase
+        .from('entregas')
+        .select('*', { count: 'exact', head: true })
+        .eq('motoboy_id', motoboyData.id)
+        .eq('data_entrega', data)
+        .eq('periodo', 'Tarde');
+
+      // Determinar se o período atual será entrega única
+      const seriaUnicaNoPeriodoAtual = periodo === 'Manhã' ? countManha === 0 : countTarde === 0;
+
+      // Verificar se o outro período tem no máximo 1 entrega (ou seja, é única também)
+      const outroPeriodoTemUnica = periodo === 'Manhã'
+        ? (countTarde === 0 || countTarde === 1)
+        : (countManha === 0 || countManha === 1);
+
+      // Só é entrega única se AMBOS os períodos têm entregas únicas
+      const isUnica = seriaUnicaNoPeriodoAtual && outroPeriodoTemUnica;
       setIsEntregaUnica(isUnica);
       return isUnica;
     } catch (error) {
