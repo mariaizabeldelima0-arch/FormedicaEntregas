@@ -61,6 +61,31 @@ const VALORES_ENTREGA = {
   }
 };
 
+// Valores para entrega única do Bruno (quando tem entregas únicas em AMBOS períodos)
+const VALORES_ENTREGA_UNICA_BRUNO = {
+  'BC': 12,
+  'NOVA ESPERANÇA': 15,
+  'CAMBORIÚ': 20,
+  'TABULEIRO': 15,
+  'MONTE ALEGRE': 15,
+  'BARRA': 15,
+  'ESTALEIRO': 25,
+  'TAQUARAS': 25,
+  'LARANJEIRAS': 25,
+  'ITAJAI': 25,
+  'ESPINHEIROS': 35,
+  'PRAIA DOS AMORES': 15,
+  'PRAIA BRAVA': 15,
+  'ITAPEMA': 35,
+  'NAVEGANTES': 50,
+  'PENHA': 75,
+  'PORTO BELO': 60,
+  'TIJUCAS': 87,
+  'PIÇARRAS': 80,
+  'BOMBINHAS': 90,
+  'CLINICA': 12
+};
+
 // Motoboy automático por região
 const MOTOBOY_POR_REGIAO = {
   'BC': 'Marcio',
@@ -299,6 +324,78 @@ export default function EditarRomaneio() {
   const formasPagamentoComValorVenda = ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'];
 
   const [errors, setErrors] = useState({});
+  const [isEntregaUnica, setIsEntregaUnica] = useState(false);
+  const [verificandoEntregaUnica, setVerificandoEntregaUnica] = useState(false);
+
+  // Verificar se Bruno tem entrega única em AMBOS os períodos (manhã E tarde)
+  const verificarEntregaUnicaBruno = async (data, periodo, motoboy, entregaIdAtual) => {
+    if (motoboy !== 'Bruno') {
+      setIsEntregaUnica(false);
+      return false;
+    }
+
+    setVerificandoEntregaUnica(true);
+    try {
+      // Buscar o ID do Bruno
+      const { data: motoboyData } = await supabase
+        .from('motoboys')
+        .select('id')
+        .eq('nome', 'Bruno')
+        .single();
+
+      if (!motoboyData) {
+        setIsEntregaUnica(false);
+        return false;
+      }
+
+      // Contar entregas do Bruno na data para MANHÃ (excluindo a entrega atual)
+      let queryManha = supabase
+        .from('entregas')
+        .select('*', { count: 'exact', head: true })
+        .eq('motoboy_id', motoboyData.id)
+        .eq('data_entrega', data)
+        .eq('periodo', 'Manhã');
+
+      if (entregaIdAtual) {
+        queryManha = queryManha.neq('id', entregaIdAtual);
+      }
+
+      const { count: countManha } = await queryManha;
+
+      // Contar entregas do Bruno na data para TARDE (excluindo a entrega atual)
+      let queryTarde = supabase
+        .from('entregas')
+        .select('*', { count: 'exact', head: true })
+        .eq('motoboy_id', motoboyData.id)
+        .eq('data_entrega', data)
+        .eq('periodo', 'Tarde');
+
+      if (entregaIdAtual) {
+        queryTarde = queryTarde.neq('id', entregaIdAtual);
+      }
+
+      const { count: countTarde } = await queryTarde;
+
+      // Determinar se o período atual será entrega única
+      const seriaUnicaNoPeriodoAtual = periodo === 'Manhã' ? countManha === 0 : countTarde === 0;
+
+      // Verificar se o outro período tem no máximo 1 entrega (ou seja, é única também)
+      const outroPeriodoTemUnica = periodo === 'Manhã'
+        ? (countTarde === 0 || countTarde === 1)
+        : (countManha === 0 || countManha === 1);
+
+      // Só é entrega única se AMBOS os períodos têm entregas únicas
+      const isUnica = seriaUnicaNoPeriodoAtual && outroPeriodoTemUnica;
+      setIsEntregaUnica(isUnica);
+      return isUnica;
+    } catch (error) {
+      console.error('Erro ao verificar entrega única:', error);
+      setIsEntregaUnica(false);
+      return false;
+    } finally {
+      setVerificandoEntregaUnica(false);
+    }
+  };
 
   // Funções para gerenciar endereços do novo cliente
   const addEnderecoNovoCliente = () => {
@@ -761,11 +858,37 @@ export default function EditarRomaneio() {
     }
   };
 
-  // Calcular valor automaticamente
-  const calcularValor = (regiao, motoboy) => {
+  // Calcular valor automaticamente (considera entrega única para Bruno)
+  const calcularValor = (regiao, motoboy, entregaUnica = isEntregaUnica) => {
     if (regiao === 'OUTRO' || !regiao || !motoboy) return 0;
+
+    // Se for Bruno e entrega única, usar tabela especial
+    if (motoboy === 'Bruno' && entregaUnica) {
+      return VALORES_ENTREGA_UNICA_BRUNO[regiao] || 0;
+    }
+
     return VALORES_ENTREGA[motoboy]?.[regiao] || 0;
   };
+
+  // Verificar entrega única quando motoboy, data ou período mudar
+  useEffect(() => {
+    if (formData.motoboy === 'Bruno' && formData.data_entrega && formData.periodo) {
+      verificarEntregaUnicaBruno(formData.data_entrega, formData.periodo, formData.motoboy, entregaId);
+    } else {
+      setIsEntregaUnica(false);
+    }
+  }, [formData.motoboy, formData.data_entrega, formData.periodo]);
+
+  // Recalcular valor quando isEntregaUnica mudar
+  useEffect(() => {
+    if (formData.motoboy === 'Bruno' && formData.regiao && formData.regiao !== 'OUTRO') {
+      const novoValor = calcularValor(formData.regiao, formData.motoboy, isEntregaUnica);
+      setFormData(prev => ({
+        ...prev,
+        valor_entrega: novoValor
+      }));
+    }
+  }, [isEntregaUnica]);
 
   // Atualizar região
   const handleRegiaoChange = (regiao) => {
@@ -773,9 +896,9 @@ export default function EditarRomaneio() {
 
     setFormData(prevFormData => {
       const motoboy = regiao === 'OUTRO' ? prevFormData.motoboy : (MOTOBOY_POR_REGIAO[regiao] || 'Marcio');
-      const valor = calcularValor(regiao, motoboy);
+      const valor = calcularValor(regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
 
-      console.log('Novo motoboy:', motoboy, 'Novo valor:', valor);
+      console.log('Novo motoboy:', motoboy, 'Novo valor:', valor, 'Entrega única:', isEntregaUnica);
 
       return {
         ...prevFormData,
@@ -788,7 +911,7 @@ export default function EditarRomaneio() {
 
   // Atualizar motoboy
   const handleMotoboyChange = (motoboy) => {
-    const valor = calcularValor(formData.regiao, motoboy);
+    const valor = calcularValor(formData.regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
     setFormData({
       ...formData,
       motoboy,
