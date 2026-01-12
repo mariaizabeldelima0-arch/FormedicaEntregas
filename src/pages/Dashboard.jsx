@@ -706,6 +706,12 @@ export default function Dashboard() {
                                     <h3 className="font-bold text-slate-900 text-lg">
                                       #{romaneio.numero_requisicao}
                                     </h3>
+                                    <Badge className="text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-300">
+                                      <CalendarIcon className="w-3 h-3 mr-1" />
+                                      {romaneio.data_entrega_prevista
+                                        ? format(parseISO(romaneio.data_entrega_prevista), "dd/MM/yyyy", { locale: ptBR })
+                                        : "Sem data"}
+                                    </Badge>
                                     <StatusBadge status={romaneio.status} />
                                     {romaneio.item_geladeira && (
                                       <Badge className="bg-cyan-100 text-cyan-700 border-cyan-300 border">

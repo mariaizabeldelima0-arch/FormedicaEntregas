@@ -572,10 +572,8 @@ export default function DetalhesRomaneio() {
         </div>
       </div>
 
-      {/* Componente de impressão (oculto) */}
-      <div style={{ display: 'none' }}>
-        <ImpressaoRomaneio romaneio={romaneio} />
-      </div>
+      {/* Componente de impressão (oculto na tela, visível na impressão) */}
+      <ImpressaoRomaneio romaneio={romaneio} />
     </>
   );
 }
