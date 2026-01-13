@@ -2268,11 +2268,7 @@ export default function NovoRomaneio() {
           {/* Grid: Item de Geladeira e Buscar Receita */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             {/* Item de Geladeira */}
-            <div style={{
-              padding: '1rem',
-              background: formData.item_geladeira ? '#fef3c7' : theme.colors.background,
-              borderRadius: '0.375rem'
-            }}>
+            <div>
               <label style={{
                 display: 'block',
                 fontSize: '0.875rem',
@@ -2282,34 +2278,46 @@ export default function NovoRomaneio() {
               }}>
                 Item de Geladeira? *
               </label>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="geladeira"
-                    checked={formData.item_geladeira === true}
-                    onChange={() => setFormData({...formData, item_geladeira: true})}
-                  />
-                  <span style={{ fontSize: '0.875rem' }}>Sim</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="geladeira"
-                    checked={formData.item_geladeira === false}
-                    onChange={() => setFormData({...formData, item_geladeira: false})}
-                  />
-                  <span style={{ fontSize: '0.875rem' }}>Não</span>
-                </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, item_geladeira: true})}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: formData.item_geladeira ? '2px solid #0891b2' : '2px solid #e2e8f0',
+                    borderRadius: '0.375rem',
+                    background: formData.item_geladeira ? '#cffafe' : 'white',
+                    color: formData.item_geladeira ? '#0891b2' : '#64748b',
+                    fontWeight: formData.item_geladeira ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, item_geladeira: false})}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: !formData.item_geladeira ? '2px solid #64748b' : '2px solid #e2e8f0',
+                    borderRadius: '0.375rem',
+                    background: !formData.item_geladeira ? '#f1f5f9' : 'white',
+                    color: !formData.item_geladeira ? '#1e293b' : '#64748b',
+                    fontWeight: !formData.item_geladeira ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Não
+                </button>
               </div>
             </div>
 
             {/* Buscar Receita */}
-            <div style={{
-              padding: '1rem',
-              background: formData.buscar_receita ? '#fef3c7' : theme.colors.background,
-              borderRadius: '0.375rem'
-            }}>
+            <div>
               <label style={{
                 display: 'block',
                 fontSize: '0.875rem',
@@ -2317,27 +2325,43 @@ export default function NovoRomaneio() {
                 color: theme.colors.text,
                 marginBottom: '0.5rem'
               }}>
-                Buscar Receita? *
+                Reter Receita? *
               </label>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="receita"
-                    checked={formData.buscar_receita === true}
-                    onChange={() => setFormData({...formData, buscar_receita: true})}
-                  />
-                  <span style={{ fontSize: '0.875rem' }}>Sim</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="receita"
-                    checked={formData.buscar_receita === false}
-                    onChange={() => setFormData({...formData, buscar_receita: false})}
-                  />
-                  <span style={{ fontSize: '0.875rem' }}>Não</span>
-                </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, buscar_receita: true})}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: formData.buscar_receita ? '2px solid #f97316' : '2px solid #e2e8f0',
+                    borderRadius: '0.375rem',
+                    background: formData.buscar_receita ? '#ffedd5' : 'white',
+                    color: formData.buscar_receita ? '#c2410c' : '#64748b',
+                    fontWeight: formData.buscar_receita ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, buscar_receita: false})}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: !formData.buscar_receita ? '2px solid #64748b' : '2px solid #e2e8f0',
+                    borderRadius: '0.375rem',
+                    background: !formData.buscar_receita ? '#f1f5f9' : 'white',
+                    color: !formData.buscar_receita ? '#1e293b' : '#64748b',
+                    fontWeight: !formData.buscar_receita ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Não
+                </button>
               </div>
             </div>
           </div>

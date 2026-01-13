@@ -26,7 +26,13 @@
       "Bash(del \"C:\\\\Users\\\\Maria\\\\formedica-entregas-novo\\\\src\\\\pages\\\\DesignTest.jsx\")",
       "Bash(del nul)",
       "Bash(curl:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(timeout 5 tail:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(git push:*)",
+      "Bash(copy:*)",
+      "Bash(cmd /c copy:*)"
     ]
   }
 }

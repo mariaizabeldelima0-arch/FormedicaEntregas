@@ -793,6 +793,19 @@ export default function EntregasMoto() {
               <ClipboardList className="w-4 h-4 text-slate-600" />
               <span className="text-sm font-medium text-slate-700">Relatório do Dia</span>
             </button>
+
+            {/* Botão Romaneios do Dia */}
+            <button
+              onClick={() => {
+                const dataFormatada = selectedDate.toISOString().split('T')[0];
+                navigate(`/romaneios-do-dia?data=${dataFormatada}`);
+              }}
+              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              style={{ borderColor: '#890d5d' }}
+            >
+              <FileText className="w-4 h-4" style={{ color: '#890d5d' }} />
+              <span className="text-sm font-medium" style={{ color: '#890d5d' }}>Romaneios do Dia</span>
+            </button>
           </div>
         </div>
 
