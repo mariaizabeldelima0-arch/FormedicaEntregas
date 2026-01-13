@@ -315,7 +315,7 @@ export default function EntregasMoto() {
           periodo: 'Manhã',
           valor: 65.00,
           forma_pagamento: 'Pix - Aguardando',
-          reter_receita: true,
+          buscar_receita: true,
           cliente: {
             nome: 'Fernanda Lima Costa',
             telefone: '(47) 98888-7777'
@@ -391,7 +391,7 @@ export default function EntregasMoto() {
           periodo: 'Tarde',
           valor: 55.00,
           forma_pagamento: 'Dinheiro',
-          reter_receita: true,
+          buscar_receita: true,
           cliente: {
             nome: 'Ricardo Souza Lima',
             telefone: '(47) 99345-6789'
@@ -417,7 +417,7 @@ export default function EntregasMoto() {
           valor: 72.00,
           forma_pagamento: 'Pix',
           item_geladeira: true,
-          reter_receita: true,
+          buscar_receita: true,
           cliente: {
             nome: 'Beatriz Oliveira Santos',
             telefone: '(47) 98456-7890'
@@ -1264,7 +1264,7 @@ export default function EntregasMoto() {
                           {/* Lado Direito - Badges + Valor + Região + Ações */}
                           <div className="flex flex-col items-center gap-3">
                             {/* Badges Geladeira e Reter Receita */}
-                            {(entrega.item_geladeira || entrega.reter_receita) && (
+                            {(entrega.item_geladeira || entrega.buscar_receita) && (
                               <div className="flex items-center gap-2">
                                 {entrega.item_geladeira && (
                                   <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
@@ -1272,7 +1272,7 @@ export default function EntregasMoto() {
                                     Geladeira
                                   </span>
                                 )}
-                                {entrega.reter_receita && (
+                                {entrega.buscar_receita && (
                                   <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
                                     <FileText className="w-5 h-5" />
                                     Reter Receita
@@ -1434,7 +1434,7 @@ export default function EntregasMoto() {
                           {/* Lado Direito - Badges + Valor + Região + Ações */}
                           <div className="flex flex-col items-center gap-3">
                             {/* Badges Geladeira e Reter Receita */}
-                            {(entrega.item_geladeira || entrega.reter_receita) && (
+                            {(entrega.item_geladeira || entrega.buscar_receita) && (
                               <div className="flex items-center gap-2">
                                 {entrega.item_geladeira && (
                                   <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
@@ -1442,7 +1442,7 @@ export default function EntregasMoto() {
                                     Geladeira
                                   </span>
                                 )}
-                                {entrega.reter_receita && (
+                                {entrega.buscar_receita && (
                                   <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
                                     <FileText className="w-5 h-5" />
                                     Reter Receita

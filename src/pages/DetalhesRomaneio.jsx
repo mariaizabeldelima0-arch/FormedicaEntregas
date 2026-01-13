@@ -519,6 +519,50 @@ export default function DetalhesRomaneio() {
                     </div>
                   </div>
 
+                  {/* Item de Geladeira */}
+                  {romaneio.item_geladeira && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      padding: '12px 15px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      border: '2px solid #2196F3',
+                      backgroundColor: '#E3F2FD',
+                      color: '#1565C0',
+                      borderRadius: '8px'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>❄</span>
+                      <span>ITEM DE GELADEIRA</span>
+                      <span style={{ fontSize: '20px' }}>❄</span>
+                    </div>
+                  )}
+
+                  {/* Reter Receita */}
+                  {romaneio.buscar_receita && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      padding: '12px 15px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      border: '2px solid #FF9800',
+                      backgroundColor: '#FFF3E0',
+                      color: '#E65100',
+                      borderRadius: '8px'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>📋</span>
+                      <span>RETER RECEITA</span>
+                      <span style={{ fontSize: '20px' }}>📋</span>
+                    </div>
+                  )}
+
                   <div className="border-t border-slate-200 pt-4 mt-2">
                     <div className="text-xs text-slate-500 mb-2">
                       Pagamento Motoboy

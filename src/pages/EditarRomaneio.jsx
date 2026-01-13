@@ -120,9 +120,19 @@ const REGIOES = [
 ];
 
 const FORMAS_PAGAMENTO = [
-  'Pago', 'Dinheiro', 'Maquina', 'Troco P/', 'Via na Pasta',
-  'Só Entregar', 'Aguardando', 'Pix - Aguardando',
-  'Link - Aguardando', 'Boleto', 'Pagar MP'
+  'Aguardando',
+  'Boleto',
+  'Link Aguardando',
+  'Pagar MP',
+  'Pago Dinheiro',
+  'Pago Link',
+  'Pago Máquina',
+  'Pago Pix',
+  'Pix Aguardando',
+  'Receber Dinheiro',
+  'Receber Máquina',
+  'Só Entregar',
+  'Via na Pasta'
 ];
 
 // Mapeamento de cidades/bairros para regiões
@@ -327,6 +337,12 @@ export default function EditarRomaneio() {
   const [isEntregaUnica, setIsEntregaUnica] = useState(false);
   const [verificandoEntregaUnica, setVerificandoEntregaUnica] = useState(false);
 
+  // Controle de busca e navegação para forma de pagamento
+  const [buscaFormaPagamento, setBuscaFormaPagamento] = useState('');
+  const [formasPagamentoFiltradas, setFormasPagamentoFiltradas] = useState([]);
+  const [indicePagamentoSelecionado, setIndicePagamentoSelecionado] = useState(-1);
+  const [mostrarSugestoesPagamento, setMostrarSugestoesPagamento] = useState(false);
+
   // Verificar se Bruno tem entrega única em AMBOS os períodos (manhã E tarde)
   const verificarEntregaUnicaBruno = async (data, periodo, motoboy, entregaIdAtual) => {
     if (motoboy !== 'Bruno') {
@@ -509,6 +525,9 @@ export default function EditarRomaneio() {
           observacoes: entrega.observacoes || '',
           valor_venda: entrega.valor_venda || 0
         });
+
+        // Inicializar campo de busca de forma de pagamento
+        setBuscaFormaPagamento(entrega.forma_pagamento || '');
 
         // Carregar cliente principal
         const clientesSelecionadosTemp = [];
@@ -946,6 +965,53 @@ export default function EditarRomaneio() {
 
     setErrors(novosErros);
     return Object.keys(novosErros).length === 0;
+  };
+
+  // Busca de forma de pagamento
+  const handleBuscarFormaPagamento = (termo) => {
+    setBuscaFormaPagamento(termo);
+    setIndicePagamentoSelecionado(-1);
+    setMostrarSugestoesPagamento(true);
+
+    if (termo.length === 0) {
+      setFormasPagamentoFiltradas(FORMAS_PAGAMENTO);
+    } else {
+      const filtradas = FORMAS_PAGAMENTO.filter(forma =>
+        forma.toLowerCase().includes(termo.toLowerCase())
+      );
+      setFormasPagamentoFiltradas(filtradas);
+    }
+  };
+
+  // Navegação por teclado na busca de forma de pagamento
+  const handleKeyDownPagamento = (e) => {
+    if (formasPagamentoFiltradas.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setIndicePagamentoSelecionado(prev =>
+        prev < formasPagamentoFiltradas.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setIndicePagamentoSelecionado(prev =>
+        prev > 0 ? prev - 1 : formasPagamentoFiltradas.length - 1
+      );
+    } else if (e.key === 'Enter' && indicePagamentoSelecionado >= 0) {
+      e.preventDefault();
+      selecionarFormaPagamento(formasPagamentoFiltradas[indicePagamentoSelecionado]);
+    } else if (e.key === 'Escape') {
+      setMostrarSugestoesPagamento(false);
+    }
+  };
+
+  // Selecionar forma de pagamento
+  const selecionarFormaPagamento = (forma) => {
+    setFormData({...formData, forma_pagamento: forma});
+    setBuscaFormaPagamento(forma);
+    setMostrarSugestoesPagamento(false);
+    setFormasPagamentoFiltradas([]);
+    setIndicePagamentoSelecionado(-1);
   };
 
   // Cadastrar novo cliente
@@ -1995,7 +2061,7 @@ export default function EditarRomaneio() {
               </select>
             </div>
 
-            <div>
+            <div style={{ position: 'relative' }}>
               <label style={{
                 display: 'block',
                 fontSize: '0.875rem',
@@ -2005,9 +2071,22 @@ export default function EditarRomaneio() {
               }}>
                 Forma de Pagamento *
               </label>
-              <select
-                value={formData.forma_pagamento}
-                onChange={(e) => setFormData({...formData, forma_pagamento: e.target.value})}
+              <input
+                type="text"
+                value={buscaFormaPagamento}
+                onChange={(e) => handleBuscarFormaPagamento(e.target.value)}
+                onKeyDown={handleKeyDownPagamento}
+                onFocus={() => {
+                  setMostrarSugestoesPagamento(true);
+                  if (formasPagamentoFiltradas.length === 0) {
+                    setFormasPagamentoFiltradas(FORMAS_PAGAMENTO);
+                  }
+                }}
+                onBlur={() => {
+                  // Delay para permitir clique na sugestão
+                  setTimeout(() => setMostrarSugestoesPagamento(false), 200);
+                }}
+                placeholder="Digite ou selecione a forma de pagamento..."
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -2015,12 +2094,40 @@ export default function EditarRomaneio() {
                   borderRadius: '0.375rem',
                   fontSize: '0.875rem'
                 }}
-              >
-                <option value="">Selecione</option>
-                {FORMAS_PAGAMENTO.map(forma => (
-                  <option key={forma} value={forma}>{forma}</option>
-                ))}
-              </select>
+              />
+              {mostrarSugestoesPagamento && formasPagamentoFiltradas.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  background: 'white',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '0.375rem',
+                  marginTop: '0.25rem',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  zIndex: 1000
+                }}>
+                  {formasPagamentoFiltradas.map((forma, index) => (
+                    <div
+                      key={forma}
+                      onClick={() => selecionarFormaPagamento(forma)}
+                      onMouseEnter={() => setIndicePagamentoSelecionado(index)}
+                      style={{
+                        padding: '0.75rem',
+                        cursor: 'pointer',
+                        borderBottom: index < formasPagamentoFiltradas.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
+                        background: index === indicePagamentoSelecionado ? '#e3f2fd' : 'white',
+                        transition: 'background 0.15s'
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: '0.875rem' }}>{forma}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

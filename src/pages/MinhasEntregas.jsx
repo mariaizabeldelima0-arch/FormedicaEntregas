@@ -435,6 +435,11 @@ export default function MinhasEntregas() {
                       GELADEIRA
                     </Badge>
                   )}
+                  {romaneio.buscar_receita && (
+                    <Badge className="bg-orange-100 text-orange-700 border-orange-300">
+                      📋 RETER RECEITA
+                    </Badge>
+                  )}
                   {deveSerCobrado && (
                     <Badge className="bg-orange-100 text-orange-700 border-orange-400 border-2 font-bold">
                       <DollarSign className="w-4 h-4 mr-1" />
