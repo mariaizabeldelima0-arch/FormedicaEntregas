@@ -437,7 +437,8 @@ export default function MinhasEntregas() {
                   )}
                   {romaneio.buscar_receita && (
                     <Badge className="bg-orange-100 text-orange-700 border-orange-300">
-                      📋 RETER RECEITA
+                      <FileText className="w-3 h-3 mr-1" />
+                      RETER RECEITA
                     </Badge>
                   )}
                   {deveSerCobrado && (

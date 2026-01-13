@@ -1259,6 +1259,13 @@ export default function EntregasMoto() {
                                 </div>
                               )}
                             </div>
+
+                            {/* Linha 5: Observações */}
+                            {entrega.observacoes && (
+                              <div className="mt-2 text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
+                                <span className="font-medium">Obs:</span> {entrega.observacoes}
+                              </div>
+                            )}
                           </div>
 
                           {/* Lado Direito - Badges + Valor + Região + Ações */}
@@ -1429,6 +1436,13 @@ export default function EntregasMoto() {
                                 </div>
                               )}
                             </div>
+
+                            {/* Linha 5: Observações */}
+                            {entrega.observacoes && (
+                              <div className="mt-2 text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
+                                <span className="font-medium">Obs:</span> {entrega.observacoes}
+                              </div>
+                            )}
                           </div>
 
                           {/* Lado Direito - Badges + Valor + Região + Ações */}

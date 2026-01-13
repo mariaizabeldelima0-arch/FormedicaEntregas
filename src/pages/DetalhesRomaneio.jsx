@@ -557,9 +557,9 @@ export default function DetalhesRomaneio() {
                       color: '#E65100',
                       borderRadius: '8px'
                     }}>
-                      <span style={{ fontSize: '20px' }}>📋</span>
+                      <FileText size={20} />
                       <span>RETER RECEITA</span>
-                      <span style={{ fontSize: '20px' }}>📋</span>
+                      <FileText size={20} />
                     </div>
                   )}
 

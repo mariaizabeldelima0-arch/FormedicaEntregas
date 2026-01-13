@@ -77,9 +77,9 @@ export default function ImpressaoRomaneio({ romaneio }) {
           display: flex;
           justify-content: space-between;
           font-size: 11px;
-          color: #666;
+          color: #000;
           padding-bottom: 10px;
-          border-bottom: 1px solid #ddd;
+          border-bottom: 1px solid #000;
           margin-bottom: 20px;
         }
 
@@ -103,10 +103,11 @@ export default function ImpressaoRomaneio({ romaneio }) {
           font-size: 18px;
           font-weight: bold;
           margin: 0;
+          color: #000;
         }
 
         .print-box {
-          border: 1px solid #ddd;
+          border: 1px solid #000;
           padding: 12px;
           margin-bottom: 10px;
         }
@@ -115,6 +116,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           display: flex;
           justify-content: space-between;
           margin-bottom: 5px;
+          color: #000;
         }
 
         .print-row:last-child {
@@ -122,7 +124,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
         }
 
         .print-label {
-          color: #666;
+          color: #000;
           font-size: 11px;
         }
 
@@ -143,7 +145,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-grid-col {
           flex: 1;
-          border: 1px solid #ddd;
+          border: 1px solid #000;
           padding: 12px 15px;
         }
 
@@ -152,7 +154,8 @@ export default function ImpressaoRomaneio({ romaneio }) {
           font-size: 11px;
           margin-bottom: 10px;
           padding-bottom: 6px;
-          border-bottom: 1px solid #eee;
+          border-bottom: 1px solid #000;
+          color: #000;
         }
 
         .print-section-row {
@@ -160,6 +163,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           justify-content: space-between;
           margin-bottom: 6px;
           font-size: 11px;
+          color: #000;
         }
 
         .print-section-row:last-child {
@@ -167,27 +171,30 @@ export default function ImpressaoRomaneio({ romaneio }) {
         }
 
         .print-section-label {
-          color: #666;
+          color: #000;
         }
 
         .print-section-value {
           text-align: right;
+          color: #000;
         }
 
         .print-endereco-main {
           font-weight: bold;
           font-size: 12px;
           margin-bottom: 3px;
+          color: #000;
         }
 
         .print-endereco-line {
           font-size: 11px;
           margin-bottom: 2px;
+          color: #000;
         }
 
         .print-endereco-ref {
           font-size: 11px;
-          color: #666;
+          color: #000;
           font-style: italic;
           margin-top: 3px;
         }
@@ -195,6 +202,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
         .print-endereco-ac {
           font-size: 11px;
           margin-top: 3px;
+          color: #000;
         }
 
         .print-geladeira {
@@ -207,9 +215,9 @@ export default function ImpressaoRomaneio({ romaneio }) {
           font-size: 14px;
           font-weight: bold;
           text-transform: uppercase;
-          border: 2px solid #2196F3;
-          background-color: #E3F2FD;
-          color: #1565C0;
+          border: 2px solid #000;
+          background-color: #fff;
+          color: #000;
         }
 
         .print-geladeira-icon {
@@ -226,9 +234,9 @@ export default function ImpressaoRomaneio({ romaneio }) {
           font-size: 14px;
           font-weight: bold;
           text-transform: uppercase;
-          border: 2px solid #FF9800;
-          background-color: #FFF3E0;
-          color: #E65100;
+          border: 2px solid #000;
+          background-color: #fff;
+          color: #000;
         }
 
         .print-receita-icon {
@@ -236,13 +244,14 @@ export default function ImpressaoRomaneio({ romaneio }) {
         }
 
         .print-valor-box {
-          background-color: #FFFDE7;
-          border: 2px solid #FBC02D;
+          background-color: #fff;
+          border: 2px solid #000;
           padding: 10px;
           margin-bottom: 10px;
           text-align: center;
           font-size: 14px;
           font-weight: bold;
+          color: #000;
         }
 
         .print-valor-icon {
@@ -252,9 +261,9 @@ export default function ImpressaoRomaneio({ romaneio }) {
         .print-footer {
           text-align: center;
           font-size: 9px;
-          color: #666;
+          color: #000;
           padding-top: 8px;
-          border-top: 1px solid #ddd;
+          border-top: 1px solid #000;
           margin-top: 10px;
         }
 
@@ -341,38 +350,64 @@ export default function ImpressaoRomaneio({ romaneio }) {
           </div>
         </div>
 
-        {/* Item Geladeira */}
-        {romaneio.item_geladeira && (
-          <div className="print-geladeira">
-            <span className="print-geladeira-icon">❄</span>
-            <span>ITEM DE GELADEIRA - MANTER REFRIGERADO</span>
-            <span className="print-geladeira-icon">❄</span>
+        {/* Observações */}
+        {romaneio.observacoes && (
+          <div className="print-box">
+            <div className="print-section-title">OBSERVAÇÕES</div>
+            <div className="print-section-row" style={{ justifyContent: 'flex-start' }}>
+              <span className="print-section-value" style={{ textAlign: 'left' }}>{romaneio.observacoes}</span>
+            </div>
           </div>
         )}
 
-        {/* Buscar Receita */}
-        {romaneio.buscar_receita && (
-          <div className="print-receita">
-            <span className="print-receita-icon">📋</span>
-            <span>RETER RECEITA</span>
-            <span className="print-receita-icon">📋</span>
+        {/* Item Geladeira e Reter Receita - lado a lado */}
+        {(romaneio.item_geladeira || romaneio.buscar_receita) && (
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+            {romaneio.item_geladeira && (
+              <div className="print-geladeira" style={{ flex: 1, marginBottom: 0 }}>
+                <span className="print-geladeira-icon">❄</span>
+                <span>ITEM DE GELADEIRA</span>
+                <span className="print-geladeira-icon">❄</span>
+              </div>
+            )}
+            {romaneio.buscar_receita && (
+              <div className="print-receita" style={{ flex: 1, marginBottom: 0 }}>
+                <svg className="print-receita-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '20px', height: '20px'}}>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>RETER RECEITA</span>
+                <svg className="print-receita-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '20px', height: '20px'}}>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Valor a Cobrar */}
-        {romaneio.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento) && (
-          <div className="print-valor-box">
-            <span className="print-valor-icon">$</span>
-            COBRAR NA ENTREGA: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
+        {/* Valor a Cobrar e Troco - lado a lado */}
+        {(romaneio.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento)) || (romaneio.precisa_troco && romaneio.valor_troco > 0) ? (
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+            {romaneio.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento) && (
+              <div className="print-valor-box" style={{ flex: 1, marginBottom: 0 }}>
+                <span className="print-valor-icon">$</span>
+                COBRAR NA ENTREGA: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
+              </div>
+            )}
+            {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
+              <div className="print-valor-box" style={{ flex: 1, marginBottom: 0 }}>
+                TROCO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
+              </div>
+            )}
           </div>
-        )}
-
-        {/* Troco */}
-        {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
-          <div className="print-valor-box" style={{ backgroundColor: '#FFF3E0', borderColor: '#FF9800' }}>
-            TROCO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
-          </div>
-        )}
+        ) : null}
 
         {/* Footer */}
         <div className="print-footer">
