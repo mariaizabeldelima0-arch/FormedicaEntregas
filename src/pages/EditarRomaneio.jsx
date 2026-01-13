@@ -970,6 +970,7 @@ export default function EditarRomaneio() {
   // Busca de forma de pagamento
   const handleBuscarFormaPagamento = (termo) => {
     setBuscaFormaPagamento(termo);
+    setFormData(prev => ({...prev, forma_pagamento: termo}));
     setIndicePagamentoSelecionado(-1);
     setMostrarSugestoesPagamento(true);
 
@@ -1007,7 +1008,7 @@ export default function EditarRomaneio() {
 
   // Selecionar forma de pagamento
   const selecionarFormaPagamento = (forma) => {
-    setFormData({...formData, forma_pagamento: forma});
+    setFormData(prev => ({...prev, forma_pagamento: forma}));
     setBuscaFormaPagamento(forma);
     setMostrarSugestoesPagamento(false);
     setFormasPagamentoFiltradas([]);

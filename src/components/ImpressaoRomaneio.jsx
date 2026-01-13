@@ -71,6 +71,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           padding: 20px;
           max-width: 800px;
           margin: 0 auto;
+          position: relative;
         }
 
         .print-header-top {
@@ -270,9 +271,31 @@ export default function ImpressaoRomaneio({ romaneio }) {
         .print-footer div {
           margin-bottom: 2px;
         }
+
+        .print-carimbo-pago {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-25deg);
+          font-size: 80px;
+          font-weight: bold;
+          text-transform: uppercase;
+          color: #000;
+          border: 8px solid #000;
+          padding: 10px 40px;
+          opacity: 0.3;
+          pointer-events: none;
+          z-index: 100;
+          letter-spacing: 10px;
+        }
       `}</style>
 
       <div className="print-page">
+        {/* Carimbo PAGO - aparece quando NÃO precisa cobrar na entrega */}
+        {romaneio.forma_pagamento && !['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento) && (
+          <div className="print-carimbo-pago">PAGO</div>
+        )}
+
         {/* Logo e Titulo */}
         <div className="print-title">
           <img src="/logo-formedica.png" alt="Formédica" className="print-logo-img" />
