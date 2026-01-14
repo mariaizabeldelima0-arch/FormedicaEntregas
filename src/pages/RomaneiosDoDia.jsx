@@ -28,7 +28,7 @@ function RomaneioCard({ romaneio }) {
     <div className="romaneio-card" style={{ position: 'relative' }}>
       {/* Carimbo PAGO */}
       {isPago && (
-        <div style={{
+        <div className="carimbo-pago" style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
@@ -374,7 +374,7 @@ export default function RomaneiosDoDia() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate(-1)}
                   className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
                 >
                   <ChevronLeft className="w-6 h-6 text-white" />

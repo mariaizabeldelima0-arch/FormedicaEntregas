@@ -26,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft,
+  ChevronLeft,
   Send,
   Package,
   MapPin,
@@ -141,8 +141,8 @@ export default function DetalhesSedex() {
           <CardContent className="p-12 text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Entrega Não Encontrada</h2>
-            <Button onClick={() => navigate(createPageUrl("Sedex"))}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button onClick={() => navigate(-1)}>
+              <ChevronLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
           </CardContent>
@@ -174,62 +174,73 @@ export default function DetalhesSedex() {
   const currentData = isEditing ? editData : entrega;
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-slate-900">
-              {entrega.tipo_entrega} #{entrega.numero_registro}
-            </h1>
-            <p className="text-slate-600 mt-1">
-              Criado em {format(new Date(entrega.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-            </p>
-          </div>
-          {!isEditing && (
-            <>
-              <TipoBadge tipo={entrega.tipo_entrega} />
-              <StatusPagamentoBadge status={entrega.status_pagamento} />
-            </>
-          )}
-          <div className="flex gap-2">
-            {!isEditing ? (
-              <>
-                <Button variant="outline" onClick={handleEditStart}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Excluir
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja excluir esta entrega?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => deleteMutation.mutate()}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Confirmar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header com gradiente */}
+      <div className="py-8 shadow-sm" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              >
+                <ChevronLeft className="w-6 h-6 text-white" />
+              </button>
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  {entrega.tipo_entrega} #{entrega.numero_registro}
+                </h1>
+                <p className="text-white/80 text-sm mt-1">
+                  Criado em {format(new Date(entrega.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isEditing && (
+                <>
+                  <span className="px-4 py-2 rounded-lg font-medium text-sm bg-white/20 text-white">
+                    {entrega.tipo_entrega}
+                  </span>
+                  <span className={`px-4 py-2 rounded-lg font-medium text-sm ${
+                    entrega.status_pagamento === 'Pago' ? 'bg-green-500/80 text-white' : 'bg-yellow-500/80 text-white'
+                  }`}>
+                    {entrega.status_pagamento}
+                  </span>
+                </>
+              )}
+              {!isEditing ? (
+                <>
+                  <Button onClick={handleEditStart} className="bg-white/20 hover:bg-white/30 text-white border-0">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button className="bg-red-500/80 hover:bg-red-600/80 text-white border-0">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir esta entrega?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteMutation.mutate()}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Confirmar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
               </>
             ) : (
               <>
@@ -247,9 +258,12 @@ export default function DetalhesSedex() {
                 </Button>
               </>
             )}
+            </div>
           </div>
         </div>
+      </div>
 
+      <div className="max-w-4xl mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card className="border-none shadow-lg">

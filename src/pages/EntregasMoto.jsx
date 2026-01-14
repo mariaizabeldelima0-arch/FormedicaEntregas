@@ -664,8 +664,18 @@ export default function EntregasMoto() {
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
         <div className="max-w-7xl mx-auto px-6">
-          <h1 className="text-4xl font-bold text-white">Entregas Moto</h1>
-          <p className="text-base text-white opacity-90 mt-1">Olá, mariaizabeldelima0</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6 text-white" />
+            </button>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Entregas Moto</h1>
+              <p className="text-base text-white opacity-90 mt-1">Olá, mariaizabeldelima0</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -705,71 +715,74 @@ export default function EntregasMoto() {
               </button>
             </div>
 
-            {/* Navegação do Calendário */}
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={() => {
-                  const newDate = new Date(currentMonthDate);
-                  newDate.setMonth(newDate.getMonth() - 1);
-                  setCurrentMonthDate(newDate);
-                }}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-slate-600" />
-              </button>
+            {/* Calendário com borda */}
+            <div className="border rounded-xl p-3 mb-4">
+              {/* Navegação do Calendário */}
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => {
+                    const newDate = new Date(currentMonthDate);
+                    newDate.setMonth(newDate.getMonth() - 1);
+                    setCurrentMonthDate(newDate);
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 text-slate-600" />
+                </button>
 
-              <span className="text-sm font-semibold text-slate-700">
-                {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
-              </span>
+                <span className="text-sm font-semibold text-slate-700">
+                  {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+                </span>
 
-              <button
-                onClick={() => {
-                  const newDate = new Date(currentMonthDate);
-                  newDate.setMonth(newDate.getMonth() + 1);
-                  setCurrentMonthDate(newDate);
-                }}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 text-slate-600" />
-              </button>
-            </div>
+                <button
+                  onClick={() => {
+                    const newDate = new Date(currentMonthDate);
+                    newDate.setMonth(newDate.getMonth() + 1);
+                    setCurrentMonthDate(newDate);
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
 
-            {/* Grid do Calendário */}
-            <div className="grid grid-cols-7 gap-1 mb-4">
-              {/* Dias da Semana */}
-              {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
-                <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
-                  {dia}
-                </div>
-              ))}
+              {/* Grid do Calendário */}
+              <div className="grid grid-cols-7 gap-1">
+                {/* Dias da Semana */}
+                {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
+                  <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
+                    {dia}
+                  </div>
+                ))}
 
-              {/* Dias do Mês */}
-              {getDaysInMonth(currentMonthDate).map((dayInfo, index) => {
-                if (!dayInfo.isCurrentMonth) {
-                  return <div key={index} className="aspect-square" />;
-                }
+                {/* Dias do Mês */}
+                {getDaysInMonth(currentMonthDate).map((dayInfo, index) => {
+                  if (!dayInfo.isCurrentMonth) {
+                    return <div key={index} className="aspect-square" />;
+                  }
 
-                const isSelected = dayInfo.isSelected;
-                const isToday = dayInfo.date?.toDateString() === new Date().toDateString();
+                  const isSelected = dayInfo.isSelected;
+                  const isToday = dayInfo.date?.toDateString() === new Date().toDateString();
 
-                return (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setSelectedDate(dayInfo.date);
-                      setViewMode('day');
-                    }}
-                    className="aspect-square rounded-lg text-sm font-medium transition-all flex items-center justify-center hover:bg-blue-50"
-                    style={{
-                      backgroundColor: isSelected ? '#376295' : 'transparent',
-                      color: isSelected ? 'white' : isToday ? '#376295' : '#1e293b',
-                      fontWeight: isToday || isSelected ? 'bold' : 'normal'
-                    }}
-                  >
-                    {dayInfo.day}
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSelectedDate(dayInfo.date);
+                        setViewMode('day');
+                      }}
+                      className="aspect-square rounded-lg text-sm font-medium transition-all flex items-center justify-center hover:bg-blue-50"
+                      style={{
+                        backgroundColor: isSelected ? '#376295' : 'transparent',
+                        color: isSelected ? 'white' : isToday ? '#376295' : '#1e293b',
+                        fontWeight: isToday || isSelected ? 'bold' : 'normal'
+                      }}
+                    >
+                      {dayInfo.day}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Data Selecionada */}

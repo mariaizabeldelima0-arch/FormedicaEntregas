@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  ArrowLeft,
+  ChevronLeft,
   Edit,
   Trash2,
   FileText,
@@ -23,6 +23,7 @@ import {
   Calendar,
   User,
   Package,
+  Printer,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -103,7 +104,8 @@ export default function DetalheSedexDisktenha() {
       tipo: entrega.tipo,
       cliente: entrega.cliente,
       remetente: entrega.remetente || '',
-      codigo_rastreio: entrega.codigo_rastreio,
+      numero_requisicao: entrega.numero_requisicao || '',
+      codigo_rastreio: entrega.codigo_rastreio || '',
       valor: entrega.valor,
       forma_pagamento: entrega.forma_pagamento,
       observacoes: entrega.observacoes || '',
@@ -114,7 +116,7 @@ export default function DetalheSedexDisktenha() {
   };
 
   const handleSaveEdit = () => {
-    if (!editData.cliente || !editData.codigo_rastreio) {
+    if (!editData.cliente || !editData.numero_requisicao) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
@@ -149,8 +151,8 @@ export default function DetalheSedexDisktenha() {
             <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Entrega Não Encontrada</h2>
             <p className="text-slate-500 mb-4">{error?.message || "A entrega não foi encontrada."}</p>
-            <Button onClick={() => navigate('/sedex')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button onClick={() => navigate(-1)}>
+              <ChevronLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
           </CardContent>
@@ -161,173 +163,205 @@ export default function DetalheSedexDisktenha() {
 
   // Definir cores por tipo
   const tipoColors = {
-    SEDEX: { bg: '#fef2f2', text: '#dc2626', border: '#fca5a5' },
-    PAC: { bg: '#eff6ff', text: '#2563eb', border: '#93c5fd' },
-    DISKTENHA: { bg: '#faf5ff', text: '#9333ea', border: '#d8b4fe' },
+    SEDEX: { bg: '#F5E8F5', text: '#890d5d' },
+    PAC: { bg: '#FEF3E8', text: '#f97316' },
+    DISKTENHA: { bg: '#E8F5E8', text: '#22c55e' },
   };
 
   const tipoColor = tipoColors[entrega.tipo] || tipoColors.SEDEX;
   const isPago = entrega.forma_pagamento === 'Pago' || entrega.forma_pagamento === 'Pix';
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/sedex')}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header com gradiente */}
+      <div className="py-8 shadow-sm mb-6" style={{
+        background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
+      }}>
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
+              <ChevronLeft className="w-6 h-6 text-white" />
+            </button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-1">
-                {entrega.tipo} # {entrega.codigo_rastreio}
-              </h1>
-              <p className="text-slate-600">
-                Criado em {format(parseISO(entrega.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-              </p>
+              <h1 className="text-4xl font-bold text-white">Detalhes da Entrega</h1>
+              <p className="text-base text-white opacity-90 mt-1">Visualização completa da entrega</p>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="flex gap-2">
-            <span
-              className="px-4 py-2 rounded-md font-medium text-sm"
-              style={{ background: tipoColor.bg, color: tipoColor.text }}
-            >
-              {entrega.tipo}
-            </span>
-            <span
-              className={`px-4 py-2 rounded-md font-medium text-sm ${
-                isPago ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-              }`}
-            >
-              {entrega.forma_pagamento}
-            </span>
-            <Button variant="outline" onClick={handleEdit}>
-              <Edit className="w-4 h-4 mr-2" />
-              Editar
-            </Button>
-            <Button variant="outline" onClick={handleDelete} className="text-red-600 hover:text-red-700">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Excluir
-            </Button>
+      <div className="max-w-5xl mx-auto px-6 pb-6 space-y-6">
+        {/* Cabeçalho com informações e botões */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/sedex')}
+                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
+              >
+                <ChevronLeft size={20} style={{ color: '#376295' }} />
+              </button>
+
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">
+                  {entrega.tipo} #{entrega.numero_requisicao || entrega.codigo_rastreio}
+                </h1>
+                <p className="text-sm text-slate-600 mt-1">
+                  Criado em {format(parseISO(entrega.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleEdit}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                style={{ backgroundColor: '#376295', color: 'white' }}
+              >
+                <Edit size={16} />
+                Editar
+              </button>
+
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                style={{ backgroundColor: '#890d5d', color: 'white' }}
+              >
+                <Printer size={16} />
+                Imprimir
+              </button>
+
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                style={{ backgroundColor: '#ef4444', color: 'white' }}
+              >
+                <Trash2 size={16} />
+                Excluir
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Conteúdo Principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Informações da Entrega */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-lg font-semibold">Informações da Entrega</h2>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <FileText className="w-5 h-5" style={{ color: '#376295' }} />
+              <h2 className="text-lg font-semibold">Informações da Entrega</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              {/* Número da Requisição */}
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Número da Requisição</p>
+                <p className="text-xl font-bold" style={{ color: '#376295' }}>#{entrega.numero_requisicao || '-'}</p>
+              </div>
+
+              {/* Tipo */}
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Tipo</p>
+                <span
+                  className="inline-block px-3 py-1 rounded-md font-medium text-sm"
+                  style={{ background: tipoColor.bg, color: tipoColor.text }}
+                >
+                  {entrega.tipo}
+                </span>
+              </div>
+
+              {/* Status */}
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Status</p>
+                <span
+                  className="inline-block px-3 py-1 rounded-md font-medium text-sm"
+                  style={{
+                    backgroundColor:
+                      entrega.status === 'Entregue' ? '#E8F5E8' :
+                      entrega.status === 'Saiu' ? '#FEF3E8' : '#F5E8F5',
+                    color:
+                      entrega.status === 'Entregue' ? '#22c55e' :
+                      entrega.status === 'Saiu' ? '#f97316' : '#890d5d'
+                  }}
+                >
+                  {entrega.status}
+                </span>
+              </div>
+
+              {/* Data de Postagem */}
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Data de Postagem</p>
+                <p className="font-semibold text-slate-900">
+                  {format(parseISO(entrega.data_saida), 'dd/MM/yyyy')}
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Cliente */}
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Cliente</p>
+                  <p className="text-lg font-medium text-slate-900">{entrega.cliente}</p>
                 </div>
 
-                <div className="space-y-4">
+                {/* Destinatário */}
+                {entrega.remetente && (
                   <div>
-                    <p className="text-sm text-slate-500">Número de Registro</p>
-                    <p className="text-xl font-bold text-slate-900"># {entrega.codigo_rastreio}</p>
+                    <p className="text-sm text-slate-500 mb-1">Destinatário</p>
+                    <p className="text-lg font-medium text-slate-900">{entrega.remetente}</p>
                   </div>
+                )}
 
-                  <div className="pt-4 border-t">
-                    <p className="text-sm text-slate-500 mb-1">Cliente</p>
-                    <p className="text-lg font-medium text-slate-900">{entrega.cliente}</p>
+                {/* Código de Rastreio */}
+                {entrega.codigo_rastreio && (
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Código de Rastreio</p>
+                    <p className="text-lg font-medium text-slate-900">{entrega.codigo_rastreio}</p>
                   </div>
+                )}
 
-                  {entrega.remetente && (
-                    <div>
-                      <p className="text-sm text-slate-500 mb-1">Destinatário</p>
-                      <p className="text-lg font-medium text-slate-900">{entrega.remetente}</p>
-                    </div>
-                  )}
-
-                  {entrega.observacoes && (
-                    <div className="pt-4 border-t">
-                      <p className="text-sm text-slate-500 mb-2">Observações</p>
-                      <div className="p-3 bg-slate-50 rounded-lg">
-                        <p className="text-slate-700">{entrega.observacoes}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Detalhes */}
-          <div>
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-lg mb-6">Detalhes</h3>
-
-                <div className="space-y-6">
-                  {/* Tipo */}
-                  <div className="flex items-start gap-3">
-                    <Package className="w-5 h-5 text-slate-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-slate-500 mb-1">Tipo</p>
-                      <span
-                        className="inline-block px-3 py-1 rounded-md font-medium text-sm"
-                        style={{ background: tipoColor.bg, color: tipoColor.text }}
-                      >
-                        {entrega.tipo}
-                      </span>
-                    </div>
+                {/* Atendente */}
+                {entrega.atendente && (
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Atendente</p>
+                    <p className="text-lg font-medium text-slate-900 flex items-center gap-2">
+                      <User className="w-4 h-4" style={{ color: '#376295' }} />
+                      {entrega.atendente}
+                    </p>
                   </div>
+                )}
+              </div>
+            </div>
 
-                  {/* Pagamento */}
-                  <div className="flex items-start gap-3">
-                    <DollarSign className="w-5 h-5 text-slate-400 mt-1" />
-                    <div className="w-full">
-                      <p className="text-sm text-slate-500 mb-1">também</p>
-                      <span
-                        className={`inline-block px-3 py-1 rounded-md font-medium text-sm mb-2 ${
-                          isPago ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                        }`}
-                      >
-                        {entrega.forma_pagamento}
-                      </span>
-                      <p className="text-2xl font-bold text-green-700 mt-2">
-                        R$ {parseFloat(entrega.valor).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Data de Postagem */}
-                  <div className="flex items-start gap-3">
-                    <Calendar className="w-5 h-5 text-slate-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-slate-500 mb-1">Data de Postagem</p>
-                      <p className="font-semibold text-slate-900">
-                        {format(parseISO(entrega.data_saida), 'dd/MM/yyyy')}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-start gap-3">
-                    <FileText className="w-5 h-5 text-slate-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-slate-500 mb-1">Status</p>
-                      <span className={`inline-block px-3 py-1 rounded-md font-medium text-sm ${
-                        entrega.status === 'Entregue' ? 'bg-green-100 text-green-700' :
-                        entrega.status === 'Saiu' ? 'bg-blue-100 text-blue-700' :
-                        'bg-slate-100 text-slate-700'
-                      }`}>
-                        {entrega.status}
-                      </span>
-                    </div>
+            {/* Valor - Apenas para DISKTENHA */}
+            {entrega.tipo === 'DISKTENHA' && (
+              <div className="border-t pt-6 mt-6">
+                <div className="flex items-center gap-3">
+                  <DollarSign className="w-5 h-5" style={{ color: '#22c55e' }} />
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">A Pagar</p>
+                    <p className="text-2xl font-bold" style={{ color: '#22c55e' }}>
+                      R$ {parseFloat(entrega.valor || 0).toFixed(2)}
+                    </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </div>
+            )}
+
+            {/* Observações */}
+            {entrega.observacoes && (
+              <div className="border-t pt-6 mt-6">
+                <p className="text-sm text-slate-500 mb-2">Observações</p>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-slate-700">{entrega.observacoes}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Dialog de Edição */}
@@ -374,7 +408,7 @@ export default function DetalheSedexDisktenha() {
                   />
                 </div>
                 <div>
-                  <Label>Remetente</Label>
+                  <Label>Destinatário</Label>
                   <Input
                     value={editData.remetente}
                     onChange={(e) => setEditData({ ...editData, remetente: e.target.value })}
@@ -382,46 +416,57 @@ export default function DetalheSedexDisktenha() {
                 </div>
               </div>
 
-              <div>
-                <Label>Código de Rastreio *</Label>
-                <Input
-                  value={editData.codigo_rastreio}
-                  onChange={(e) => setEditData({ ...editData, codigo_rastreio: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Valor</Label>
+                  <Label>Número da Requisição *</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={editData.valor}
-                    onChange={(e) => setEditData({ ...editData, valor: e.target.value })}
+                    placeholder="Ex: 123456"
+                    value={editData.numero_requisicao}
+                    onChange={(e) => setEditData({ ...editData, numero_requisicao: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label>Forma de Pagamento</Label>
+                  <Label>Código de Rastreio</Label>
+                  <Input
+                    placeholder="Ex: BR123456789BR"
+                    value={editData.codigo_rastreio}
+                    onChange={(e) => setEditData({ ...editData, codigo_rastreio: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className={editData.tipo === 'DISKTENHA' ? "grid grid-cols-2 gap-4" : ""}>
+                {editData.tipo === 'DISKTENHA' && (
+                  <div>
+                    <Label>Valor</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={editData.valor}
+                      onChange={(e) => setEditData({ ...editData, valor: e.target.value })}
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label>Status do Pagamento</Label>
                   <select
                     className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
                     value={editData.forma_pagamento}
                     onChange={(e) => setEditData({ ...editData, forma_pagamento: e.target.value })}
                   >
+                    <option value="Aguardando">Aguardando</option>
                     <option value="Pago">Pago</option>
-                    <option value="A Pagar">A Pagar</option>
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Pix">Pix</option>
-                    <option value="Cartão">Cartão</option>
                   </select>
                 </div>
-                <div>
-                  <Label>Data de Saída</Label>
-                  <Input
-                    type="date"
-                    value={editData.data_saida}
-                    onChange={(e) => setEditData({ ...editData, data_saida: e.target.value })}
-                  />
-                </div>
+              </div>
+
+              <div>
+                <Label>Data de Saída</Label>
+                <Input
+                  type="date"
+                  value={editData.data_saida}
+                  onChange={(e) => setEditData({ ...editData, data_saida: e.target.value })}
+                />
               </div>
 
               <div>

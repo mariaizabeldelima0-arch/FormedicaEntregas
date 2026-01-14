@@ -50,7 +50,8 @@ import {
   Clock,
   Truck,
   ClipboardList,
-  Check
+  Check,
+  ChevronLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -710,8 +711,18 @@ export default function Clientes() {
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
         <div className="max-w-7xl mx-auto px-6">
-          <h1 className="text-4xl font-bold text-white">Clientes</h1>
-          <p className="text-base text-white opacity-90 mt-1">Gerencie sua base de clientes</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6 text-white" />
+            </button>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Clientes</h1>
+              <p className="text-base text-white opacity-90 mt-1">Gerencie sua base de clientes</p>
+            </div>
+          </div>
         </div>
       </div>
 

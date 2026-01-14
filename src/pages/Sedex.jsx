@@ -234,7 +234,7 @@ export default function Sedex() {
                   selected={selectedDate}
                   onSelect={(date) => date && setSelectedDate(date)}
                   locale={ptBR}
-                  className="rounded-md border"
+                  className="rounded-xl border"
                 />
                 <div className="mt-4 text-center">
                   <p className="text-sm font-semibold text-slate-900">

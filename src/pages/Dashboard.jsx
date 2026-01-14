@@ -478,7 +478,7 @@ export default function Dashboard() {
                         selected={selectedDate}
                         onSelect={(date) => date && setSelectedDate(date)}
                         locale={ptBR}
-                        className="rounded-md border"
+                        className="rounded-xl border"
                         modifiers={{
                           hasDelivery: diasComEntregas
                         }}

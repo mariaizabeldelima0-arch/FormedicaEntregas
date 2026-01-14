@@ -27,6 +27,7 @@ import {
   DollarSign,
   ChevronLeft,
   ChevronRight,
+  User,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -45,11 +46,29 @@ export default function SedexDisktenha() {
     tipo: 'SEDEX',
     cliente: '',
     remetente: '',
+    numero_requisicao: '',
     codigo_rastreio: '',
     valor: '',
-    forma_pagamento: 'Pago',
+    forma_pagamento: 'Aguardando',
     observacoes: '',
     data_saida: format(new Date(), 'yyyy-MM-dd'),
+  });
+
+  // Buscar usuário atual
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return null;
+
+      const { data } = await supabase
+        .from('usuarios')
+        .select('id, nome, email')
+        .eq('id', authUser.id)
+        .single();
+
+      return data;
+    },
   });
 
   // Função para gerar dias do mês
@@ -116,7 +135,8 @@ export default function SedexDisktenha() {
   const entregasFiltradas = entregas.filter(e => {
     const matchBusca = e.cliente?.toLowerCase().includes(busca.toLowerCase()) ||
       e.codigo_rastreio?.toLowerCase().includes(busca.toLowerCase()) ||
-      e.remetente?.toLowerCase().includes(busca.toLowerCase());
+      e.remetente?.toLowerCase().includes(busca.toLowerCase()) ||
+      e.numero_requisicao?.toLowerCase().includes(busca.toLowerCase());
 
     const matchTipo = filtroTipo === 'todos' || e.tipo === filtroTipo;
 
@@ -124,7 +144,7 @@ export default function SedexDisktenha() {
   });
 
   const handleCriarEntrega = async () => {
-    if (!novaEntrega.cliente || !novaEntrega.codigo_rastreio) {
+    if (!novaEntrega.cliente || !novaEntrega.numero_requisicao) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
@@ -136,6 +156,7 @@ export default function SedexDisktenha() {
           ...novaEntrega,
           valor: parseFloat(novaEntrega.valor) || 0,
           status: 'Pendente',
+          atendente: currentUser?.nome || '',
           created_at: new Date().toISOString(),
         }]);
 
@@ -147,9 +168,10 @@ export default function SedexDisktenha() {
         tipo: 'SEDEX',
         cliente: '',
         remetente: '',
+        numero_requisicao: '',
         codigo_rastreio: '',
         valor: '',
-        forma_pagamento: 'Pago',
+        forma_pagamento: 'Aguardando',
         observacoes: '',
         data_saida: format(new Date(), 'yyyy-MM-dd'),
       });
@@ -171,8 +193,18 @@ export default function SedexDisktenha() {
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
         <div className="max-w-7xl mx-auto px-6">
-          <h1 className="text-4xl font-bold text-white">Sedex / Disktenha</h1>
-          <p className="text-base text-white opacity-90 mt-1">Gerencie entregas via Sedex, PAC e Disktenha</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6 text-white" />
+            </button>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Sedex / Disktenha</h1>
+              <p className="text-base text-white opacity-90 mt-1">Gerencie entregas via Sedex, PAC e Disktenha</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -222,71 +254,74 @@ export default function SedexDisktenha() {
               </button>
             </div>
 
-            {/* Navegação do Calendário */}
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={() => {
-                  const newDate = new Date(currentMonthDate);
-                  newDate.setMonth(newDate.getMonth() - 1);
-                  setCurrentMonthDate(newDate);
-                }}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-slate-600" />
-              </button>
+            {/* Calendário com borda */}
+            <div className="border rounded-xl p-3 mb-4">
+              {/* Navegação do Calendário */}
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => {
+                    const newDate = new Date(currentMonthDate);
+                    newDate.setMonth(newDate.getMonth() - 1);
+                    setCurrentMonthDate(newDate);
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 text-slate-600" />
+                </button>
 
-              <span className="text-sm font-semibold text-slate-700">
-                {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
-              </span>
+                <span className="text-sm font-semibold text-slate-700">
+                  {currentMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+                </span>
 
-              <button
-                onClick={() => {
-                  const newDate = new Date(currentMonthDate);
-                  newDate.setMonth(newDate.getMonth() + 1);
-                  setCurrentMonthDate(newDate);
-                }}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 text-slate-600" />
-              </button>
-            </div>
+                <button
+                  onClick={() => {
+                    const newDate = new Date(currentMonthDate);
+                    newDate.setMonth(newDate.getMonth() + 1);
+                    setCurrentMonthDate(newDate);
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
 
-            {/* Grid do Calendário */}
-            <div className="grid grid-cols-7 gap-1 mb-4">
-              {/* Dias da Semana */}
-              {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
-                <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
-                  {dia}
-                </div>
-              ))}
+              {/* Grid do Calendário */}
+              <div className="grid grid-cols-7 gap-1">
+                {/* Dias da Semana */}
+                {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((dia) => (
+                  <div key={dia} className="text-center text-xs font-semibold text-slate-500 py-2">
+                    {dia}
+                  </div>
+                ))}
 
-              {/* Dias do Mês */}
-              {getDaysInMonth(currentMonthDate).map((dayInfo, index) => {
-                if (!dayInfo.isCurrentMonth) {
-                  return <div key={index} className="aspect-square" />;
-                }
+                {/* Dias do Mês */}
+                {getDaysInMonth(currentMonthDate).map((dayInfo, index) => {
+                  if (!dayInfo.isCurrentMonth) {
+                    return <div key={index} className="aspect-square" />;
+                  }
 
-                const isSelected = dayInfo.isSelected;
-                const isToday = dayInfo.date?.toDateString() === new Date().toDateString();
+                  const isSelected = dayInfo.isSelected;
+                  const isToday = dayInfo.date?.toDateString() === new Date().toDateString();
 
-                return (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setDataSelecionada(dayInfo.date);
-                      setVisualizacao('dia');
-                    }}
-                    className="aspect-square rounded-lg text-sm font-medium transition-all flex items-center justify-center hover:bg-blue-50"
-                    style={{
-                      backgroundColor: isSelected ? '#376295' : 'transparent',
-                      color: isSelected ? 'white' : isToday ? '#376295' : '#1e293b',
-                      fontWeight: isToday || isSelected ? 'bold' : 'normal'
-                    }}
-                  >
-                    {dayInfo.day}
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setDataSelecionada(dayInfo.date);
+                        setVisualizacao('dia');
+                      }}
+                      className="aspect-square rounded-lg text-sm font-medium transition-all flex items-center justify-center hover:bg-blue-50"
+                      style={{
+                        backgroundColor: isSelected ? '#376295' : 'transparent',
+                        color: isSelected ? 'white' : isToday ? '#376295' : '#1e293b',
+                        fontWeight: isToday || isSelected ? 'bold' : 'normal'
+                      }}
+                    >
+                      {dayInfo.day}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Data Selecionada */}
@@ -438,51 +473,102 @@ export default function SedexDisktenha() {
                     <p className="text-slate-500">Nenhuma entrega encontrada</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div>
                     {entregasFiltradas.map((entrega) => (
-                      <button
+                      <div
                         key={entrega.id}
                         onClick={() => navigate(`/sedex-detalhes?id=${entrega.id}`)}
-                        className="w-full p-4 border rounded-lg hover:bg-slate-50 transition-colors text-left"
+                        className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
                       >
-                        <div className="flex justify-between items-start">
+                        <div className="flex items-center justify-between gap-6">
+                          {/* Lado Esquerdo - Informações */}
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="px-2 py-1 text-xs font-medium rounded" style={{
-                                background: entrega.tipo === 'SEDEX' ? '#e0f2fe' : '#fef3c7',
-                                color: entrega.tipo === 'SEDEX' ? '#0369a1' : '#92400e'
-                              }}>
+                            {/* Linha 1: Requisição + Atendente + Tipo + Status */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                                #{entrega.numero_requisicao || '-'}
+                              </span>
+                              {entrega.atendente && (
+                                <>
+                                  <span className="text-slate-400">•</span>
+                                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
+                                    <User className="w-3.5 h-3.5" />
+                                    {entrega.atendente}
+                                  </span>
+                                </>
+                              )}
+                              <span className="text-slate-400">•</span>
+                              <span
+                                className="px-3 py-1 rounded text-xs font-medium"
+                                style={{
+                                  backgroundColor:
+                                    entrega.tipo === 'SEDEX' ? '#F5E8F5' :
+                                    entrega.tipo === 'PAC' ? '#FEF3E8' : '#E8F5E8',
+                                  color:
+                                    entrega.tipo === 'SEDEX' ? '#890d5d' :
+                                    entrega.tipo === 'PAC' ? '#f97316' : '#22c55e'
+                                }}
+                              >
                                 {entrega.tipo}
                               </span>
-                              <span className="px-2 py-1 text-xs font-medium rounded" style={{
-                                background: entrega.status === 'Entregue' ? '#dcfce7' :
-                                           entrega.status === 'Saiu' ? '#fef3c7' : '#f1f5f9',
-                                color: entrega.status === 'Entregue' ? '#166534' :
-                                       entrega.status === 'Saiu' ? '#92400e' : '#475569'
-                              }}>
+                              <span
+                                className="px-3 py-1 rounded text-xs font-medium"
+                                style={{
+                                  backgroundColor:
+                                    entrega.status === 'Entregue' ? '#E8F5E8' :
+                                    entrega.status === 'Saiu' ? '#FEF3E8' : '#F5E8F5',
+                                  color:
+                                    entrega.status === 'Entregue' ? '#22c55e' :
+                                    entrega.status === 'Saiu' ? '#f97316' : '#890d5d'
+                                }}
+                              >
                                 {entrega.status}
                               </span>
                             </div>
-                            <p className="font-medium text-slate-900">{entrega.cliente}</p>
-                            <p className="text-sm text-slate-600">Código: {entrega.codigo_rastreio}</p>
-                            {entrega.remetente && (
-                              <p className="text-sm text-slate-500">Remetente: {entrega.remetente}</p>
-                            )}
+
+                            {/* Linha 2: Nome do Cliente */}
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">
+                              {entrega.cliente}
+                            </h3>
+
+                            {/* Linha 3: Informações adicionais */}
+                            <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                              {entrega.codigo_rastreio && (
+                                <div className="flex items-center gap-1.5">
+                                  <Package className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.codigo_rastreio}</span>
+                                </div>
+                              )}
+                              {entrega.remetente && (
+                                <div className="flex items-center gap-1.5">
+                                  <Send className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                  <span>{entrega.remetente}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Observações */}
                             {entrega.observacoes && (
-                              <p className="text-sm text-slate-500 mt-1">{entrega.observacoes}</p>
+                              <p className="text-sm text-slate-500 mt-2">{entrega.observacoes}</p>
                             )}
                           </div>
+
+                          {/* Lado Direito - Valor e Data */}
                           <div className="text-right">
-                            <p className="font-semibold text-slate-900">
-                              R$ {parseFloat(entrega.valor).toFixed(2)}
-                            </p>
-                            <p className="text-xs text-slate-500">{entrega.forma_pagamento}</p>
-                            <p className="text-xs text-slate-400 mt-1">
+                            {entrega.tipo === 'DISKTENHA' && (
+                              <div className="mb-2">
+                                <p className="text-xs text-slate-500">{entrega.forma_pagamento}</p>
+                                <p className="text-xl font-bold" style={{ color: '#22c55e' }}>
+                                  R$ {parseFloat(entrega.valor || 0).toFixed(2)}
+                                </p>
+                              </div>
+                            )}
+                            <p className="text-sm text-slate-500">
                               {format(parseISO(entrega.data_saida), 'dd/MM/yyyy')}
                             </p>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -531,22 +617,32 @@ export default function SedexDisktenha() {
                 />
               </div>
               <div>
-                <Label>Remetente</Label>
+                <Label>Destinatário</Label>
                 <Input
-                  placeholder="Nome do remetente"
+                  placeholder="Nome do destinatário"
                   value={novaEntrega.remetente}
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, remetente: e.target.value })}
                 />
               </div>
             </div>
 
-            <div>
-              <Label>Código de Rastreio *</Label>
-              <Input
-                placeholder="Ex: BR123456789BR"
-                value={novaEntrega.codigo_rastreio}
-                onChange={(e) => setNovaEntrega({ ...novaEntrega, codigo_rastreio: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Número da Requisição *</Label>
+                <Input
+                  placeholder="Ex: 123456"
+                  value={novaEntrega.numero_requisicao}
+                  onChange={(e) => setNovaEntrega({ ...novaEntrega, numero_requisicao: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Código de Rastreio</Label>
+                <Input
+                  placeholder="Ex: BR123456789BR"
+                  value={novaEntrega.codigo_rastreio}
+                  onChange={(e) => setNovaEntrega({ ...novaEntrega, codigo_rastreio: e.target.value })}
+                />
+              </div>
             </div>
 
             <div>
@@ -559,29 +655,28 @@ export default function SedexDisktenha() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={novaEntrega.tipo === 'DISKTENHA' ? "grid grid-cols-2 gap-4" : ""}>
+              {novaEntrega.tipo === 'DISKTENHA' && (
+                <div>
+                  <Label>Valor da Entrega</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={novaEntrega.valor}
+                    onChange={(e) => setNovaEntrega({ ...novaEntrega, valor: e.target.value })}
+                  />
+                </div>
+              )}
               <div>
-                <Label>Valor da Entrega</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={novaEntrega.valor}
-                  onChange={(e) => setNovaEntrega({ ...novaEntrega, valor: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Forma de Pagamento</Label>
+                <Label>Status do Pagamento</Label>
                 <select
                   className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
                   value={novaEntrega.forma_pagamento}
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, forma_pagamento: e.target.value })}
                 >
+                  <option value="Aguardando">Aguardando</option>
                   <option value="Pago">Pago</option>
-                  <option value="A Pagar">A Pagar</option>
-                  <option value="Dinheiro">Dinheiro</option>
-                  <option value="Pix">Pix</option>
-                  <option value="Cartão">Cartão</option>
                 </select>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
+import { ChevronLeft } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -1251,10 +1252,10 @@ export default function EditarRomaneio() {
         <div className="max-w-4xl mx-auto px-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/')}
-              className="p-2 rounded-lg transition-all border border-white border-opacity-30 hover:bg-white hover:bg-opacity-10 text-white"
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
-              ← Voltar
+              <ChevronLeft className="w-6 h-6 text-white" />
             </button>
             <div>
               <h1 className="text-4xl font-bold text-white">Editar Romaneio</h1>

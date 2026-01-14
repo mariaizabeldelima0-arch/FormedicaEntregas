@@ -120,8 +120,16 @@ export default function Layout({ children }) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: theme.colors.background }}>
+      {/* Estilos para impressão */}
+      <style>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
       {/* Menu Lateral */}
-      <div style={{
+      <div className="no-print" style={{
         width: isMenuExpanded ? '200px' : '64px',
         background: 'white',
         borderRight: `1px solid ${theme.colors.border}`,

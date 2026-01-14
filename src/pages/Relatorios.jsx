@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft,
+  ChevronLeft,
   Printer,
   Search,
   Check,
@@ -229,9 +229,9 @@ export default function Relatorios() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => navigate(-1)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
+                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-6 h-6 text-white" />
                 </button>
                 <div>
                   <h1 className="text-4xl font-bold text-white">Relatório de Entregas</h1>

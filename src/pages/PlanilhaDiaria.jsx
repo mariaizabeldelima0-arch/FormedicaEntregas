@@ -213,8 +213,18 @@ export default function PlanilhaDiaria() {
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
         <div className="max-w-7xl mx-auto px-6">
-          <h1 className="text-4xl font-bold text-white">Planilha Diária</h1>
-          <p className="text-base text-white opacity-90 mt-1">Visualize e edite todas as entregas do dia</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6 text-white" />
+            </button>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Planilha Diária</h1>
+              <p className="text-base text-white opacity-90 mt-1">Visualize e edite todas as entregas do dia</p>
+            </div>
+          </div>
         </div>
       </div>
 

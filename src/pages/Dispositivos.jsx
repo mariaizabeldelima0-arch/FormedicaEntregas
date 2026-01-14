@@ -4,7 +4,7 @@ import { supabase } from '@/api/supabaseClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  ArrowLeft,
+  ChevronLeft,
   Smartphone,
   Monitor,
   Search,
@@ -145,9 +145,9 @@ export default function Dispositivos() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-white" />
+              <ChevronLeft className="w-6 h-6 text-white" />
             </button>
             <div>
               <h1 className="text-4xl font-bold text-white">Gerenciar Dispositivos</h1>
