@@ -995,6 +995,18 @@ export default function NovoRomaneio() {
     const toastId = toast.loading('Cadastrando cliente...');
 
     try {
+      // Verificar se já existe cliente com o mesmo nome
+      const { data: clienteExistente } = await supabase
+        .from('clientes')
+        .select('id, nome')
+        .ilike('nome', novoCliente.nome.trim())
+        .limit(1);
+
+      if (clienteExistente && clienteExistente.length > 0) {
+        toast.error(`Já existe um cliente cadastrado com o nome "${clienteExistente[0].nome}"`, { id: toastId });
+        return;
+      }
+
       // 1. Criar cliente
       const { data: clienteData, error: clienteError } = await supabase
         .from('clientes')
@@ -1177,25 +1189,6 @@ export default function NovoRomaneio() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Cabeçalho com botão voltar */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-            >
-              <svg className="w-5 h-5" style={{ color: '#376295' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">Criar Novo Romaneio</h2>
-              <p className="text-sm text-slate-600 mt-1">Preencha as informações abaixo</p>
-            </div>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit}>
         {/* Informações do Romaneio */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
@@ -1224,7 +1217,7 @@ export default function NovoRomaneio() {
                 width: '100%',
                 padding: '0.75rem',
                 border: `1px solid ${errors.cliente ? theme.colors.danger : theme.colors.border}`,
-                borderRadius: '0.375rem',
+                borderRadius: '0.5rem',
                 fontSize: '0.875rem'
               }}
             />
@@ -1234,7 +1227,7 @@ export default function NovoRomaneio() {
                 zIndex: 10,
                 background: 'white',
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
+                borderRadius: '0.5rem',
                 marginTop: '0.25rem',
                 maxHeight: '200px',
                 overflowY: 'auto',
@@ -1272,7 +1265,7 @@ export default function NovoRomaneio() {
                   background: theme.colors.primary,
                   color: 'white',
                   border: 'none',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   cursor: 'pointer'
                 }}
@@ -1396,7 +1389,7 @@ export default function NovoRomaneio() {
                           color: theme.colors.primary,
                           background: 'white',
                           border: `1px solid ${theme.colors.primary}`,
-                          borderRadius: '0.375rem',
+                          borderRadius: '0.5rem',
                           cursor: 'pointer'
                         }}
                       >
@@ -1409,7 +1402,7 @@ export default function NovoRomaneio() {
                       <div style={{
                         padding: '1rem',
                         background: 'white',
-                        borderRadius: '0.375rem',
+                        borderRadius: '0.5rem',
                         marginBottom: '0.75rem',
                         border: `1px solid ${theme.colors.border}`
                       }}>
@@ -1433,7 +1426,7 @@ export default function NovoRomaneio() {
                                 width: '100%',
                                 padding: '0.5rem',
                                 border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.75rem'
                               }}
                             />
@@ -1449,7 +1442,7 @@ export default function NovoRomaneio() {
                                 width: '100%',
                                 padding: '0.5rem',
                                 border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.75rem'
                               }}
                             />
@@ -1465,7 +1458,7 @@ export default function NovoRomaneio() {
                                 width: '100%',
                                 padding: '0.5rem',
                                 border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.75rem'
                               }}
                             />
@@ -1481,7 +1474,7 @@ export default function NovoRomaneio() {
                                 width: '100%',
                                 padding: '0.5rem',
                                 border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.75rem'
                               }}
                             />
@@ -1497,7 +1490,7 @@ export default function NovoRomaneio() {
                                 width: '100%',
                                 padding: '0.5rem',
                                 border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.75rem'
                               }}
                             />
@@ -1513,7 +1506,7 @@ export default function NovoRomaneio() {
                                 width: '100%',
                                 padding: '0.5rem',
                                 border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.75rem'
                               }}
                             />
@@ -1529,7 +1522,7 @@ export default function NovoRomaneio() {
                                 width: '100%',
                                 padding: '0.5rem',
                                 border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 fontSize: '0.75rem',
                                 background: '#f1f5f9'
                               }}
@@ -1548,7 +1541,7 @@ export default function NovoRomaneio() {
                             color: 'white',
                             background: theme.colors.primary,
                             border: 'none',
-                            borderRadius: '0.375rem',
+                            borderRadius: '0.5rem',
                             cursor: 'pointer',
                             width: '100%'
                           }}
@@ -1569,7 +1562,7 @@ export default function NovoRomaneio() {
                               style={{
                                 padding: '1rem',
                                 background: 'white',
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 marginBottom: '0.75rem',
                                 border: `2px solid ${theme.colors.primary}`
                               }}
@@ -1594,7 +1587,7 @@ export default function NovoRomaneio() {
                                       width: '100%',
                                       padding: '0.5rem',
                                       border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.375rem',
+                                      borderRadius: '0.5rem',
                                       fontSize: '0.75rem'
                                     }}
                                   />
@@ -1610,7 +1603,7 @@ export default function NovoRomaneio() {
                                       width: '100%',
                                       padding: '0.5rem',
                                       border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.375rem',
+                                      borderRadius: '0.5rem',
                                       fontSize: '0.75rem'
                                     }}
                                   />
@@ -1626,7 +1619,7 @@ export default function NovoRomaneio() {
                                       width: '100%',
                                       padding: '0.5rem',
                                       border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.375rem',
+                                      borderRadius: '0.5rem',
                                       fontSize: '0.75rem'
                                     }}
                                   />
@@ -1642,7 +1635,7 @@ export default function NovoRomaneio() {
                                       width: '100%',
                                       padding: '0.5rem',
                                       border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.375rem',
+                                      borderRadius: '0.5rem',
                                       fontSize: '0.75rem'
                                     }}
                                   />
@@ -1658,7 +1651,7 @@ export default function NovoRomaneio() {
                                       width: '100%',
                                       padding: '0.5rem',
                                       border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.375rem',
+                                      borderRadius: '0.5rem',
                                       fontSize: '0.75rem'
                                     }}
                                   />
@@ -1674,7 +1667,7 @@ export default function NovoRomaneio() {
                                       width: '100%',
                                       padding: '0.5rem',
                                       border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.375rem',
+                                      borderRadius: '0.5rem',
                                       fontSize: '0.75rem'
                                     }}
                                   />
@@ -1690,7 +1683,7 @@ export default function NovoRomaneio() {
                                       width: '100%',
                                       padding: '0.5rem',
                                       border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.375rem',
+                                      borderRadius: '0.5rem',
                                       fontSize: '0.75rem',
                                       background: '#f1f5f9'
                                     }}
@@ -1710,7 +1703,7 @@ export default function NovoRomaneio() {
                                     color: 'white',
                                     background: theme.colors.primary,
                                     border: 'none',
-                                    borderRadius: '0.375rem',
+                                    borderRadius: '0.5rem',
                                     cursor: 'pointer'
                                   }}
                                 >
@@ -1727,7 +1720,7 @@ export default function NovoRomaneio() {
                                     color: theme.colors.text,
                                     background: 'white',
                                     border: `1px solid ${theme.colors.border}`,
-                                    borderRadius: '0.375rem',
+                                    borderRadius: '0.5rem',
                                     cursor: 'pointer'
                                   }}
                                 >
@@ -1745,7 +1738,7 @@ export default function NovoRomaneio() {
                             style={{
                               padding: '0.75rem',
                               border: `2px solid ${enderecoSelecionado?.id === endereco.id ? theme.colors.primary : theme.colors.border}`,
-                              borderRadius: '0.375rem',
+                              borderRadius: '0.5rem',
                               marginBottom: '0.5rem',
                               background: enderecoSelecionado?.id === endereco.id ? '#f0f9ff' : 'white',
                               display: 'flex',
@@ -1786,7 +1779,7 @@ export default function NovoRomaneio() {
                                 color: theme.colors.primary,
                                 background: 'white',
                                 border: `1px solid ${theme.colors.primary}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 cursor: 'pointer'
                               }}
                             >
@@ -1837,7 +1830,7 @@ export default function NovoRomaneio() {
                 width: '100%',
                 padding: '0.75rem',
                 border: `1px solid ${errors.requisicao ? theme.colors.danger : theme.colors.border}`,
-                borderRadius: '0.375rem',
+                borderRadius: '0.5rem',
                 fontSize: '0.875rem'
               }}
             />
@@ -1867,7 +1860,7 @@ export default function NovoRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -1896,7 +1889,7 @@ export default function NovoRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               />
@@ -1924,7 +1917,7 @@ export default function NovoRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${errors.outra_cidade ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               />
@@ -1950,7 +1943,7 @@ export default function NovoRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -1989,7 +1982,7 @@ export default function NovoRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${errors.pagamento ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               />
@@ -2001,7 +1994,7 @@ export default function NovoRomaneio() {
                   right: 0,
                   background: 'white',
                   border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   marginTop: '0.25rem',
                   maxHeight: '200px',
                   overflowY: 'auto',
@@ -2058,7 +2051,7 @@ export default function NovoRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `2px solid ${errors.valor_venda ? theme.colors.danger : '#4caf50'}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   background: 'white'
                 }}
@@ -2073,7 +2066,7 @@ export default function NovoRomaneio() {
                   marginTop: '0.75rem',
                   padding: '0.75rem',
                   background: '#1b5e20',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   textAlign: 'center'
                 }}>
                   <p style={{ margin: 0, color: 'white', fontSize: '0.875rem', fontWeight: '500' }}>
@@ -2173,7 +2166,7 @@ export default function NovoRomaneio() {
                       width: '100%',
                       padding: '0.75rem',
                       border: `2px solid ${errors.valor_troco ? theme.colors.danger : '#ffc107'}`,
-                      borderRadius: '0.375rem',
+                      borderRadius: '0.5rem',
                       fontSize: '0.875rem',
                       background: 'white'
                     }}
@@ -2210,7 +2203,7 @@ export default function NovoRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -2265,7 +2258,7 @@ export default function NovoRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${isEntregaUnica && formData.motoboy === 'Bruno' ? '#fbbf24' : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: '600',
                   color: theme.colors.primary,
@@ -2295,7 +2288,7 @@ export default function NovoRomaneio() {
                   style={{
                     padding: '0.5rem 1.5rem',
                     border: formData.item_geladeira ? '2px solid #0891b2' : '2px solid #e2e8f0',
-                    borderRadius: '0.375rem',
+                    borderRadius: '0.5rem',
                     background: formData.item_geladeira ? '#cffafe' : 'white',
                     color: formData.item_geladeira ? '#0891b2' : '#64748b',
                     fontWeight: formData.item_geladeira ? '600' : '400',
@@ -2312,7 +2305,7 @@ export default function NovoRomaneio() {
                   style={{
                     padding: '0.5rem 1.5rem',
                     border: !formData.item_geladeira ? '2px solid #64748b' : '2px solid #e2e8f0',
-                    borderRadius: '0.375rem',
+                    borderRadius: '0.5rem',
                     background: !formData.item_geladeira ? '#f1f5f9' : 'white',
                     color: !formData.item_geladeira ? '#1e293b' : '#64748b',
                     fontWeight: !formData.item_geladeira ? '600' : '400',
@@ -2344,7 +2337,7 @@ export default function NovoRomaneio() {
                   style={{
                     padding: '0.5rem 1.5rem',
                     border: formData.buscar_receita ? '2px solid #f97316' : '2px solid #e2e8f0',
-                    borderRadius: '0.375rem',
+                    borderRadius: '0.5rem',
                     background: formData.buscar_receita ? '#ffedd5' : 'white',
                     color: formData.buscar_receita ? '#c2410c' : '#64748b',
                     fontWeight: formData.buscar_receita ? '600' : '400',
@@ -2361,7 +2354,7 @@ export default function NovoRomaneio() {
                   style={{
                     padding: '0.5rem 1.5rem',
                     border: !formData.buscar_receita ? '2px solid #64748b' : '2px solid #e2e8f0',
-                    borderRadius: '0.375rem',
+                    borderRadius: '0.5rem',
                     background: !formData.buscar_receita ? '#f1f5f9' : 'white',
                     color: !formData.buscar_receita ? '#1e293b' : '#64748b',
                     fontWeight: !formData.buscar_receita ? '600' : '400',
@@ -2396,7 +2389,7 @@ export default function NovoRomaneio() {
                 width: '100%',
                 padding: '0.75rem',
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
+                borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 resize: 'vertical'
               }}
@@ -2414,7 +2407,7 @@ export default function NovoRomaneio() {
               background: 'white',
               color: theme.colors.text,
               border: `1px solid ${theme.colors.border}`,
-              borderRadius: '0.375rem',
+              borderRadius: '0.5rem',
               fontSize: '0.9375rem',
               fontWeight: '600',
               cursor: 'pointer'
@@ -2430,7 +2423,7 @@ export default function NovoRomaneio() {
               background: loading ? theme.colors.textLight : theme.colors.primary,
               color: 'white',
               border: 'none',
-              borderRadius: '0.375rem',
+              borderRadius: '0.5rem',
               fontSize: '0.9375rem',
               fontWeight: '600',
               cursor: loading ? 'not-allowed' : 'pointer'

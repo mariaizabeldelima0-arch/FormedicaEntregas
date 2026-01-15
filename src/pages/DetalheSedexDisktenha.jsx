@@ -197,22 +197,13 @@ export default function DetalheSedexDisktenha() {
         {/* Cabeçalho com informações e botões */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/sedex')}
-                className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-              >
-                <ChevronLeft size={20} style={{ color: '#376295' }} />
-              </button>
-
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">
-                  {entrega.tipo} #{entrega.numero_requisicao || entrega.codigo_rastreio}
-                </h1>
-                <p className="text-sm text-slate-600 mt-1">
-                  Criado em {format(parseISO(entrega.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                </p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">
+                {entrega.tipo} #{entrega.numero_requisicao || entrega.codigo_rastreio}
+              </h1>
+              <p className="text-sm text-slate-600 mt-1">
+                Criado em {format(parseISO(entrega.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -376,7 +367,7 @@ export default function DetalheSedexDisktenha() {
                 <div>
                   <Label>Tipo *</Label>
                   <select
-                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                     value={editData.tipo}
                     onChange={(e) => setEditData({ ...editData, tipo: e.target.value })}
                   >
@@ -388,7 +379,7 @@ export default function DetalheSedexDisktenha() {
                 <div>
                   <Label>Status *</Label>
                   <select
-                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                     value={editData.status}
                     onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                   >
@@ -450,7 +441,7 @@ export default function DetalheSedexDisktenha() {
                 <div>
                   <Label>Status do Pagamento</Label>
                   <select
-                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                     value={editData.forma_pagamento}
                     onChange={(e) => setEditData({ ...editData, forma_pagamento: e.target.value })}
                   >

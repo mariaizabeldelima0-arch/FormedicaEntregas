@@ -825,7 +825,7 @@ export default function EntregasMoto() {
         {/* Conteúdo Principal */}
         <div className="flex-1">
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
             {/* Card Total */}
             <div
               onClick={() => { setFiltroStatus(''); setCardSelecionado('total'); }}
@@ -835,7 +835,7 @@ export default function EntregasMoto() {
               }}
             >
               <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
                   <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                 </div>
                 <span className="text-sm font-bold text-slate-700">Total</span>
@@ -854,7 +854,7 @@ export default function EntregasMoto() {
               }}
             >
               <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
                   <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
                 </div>
                 <span className="text-sm font-bold text-slate-700">Produção</span>
@@ -873,7 +873,7 @@ export default function EntregasMoto() {
               }}
             >
               <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
                   <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
                 </div>
                 <span className="text-sm font-bold text-slate-700">A Caminho</span>
@@ -892,7 +892,7 @@ export default function EntregasMoto() {
               }}
             >
               <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
                   <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
                 </div>
                 <span className="text-sm font-bold text-slate-700">Entregues</span>

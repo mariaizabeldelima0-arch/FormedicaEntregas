@@ -208,9 +208,9 @@ export default function SedexDisktenha() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 flex gap-6">
+      <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col lg:flex-row gap-6">
         {/* Sidebar Esquerda - Calendário */}
-        <div className="w-80 flex-shrink-0">
+        <div className="w-full lg:w-80 flex-shrink-0">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
             {/* Botão Nova Entrega */}
             <Button
@@ -339,7 +339,7 @@ export default function SedexDisktenha() {
         {/* Conteúdo Principal */}
         <div className="flex-1">
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
               {/* Total */}
               <Card
                 className="cursor-pointer transition-all hover:shadow-md bg-white rounded-xl shadow-sm"
@@ -350,7 +350,7 @@ export default function SedexDisktenha() {
               >
                 <CardContent className="p-5">
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
                       <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                     </div>
                     <span className="text-sm font-bold text-slate-700">Total</span>
@@ -371,7 +371,7 @@ export default function SedexDisktenha() {
               >
                 <CardContent className="p-5">
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
                       <Send className="w-6 h-6" style={{ color: '#890d5d' }} />
                     </div>
                     <span className="text-sm font-bold text-slate-700">Sedex</span>
@@ -392,7 +392,7 @@ export default function SedexDisktenha() {
               >
                 <CardContent className="p-5">
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
                       <Package className="w-6 h-6" style={{ color: '#f97316' }} />
                     </div>
                     <span className="text-sm font-bold text-slate-700">PAC</span>
@@ -413,7 +413,7 @@ export default function SedexDisktenha() {
               >
                 <CardContent className="p-5">
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
                       <Truck className="w-6 h-6" style={{ color: '#22c55e' }} />
                     </div>
                     <span className="text-sm font-bold text-slate-700">Disktenha</span>
@@ -428,7 +428,7 @@ export default function SedexDisktenha() {
               <Card className="cursor-pointer transition-all hover:shadow-md rounded-xl shadow-sm" style={{ backgroundColor: '#E8F5E8', border: '3px solid #22c55e' }}>
                 <CardContent className="p-5">
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#d1f0d1' }}>
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#d1f0d1' }}>
                       <DollarSign className="w-6 h-6" style={{ color: '#22c55e' }} />
                     </div>
                     <span className="text-sm font-bold text-slate-700">Total Disktenha</span>
@@ -596,7 +596,7 @@ export default function SedexDisktenha() {
               <div>
                 <Label>Tipo de Entrega *</Label>
                 <select
-                  className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                   value={novaEntrega.tipo}
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, tipo: e.target.value })}
                 >
@@ -671,7 +671,7 @@ export default function SedexDisktenha() {
               <div>
                 <Label>Status do Pagamento</Label>
                 <select
-                  className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                   value={novaEntrega.forma_pagamento}
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, forma_pagamento: e.target.value })}
                 >

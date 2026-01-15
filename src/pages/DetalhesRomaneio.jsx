@@ -266,22 +266,13 @@ export default function DetalhesRomaneio() {
           {/* Cabeçalho */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigate('/')}
-                  className="p-2 rounded-lg transition-all border border-slate-300 hover:bg-slate-50"
-                >
-                  <ChevronLeft size={20} style={{ color: '#376295' }} />
-                </button>
-
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900">
-                    Romaneio #{numeroRequisicao}
-                  </h1>
-                  <p className="text-sm text-slate-600 mt-1">
-                    Criado em {romaneio.data_criacao ? new Date(romaneio.data_criacao).toLocaleDateString('pt-BR') : '-'} às {romaneio.data_criacao ? new Date(romaneio.data_criacao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-'}
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">
+                  Romaneio #{numeroRequisicao}
+                </h1>
+                <p className="text-sm text-slate-600 mt-1">
+                  Criado em {romaneio.data_criacao ? new Date(romaneio.data_criacao).toLocaleDateString('pt-BR') : '-'} às {romaneio.data_criacao ? new Date(romaneio.data_criacao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                </p>
               </div>
 
               <div className="flex items-center gap-2">

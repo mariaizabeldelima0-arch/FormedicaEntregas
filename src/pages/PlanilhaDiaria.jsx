@@ -391,7 +391,7 @@ export default function PlanilhaDiaria() {
                             <select
                               value={rom.status || 'Pendente'}
                               onChange={(e) => handleQuickStatusUpdate(rom.id, e.target.value, 'romaneio')}
-                              className="w-full text-[10px] p-1 border border-slate-300 rounded bg-white"
+                              className="w-full text-[10px] p-1 border border-slate-300 rounded-lg bg-white"
                               disabled={updateRomaneioMutation.isPending}
                             >
                               <option value="Pendente">Pendente</option>
@@ -507,7 +507,7 @@ export default function PlanilhaDiaria() {
                             <select
                               value={entrega.status || 'Pendente'}
                               onChange={(e) => handleQuickStatusUpdate(entrega.id, e.target.value, 'sedex')}
-                              className="w-full text-[10px] p-1 border border-blue-300 rounded bg-white"
+                              className="w-full text-[10px] p-1 border border-blue-300 rounded-lg bg-white"
                               disabled={updateSedexMutation.isPending}
                             >
                               <option value="Pendente">Pendente</option>

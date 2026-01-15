@@ -114,7 +114,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <BrowserRouter>
+          <BrowserRouter basename="/FormedicaEntregas">
             <AppRoutes />
             <Toaster position="top-right" richColors />
             <style>{`

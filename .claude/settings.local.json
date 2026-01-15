@@ -32,7 +32,8 @@
       "Bash(ping:*)",
       "Bash(git push:*)",
       "Bash(copy:*)",
-      "Bash(cmd /c copy:*)"
+      "Bash(cmd /c copy:*)",
+      "Bash(npm run deploy:*)"
     ]
   }
 }

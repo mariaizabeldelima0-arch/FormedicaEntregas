@@ -1034,6 +1034,18 @@ export default function EditarRomaneio() {
     }
 
     try {
+      // Verificar se já existe cliente com o mesmo nome
+      const { data: clienteExistente } = await supabase
+        .from('clientes')
+        .select('id, nome')
+        .ilike('nome', novoCliente.nome.trim())
+        .limit(1);
+
+      if (clienteExistente && clienteExistente.length > 0) {
+        toast.error(`Já existe um cliente cadastrado com o nome "${clienteExistente[0].nome}"`);
+        return;
+      }
+
       // 1. Criar cliente
       const { data: clienteData, error: clienteError } = await supabase
         .from('clientes')
@@ -1413,7 +1425,7 @@ export default function EditarRomaneio() {
                       <div style={{
                         padding: '1rem',
                         background: 'white',
-                        borderRadius: '0.375rem',
+                        borderRadius: '0.5rem',
                         border: `1px solid ${theme.colors.border}`,
                         marginBottom: '0.75rem'
                       }}>
@@ -1429,7 +1441,7 @@ export default function EditarRomaneio() {
                             style={{
                               padding: '0.5rem',
                               border: `1px solid ${theme.colors.border}`,
-                              borderRadius: '0.375rem',
+                              borderRadius: '0.5rem',
                               fontSize: '0.875rem'
                             }}
                           />
@@ -1441,7 +1453,7 @@ export default function EditarRomaneio() {
                             style={{
                               padding: '0.5rem',
                               border: `1px solid ${theme.colors.border}`,
-                              borderRadius: '0.375rem',
+                              borderRadius: '0.5rem',
                               fontSize: '0.875rem'
                             }}
                           />
@@ -1455,7 +1467,7 @@ export default function EditarRomaneio() {
                             width: '100%',
                             padding: '0.5rem',
                             border: `1px solid ${theme.colors.border}`,
-                            borderRadius: '0.375rem',
+                            borderRadius: '0.5rem',
                             fontSize: '0.875rem',
                             marginBottom: '0.5rem'
                           }}
@@ -1470,7 +1482,7 @@ export default function EditarRomaneio() {
                             style={{
                               padding: '0.5rem',
                               border: `1px solid ${theme.colors.border}`,
-                              borderRadius: '0.375rem',
+                              borderRadius: '0.5rem',
                               fontSize: '0.875rem'
                             }}
                           />
@@ -1486,7 +1498,7 @@ export default function EditarRomaneio() {
                             style={{
                               padding: '0.5rem',
                               border: `1px solid ${theme.colors.border}`,
-                              borderRadius: '0.375rem',
+                              borderRadius: '0.5rem',
                               fontSize: '0.875rem'
                             }}
                           />
@@ -1500,7 +1512,7 @@ export default function EditarRomaneio() {
                             width: '100%',
                             padding: '0.5rem',
                             border: `1px solid ${theme.colors.border}`,
-                            borderRadius: '0.375rem',
+                            borderRadius: '0.5rem',
                             fontSize: '0.875rem',
                             marginBottom: '0.5rem'
                           }}
@@ -1514,7 +1526,7 @@ export default function EditarRomaneio() {
                             width: '100%',
                             padding: '0.5rem',
                             border: `1px solid ${theme.colors.border}`,
-                            borderRadius: '0.375rem',
+                            borderRadius: '0.5rem',
                             fontSize: '0.875rem',
                             marginBottom: '0.75rem',
                             resize: 'vertical'
@@ -1574,7 +1586,7 @@ export default function EditarRomaneio() {
                             background: theme.colors.primary,
                             color: 'white',
                             border: 'none',
-                            borderRadius: '0.375rem',
+                            borderRadius: '0.5rem',
                             fontSize: '0.875rem',
                             cursor: 'pointer'
                           }}
@@ -1595,7 +1607,7 @@ export default function EditarRomaneio() {
                               style={{
                                 padding: '0.75rem',
                                 border: `2px solid ${theme.colors.primary}`,
-                                borderRadius: '0.375rem',
+                                borderRadius: '0.5rem',
                                 marginBottom: '0.5rem',
                                 background: 'white'
                               }}
@@ -1612,7 +1624,7 @@ export default function EditarRomaneio() {
                                   style={{
                                     padding: '0.5rem',
                                     border: `1px solid ${theme.colors.border}`,
-                                    borderRadius: '0.375rem',
+                                    borderRadius: '0.5rem',
                                     fontSize: '0.875rem'
                                   }}
                                 />
@@ -1624,7 +1636,7 @@ export default function EditarRomaneio() {
                                   style={{
                                     padding: '0.5rem',
                                     border: `1px solid ${theme.colors.border}`,
-                                    borderRadius: '0.375rem',
+                                    borderRadius: '0.5rem',
                                     fontSize: '0.875rem'
                                   }}
                                 />
@@ -1638,7 +1650,7 @@ export default function EditarRomaneio() {
                                   width: '100%',
                                   padding: '0.5rem',
                                   border: `1px solid ${theme.colors.border}`,
-                                  borderRadius: '0.375rem',
+                                  borderRadius: '0.5rem',
                                   fontSize: '0.875rem',
                                   marginBottom: '0.5rem'
                                 }}
@@ -1653,7 +1665,7 @@ export default function EditarRomaneio() {
                                   style={{
                                     padding: '0.5rem',
                                     border: `1px solid ${theme.colors.border}`,
-                                    borderRadius: '0.375rem',
+                                    borderRadius: '0.5rem',
                                     fontSize: '0.875rem'
                                   }}
                                 />
@@ -1669,7 +1681,7 @@ export default function EditarRomaneio() {
                                   style={{
                                     padding: '0.5rem',
                                     border: `1px solid ${theme.colors.border}`,
-                                    borderRadius: '0.375rem',
+                                    borderRadius: '0.5rem',
                                     fontSize: '0.875rem'
                                   }}
                                 />
@@ -1683,7 +1695,7 @@ export default function EditarRomaneio() {
                                   width: '100%',
                                   padding: '0.5rem',
                                   border: `1px solid ${theme.colors.border}`,
-                                  borderRadius: '0.375rem',
+                                  borderRadius: '0.5rem',
                                   fontSize: '0.875rem',
                                   marginBottom: '0.75rem'
                                 }}
@@ -1748,7 +1760,7 @@ export default function EditarRomaneio() {
                                     background: theme.colors.primary,
                                     color: 'white',
                                     border: 'none',
-                                    borderRadius: '0.375rem',
+                                    borderRadius: '0.5rem',
                                     fontSize: '0.875rem',
                                     cursor: 'pointer'
                                   }}
@@ -1764,7 +1776,7 @@ export default function EditarRomaneio() {
                                     background: 'white',
                                     color: theme.colors.text,
                                     border: `1px solid ${theme.colors.border}`,
-                                    borderRadius: '0.375rem',
+                                    borderRadius: '0.5rem',
                                     fontSize: '0.875rem',
                                     cursor: 'pointer'
                                   }}
@@ -1783,7 +1795,7 @@ export default function EditarRomaneio() {
                             style={{
                               padding: '0.75rem',
                               border: `2px solid ${enderecoSelecionado?.id === endereco.id ? theme.colors.primary : theme.colors.border}`,
-                              borderRadius: '0.375rem',
+                              borderRadius: '0.5rem',
                               marginBottom: '0.5rem',
                               background: enderecoSelecionado?.id === endereco.id ? '#f0f9ff' : 'white',
                               cursor: 'pointer'
@@ -1941,7 +1953,7 @@ export default function EditarRomaneio() {
                 width: '100%',
                 padding: '0.75rem',
                 border: `1px solid ${errors.requisicao ? theme.colors.danger : theme.colors.border}`,
-                borderRadius: '0.375rem',
+                borderRadius: '0.5rem',
                 fontSize: '0.875rem'
               }}
             />
@@ -1971,7 +1983,7 @@ export default function EditarRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -2000,7 +2012,7 @@ export default function EditarRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               />
@@ -2028,7 +2040,7 @@ export default function EditarRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${errors.outra_cidade ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               />
@@ -2054,7 +2066,7 @@ export default function EditarRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -2093,7 +2105,7 @@ export default function EditarRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${errors.pagamento ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               />
@@ -2105,7 +2117,7 @@ export default function EditarRomaneio() {
                   right: 0,
                   background: 'white',
                   border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   marginTop: '0.25rem',
                   maxHeight: '200px',
                   overflowY: 'auto',
@@ -2162,7 +2174,7 @@ export default function EditarRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `2px solid ${errors.valor_venda ? theme.colors.danger : '#4caf50'}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   background: 'white'
                 }}
@@ -2177,7 +2189,7 @@ export default function EditarRomaneio() {
                   marginTop: '0.75rem',
                   padding: '0.75rem',
                   background: '#1b5e20',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   textAlign: 'center'
                 }}>
                   <p style={{ margin: 0, color: 'white', fontSize: '0.875rem', fontWeight: '500' }}>
@@ -2221,7 +2233,7 @@ export default function EditarRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -2253,7 +2265,7 @@ export default function EditarRomaneio() {
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: '600',
                   color: theme.colors.primary
@@ -2282,7 +2294,7 @@ export default function EditarRomaneio() {
                   style={{
                     padding: '0.5rem 1.5rem',
                     border: formData.item_geladeira ? '2px solid #0891b2' : '2px solid #e2e8f0',
-                    borderRadius: '0.375rem',
+                    borderRadius: '0.5rem',
                     background: formData.item_geladeira ? '#cffafe' : 'white',
                     color: formData.item_geladeira ? '#0891b2' : '#64748b',
                     fontWeight: formData.item_geladeira ? '600' : '400',
@@ -2299,7 +2311,7 @@ export default function EditarRomaneio() {
                   style={{
                     padding: '0.5rem 1.5rem',
                     border: !formData.item_geladeira ? '2px solid #64748b' : '2px solid #e2e8f0',
-                    borderRadius: '0.375rem',
+                    borderRadius: '0.5rem',
                     background: !formData.item_geladeira ? '#f1f5f9' : 'white',
                     color: !formData.item_geladeira ? '#1e293b' : '#64748b',
                     fontWeight: !formData.item_geladeira ? '600' : '400',
@@ -2331,7 +2343,7 @@ export default function EditarRomaneio() {
                   style={{
                     padding: '0.5rem 1.5rem',
                     border: formData.buscar_receita ? '2px solid #f97316' : '2px solid #e2e8f0',
-                    borderRadius: '0.375rem',
+                    borderRadius: '0.5rem',
                     background: formData.buscar_receita ? '#ffedd5' : 'white',
                     color: formData.buscar_receita ? '#c2410c' : '#64748b',
                     fontWeight: formData.buscar_receita ? '600' : '400',
@@ -2348,7 +2360,7 @@ export default function EditarRomaneio() {
                   style={{
                     padding: '0.5rem 1.5rem',
                     border: !formData.buscar_receita ? '2px solid #64748b' : '2px solid #e2e8f0',
-                    borderRadius: '0.375rem',
+                    borderRadius: '0.5rem',
                     background: !formData.buscar_receita ? '#f1f5f9' : 'white',
                     color: !formData.buscar_receita ? '#1e293b' : '#64748b',
                     fontWeight: !formData.buscar_receita ? '600' : '400',
@@ -2383,7 +2395,7 @@ export default function EditarRomaneio() {
                 width: '100%',
                 padding: '0.75rem',
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: '0.375rem',
+                borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 resize: 'vertical'
               }}

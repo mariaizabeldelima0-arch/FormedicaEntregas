@@ -294,115 +294,110 @@ export default function PainelMotoboys() {
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-              >
-                <ChevronLeft className="w-6 h-6 text-white" />
-              </button>
-              <div>
-                <h1 className="text-4xl font-bold text-white mb-1">Painel do Motoboy</h1>
-                <p className="text-base text-white opacity-90">Gerencie suas entregas</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Seletor de Motoboy */}
-          <div className="flex items-center gap-3 mb-4">
-            <User className="w-5 h-5 text-white opacity-90" />
-            <select
-              value={motoboyId || ''}
-              onChange={(e) => setMotoboyId(e.target.value)}
-              className="flex-1 max-w-xs bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg px-4 py-2 text-white font-medium focus:outline-none focus:border-white/50"
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
-              {motoboys.map(m => (
-                <option key={m.id} value={m.id} className="text-slate-900">
-                  {m.nome}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Controles de Data */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              {/* Modo de Visualização */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setModoVisualizacao('dia')}
-                  className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                  style={{
-                    backgroundColor: modoVisualizacao === 'dia' ? 'white' : 'rgba(255, 255, 255, 0.2)',
-                    color: modoVisualizacao === 'dia' ? '#376295' : 'white'
-                  }}
-                >
-                  Dia
-                </button>
-                <button
-                  onClick={() => setModoVisualizacao('semana')}
-                  className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                  style={{
-                    backgroundColor: modoVisualizacao === 'semana' ? 'white' : 'rgba(255, 255, 255, 0.2)',
-                    color: modoVisualizacao === 'semana' ? '#376295' : 'white'
-                  }}
-                >
-                  Semana
-                </button>
-              </div>
-
-              {/* Navegação de Data */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={modoVisualizacao === 'dia' ? handleDiaAnterior : handleSemanaAnterior}
-                  className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-
-                <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-lg min-w-[200px] justify-center">
-                  <CalendarIcon className="w-4 h-4" />
-                  <span className="font-semibold text-sm">
-                    {getPeriodoTexto()}
-                  </span>
-                </div>
-
-                <button
-                  onClick={modoVisualizacao === 'dia' ? handleProximoDia : handleProximaSemana}
-                  className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-
-                <button
-                  onClick={handleHoje}
-                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
-                >
-                  Hoje
-                </button>
-              </div>
-
-              {/* Seletor de Data */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={format(dataSelecionada, 'yyyy-MM-dd')}
-                  onChange={(e) => {
-                    // Corrigir problema de timezone
-                    const [year, month, day] = e.target.value.split('-');
-                    const novaData = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                    setDataSelecionada(novaData);
-                  }}
-                  className="bg-white/20 border-2 border-white/30 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-white/50 text-sm"
-                />
-              </div>
+              <ChevronLeft className="w-6 h-6 text-white" />
+            </button>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Painel do Motoboy</h1>
+              <p className="text-base text-white opacity-90 mt-1">Gerencie suas entregas</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Controles */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            {/* Seletor de Motoboy */}
+            <div className="flex items-center gap-3">
+              <User className="w-5 h-5 text-slate-500" />
+              <select
+                value={motoboyId || ''}
+                onChange={(e) => setMotoboyId(e.target.value)}
+                className="min-w-[200px]"
+              >
+                {motoboys.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Modo de Visualização */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setModoVisualizacao('dia')}
+                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                style={{
+                  backgroundColor: modoVisualizacao === 'dia' ? '#376295' : '#f1f5f9',
+                  color: modoVisualizacao === 'dia' ? 'white' : '#64748b'
+                }}
+              >
+                Dia
+              </button>
+              <button
+                onClick={() => setModoVisualizacao('semana')}
+                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                style={{
+                  backgroundColor: modoVisualizacao === 'semana' ? '#376295' : '#f1f5f9',
+                  color: modoVisualizacao === 'semana' ? 'white' : '#64748b'
+                }}
+              >
+                Semana
+              </button>
+            </div>
+
+            {/* Navegação de Data */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={modoVisualizacao === 'dia' ? handleDiaAnterior : handleSemanaAnterior}
+                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-slate-600" />
+              </button>
+
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 min-w-[200px] justify-center">
+                <CalendarIcon className="w-4 h-4 text-slate-600" />
+                <span className="font-semibold text-sm text-slate-700">
+                  {getPeriodoTexto()}
+                </span>
+              </div>
+
+              <button
+                onClick={modoVisualizacao === 'dia' ? handleProximoDia : handleProximaSemana}
+                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-600" />
+              </button>
+
+              <button
+                onClick={handleHoje}
+                className="px-4 py-2 rounded-lg font-semibold text-sm transition-colors border border-slate-300 hover:bg-slate-50 text-slate-700"
+              >
+                Hoje
+              </button>
+            </div>
+
+            {/* Seletor de Data */}
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={format(dataSelecionada, 'yyyy-MM-dd')}
+                onChange={(e) => {
+                  const [year, month, day] = e.target.value.split('-');
+                  const novaData = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                  setDataSelecionada(novaData);
+                }}
+              />
+            </div>
+          </div>
+        </div>
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <div

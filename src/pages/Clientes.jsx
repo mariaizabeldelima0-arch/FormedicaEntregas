@@ -116,6 +116,21 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
     const toastId = toast.loading(cliente?.id ? 'Atualizando cliente...' : 'Cadastrando cliente...');
 
     try {
+      // Verificar se já existe cliente com o mesmo nome (apenas para novos cadastros)
+      if (!cliente?.id) {
+        const { data: clienteExistente } = await supabase
+          .from('clientes')
+          .select('id, nome')
+          .ilike('nome', formData.nome.trim())
+          .limit(1);
+
+        if (clienteExistente && clienteExistente.length > 0) {
+          toast.error(`Já existe um cliente cadastrado com o nome "${clienteExistente[0].nome}"`, { id: toastId });
+          setSaving(false);
+          return;
+        }
+      }
+
       // 1. Criar ou atualizar cliente
       let clienteId;
 
@@ -682,6 +697,73 @@ export default function Clientes() {
     setDeleteDialogOpen(true);
   };
 
+  // Remover clientes duplicados
+  const removerDuplicados = async () => {
+    if (!confirm('Tem certeza que deseja remover os clientes duplicados? Esta ação manterá apenas o cadastro mais antigo de cada cliente com o mesmo nome.')) {
+      return;
+    }
+
+    const toastId = toast.loading('Removendo duplicados...');
+
+    try {
+      // Buscar todos os clientes
+      const { data: todosClientes, error: fetchError } = await supabase
+        .from('clientes')
+        .select('id, nome, created_at')
+        .order('created_at', { ascending: true });
+
+      if (fetchError) throw fetchError;
+
+      // Encontrar duplicados (agrupar por nome em lowercase)
+      const clientesPorNome = {};
+      todosClientes.forEach(cliente => {
+        const nomeNormalizado = cliente.nome.toLowerCase().trim();
+        if (!clientesPorNome[nomeNormalizado]) {
+          clientesPorNome[nomeNormalizado] = [];
+        }
+        clientesPorNome[nomeNormalizado].push(cliente);
+      });
+
+      // Coletar IDs dos duplicados (manter o primeiro, remover os outros)
+      const idsParaRemover = [];
+      Object.values(clientesPorNome).forEach(clientes => {
+        if (clientes.length > 1) {
+          // Pular o primeiro (mais antigo) e marcar os outros para remoção
+          for (let i = 1; i < clientes.length; i++) {
+            idsParaRemover.push(clientes[i].id);
+          }
+        }
+      });
+
+      if (idsParaRemover.length === 0) {
+        toast.success('Nenhum cliente duplicado encontrado!', { id: toastId });
+        return;
+      }
+
+      // Primeiro, deletar os endereços dos clientes duplicados
+      const { error: enderecoError } = await supabase
+        .from('enderecos')
+        .delete()
+        .in('cliente_id', idsParaRemover);
+
+      if (enderecoError) throw enderecoError;
+
+      // Depois, deletar os clientes duplicados
+      const { error: deleteError } = await supabase
+        .from('clientes')
+        .delete()
+        .in('id', idsParaRemover);
+
+      if (deleteError) throw deleteError;
+
+      toast.success(`${idsParaRemover.length} cliente(s) duplicado(s) removido(s)!`, { id: toastId });
+      loadClientes();
+    } catch (error) {
+      console.error('Erro ao remover duplicados:', error);
+      toast.error('Erro ao remover duplicados: ' + error.message, { id: toastId });
+    }
+  };
+
   // Filtrar entregas
   const entregasFiltradas = entregasCliente.filter(e => {
     // Filtro de status
@@ -922,24 +1004,24 @@ export default function Clientes() {
 
                       {/* Lado Direito - Estatísticas */}
                       <div>
-                        <h3 className="font-semibold text-slate-900 mb-4">Estatísticas de Entregas</h3>
-                        <div className="grid grid-cols-4 gap-3">
+                        <h3 className="font-semibold text-lg text-slate-900 mb-4">Estatísticas de Entregas</h3>
+                        <div className="grid grid-cols-2 gap-4">
                           {/* Card Total */}
                           <button
                             type="button"
                             onClick={() => setFiltroStatusEntrega("todas")}
-                            className="bg-white rounded-xl shadow-sm p-4 cursor-pointer transition-all hover:shadow-md"
+                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
                             style={{
                               border: filtroStatusEntrega === "todas" ? '2px solid #376295' : '2px solid transparent'
                             }}
                           >
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                                <ClipboardList className="w-5 h-5" style={{ color: '#376295' }} />
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                                <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                               </div>
-                              <span className="text-xs font-bold text-slate-700">Total</span>
+                              <span className="text-sm font-bold text-slate-700">Total</span>
                             </div>
-                            <div className="text-3xl font-bold text-center" style={{ color: '#376295' }}>
+                            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
                               {totalEntregas}
                             </div>
                           </button>
@@ -948,18 +1030,18 @@ export default function Clientes() {
                           <button
                             type="button"
                             onClick={() => setFiltroStatusEntrega("Produzindo no Laboratório")}
-                            className="bg-white rounded-xl shadow-sm p-4 cursor-pointer transition-all hover:shadow-md"
+                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
                             style={{
                               border: filtroStatusEntrega === "Produzindo no Laboratório" ? '2px solid #890d5d' : '2px solid transparent'
                             }}
                           >
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                                <Package className="w-5 h-5" style={{ color: '#890d5d' }} />
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                                <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
                               </div>
-                              <span className="text-xs font-bold text-slate-700">Produção</span>
+                              <span className="text-sm font-bold text-slate-700">Produção</span>
                             </div>
-                            <div className="text-3xl font-bold text-center" style={{ color: '#890d5d' }}>
+                            <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
                               {entregasProducao}
                             </div>
                           </button>
@@ -968,18 +1050,18 @@ export default function Clientes() {
                           <button
                             type="button"
                             onClick={() => setFiltroStatusEntrega("A Caminho")}
-                            className="bg-white rounded-xl shadow-sm p-4 cursor-pointer transition-all hover:shadow-md"
+                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
                             style={{
                               border: filtroStatusEntrega === "A Caminho" ? '2px solid #f97316' : '2px solid transparent'
                             }}
                           >
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                                <Truck className="w-5 h-5" style={{ color: '#f97316' }} />
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                                <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
                               </div>
-                              <span className="text-xs font-bold text-slate-700">A Caminho</span>
+                              <span className="text-sm font-bold text-slate-700">A Caminho</span>
                             </div>
-                            <div className="text-3xl font-bold text-center" style={{ color: '#f97316' }}>
+                            <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
                               {entregasCaminho}
                             </div>
                           </button>
@@ -988,18 +1070,18 @@ export default function Clientes() {
                           <button
                             type="button"
                             onClick={() => setFiltroStatusEntrega("Entregue")}
-                            className="bg-white rounded-xl shadow-sm p-4 cursor-pointer transition-all hover:shadow-md"
+                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
                             style={{
                               border: filtroStatusEntrega === "Entregue" ? '2px solid #22c55e' : '2px solid transparent'
                             }}
                           >
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                                <Check className="w-5 h-5" style={{ color: '#22c55e' }} />
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                                <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
                               </div>
-                              <span className="text-xs font-bold text-slate-700">Entregues</span>
+                              <span className="text-sm font-bold text-slate-700">Entregues</span>
                             </div>
-                            <div className="text-3xl font-bold text-center" style={{ color: '#22c55e' }}>
+                            <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
                               {entregasEntregues}
                             </div>
                           </button>
@@ -1035,7 +1117,7 @@ export default function Clientes() {
                       <select
                         value={filtroStatusEntrega}
                         onChange={(e) => setFiltroStatusEntrega(e.target.value)}
-                        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#457bba] focus:border-transparent"
+                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#457bba] focus:border-transparent"
                       >
                         <option value="todas">Todos os Status</option>
                         <option value="Produzindo no Laboratório">Produção</option>
