@@ -72,9 +72,16 @@ export default function Layout({ children, currentPageName }) {
 
   const isAtendente = user?.tipo_usuario === 'atendente' || user?.tipo_usuario === 'admin';
   const isEntregador = user?.tipo_usuario === 'entregador';
+  const isMotoboy = user?.tipo_usuario === 'motoboy';
   const isAdmin = user?.tipo_usuario === 'admin' || user?.role === 'admin';
 
-  const navigationItems = isEntregador ? [
+  const navigationItems = isMotoboy ? [
+    {
+      title: "Minhas Entregas",
+      url: createPageUrl("PainelMotoboys"),
+      icon: Truck,
+    },
+  ] : isEntregador ? [
     {
       title: "Minhas Entregas",
       url: createPageUrl("MinhasEntregas"),

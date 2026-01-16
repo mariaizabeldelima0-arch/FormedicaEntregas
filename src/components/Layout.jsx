@@ -112,7 +112,7 @@ export default function Layout({ children }) {
       { icon: 'dinheiro', label: 'Pagamentos', path: '/pagamentos' },
     ],
     motoboy: [
-      { icon: 'moto', label: 'Minhas Entregas', path: '/' },
+      { icon: 'moto', label: 'Minhas Entregas', path: '/painel-motoboys' },
     ],
   };
 

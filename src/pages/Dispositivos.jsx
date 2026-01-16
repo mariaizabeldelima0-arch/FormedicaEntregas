@@ -11,14 +11,40 @@ import {
   CheckCircle,
   XCircle,
   Trash2,
-  Clock
+  Clock,
+  Plus,
+  UserPlus,
+  Users
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { createPageUrl } from '@/utils';
 
 export default function Dispositivos() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [busca, setBusca] = useState('');
+
+  // Buscar motoboys para seleção
+  const { data: motoboys = [] } = useQuery({
+    queryKey: ['motoboys-lista'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('motoboys')
+        .select('*')
+        .order('nome');
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Buscar dispositivos
   const { data: dispositivos = [], isLoading } = useQuery({
@@ -121,6 +147,29 @@ export default function Dispositivos() {
     }
   });
 
+  // Mutation para atualizar tipo de usuário do dispositivo
+  const atualizarTipoMutation = useMutation({
+    mutationFn: async ({ dispositivoId, tipoUsuario, nomeMotoboy }) => {
+      const { error } = await supabase
+        .from('dispositivos')
+        .update({
+          tipo_usuario: tipoUsuario,
+          nome_motoboy: nomeMotoboy || null
+        })
+        .eq('id', dispositivoId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
+      toast.success('Tipo de usuário atualizado!');
+    },
+    onError: (error) => {
+      console.error('Erro:', error);
+      toast.error('Erro ao atualizar tipo de usuário');
+    }
+  });
+
   const handleAutorizar = (id) => {
     autorizarMutation.mutate(id);
   };
@@ -133,6 +182,10 @@ export default function Dispositivos() {
     if (window.confirm('Tem certeza que deseja remover este dispositivo?')) {
       deletarMutation.mutate(id);
     }
+  };
+
+  const handleAtualizarTipo = (dispositivoId, tipoUsuario, nomeMotoboy) => {
+    atualizarTipoMutation.mutate({ dispositivoId, tipoUsuario, nomeMotoboy });
   };
 
   return (
@@ -150,7 +203,7 @@ export default function Dispositivos() {
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
             <div>
-              <h1 className="text-4xl font-bold text-white">Gerenciar Dispositivos</h1>
+              <h1 className="text-4xl font-bold text-white">Gerenciar Usuários/Dispositivos</h1>
               <p className="text-base text-white opacity-90 mt-1">Autorizar ou bloquear dispositivos de acesso</p>
             </div>
           </div>
@@ -159,7 +212,23 @@ export default function Dispositivos() {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          {/* Card Gerenciar Usuários */}
+          <div
+            onClick={() => navigate(createPageUrl("Usuarios"))}
+            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md hover:scale-105"
+            style={{ backgroundColor: '#890d5d' }}
+          >
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg bg-white/20">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-sm font-bold text-white">Usuários</span>
+            </div>
+            <div className="text-center">
+              <span className="text-white font-semibold text-sm">Gerenciar</span>
+            </div>
+          </div>
           <div
             onClick={() => setFiltroStatus('todos')}
             className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
@@ -271,13 +340,16 @@ export default function Dispositivos() {
                 <DispositivoCard
                   key={dispositivo.id}
                   dispositivo={dispositivo}
+                  motoboys={motoboys}
                   onAutorizar={handleAutorizar}
                   onBloquear={handleBloquear}
                   onDeletar={handleDeletar}
+                  onAtualizarTipo={handleAtualizarTipo}
                   isUpdating={
                     autorizarMutation.isPending ||
                     bloquearMutation.isPending ||
-                    deletarMutation.isPending
+                    deletarMutation.isPending ||
+                    atualizarTipoMutation.isPending
                   }
                 />
               ))
@@ -290,7 +362,25 @@ export default function Dispositivos() {
 }
 
 // Componente de Card de Dispositivo
-function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUpdating }) {
+function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDeletar, onAtualizarTipo, isUpdating }) {
+  const [tipoUsuario, setTipoUsuario] = React.useState(dispositivo.tipo_usuario || '');
+  const [nomeMotoboy, setNomeMotoboy] = React.useState(dispositivo.nome_motoboy || '');
+
+  const handleTipoChange = (novoTipo) => {
+    setTipoUsuario(novoTipo);
+    if (novoTipo !== 'motoboy') {
+      setNomeMotoboy('');
+      onAtualizarTipo(dispositivo.id, novoTipo, null);
+    }
+  };
+
+  const handleMotoboyChange = (nome) => {
+    setNomeMotoboy(nome);
+    if (nome) {
+      onAtualizarTipo(dispositivo.id, 'motoboy', nome);
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Autorizado':
@@ -364,6 +454,55 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
               <div className="text-slate-600">
                 <span className="font-medium">Último acesso:</span>{' '}
                 <span className="text-slate-900">{formatDate(dispositivo.ultimo_acesso)}</span>
+              </div>
+            </div>
+
+            {/* Tipo de Usuário */}
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-600">Tipo:</span>
+                  <select
+                    value={tipoUsuario}
+                    onChange={(e) => handleTipoChange(e.target.value)}
+                    disabled={isUpdating}
+                    className="min-w-[160px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="admin">Administrador</option>
+                    <option value="atendente">Atendente</option>
+                    <option value="motoboy">Motoboy</option>
+                  </select>
+                </div>
+
+                {tipoUsuario === 'motoboy' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-600">Motoboy:</span>
+                    <select
+                      value={nomeMotoboy}
+                      onChange={(e) => handleMotoboyChange(e.target.value)}
+                      disabled={isUpdating}
+                      className="min-w-[150px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+                    >
+                      <option value="">Selecione...</option>
+                      {motoboys?.map(m => (
+                        <option key={m.id} value={m.nome}>{m.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {tipoUsuario && (
+                  <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                    tipoUsuario === 'admin' ? 'bg-purple-100 text-purple-700' :
+                    tipoUsuario === 'motoboy' ? 'bg-orange-100 text-orange-700' :
+                    'bg-blue-100 text-blue-700'
+                  }`}>
+                    {tipoUsuario === 'admin' ? 'Administrador' :
+                     tipoUsuario === 'motoboy' ? `Motoboy${nomeMotoboy ? `: ${nomeMotoboy}` : ''}` :
+                     'Atendente'}
+                  </span>
+                )}
               </div>
             </div>
           </div>

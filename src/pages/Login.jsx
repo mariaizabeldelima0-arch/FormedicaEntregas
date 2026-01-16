@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
 
 export default function Login() {
-  const [cpf, setCpf] = useState('');
+  const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,14 +16,14 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    const result = await login(cpf, senha);
-    
+    const result = await login(usuario, senha);
+
     if (result.success) {
       navigate('/');
     } else {
-      setError('CPF ou senha inválidos');
+      setError(result.error || 'Email ou senha inválidos');
     }
-    
+
     setLoading(false);
   };
 
@@ -72,19 +72,19 @@ export default function Login() {
           )}
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ 
-              display: 'block', 
+            <label style={{
+              display: 'block',
               marginBottom: '0.5rem',
               color: theme.colors.text,
               fontWeight: '500'
             }}>
-              CPF
+              Usuário
             </label>
             <input
               type="text"
-              value={cpf}
-              onChange={(e) => setCpf(e.target.value)}
-              placeholder="000.000.000-00"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+              placeholder="Digite seu usuário"
               required
               style={{
                 width: '100%',

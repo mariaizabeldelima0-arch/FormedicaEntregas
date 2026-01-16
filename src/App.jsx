@@ -20,6 +20,7 @@ import PlanilhaDiaria from '@/pages/PlanilhaDiaria';
 import PainelMotoboys from '@/pages/PainelMotoboys';
 import Dispositivos from '@/pages/Dispositivos';
 import RomaneiosDoDia from '@/pages/RomaneiosDoDia';
+import Usuarios from '@/pages/Usuarios';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,19 +34,19 @@ const queryClient = new QueryClient({
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100vh'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            width: '50px', 
-            height: '50px', 
+          <div style={{
+            width: '50px',
+            height: '50px',
             border: '4px solid #e2e8f0',
             borderTop: '4px solid #457bba',
             borderRadius: '50%',
@@ -57,18 +58,36 @@ function PrivateRoute({ children }) {
       </div>
     );
   }
-  
+
   return user ? children : <Navigate to="/login" />;
 }
 
+// Componente para proteger rotas por tipo de usuário
+function MotoboyRoute({ children }) {
+  const { userType } = useAuth();
+
+  // Motoboys só podem acessar /painel-motoboys
+  if (userType === 'motoboy') {
+    return <Navigate to="/painel-motoboys" replace />;
+  }
+
+  return children;
+}
+
 function AppRoutes() {
-  const { user } = useAuth();
-  
+  const { user, userType } = useAuth();
+
+  // Redirecionar motoboys para sua página específica
+  const getDefaultRoute = () => {
+    if (userType === 'motoboy') return '/painel-motoboys';
+    return '/';
+  };
+
   return (
     <Routes>
       <Route
         path="/login"
-        element={user ? <Navigate to="/" /> : <Login />}
+        element={user ? <Navigate to={getDefaultRoute()} /> : <Login />}
       />
       {/* Rota de impressão SEM Layout */}
       <Route
@@ -85,21 +104,22 @@ function AppRoutes() {
           <PrivateRoute>
             <Layout>
               <Routes>
-                <Route path="/" element={<EntregasMoto />} />
-                <Route path="/sedex" element={<SedexDisktenha />} />
-                <Route path="/sedex-detalhes" element={<DetalheSedexDisktenha />} />
-                <Route path="/novo-romaneio" element={<NovoRomaneio />} />
-                <Route path="/editar-romaneio" element={<EditarRomaneio />} />
-                <Route path="/detalhes-romaneio" element={<DetalhesRomaneio />} />
-                <Route path="/clientes" element={<Clientes />} />
-                <Route path="/historico-clientes" element={<div style={{padding: '2rem'}}>Histórico - Em construção</div>} />
-                <Route path="/relatorios" element={<Relatorios />} />
-                <Route path="/receitas" element={<Receitas />} />
-                <Route path="/pagamentos" element={<Pagamentos />} />
-                <Route path="/planilha-diaria" element={<PlanilhaDiaria />} />
+                <Route path="/" element={userType === 'motoboy' ? <Navigate to="/painel-motoboys" replace /> : <EntregasMoto />} />
+                <Route path="/sedex" element={<MotoboyRoute><SedexDisktenha /></MotoboyRoute>} />
+                <Route path="/sedex-detalhes" element={<MotoboyRoute><DetalheSedexDisktenha /></MotoboyRoute>} />
+                <Route path="/novo-romaneio" element={<MotoboyRoute><NovoRomaneio /></MotoboyRoute>} />
+                <Route path="/editar-romaneio" element={<MotoboyRoute><EditarRomaneio /></MotoboyRoute>} />
+                <Route path="/detalhes-romaneio" element={<MotoboyRoute><DetalhesRomaneio /></MotoboyRoute>} />
+                <Route path="/clientes" element={<MotoboyRoute><Clientes /></MotoboyRoute>} />
+                <Route path="/historico-clientes" element={<MotoboyRoute><div style={{padding: '2rem'}}>Histórico - Em construção</div></MotoboyRoute>} />
+                <Route path="/relatorios" element={<MotoboyRoute><Relatorios /></MotoboyRoute>} />
+                <Route path="/receitas" element={<MotoboyRoute><Receitas /></MotoboyRoute>} />
+                <Route path="/pagamentos" element={<MotoboyRoute><Pagamentos /></MotoboyRoute>} />
+                <Route path="/planilha-diaria" element={<MotoboyRoute><PlanilhaDiaria /></MotoboyRoute>} />
                 <Route path="/painel-motoboys" element={<PainelMotoboys />} />
-                <Route path="/dispositivos" element={<Dispositivos />} />
-                <Route path="/romaneios-do-dia" element={<RomaneiosDoDia />} />
+                <Route path="/dispositivos" element={<MotoboyRoute><Dispositivos /></MotoboyRoute>} />
+                <Route path="/romaneios-do-dia" element={<MotoboyRoute><RomaneiosDoDia /></MotoboyRoute>} />
+                <Route path="/usuarios" element={<MotoboyRoute><Usuarios /></MotoboyRoute>} />
               </Routes>
             </Layout>
           </PrivateRoute>

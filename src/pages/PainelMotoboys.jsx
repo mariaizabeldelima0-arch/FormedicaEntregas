@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
+import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isSameDay, startOfWeek, endOfWeek, addDays, subDays, addWeeks, subWeeks, eachDayOfInterval, getDay, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -16,16 +17,28 @@ import {
   User,
   Calendar as CalendarIcon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
+  ListOrdered,
+  Save
 } from 'lucide-react';
 
 export default function PainelMotoboys() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user, userType } = useAuth();
   const [motoboyId, setMotoboyId] = useState(null);
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [modoVisualizacao, setModoVisualizacao] = useState('dia'); // 'dia' ou 'semana'
   const [filtroStatus, setFiltroStatus] = useState('todos'); // 'todos', 'entregues', 'a_caminho', 'pendentes'
+  const [modoOrganizar, setModoOrganizar] = useState(false);
+  const [ordemPersonalizada, setOrdemPersonalizada] = useState({});
+
+  // Verificar se o usuário é um motoboy
+  const isMotoboy = userType === 'motoboy';
+  const nomeMotoboyUsuario = user?.nome_motoboy;
 
   // Buscar lista de motoboys
   const { data: motoboys = [] } = useQuery({
@@ -41,12 +54,23 @@ export default function PainelMotoboys() {
     },
   });
 
-  // Selecionar primeiro motoboy automaticamente
+  // Selecionar motoboy automaticamente
   useEffect(() => {
     if (motoboys.length > 0 && !motoboyId) {
+      // Se for motoboy, buscar pelo nome do usuário
+      if (isMotoboy && nomeMotoboyUsuario) {
+        const motoboyDoUsuario = motoboys.find(m =>
+          m.nome.toLowerCase() === nomeMotoboyUsuario.toLowerCase()
+        );
+        if (motoboyDoUsuario) {
+          setMotoboyId(motoboyDoUsuario.id);
+          return;
+        }
+      }
+      // Caso contrário (admin/atendente), selecionar o primeiro
       setMotoboyId(motoboys[0].id);
     }
-  }, [motoboys, motoboyId]);
+  }, [motoboys, motoboyId, isMotoboy, nomeMotoboyUsuario]);
 
   // Calcular período de busca
   const getPeriodoDeBusca = () => {
@@ -150,6 +174,87 @@ export default function PainelMotoboys() {
       toast.error('Erro ao atualizar status');
     }
   });
+
+  // Mutation para salvar ordem personalizada
+  const salvarOrdemMutation = useMutation({
+    mutationFn: async (ordens) => {
+      // Salvar ordem para cada entrega
+      const promises = Object.entries(ordens).map(([id, ordem]) =>
+        supabase
+          .from('romaneios')
+          .update({ ordem_motoboy: ordem })
+          .eq('id', id)
+      );
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entregas-motoboy'] });
+      toast.success('Ordem salva com sucesso!');
+      setModoOrganizar(false);
+    },
+    onError: () => {
+      toast.error('Erro ao salvar ordem');
+    }
+  });
+
+  // Função para mover entrega para cima ou para baixo
+  const moverEntrega = (entregaId, direcao, listaEntregas) => {
+    const index = listaEntregas.findIndex(e => e.id === entregaId);
+    if (index === -1) return;
+
+    const novaOrdem = { ...ordemPersonalizada };
+
+    if (direcao === 'cima' && index > 0) {
+      // Trocar com o item acima
+      const idAnterior = listaEntregas[index - 1].id;
+      const ordemAtual = novaOrdem[entregaId] ?? index;
+      const ordemAnterior = novaOrdem[idAnterior] ?? (index - 1);
+      novaOrdem[entregaId] = ordemAnterior;
+      novaOrdem[idAnterior] = ordemAtual;
+    } else if (direcao === 'baixo' && index < listaEntregas.length - 1) {
+      // Trocar com o item abaixo
+      const idProximo = listaEntregas[index + 1].id;
+      const ordemAtual = novaOrdem[entregaId] ?? index;
+      const ordemProximo = novaOrdem[idProximo] ?? (index + 1);
+      novaOrdem[entregaId] = ordemProximo;
+      novaOrdem[idProximo] = ordemAtual;
+    }
+
+    setOrdemPersonalizada(novaOrdem);
+  };
+
+  // Função para ordenar entregas pela ordem personalizada
+  const ordenarEntregas = (lista) => {
+    if (!modoOrganizar && Object.keys(ordemPersonalizada).length === 0) {
+      // Ordenar por ordem_motoboy do banco de dados
+      return [...lista].sort((a, b) => {
+        const ordemA = a.ordem_motoboy ?? 999;
+        const ordemB = b.ordem_motoboy ?? 999;
+        return ordemA - ordemB;
+      });
+    }
+    return [...lista].sort((a, b) => {
+      const ordemA = ordemPersonalizada[a.id] ?? a.ordem_motoboy ?? 999;
+      const ordemB = ordemPersonalizada[b.id] ?? b.ordem_motoboy ?? 999;
+      return ordemA - ordemB;
+    });
+  };
+
+  // Inicializar ordem personalizada quando entregas carregam
+  useEffect(() => {
+    if (entregas.length > 0 && Object.keys(ordemPersonalizada).length === 0) {
+      const ordemInicial = {};
+      entregas.forEach((e, idx) => {
+        ordemInicial[e.id] = e.ordem_motoboy ?? idx;
+      });
+      setOrdemPersonalizada(ordemInicial);
+    }
+  }, [entregas]);
+
+  // Salvar ordem
+  const handleSalvarOrdem = () => {
+    salvarOrdemMutation.mutate(ordemPersonalizada);
+  };
 
   // Calcular estatísticas (usar entregasFiltradas para os números, mas entregas para exibir)
   const statsTotal = {
@@ -295,15 +400,21 @@ export default function PainelMotoboys() {
       }}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-            >
-              <ChevronLeft className="w-6 h-6 text-white" />
-            </button>
+            {!isMotoboy && (
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              >
+                <ChevronLeft className="w-6 h-6 text-white" />
+              </button>
+            )}
             <div>
-              <h1 className="text-4xl font-bold text-white">Painel do Motoboy</h1>
-              <p className="text-base text-white opacity-90 mt-1">Gerencie suas entregas</p>
+              <h1 className="text-4xl font-bold text-white">
+                {isMotoboy ? 'Minhas Entregas' : 'Painel do Motoboy'}
+              </h1>
+              <p className="text-base text-white opacity-90 mt-1">
+                {isMotoboy ? `Olá, ${nomeMotoboyUsuario || user?.nome || 'Motoboy'}` : 'Gerencie as entregas dos motoboys'}
+              </p>
             </div>
           </div>
         </div>
@@ -313,24 +424,26 @@ export default function PainelMotoboys() {
         {/* Controles */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            {/* Seletor de Motoboy */}
-            <div className="flex items-center gap-3">
-              <User className="w-5 h-5 text-slate-500" />
-              <select
-                value={motoboyId || ''}
-                onChange={(e) => setMotoboyId(e.target.value)}
-                className="min-w-[200px]"
-              >
-                {motoboys.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Seletor de Motoboy - apenas para admin/atendente */}
+            {!isMotoboy && (
+              <div className="flex items-center gap-3">
+                <User className="w-5 h-5 text-slate-500" />
+                <select
+                  value={motoboyId || ''}
+                  onChange={(e) => setMotoboyId(e.target.value)}
+                  className="min-w-[200px]"
+                >
+                  {motoboys.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Modo de Visualização */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setModoVisualizacao('dia')}
                 className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
@@ -351,6 +464,42 @@ export default function PainelMotoboys() {
               >
                 Semana
               </button>
+
+              {/* Botão Organizar - apenas para motoboys */}
+              {isMotoboy && (
+                <>
+                  {modoOrganizar ? (
+                    <button
+                      onClick={handleSalvarOrdem}
+                      disabled={salvarOrdemMutation.isPending}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <Save className="w-4 h-4" />
+                      {salvarOrdemMutation.isPending ? 'Salvando...' : 'Salvar Ordem'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setModoOrganizar(true)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                      style={{ backgroundColor: '#890d5d', color: 'white' }}
+                    >
+                      <ListOrdered className="w-4 h-4" />
+                      Organizar
+                    </button>
+                  )}
+                  {modoOrganizar && (
+                    <button
+                      onClick={() => {
+                        setModoOrganizar(false);
+                        setOrdemPersonalizada({});
+                      }}
+                      className="px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-slate-200 hover:bg-slate-300 text-slate-700"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Navegação de Data */}
@@ -678,82 +827,113 @@ export default function PainelMotoboys() {
           {/* Visualização por Dia */}
           {modoVisualizacao === 'dia' && (
             <>
-              {/* Entregas Manhã */}
-              {entregasPorPeriodo.manha.length > 0 && (
+              {/* Modo Organizar - Lista simples para reordenar */}
+              {modoOrganizar && isMotoboy ? (
                 <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
-                  ☀️ MANHÃ ({entregasPorPeriodo.manha.length})
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {Object.entries(
-                  entregasPorPeriodo.manha.reduce((acc, e) => {
-                    const cidade = e.endereco?.cidade || 'Sem cidade';
-                    if (!acc[cidade]) acc[cidade] = [];
-                    acc[cidade].push(e);
-                    return acc;
-                  }, {})
-                ).map(([cidade, entregas]) => (
-                  <div key={cidade}>
-                    <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
-                      📍 {cidade} - {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
-                    </div>
-                    <div className="space-y-2">
-                      {entregas.map((entrega) => (
+                  <div className="bg-gradient-to-r from-[#890d5d] to-[#457bba] text-white px-4 py-3 rounded-lg font-semibold text-sm mb-4 flex items-center gap-2">
+                    <ListOrdered className="w-5 h-5" />
+                    Arraste para organizar suas entregas ({entregas.length})
+                  </div>
+                  <div className="space-y-3">
+                    {(() => {
+                      const entregasOrdenadas = ordenarEntregas(entregas);
+                      return entregasOrdenadas.map((entrega, index) => (
                         <EntregaCard
                           key={entrega.id}
                           entrega={entrega}
                           onStatusChange={handleStatusChange}
                           isUpdating={updateStatusMutation.isPending}
                           onCardClick={handleCardClick}
+                          modoOrganizar={true}
+                          posicao={index}
+                          totalEntregas={entregasOrdenadas.length}
+                          onMoverCima={() => moverEntrega(entrega.id, 'cima', entregasOrdenadas)}
+                          onMoverBaixo={() => moverEntrega(entrega.id, 'baixo', entregasOrdenadas)}
                         />
-                      ))}
-                    </div>
+                      ));
+                    })()}
                   </div>
-                ))}
-              </div>
                 </div>
-              )}
+              ) : (
+                <>
+                  {/* Entregas Manhã */}
+                  {entregasPorPeriodo.manha.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
+                          ☀️ MANHÃ ({entregasPorPeriodo.manha.length})
+                        </div>
+                      </div>
 
-              {/* Entregas Tarde */}
-              {entregasPorPeriodo.tarde.length > 0 && (
-                <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
-                  🌅 TARDE ({entregasPorPeriodo.tarde.length})
-                </div>
-              </div>
+                      <div className="space-y-3">
+                        {Object.entries(
+                          ordenarEntregas(entregasPorPeriodo.manha).reduce((acc, e) => {
+                            const cidade = e.endereco?.cidade || 'Sem cidade';
+                            if (!acc[cidade]) acc[cidade] = [];
+                            acc[cidade].push(e);
+                            return acc;
+                          }, {})
+                        ).map(([cidade, entregasCidade]) => (
+                          <div key={cidade}>
+                            <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
+                              📍 {cidade} - {entregasCidade.length} entrega{entregasCidade.length !== 1 ? 's' : ''}
+                            </div>
+                            <div className="space-y-2">
+                              {entregasCidade.map((entrega) => (
+                                <EntregaCard
+                                  key={entrega.id}
+                                  entrega={entrega}
+                                  onStatusChange={handleStatusChange}
+                                  isUpdating={updateStatusMutation.isPending}
+                                  onCardClick={handleCardClick}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              <div className="space-y-3">
-                {Object.entries(
-                  entregasPorPeriodo.tarde.reduce((acc, e) => {
-                    const cidade = e.endereco?.cidade || 'Sem cidade';
-                    if (!acc[cidade]) acc[cidade] = [];
-                    acc[cidade].push(e);
-                    return acc;
-                  }, {})
-                ).map(([cidade, entregas]) => (
-                  <div key={cidade}>
-                    <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
-                      📍 {cidade} - {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
+                  {/* Entregas Tarde */}
+                  {entregasPorPeriodo.tarde.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
+                          🌅 TARDE ({entregasPorPeriodo.tarde.length})
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {Object.entries(
+                          ordenarEntregas(entregasPorPeriodo.tarde).reduce((acc, e) => {
+                            const cidade = e.endereco?.cidade || 'Sem cidade';
+                            if (!acc[cidade]) acc[cidade] = [];
+                            acc[cidade].push(e);
+                            return acc;
+                          }, {})
+                        ).map(([cidade, entregasCidade]) => (
+                          <div key={cidade}>
+                            <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
+                              📍 {cidade} - {entregasCidade.length} entrega{entregasCidade.length !== 1 ? 's' : ''}
+                            </div>
+                            <div className="space-y-2">
+                              {entregasCidade.map((entrega) => (
+                                <EntregaCard
+                                  key={entrega.id}
+                                  entrega={entrega}
+                                  onStatusChange={handleStatusChange}
+                                  isUpdating={updateStatusMutation.isPending}
+                                  onCardClick={handleCardClick}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      {entregas.map((entrega) => (
-                        <EntregaCard
-                          key={entrega.id}
-                          entrega={entrega}
-                          onStatusChange={handleStatusChange}
-                          isUpdating={updateStatusMutation.isPending}
-                          onCardClick={handleCardClick}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-                </div>
+                  )}
+                </>
               )}
             </>
           )}
@@ -800,7 +980,7 @@ export default function PainelMotoboys() {
 }
 
 // Componente de Card de Entrega
-function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
+function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick, modoOrganizar, onMoverCima, onMoverBaixo, posicao, totalEntregas }) {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Entregue':
@@ -831,14 +1011,54 @@ function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick }) {
 
   return (
     <div
-      className={`rounded-xl shadow-md border-2 overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.02] ${getStatusColor(entrega.status)}`}
+      className={`rounded-xl shadow-md border-2 overflow-hidden transition-all ${modoOrganizar ? '' : 'cursor-pointer hover:shadow-lg hover:scale-[1.02]'} ${getStatusColor(entrega.status)}`}
       onClick={(e) => {
-        if (onCardClick) {
+        if (!modoOrganizar && onCardClick) {
           onCardClick(entrega);
         }
       }}
     >
-      <div className="p-4" style={{ pointerEvents: 'none' }}>
+      {/* Controles de Ordenação - Mobile Friendly */}
+      {modoOrganizar && (
+        <div className="bg-gradient-to-r from-[#890d5d] to-[#457bba] p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white">
+            <GripVertical className="w-5 h-5" />
+            <span className="font-bold text-lg">#{posicao + 1}</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoverCima && onMoverCima();
+              }}
+              disabled={posicao === 0}
+              className={`p-3 rounded-xl font-bold transition-all ${
+                posicao === 0
+                  ? 'bg-white/30 text-white/50 cursor-not-allowed'
+                  : 'bg-white text-[#890d5d] hover:bg-slate-100 active:scale-95'
+              }`}
+            >
+              <ArrowUp className="w-6 h-6" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoverBaixo && onMoverBaixo();
+              }}
+              disabled={posicao === totalEntregas - 1}
+              className={`p-3 rounded-xl font-bold transition-all ${
+                posicao === totalEntregas - 1
+                  ? 'bg-white/30 text-white/50 cursor-not-allowed'
+                  : 'bg-white text-[#890d5d] hover:bg-slate-100 active:scale-95'
+              }`}
+            >
+              <ArrowDown className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="p-4" style={{ pointerEvents: modoOrganizar ? 'auto' : 'none' }}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">

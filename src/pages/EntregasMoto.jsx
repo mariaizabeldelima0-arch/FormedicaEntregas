@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { toast } from 'sonner';
@@ -98,6 +99,7 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
 // Página de entregas por moto
 export default function EntregasMoto() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState('day');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
@@ -673,7 +675,7 @@ export default function EntregasMoto() {
             </button>
             <div>
               <h1 className="text-4xl font-bold text-white">Entregas Moto</h1>
-              <p className="text-base text-white opacity-90 mt-1">Olá, mariaizabeldelima0</p>
+              <p className="text-base text-white opacity-90 mt-1">Olá, {user?.nome || user?.usuario || 'Usuário'}</p>
             </div>
           </div>
         </div>
@@ -1322,6 +1324,9 @@ export default function EntregasMoto() {
                               <div className="text-sm font-medium" style={{ color: '#376295' }}>
                                 {entrega.regiao}
                               </div>
+                              <div className="text-sm text-slate-500 mt-1">
+                                {entrega.data_entrega ? new Date(entrega.data_entrega + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1498,6 +1503,9 @@ export default function EntregasMoto() {
                               </div>
                               <div className="text-sm font-medium" style={{ color: '#376295' }}>
                                 {entrega.regiao}
+                              </div>
+                              <div className="text-sm text-slate-500 mt-1">
+                                {entrega.data_entrega ? new Date(entrega.data_entrega + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
                               </div>
                             </div>
                           </div>

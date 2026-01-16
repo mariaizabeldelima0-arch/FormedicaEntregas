@@ -28,23 +28,53 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (cpf, senha) => {
+  const login = async (usuarioLogin, senhaDigitada) => {
     try {
-      // Buscar usuário no Supabase pela tabela de usuários
-      // Por enquanto, vamos simular o login
+      // Buscar usuário na tabela de dispositivos
+      const { data: usuarios, error } = await supabase
+        .from('dispositivos')
+        .select('*')
+        .eq('usuario', usuarioLogin)
+        .eq('senha', senhaDigitada)
+        .limit(1);
+
+      if (error) {
+        console.error('Erro ao buscar usuário:', error);
+        return { success: false, error: 'Erro ao conectar' };
+      }
+
+      if (!usuarios || usuarios.length === 0) {
+        return { success: false, error: 'Usuário ou senha inválidos' };
+      }
+
+      const usuario = usuarios[0];
+
+      // Verificar se o usuário está autorizado
+      if (usuario.status !== 'Autorizado') {
+        return { success: false, error: 'Usuário aguardando autorização. Entre em contato com o administrador.' };
+      }
+
       const userData = {
-        cpf,
-        nome: 'Usuário Teste',
-        id: '1'
+        id: usuario.id,
+        usuario: usuario.usuario,
+        nome: usuario.nome,
+        tipo_usuario: usuario.tipo_usuario,
+        nome_motoboy: usuario.nome_motoboy,
+        nome_atendente: usuario.nome_atendente
       };
-      
+
       setUser(userData);
       localStorage.setItem('formedica_user', JSON.stringify(userData));
-      
-      // Determinar tipo de usuário (por enquanto, admin para teste)
-      setUserType('admin');
-      localStorage.setItem('formedica_user_type', 'admin');
-      
+
+      setUserType(usuario.tipo_usuario || 'atendente');
+      localStorage.setItem('formedica_user_type', usuario.tipo_usuario || 'atendente');
+
+      // Atualizar último acesso
+      await supabase
+        .from('dispositivos')
+        .update({ ultimo_acesso: new Date().toISOString() })
+        .eq('id', usuario.id);
+
       return { success: true };
     } catch (error) {
       console.error('Erro no login:', error);
