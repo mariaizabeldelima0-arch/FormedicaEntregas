@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig({
-  base: '/FormedicaEntregas/',
+export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/FormedicaEntregas/' : '/',
   plugins: [
     base44({
       // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
@@ -17,4 +17,4 @@ export default defineConfig({
     historyApiFallback: true,
   },
   appType: 'spa',
-});
+}));

@@ -114,7 +114,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <BrowserRouter basename="/FormedicaEntregas">
+          <BrowserRouter basename={import.meta.env.MODE === 'production' ? '/FormedicaEntregas' : '/'}>
             <AppRoutes />
             <Toaster position="top-right" richColors />
             <style>{`

@@ -679,9 +679,9 @@ export default function EntregasMoto() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 flex gap-6">
+      <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col lg:flex-row gap-6">
         {/* Sidebar Esquerda - Calendário */}
-        <div className="w-80 flex-shrink-0">
+        <div className="w-full lg:w-80 flex-shrink-0">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
             {/* Botões Por Dia / Todos */}
             <div className="flex items-center gap-2 mb-4">

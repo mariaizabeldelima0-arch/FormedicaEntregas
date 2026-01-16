@@ -265,7 +265,7 @@ export default function DetalhesRomaneio() {
 
           {/* Cabeçalho */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">
                   Romaneio #{numeroRequisicao}
@@ -275,7 +275,7 @@ export default function DetalhesRomaneio() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => navigate(`/editar-romaneio?id=${romaneioId}`)}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
@@ -310,7 +310,7 @@ export default function DetalhesRomaneio() {
           </div>
 
           {/* Conteúdo Principal */}
-          <div className="grid grid-cols-[1fr_400px] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
 
             {/* Coluna Esquerda */}
             <div className="flex flex-col gap-6">
@@ -322,7 +322,7 @@ export default function DetalhesRomaneio() {
                   <h2 className="text-lg font-bold">Informações do Romaneio</h2>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto', gap: '3.5rem', justifyContent: 'start' }}>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6">
                   <div>
                     <div className="text-xs text-slate-500 mb-2">
                       Número da Requisição

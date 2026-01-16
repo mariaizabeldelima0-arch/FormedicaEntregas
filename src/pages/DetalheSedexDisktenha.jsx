@@ -196,7 +196,7 @@ export default function DetalheSedexDisktenha() {
       <div className="max-w-5xl mx-auto px-6 pb-6 space-y-6">
         {/* Cabeçalho com informações e botões */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
                 {entrega.tipo} #{entrega.numero_requisicao || entrega.codigo_rastreio}
@@ -206,7 +206,7 @@ export default function DetalheSedexDisktenha() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleEdit}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
