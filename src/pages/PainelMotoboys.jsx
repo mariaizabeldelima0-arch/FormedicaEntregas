@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, isSameDay, startOfWeek, endOfWeek, addDays, subDays, addWeeks, subWeeks, eachDayOfInterval, getDay, startOfDay } from 'date-fns';
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, endOfWeek, addDays, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { theme } from '@/lib/theme';
 import {
   Package,
   CheckCircle,
@@ -18,11 +19,15 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  ArrowUp,
-  ArrowDown,
+  Printer,
+  Navigation,
+  Wallet,
+  AlertCircle,
+  Check,
+  X,
   GripVertical,
-  ListOrdered,
-  Save
+  Sun,
+  Sunset
 } from 'lucide-react';
 
 export default function PainelMotoboys() {
@@ -31,12 +36,12 @@ export default function PainelMotoboys() {
   const { user, userType } = useAuth();
   const [motoboyId, setMotoboyId] = useState(null);
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
-  const [modoVisualizacao, setModoVisualizacao] = useState('dia'); // 'dia' ou 'semana'
-  const [filtroStatus, setFiltroStatus] = useState('todos'); // 'todos', 'entregues', 'a_caminho', 'pendentes'
-  const [modoOrganizar, setModoOrganizar] = useState(false);
-  const [ordemPersonalizada, setOrdemPersonalizada] = useState({});
+  const [mesAtual, setMesAtual] = useState(new Date());
+  const [filtroLocal, setFiltroLocal] = useState('todos');
+  const [filtroPeriodo, setFiltroPeriodo] = useState('todos');
+  const [ordemEntregas, setOrdemEntregas] = useState({});
+  const [draggedItem, setDraggedItem] = useState(null);
 
-  // Verificar se o usuário é um motoboy
   const isMotoboy = userType === 'motoboy';
   const nomeMotoboyUsuario = user?.nome_motoboy;
 
@@ -48,7 +53,6 @@ export default function PainelMotoboys() {
         .from('motoboys')
         .select('*')
         .order('nome');
-
       if (error) throw error;
       return data || [];
     },
@@ -57,7 +61,6 @@ export default function PainelMotoboys() {
   // Selecionar motoboy automaticamente
   useEffect(() => {
     if (motoboys.length > 0 && !motoboyId) {
-      // Se for motoboy, buscar pelo nome do usuário
       if (isMotoboy && nomeMotoboyUsuario) {
         const motoboyDoUsuario = motoboys.find(m =>
           m.nome.toLowerCase() === nomeMotoboyUsuario.toLowerCase()
@@ -67,94 +70,104 @@ export default function PainelMotoboys() {
           return;
         }
       }
-      // Caso contrário (admin/atendente), selecionar o primeiro
       setMotoboyId(motoboys[0].id);
     }
   }, [motoboys, motoboyId, isMotoboy, nomeMotoboyUsuario]);
-
-  // Calcular período de busca
-  const getPeriodoDeBusca = () => {
-    if (modoVisualizacao === 'dia') {
-      return {
-        inicio: format(dataSelecionada, 'yyyy-MM-dd'),
-        fim: format(dataSelecionada, 'yyyy-MM-dd')
-      };
-    } else {
-      // Semana: domingo a sábado
-      const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
-      const fimSemana = endOfWeek(dataSelecionada, { weekStartsOn: 0 });
-      return {
-        inicio: format(inicioSemana, 'yyyy-MM-dd'),
-        fim: format(fimSemana, 'yyyy-MM-dd')
-      };
-    }
-  };
 
   // Buscar entregas do motoboy
   const { data: todasEntregas = [], isLoading } = useQuery({
     queryKey: ['entregas-motoboy', motoboyId],
     queryFn: async () => {
-      if (!motoboyId) {
-        console.log('Nenhum motoboy selecionado');
-        return [];
-      }
+      if (!motoboyId) return [];
+      const { data, error } = await supabase
+        .from('entregas')
+        .select(`
+          *,
+          cliente:clientes(id, nome, telefone),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, referencia),
+          motoboy:motoboys(id, nome)
+        `)
+        .eq('tipo', 'moto')
+        .eq('motoboy_id', motoboyId)
+        .order('data_entrega', { ascending: true });
 
-      try {
-        const { data, error } = await supabase
-          .from('entregas')
-          .select(`
-            *,
-            cliente:clientes(id, nome, telefone),
-            endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
-            motoboy:motoboys(id, nome)
-          `)
-          .eq('tipo', 'moto')
-          .order('data_entrega', { ascending: true });
-
-        if (error) {
-          console.error('Erro Supabase:', error);
-          throw error;
-        }
-
-        // Filtrar por motoboy no cliente
-        const entregasDoMotoboy = data?.filter(e => e.motoboy_id === motoboyId) || [];
-        return entregasDoMotoboy;
-      } catch (error) {
-        console.error('Erro ao carregar entregas:', error);
-        toast.error('Erro ao carregar entregas');
-        return [];
-      }
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!motoboyId,
     refetchOnMount: 'always',
     staleTime: 0,
   });
 
-  // Filtrar entregas por data no cliente
-  const entregasFiltradas = todasEntregas.filter(entrega => {
+  // Filtrar entregas do dia selecionado
+  const entregasDoDia = todasEntregas.filter(entrega => {
     if (!entrega.data_entrega) return false;
-
     const entregaDate = new Date(entrega.data_entrega + 'T00:00:00');
-
-    if (modoVisualizacao === 'dia') {
-      // Comparar apenas a data usando isSameDay
-      return isSameDay(entregaDate, dataSelecionada);
-    } else {
-      // Semana: verificar se está entre início e fim da semana
-      const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
-      const fimSemana = endOfWeek(dataSelecionada, { weekStartsOn: 0 });
-      return entregaDate >= inicioSemana && entregaDate <= fimSemana;
-    }
+    return isSameDay(entregaDate, dataSelecionada);
   });
 
-  // Aplicar filtro de status
-  const entregas = entregasFiltradas.filter(entrega => {
-    if (filtroStatus === 'todos') return true;
-    if (filtroStatus === 'entregues') return entrega.status === 'Entregue';
-    if (filtroStatus === 'a_caminho') return entrega.status === 'A Caminho';
-    if (filtroStatus === 'pendentes') return entrega.status === 'Pendente' || entrega.status === 'Preparando' || entrega.status === 'Produzindo no Laboratório';
+  // Aplicar filtros
+  const entregasFiltradas = entregasDoDia.filter(entrega => {
+    if (filtroLocal !== 'todos' && entrega.endereco?.cidade !== filtroLocal) return false;
+    if (filtroPeriodo !== 'todos' && entrega.periodo !== filtroPeriodo) return false;
     return true;
   });
+
+  // Agrupar por cidade
+  const entregasPorCidade = entregasFiltradas.reduce((acc, entrega) => {
+    const cidade = entrega.endereco?.cidade || 'Sem cidade';
+    if (!acc[cidade]) acc[cidade] = [];
+    acc[cidade].push(entrega);
+    return acc;
+  }, {});
+
+  // Lista de cidades disponíveis
+  const cidadesDisponiveis = [...new Set(entregasDoDia.map(e => e.endereco?.cidade).filter(Boolean))];
+
+  // Resumo do dia por cidade
+  const resumoDia = cidadesDisponiveis.map(cidade => {
+    const entregasCidade = entregasDoDia.filter(e => e.endereco?.cidade === cidade);
+    return {
+      cidade,
+      quantidade: entregasCidade.length,
+      valor: entregasCidade.reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
+      taxa: entregasCidade.reduce((sum, e) => sum + (parseFloat(e.taxa) || 0), 0)
+    };
+  });
+
+  const totalValorDia = resumoDia.reduce((sum, r) => sum + r.valor, 0);
+  const totalTaxaDia = resumoDia.reduce((sum, r) => sum + r.taxa, 0);
+
+  // Calcular semana de trabalho
+  const calcularSemanaTrabalho = () => {
+    const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
+    const dias = [];
+    for (let i = 0; i < 7; i++) {
+      const data = addDays(inicioSemana, i);
+      const dataStr = format(data, 'yyyy-MM-dd');
+      const entregasDia = todasEntregas.filter(e => e.data_entrega === dataStr);
+      dias.push({
+        nome: format(data, 'EEEE', { locale: ptBR }),
+        data,
+        dataStr,
+        quantidade: entregasDia.length,
+        valor: entregasDia.reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0)
+      });
+    }
+    return dias;
+  };
+
+  const semanaTrabalho = calcularSemanaTrabalho();
+  const totalSemana = semanaTrabalho.reduce((sum, d) => sum + d.valor, 0);
+
+  // Dias do mês para o calendário
+  const diasDoMes = eachDayOfInterval({
+    start: startOfMonth(mesAtual),
+    end: endOfMonth(mesAtual)
+  });
+
+  // Dias com entregas
+  const diasComEntregas = new Set(todasEntregas.map(e => e.data_entrega));
 
   // Mutation para atualizar status
   const updateStatusMutation = useMutation({
@@ -163,7 +176,6 @@ export default function PainelMotoboys() {
         .from('entregas')
         .update({ status })
         .eq('id', id);
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -175,804 +187,518 @@ export default function PainelMotoboys() {
     }
   });
 
-  // Mutation para salvar ordem personalizada
-  const salvarOrdemMutation = useMutation({
-    mutationFn: async (ordens) => {
-      // Salvar ordem para cada entrega
-      const promises = Object.entries(ordens).map(([id, ordem]) =>
-        supabase
-          .from('romaneios')
-          .update({ ordem_motoboy: ordem })
-          .eq('id', id)
-      );
-      await Promise.all(promises);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['entregas-motoboy'] });
-      toast.success('Ordem salva com sucesso!');
-      setModoOrganizar(false);
-    },
-    onError: () => {
-      toast.error('Erro ao salvar ordem');
-    }
-  });
-
-  // Função para mover entrega para cima ou para baixo
-  const moverEntrega = (entregaId, direcao, listaEntregas) => {
-    const index = listaEntregas.findIndex(e => e.id === entregaId);
-    if (index === -1) return;
-
-    const novaOrdem = { ...ordemPersonalizada };
-
-    if (direcao === 'cima' && index > 0) {
-      // Trocar com o item acima
-      const idAnterior = listaEntregas[index - 1].id;
-      const ordemAtual = novaOrdem[entregaId] ?? index;
-      const ordemAnterior = novaOrdem[idAnterior] ?? (index - 1);
-      novaOrdem[entregaId] = ordemAnterior;
-      novaOrdem[idAnterior] = ordemAtual;
-    } else if (direcao === 'baixo' && index < listaEntregas.length - 1) {
-      // Trocar com o item abaixo
-      const idProximo = listaEntregas[index + 1].id;
-      const ordemAtual = novaOrdem[entregaId] ?? index;
-      const ordemProximo = novaOrdem[idProximo] ?? (index + 1);
-      novaOrdem[entregaId] = ordemProximo;
-      novaOrdem[idProximo] = ordemAtual;
-    }
-
-    setOrdemPersonalizada(novaOrdem);
-  };
-
-  // Função para ordenar entregas pela ordem personalizada
-  const ordenarEntregas = (lista) => {
-    if (!modoOrganizar && Object.keys(ordemPersonalizada).length === 0) {
-      // Ordenar por ordem_motoboy do banco de dados
-      return [...lista].sort((a, b) => {
-        const ordemA = a.ordem_motoboy ?? 999;
-        const ordemB = b.ordem_motoboy ?? 999;
-        return ordemA - ordemB;
-      });
-    }
-    return [...lista].sort((a, b) => {
-      const ordemA = ordemPersonalizada[a.id] ?? a.ordem_motoboy ?? 999;
-      const ordemB = ordemPersonalizada[b.id] ?? b.ordem_motoboy ?? 999;
-      return ordemA - ordemB;
-    });
-  };
-
-  // Inicializar ordem personalizada quando entregas carregam
-  useEffect(() => {
-    if (entregas.length > 0 && Object.keys(ordemPersonalizada).length === 0) {
-      const ordemInicial = {};
-      entregas.forEach((e, idx) => {
-        ordemInicial[e.id] = e.ordem_motoboy ?? idx;
-      });
-      setOrdemPersonalizada(ordemInicial);
-    }
-  }, [entregas]);
-
-  // Salvar ordem
-  const handleSalvarOrdem = () => {
-    salvarOrdemMutation.mutate(ordemPersonalizada);
-  };
-
-  // Calcular estatísticas (usar entregasFiltradas para os números, mas entregas para exibir)
-  const statsTotal = {
-    total: entregasFiltradas.length,
-    entregues: entregasFiltradas.filter(e => e.status === 'Entregue').length,
-    aCaminho: entregasFiltradas.filter(e => e.status === 'A Caminho').length,
-    pendentes: entregasFiltradas.filter(e => e.status === 'Pendente' || e.status === 'Preparando' || e.status === 'Produzindo no Laboratório').length,
-  };
-
-  const stats = {
-    total: entregas.length,
-    entregues: entregas.filter(e => e.status === 'Entregue').length,
-    aCaminho: entregas.filter(e => e.status === 'A Caminho').length,
-    pendentes: entregas.filter(e => e.status === 'Pendente' || e.status === 'Preparando' || e.status === 'Produzindo no Laboratório').length,
-    valorTotal: entregas.reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
-    taxaTotal: entregas.reduce((sum, e) => sum + (parseFloat(e.taxa) || 0), 0),
-  };
-
-  // Agrupar entregas por período
-  const entregasPorPeriodo = {
-    manha: entregas.filter(e => e.periodo === 'Manhã'),
-    tarde: entregas.filter(e => e.periodo === 'Tarde'),
-  };
-
-  // Calcular semana de trabalho (Terça a Segunda, sem Domingo)
-  const calcularSemanaTrabalho = () => {
-    const dataReferencia = dataSelecionada; // Usar data selecionada ao invés de hoje
-    const diaDaSemana = getDay(dataReferencia); // 0=Domingo, 1=Segunda, 2=Terça...
-
-    // Encontrar a terça-feira da semana de trabalho
-    let inicioSemanaTrabalho;
-    if (diaDaSemana === 0) { // Domingo - pega terça anterior
-      inicioSemanaTrabalho = subDays(dataReferencia, 5);
-    } else if (diaDaSemana === 1) { // Segunda - pega terça anterior
-      inicioSemanaTrabalho = subDays(dataReferencia, 6);
-    } else { // Terça a Sábado - pega a terça desta semana
-      inicioSemanaTrabalho = subDays(dataReferencia, diaDaSemana - 2);
-    }
-
-    // Dias da semana: Terça, Quarta, Quinta, Sexta, Sábado, Segunda (sem Domingo)
-    const diasDaSemana = [
-      { nome: 'Terça-feira', offset: 0 },
-      { nome: 'Quarta-feira', offset: 1 },
-      { nome: 'Quinta-feira', offset: 2 },
-      { nome: 'Sexta-feira', offset: 3 },
-      { nome: 'Sábado', offset: 4 },
-      { nome: 'Segunda-feira', offset: 6 }, // Pula domingo
-    ];
-
-    return diasDaSemana.map(dia => {
-      const data = addDays(inicioSemanaTrabalho, dia.offset);
-      const dataStr = format(data, 'yyyy-MM-dd');
-      const hoje = new Date(); // Data real de hoje
-
-      // Filtrar entregas deste dia para o motoboy atual
-      const entregasDoDia = todasEntregas.filter(e => {
-        if (e.motoboy_id !== motoboyId) return false;
-        if (!e.data_entrega) return false;
-        return e.data_entrega === dataStr;
-      });
-
-      const taxaDia = entregasDoDia.reduce((sum, e) => sum + (parseFloat(e.taxa) || 0), 0);
-      const entreguesDia = entregasDoDia.filter(e => e.status === 'Entregue').length;
-
-      return {
-        nome: dia.nome,
-        data,
-        dataStr,
-        entregas: entregasDoDia.length,
-        entregues: entreguesDia,
-        taxa: taxaDia,
-        isHoje: isSameDay(data, hoje), // Comparar com hoje real
-      };
-    });
-  };
-
-  const semanaTrabalho = calcularSemanaTrabalho();
-  const totalSemanal = semanaTrabalho.reduce((sum, dia) => sum + dia.taxa, 0);
-
-  // Calcular intervalo de datas da semana de trabalho
-  const intervaloSemanaTrabalho = semanaTrabalho.length > 0
-    ? `${format(semanaTrabalho[0].data, 'dd/MM')} a ${format(semanaTrabalho[semanaTrabalho.length - 1].data, 'dd/MM/yyyy')}`
-    : '';
-
   const handleStatusChange = (id, newStatus) => {
     updateStatusMutation.mutate({ id, status: newStatus });
   };
 
-  const handleCardClick = (entrega) => {
-    // Navegar para página de detalhes passando o ID da entrega
-    navigate(`/detalhes-romaneio?id=${entrega.id}`);
+  // Mutation para salvar ordem das entregas
+  const salvarOrdemMutation = useMutation({
+    mutationFn: async (ordens) => {
+      const promises = Object.entries(ordens).map(async ([id, ordem]) => {
+        const { error } = await supabase
+          .from('entregas')
+          .update({ ordem_entrega: ordem })
+          .eq('id', id);
+        if (error) throw error;
+      });
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entregas-motoboy'] });
+      toast.success('Ordem salva!');
+    },
+    onError: (error) => {
+      console.error('Erro ao salvar ordem:', error);
+      toast.error('Erro ao salvar ordem. O campo pode não existir no banco.');
+    }
+  });
+
+  // Funções de Drag and Drop
+  const handleDragStart = (e, entrega, cidade) => {
+    setDraggedItem({ entrega, cidade });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetEntrega, targetCidade) => {
+    e.preventDefault();
+    if (!draggedItem || draggedItem.entrega.id === targetEntrega.id) return;
+
+    // Só permite reorganizar dentro da mesma cidade
+    if (draggedItem.cidade !== targetCidade) {
+      toast.error('Só é possível reorganizar entregas da mesma cidade');
+      return;
+    }
+
+    const cidade = targetCidade;
+    const entregasDaCidade = entregasFiltradas
+      .filter(e => (e.endereco?.cidade || 'Sem cidade') === cidade)
+      .sort((a, b) => (ordemEntregas[a.id] ?? a.ordem_entrega ?? 999) - (ordemEntregas[b.id] ?? b.ordem_entrega ?? 999));
+
+    const dragIndex = entregasDaCidade.findIndex(e => e.id === draggedItem.entrega.id);
+    const dropIndex = entregasDaCidade.findIndex(e => e.id === targetEntrega.id);
+
+    if (dragIndex === -1 || dropIndex === -1) return;
+
+    // Reordenar
+    const novaOrdem = [...entregasDaCidade];
+    const [removed] = novaOrdem.splice(dragIndex, 1);
+    novaOrdem.splice(dropIndex, 0, removed);
+
+    // Atualizar estado de ordem
+    const novaOrdemObj = { ...ordemEntregas };
+    novaOrdem.forEach((entrega, index) => {
+      novaOrdemObj[entrega.id] = index;
+    });
+
+    setOrdemEntregas(novaOrdemObj);
+    setDraggedItem(null);
+
+    // Salvar automaticamente
+    salvarOrdemMutation.mutate(novaOrdemObj);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+  };
+
+  // Ordenar entregas por ordem personalizada
+  const ordenarEntregas = (entregas) => {
+    return [...entregas].sort((a, b) => {
+      const ordemA = ordemEntregas[a.id] ?? a.ordem_entrega ?? 999;
+      const ordemB = ordemEntregas[b.id] ?? b.ordem_entrega ?? 999;
+      return ordemA - ordemB;
+    });
+  };
+
+  const abrirMapa = (endereco) => {
+    const query = `${endereco.logradouro}, ${endereco.numero}, ${endereco.bairro}, ${endereco.cidade}`;
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
   };
 
   const motoboyAtual = motoboys.find(m => m.id === motoboyId);
 
-  // Navegação de datas
-  const handleDiaAnterior = () => {
-    setDataSelecionada(prev => subDays(prev, 1));
-  };
-
-  const handleProximoDia = () => {
-    setDataSelecionada(prev => addDays(prev, 1));
-  };
-
-  const handleSemanaAnterior = () => {
-    setDataSelecionada(prev => subWeeks(prev, 1));
-  };
-
-  const handleProximaSemana = () => {
-    setDataSelecionada(prev => addWeeks(prev, 1));
-  };
-
-  const handleHoje = () => {
-    setDataSelecionada(new Date());
-  };
-
-  // Formatar período de exibição
-  const getPeriodoTexto = () => {
-    if (modoVisualizacao === 'dia') {
-      return format(dataSelecionada, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-    } else {
-      const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
-      const fimSemana = endOfWeek(dataSelecionada, { weekStartsOn: 0 });
-      return `${format(inicioSemana, 'dd/MM', { locale: ptBR })} a ${format(fimSemana, 'dd/MM/yyyy', { locale: ptBR })}`;
-    }
-  };
-
-  // Agrupar entregas por data (para visualização semanal)
-  const entregasPorData = entregas.reduce((acc, entrega) => {
-    const data = entrega.data_entrega;
-    if (!acc[data]) {
-      acc[data] = [];
-    }
-    acc[data].push(entrega);
-    return acc;
-  }, {});
+  // Primeiro dia do mês (para posicionar corretamente no calendário)
+  const primeiroDiaDoMes = getDay(startOfMonth(mesAtual));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
       {/* Header */}
       <div className="py-8 shadow-sm" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center gap-4">
-            {!isMotoboy && (
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-              >
-                <ChevronLeft className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {!isMotoboy && (
+                <button
+                  onClick={() => navigate(-1)}
+                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                >
+                  <ChevronLeft className="w-6 h-6 text-white" />
+                </button>
+              )}
+              <div>
+                <h1 className="text-4xl font-bold text-white">
+                  {isMotoboy ? 'Minhas Entregas' : 'Painel do Motoboy'}
+                </h1>
+                <p className="text-base text-white opacity-90 mt-1">
+                  Olá, {nomeMotoboyUsuario || user?.nome || 'Motoboy'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {!isMotoboy && (
+                <select
+                  value={motoboyId || ''}
+                  onChange={(e) => setMotoboyId(e.target.value)}
+                  className="border border-white/30 bg-white/20 text-white rounded-lg px-3 py-2 text-sm"
+                >
+                  {motoboys.map(m => (
+                    <option key={m.id} value={m.id} className="text-slate-800">{m.nome}</option>
+                  ))}
+                </select>
+              )}
+              <button className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium text-white transition-colors">
+                <Printer className="w-4 h-4" />
+                Imprimir
               </button>
-            )}
-            <div>
-              <h1 className="text-4xl font-bold text-white">
-                {isMotoboy ? 'Minhas Entregas' : 'Painel do Motoboy'}
-              </h1>
-              <p className="text-base text-white opacity-90 mt-1">
-                {isMotoboy ? `Olá, ${nomeMotoboyUsuario || user?.nome || 'Motoboy'}` : 'Gerencie as entregas dos motoboys'}
-              </p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Controles */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            {/* Seletor de Motoboy - apenas para admin/atendente */}
-            {!isMotoboy && (
-              <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-slate-500" />
-                <select
-                  value={motoboyId || ''}
-                  onChange={(e) => setMotoboyId(e.target.value)}
-                  className="min-w-[200px]"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Coluna Esquerda */}
+          <div className="space-y-4">
+            {/* Calendário */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              {/* Navegação do mês */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => setMesAtual(subMonths(mesAtual, 1))}
+                  className="p-1 hover:bg-slate-100 rounded"
                 >
-                  {motoboys.map(m => (
-                    <option key={m.id} value={m.id}>
-                      {m.nome}
-                    </option>
-                  ))}
-                </select>
+                  <ChevronLeft className="w-4 h-4 text-slate-600" />
+                </button>
+                <span className="text-sm font-medium text-slate-700">
+                  {format(mesAtual, 'MMMM yyyy', { locale: ptBR })}
+                </span>
+                <button
+                  onClick={() => setMesAtual(addMonths(mesAtual, 1))}
+                  className="p-1 hover:bg-slate-100 rounded"
+                >
+                  <ChevronRight className="w-4 h-4 text-slate-600" />
+                </button>
               </div>
-            )}
 
-            {/* Modo de Visualização */}
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setModoVisualizacao('dia')}
-                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                style={{
-                  backgroundColor: modoVisualizacao === 'dia' ? '#376295' : '#f1f5f9',
-                  color: modoVisualizacao === 'dia' ? 'white' : '#64748b'
-                }}
-              >
-                Dia
-              </button>
-              <button
-                onClick={() => setModoVisualizacao('semana')}
-                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                style={{
-                  backgroundColor: modoVisualizacao === 'semana' ? '#376295' : '#f1f5f9',
-                  color: modoVisualizacao === 'semana' ? 'white' : '#64748b'
-                }}
-              >
-                Semana
-              </button>
+              {/* Dias da semana */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map(dia => (
+                  <div key={dia} className="text-center text-xs font-medium text-slate-500 py-1">
+                    {dia}
+                  </div>
+                ))}
+              </div>
 
-              {/* Botão Organizar - apenas para motoboys */}
-              {isMotoboy && (
-                <>
-                  {modoOrganizar ? (
+              {/* Dias do mês */}
+              <div className="grid grid-cols-7 gap-1">
+                {/* Espaços vazios antes do primeiro dia */}
+                {Array.from({ length: primeiroDiaDoMes }).map((_, i) => (
+                  <div key={`empty-${i}`} className="aspect-square" />
+                ))}
+
+                {diasDoMes.map(dia => {
+                  const dataStr = format(dia, 'yyyy-MM-dd');
+                  const temEntrega = diasComEntregas.has(dataStr);
+                  const isSelected = isSameDay(dia, dataSelecionada);
+                  const isHoje = isSameDay(dia, new Date());
+
+                  return (
                     <button
-                      onClick={handleSalvarOrdem}
-                      disabled={salvarOrdemMutation.isPending}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-green-500 hover:bg-green-600 text-white"
-                    >
-                      <Save className="w-4 h-4" />
-                      {salvarOrdemMutation.isPending ? 'Salvando...' : 'Salvar Ordem'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setModoOrganizar(true)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                      style={{ backgroundColor: '#890d5d', color: 'white' }}
-                    >
-                      <ListOrdered className="w-4 h-4" />
-                      Organizar
-                    </button>
-                  )}
-                  {modoOrganizar && (
-                    <button
-                      onClick={() => {
-                        setModoOrganizar(false);
-                        setOrdemPersonalizada({});
+                      key={dataStr}
+                      onClick={() => setDataSelecionada(dia)}
+                      className={`aspect-square flex items-center justify-center text-sm rounded-lg transition-all relative
+                        ${isSelected
+                          ? 'text-white font-bold'
+                          : isHoje
+                            ? 'font-semibold'
+                            : temEntrega
+                              ? 'font-medium hover:opacity-80'
+                              : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                      style={{
+                        backgroundColor: isSelected
+                          ? theme.colors.primary
+                          : isHoje
+                            ? '#f3e8ff'
+                            : temEntrega
+                              ? '#fef3c7'
+                              : 'transparent',
+                        color: isSelected
+                          ? 'white'
+                          : isHoje
+                            ? theme.colors.secondary
+                            : temEntrega
+                              ? '#92400e'
+                              : undefined
                       }}
-                      className="px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-slate-200 hover:bg-slate-300 text-slate-700"
                     >
-                      Cancelar
+                      {format(dia, 'd')}
                     </button>
-                  )}
-                </>
-              )}
+                  );
+                })}
+              </div>
+
+              {/* Data selecionada */}
+              <div className="mt-4 pt-4 border-t border-slate-200 text-center">
+                <p className="text-sm font-semibold text-slate-700">
+                  {format(dataSelecionada, "d 'de' MMMM", { locale: ptBR })}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {entregasDoDia.length} entrega{entregasDoDia.length !== 1 ? 's' : ''}
+                </p>
+              </div>
             </div>
 
-            {/* Navegação de Data */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={modoVisualizacao === 'dia' ? handleDiaAnterior : handleSemanaAnterior}
-                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-slate-600" />
-              </button>
+            {/* Resumo do Dia */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <h3 className="font-semibold text-slate-700 mb-3">Resumo do Dia</h3>
 
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 min-w-[200px] justify-center">
-                <CalendarIcon className="w-4 h-4 text-slate-600" />
-                <span className="font-semibold text-sm text-slate-700">
-                  {getPeriodoTexto()}
+              {/* Cabeçalho */}
+              <div className="flex items-center justify-between text-xs text-slate-500 mb-2 pb-2 border-b border-slate-100">
+                <span>Local</span>
+                <div className="flex items-center gap-4">
+                  <span className="w-8 text-center">Qtd</span>
+                  <span className="w-20 text-right">Valor</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {resumoDia.map(item => (
+                  <div key={item.cidade} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">{item.cidade}</span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-slate-500 w-8 text-center">{item.quantidade}x</span>
+                      <span className="font-medium w-20 text-right" style={{ color: theme.colors.primary }}>R$ {item.valor.toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700">TOTAL ENTREGAS</span>
+                  <span className="font-bold text-lg" style={{ color: theme.colors.primary }}>R$ {totalValorDia.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Semana */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-slate-700">Semana - Aguardando</h3>
+                <span className="text-xs text-slate-500">
+                  {format(semanaTrabalho[0]?.data || new Date(), 'dd/MM')} - {format(semanaTrabalho[6]?.data || new Date(), 'dd/MM')}
                 </span>
               </div>
 
-              <button
-                onClick={modoVisualizacao === 'dia' ? handleProximoDia : handleProximaSemana}
-                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 text-slate-600" />
-              </button>
-
-              <button
-                onClick={handleHoje}
-                className="px-4 py-2 rounded-lg font-semibold text-sm transition-colors border border-slate-300 hover:bg-slate-50 text-slate-700"
-              >
-                Hoje
-              </button>
-            </div>
-
-            {/* Seletor de Data */}
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={format(dataSelecionada, 'yyyy-MM-dd')}
-                onChange={(e) => {
-                  const [year, month, day] = e.target.value.split('-');
-                  const novaData = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                  setDataSelecionada(novaData);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-        {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setFiltroStatus('todos');
-            }}
-            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md bg-white"
-            style={{
-              border: filtroStatus === 'todos' ? '2px solid #376295' : '2px solid transparent'
-            }}
-          >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                <Package className="w-6 h-6" style={{ color: '#376295' }} />
-              </div>
-              <span className="text-sm font-bold text-slate-700">Total</span>
-            </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>{statsTotal.total}</div>
-          </div>
-
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setFiltroStatus('entregues');
-            }}
-            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md bg-white"
-            style={{
-              border: filtroStatus === 'entregues' ? '2px solid #22c55e' : '2px solid transparent'
-            }}
-          >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                <CheckCircle className="w-6 h-6" style={{ color: '#22c55e' }} />
-              </div>
-              <span className="text-sm font-bold text-slate-700">Entregues</span>
-            </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>{statsTotal.entregues}</div>
-          </div>
-
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setFiltroStatus('pendentes');
-            }}
-            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md bg-white"
-            style={{
-              border: filtroStatus === 'pendentes' ? '2px solid #890d5d' : '2px solid transparent'
-            }}
-          >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
-              </div>
-              <span className="text-sm font-bold text-slate-700">Pendentes</span>
-            </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>{statsTotal.pendentes}</div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                <DollarSign className="w-6 h-6" style={{ color: '#376295' }} />
-              </div>
-              <span className="text-sm font-bold text-slate-700">Valor Total</span>
-            </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
-              R$ {stats.valorTotal.toFixed(2)}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                <TrendingUp className="w-6 h-6" style={{ color: '#22c55e' }} />
-              </div>
-              <span className="text-sm font-bold text-slate-700">Ganhos</span>
-            </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
-              R$ {stats.taxaTotal.toFixed(2)}
-            </div>
-          </div>
-        </div>
-
-        {/* Barra de Progresso */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-semibold text-slate-700">Progresso do Dia</div>
-            <div className="text-sm font-bold" style={{ color: '#376295' }}>
-              {stats.total > 0 ? Math.round((stats.entregues / stats.total) * 100) : 0}%
-            </div>
-          </div>
-          <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-            <div
-              className="h-3 rounded-full transition-all duration-500"
-              style={{
-                background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)',
-                width: `${stats.total > 0 ? (stats.entregues / stats.total) * 100 : 0}%`
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Tabela de Ganhos Semanais */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6 max-w-2xl">
-          <div className="px-3 py-2 flex items-center justify-between" style={{ backgroundColor: '#22c55e' }}>
-            <h2 className="text-sm font-bold text-white">Ganhos da Semana</h2>
-            <div className="text-right">
-              <span className="text-base font-bold text-white">R$ {totalSemanal.toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-2 py-1.5 text-left font-semibold text-slate-600">Dia</th>
-                  <th className="px-2 py-1.5 text-left font-semibold text-slate-600">Data</th>
-                  <th className="px-2 py-1.5 text-center font-semibold text-slate-600">Entregues</th>
-                  <th className="px-2 py-1.5 text-right font-semibold text-slate-600">Ganhos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {semanaTrabalho.map((dia, index) => (
-                  <tr
+              <div className="space-y-1">
+                {semanaTrabalho.map(dia => (
+                  <div
                     key={dia.dataStr}
-                    className="border-b border-slate-100 hover:bg-slate-50"
+                    className="flex items-center justify-between text-xs py-1 px-2 rounded"
                     style={{
-                      backgroundColor: dia.isHoje ? '#E8F0F8' : 'white'
+                      backgroundColor: isSameDay(dia.data, dataSelecionada) ? '#e8f0f8' : 'transparent'
                     }}
                   >
-                    <td className="px-2 py-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-medium text-slate-900" style={{ color: dia.isHoje ? '#376295' : undefined }}>
-                          {dia.nome}
-                        </span>
-                        {dia.isHoje && (
-                          <span className="text-white text-[10px] px-1 py-0.5 rounded font-semibold" style={{ backgroundColor: '#376295' }}>
-                            HOJE
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-2 py-1.5 text-slate-600">
-                      {format(dia.data, "dd/MM/yy", { locale: ptBR })}
-                    </td>
-                    <td className="px-2 py-1.5 text-center">
-                      <span className={`font-semibold ${dia.entregues > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.entregues > 0 ? '#22c55e' : undefined }}>
-                        {dia.entregues}
-                      </span>
-                    </td>
-                    <td className="px-2 py-1.5 text-right">
-                      <span className={`font-bold ${dia.taxa > 0 ? '' : 'text-slate-400'}`} style={{ color: dia.taxa > 0 ? '#22c55e' : undefined }}>
-                        R$ {dia.taxa.toFixed(2)}
-                      </span>
-                    </td>
-                  </tr>
+                    <span className="text-slate-600 capitalize w-20">{dia.nome.slice(0, 3)}</span>
+                    <span className="text-slate-500">{format(dia.data, 'dd/MM')}</span>
+                    <span className="text-slate-500">{dia.quantidade}x</span>
+                    <span className={`font-semibold ${dia.valor > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                      R$ {dia.valor.toFixed(2)}
+                    </span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Lista de Entregas */}
-        <div className="space-y-6">
-          {/* Visualização por Semana */}
-          {modoVisualizacao === 'semana' && Object.keys(entregasPorData).length > 0 && (
-            Object.entries(entregasPorData)
-              .sort(([dataA], [dataB]) => dataA.localeCompare(dataB))
-              .map(([data, entregasDoDia]) => {
-                const dataObj = new Date(data + 'T00:00:00');
-                const entregasManha = entregasDoDia.filter(e => e.periodo === 'Manhã');
-                const entregasTarde = entregasDoDia.filter(e => e.periodo === 'Tarde');
-
-                return (
-                  <div key={data} className="space-y-4">
-                    {/* Cabeçalho do Dia */}
-                    <div className="text-white px-4 py-3 rounded-lg shadow-sm" style={{
-                      background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
-                    }}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <CalendarIcon className="w-5 h-5" />
-                          <div>
-                            <div className="font-bold text-lg">
-                              {format(dataObj, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                            </div>
-                            <div className="text-xs opacity-90">
-                              {entregasDoDia.length} entrega{entregasDoDia.length !== 1 ? 's' : ''}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs opacity-90">Entregues</div>
-                          <div className="text-lg font-bold">
-                            {entregasDoDia.filter(e => e.status === 'Entregue').length}/{entregasDoDia.length}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Entregas da Manhã */}
-                    {entregasManha.length > 0 && (
-                      <div>
-                        <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm mb-3" style={{ backgroundColor: '#f97316' }}>
-                          ☀️ MANHÃ ({entregasManha.length})
-                        </div>
-                        <div className="space-y-3">
-                          {Object.entries(
-                            entregasManha.reduce((acc, e) => {
-                              const cidade = e.endereco?.cidade || 'Sem cidade';
-                              if (!acc[cidade]) acc[cidade] = [];
-                              acc[cidade].push(e);
-                              return acc;
-                            }, {})
-                          ).map(([cidade, entregas]) => (
-                            <div key={cidade}>
-                              <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
-                                📍 {cidade} - {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
-                              </div>
-                              <div className="space-y-2">
-                                {entregas.map((entrega) => (
-                                  <EntregaCard
-                                    key={entrega.id}
-                                    entrega={entrega}
-                                    onStatusChange={handleStatusChange}
-                                    isUpdating={updateStatusMutation.isPending}
-                                    onCardClick={handleCardClick}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Entregas da Tarde */}
-                    {entregasTarde.length > 0 && (
-                      <div>
-                        <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm mb-3" style={{ backgroundColor: '#f97316' }}>
-                          🌅 TARDE ({entregasTarde.length})
-                        </div>
-                        <div className="space-y-3">
-                          {Object.entries(
-                            entregasTarde.reduce((acc, e) => {
-                              const cidade = e.endereco?.cidade || 'Sem cidade';
-                              if (!acc[cidade]) acc[cidade] = [];
-                              acc[cidade].push(e);
-                              return acc;
-                            }, {})
-                          ).map(([cidade, entregas]) => (
-                            <div key={cidade}>
-                              <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
-                                📍 {cidade} - {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
-                              </div>
-                              <div className="space-y-2">
-                                {entregas.map((entrega) => (
-                                  <EntregaCard
-                                    key={entrega.id}
-                                    entrega={entrega}
-                                    onStatusChange={handleStatusChange}
-                                    isUpdating={updateStatusMutation.isPending}
-                                    onCardClick={handleCardClick}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-          )}
-
-          {/* Visualização por Dia */}
-          {modoVisualizacao === 'dia' && (
-            <>
-              {/* Modo Organizar - Lista simples para reordenar */}
-              {modoOrganizar && isMotoboy ? (
-                <div>
-                  <div className="bg-gradient-to-r from-[#890d5d] to-[#457bba] text-white px-4 py-3 rounded-lg font-semibold text-sm mb-4 flex items-center gap-2">
-                    <ListOrdered className="w-5 h-5" />
-                    Arraste para organizar suas entregas ({entregas.length})
-                  </div>
-                  <div className="space-y-3">
-                    {(() => {
-                      const entregasOrdenadas = ordenarEntregas(entregas);
-                      return entregasOrdenadas.map((entrega, index) => (
-                        <EntregaCard
-                          key={entrega.id}
-                          entrega={entrega}
-                          onStatusChange={handleStatusChange}
-                          isUpdating={updateStatusMutation.isPending}
-                          onCardClick={handleCardClick}
-                          modoOrganizar={true}
-                          posicao={index}
-                          totalEntregas={entregasOrdenadas.length}
-                          onMoverCima={() => moverEntrega(entrega.id, 'cima', entregasOrdenadas)}
-                          onMoverBaixo={() => moverEntrega(entrega.id, 'baixo', entregasOrdenadas)}
-                        />
-                      ));
-                    })()}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Entregas Manhã */}
-                  {entregasPorPeriodo.manha.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
-                          ☀️ MANHÃ ({entregasPorPeriodo.manha.length})
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        {Object.entries(
-                          ordenarEntregas(entregasPorPeriodo.manha).reduce((acc, e) => {
-                            const cidade = e.endereco?.cidade || 'Sem cidade';
-                            if (!acc[cidade]) acc[cidade] = [];
-                            acc[cidade].push(e);
-                            return acc;
-                          }, {})
-                        ).map(([cidade, entregasCidade]) => (
-                          <div key={cidade}>
-                            <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
-                              📍 {cidade} - {entregasCidade.length} entrega{entregasCidade.length !== 1 ? 's' : ''}
-                            </div>
-                            <div className="space-y-2">
-                              {entregasCidade.map((entrega) => (
-                                <EntregaCard
-                                  key={entrega.id}
-                                  entrega={entrega}
-                                  onStatusChange={handleStatusChange}
-                                  isUpdating={updateStatusMutation.isPending}
-                                  onCardClick={handleCardClick}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Entregas Tarde */}
-                  {entregasPorPeriodo.tarde.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
-                          🌅 TARDE ({entregasPorPeriodo.tarde.length})
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        {Object.entries(
-                          ordenarEntregas(entregasPorPeriodo.tarde).reduce((acc, e) => {
-                            const cidade = e.endereco?.cidade || 'Sem cidade';
-                            if (!acc[cidade]) acc[cidade] = [];
-                            acc[cidade].push(e);
-                            return acc;
-                          }, {})
-                        ).map(([cidade, entregasCidade]) => (
-                          <div key={cidade}>
-                            <div className="text-xs font-semibold text-slate-600 mb-2 ml-1">
-                              📍 {cidade} - {entregasCidade.length} entrega{entregasCidade.length !== 1 ? 's' : ''}
-                            </div>
-                            <div className="space-y-2">
-                              {entregasCidade.map((entrega) => (
-                                <EntregaCard
-                                  key={entrega.id}
-                                  entrega={entrega}
-                                  onStatusChange={handleStatusChange}
-                                  isUpdating={updateStatusMutation.isPending}
-                                  onCardClick={handleCardClick}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
-
-          {/* Mensagem quando não há entregas */}
-          {entregas.length === 0 && !isLoading && (
-            <div className="bg-white rounded-xl shadow-md p-12 text-center">
-              <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <div className="text-xl font-semibold text-slate-600 mb-2">
-                Nenhuma entrega para {modoVisualizacao === 'dia' ? format(dataSelecionada, "dd/MM/yyyy") : 'esta semana'}
               </div>
-              <div className="text-sm text-slate-500 mb-4">
-                {motoboyAtual?.nome} não tem entregas agendadas para este período.
+
+              <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
+                <span className="font-bold text-slate-700">TOTAL</span>
+                <span className="font-bold text-green-600">R$ {totalSemana.toFixed(2)}</span>
               </div>
-              {todasEntregas.length > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                  <div className="text-sm font-semibold text-blue-900 mb-2">
-                    💡 Dias com entregas:
-                  </div>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {[...new Set(todasEntregas.map(e => e.data_entrega))].sort().map(data => (
-                      <button
-                        key={data}
-                        onClick={() => {
-                          const [year, month, day] = data.split('-');
-                          const novaData = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                          setDataSelecionada(novaData);
-                          setModoVisualizacao('dia');
-                        }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-semibold transition-colors"
-                      >
-                        {format(new Date(data + 'T00:00:00'), "dd/MM")}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-          )}
+          </div>
+
+          {/* Coluna Direita - Entregas */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Filtros */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <h3 className="font-semibold text-slate-700 mb-3">Filtros</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Local</label>
+                  <select
+                    value={filtroLocal}
+                    onChange={(e) => setFiltroLocal(e.target.value)}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="todos">Todos os Locais</option>
+                    {cidadesDisponiveis.map(cidade => (
+                      <option key={cidade} value={cidade}>{cidade}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Período</label>
+                  <select
+                    value={filtroPeriodo}
+                    onChange={(e) => setFiltroPeriodo(e.target.value)}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="todos">Todos os Períodos</option>
+                    <option value="Manhã">Manhã</option>
+                    <option value="Tarde">Tarde</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Dica de arrastar */}
+            <div className="flex items-center gap-2 text-sm text-slate-500 px-2">
+              <GripVertical className="w-4 h-4" />
+              <span>Arraste as entregas para reorganizar sua rota</span>
+            </div>
+
+            {/* Lista de Entregas por Período e Cidade */}
+            {entregasFiltradas.length > 0 ? (
+              <>
+                {/* Entregas da Manhã */}
+                {(() => {
+                  const entregasManha = entregasFiltradas.filter(e => e.periodo === 'Manhã');
+                  if (entregasManha.length === 0) return null;
+
+                  const entregasManhaPorCidade = entregasManha.reduce((acc, e) => {
+                    const cidade = e.endereco?.cidade || 'Sem cidade';
+                    if (!acc[cidade]) acc[cidade] = [];
+                    acc[cidade].push(e);
+                    return acc;
+                  }, {});
+
+                  return (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
+                          <Sun className="w-4 h-4" />
+                          MANHÃ ({entregasManha.length})
+                        </div>
+                      </div>
+
+                      {Object.entries(entregasManhaPorCidade).map(([cidade, entregas]) => (
+                        <div key={cidade} className="mb-4">
+                          <div className="flex items-center gap-2 mb-3 ml-2">
+                            <MapPin className="w-4 h-4" style={{ color: theme.colors.secondary }} />
+                            <span className="font-semibold text-slate-700">{cidade} ({entregas.length})</span>
+                          </div>
+
+                          <div className="space-y-3">
+                            {ordenarEntregas(entregas).map((entrega, index) => (
+                              <EntregaCard
+                                key={entrega.id}
+                                entrega={entrega}
+                                index={index + 1}
+                                cidade={cidade}
+                                onStatusChange={handleStatusChange}
+                                isUpdating={updateStatusMutation.isPending}
+                                onAbrirMapa={abrirMapa}
+                                onDragStart={handleDragStart}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                                onDragEnd={handleDragEnd}
+                                isDragging={draggedItem?.entrega.id === entrega.id}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Entregas da Tarde */}
+                {(() => {
+                  const entregasTarde = entregasFiltradas.filter(e => e.periodo === 'Tarde');
+                  if (entregasTarde.length === 0) return null;
+
+                  const entregasTardePorCidade = entregasTarde.reduce((acc, e) => {
+                    const cidade = e.endereco?.cidade || 'Sem cidade';
+                    if (!acc[cidade]) acc[cidade] = [];
+                    acc[cidade].push(e);
+                    return acc;
+                  }, {});
+
+                  return (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#8b5cf6' }}>
+                          <Sunset className="w-4 h-4" />
+                          TARDE ({entregasTarde.length})
+                        </div>
+                      </div>
+
+                      {Object.entries(entregasTardePorCidade).map(([cidade, entregas]) => (
+                        <div key={cidade} className="mb-4">
+                          <div className="flex items-center gap-2 mb-3 ml-2">
+                            <MapPin className="w-4 h-4" style={{ color: theme.colors.secondary }} />
+                            <span className="font-semibold text-slate-700">{cidade} ({entregas.length})</span>
+                          </div>
+
+                          <div className="space-y-3">
+                            {ordenarEntregas(entregas).map((entrega, index) => (
+                              <EntregaCard
+                                key={entrega.id}
+                                entrega={entrega}
+                                index={index + 1}
+                                cidade={cidade}
+                                onStatusChange={handleStatusChange}
+                                isUpdating={updateStatusMutation.isPending}
+                                onAbrirMapa={abrirMapa}
+                                onDragStart={handleDragStart}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                                onDragEnd={handleDragEnd}
+                                isDragging={draggedItem?.entrega.id === entrega.id}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Entregas sem período definido */}
+                {(() => {
+                  const entregasSemPeriodo = entregasFiltradas.filter(e => !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde'));
+                  if (entregasSemPeriodo.length === 0) return null;
+
+                  const entregasSemPeriodoPorCidade = entregasSemPeriodo.reduce((acc, e) => {
+                    const cidade = e.endereco?.cidade || 'Sem cidade';
+                    if (!acc[cidade]) acc[cidade] = [];
+                    acc[cidade].push(e);
+                    return acc;
+                  }, {});
+
+                  return (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm bg-slate-500">
+                          SEM PERÍODO ({entregasSemPeriodo.length})
+                        </div>
+                      </div>
+
+                      {Object.entries(entregasSemPeriodoPorCidade).map(([cidade, entregas]) => (
+                        <div key={cidade} className="mb-4">
+                          <div className="flex items-center gap-2 mb-3 ml-2">
+                            <MapPin className="w-4 h-4" style={{ color: theme.colors.secondary }} />
+                            <span className="font-semibold text-slate-700">{cidade} ({entregas.length})</span>
+                          </div>
+
+                          <div className="space-y-3">
+                            {ordenarEntregas(entregas).map((entrega, index) => (
+                              <EntregaCard
+                                key={entrega.id}
+                                entrega={entrega}
+                                index={index + 1}
+                                cidade={cidade}
+                                onStatusChange={handleStatusChange}
+                                isUpdating={updateStatusMutation.isPending}
+                                onAbrirMapa={abrirMapa}
+                                onDragStart={handleDragStart}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                                onDragEnd={handleDragEnd}
+                                isDragging={draggedItem?.entrega.id === entrega.id}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </>
+            ) : (
+              <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+                <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500">Nenhuma entrega para este dia</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -980,197 +706,182 @@ export default function PainelMotoboys() {
 }
 
 // Componente de Card de Entrega
-function EntregaCard({ entrega, onStatusChange, isUpdating, onCardClick, modoOrganizar, onMoverCima, onMoverBaixo, posicao, totalEntregas }) {
-  const getStatusColor = (status) => {
+function EntregaCard({
+  entrega,
+  index,
+  cidade,
+  onStatusChange,
+  isUpdating,
+  onAbrirMapa,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragging
+}) {
+  const getStatusBadge = (status) => {
     switch (status) {
       case 'Entregue':
-        return 'bg-green-50 border-green-200';
+        return { bg: 'bg-green-100', text: 'text-green-700', label: 'Entregue' };
       case 'A Caminho':
-        return 'bg-yellow-50 border-yellow-200';
+        return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'A Caminho' };
       case 'Não Entregue':
-        return 'bg-red-50 border-red-200';
+        return { bg: 'bg-red-100', text: 'text-red-700', label: 'Não Entregue' };
       default:
-        return 'bg-white border-slate-200';
+        return { bg: 'bg-slate-100', text: 'text-slate-700', label: status || 'Pendente' };
     }
   };
 
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case 'Entregue':
-        return { backgroundColor: '#22c55e', color: 'white' };
-      case 'A Caminho':
-        return { backgroundColor: '#f97316', color: 'white' };
-      case 'Não Entregue':
-        return { backgroundColor: '#ef4444', color: 'white' };
-      case 'Pendente':
-        return { backgroundColor: '#890d5d', color: 'white' };
-      default:
-        return { backgroundColor: '#376295', color: 'white' };
-    }
-  };
+  const statusBadge = getStatusBadge(entrega.status);
+  const temCobranca = entrega.forma_pagamento === 'Dinheiro' || entrega.forma_pagamento === 'Cartão' || entrega.forma_pagamento === 'Pix';
+  const valorCobrar = parseFloat(entrega.valor) || 0;
 
   return (
     <div
-      className={`rounded-xl shadow-md border-2 overflow-hidden transition-all ${modoOrganizar ? '' : 'cursor-pointer hover:shadow-lg hover:scale-[1.02]'} ${getStatusColor(entrega.status)}`}
-      onClick={(e) => {
-        if (!modoOrganizar && onCardClick) {
-          onCardClick(entrega);
-        }
-      }}
+      className={`bg-white rounded-xl border border-slate-200 overflow-hidden transition-all ${isDragging ? 'opacity-50 scale-95' : ''}`}
+      draggable
+      onDragStart={(e) => onDragStart(e, entrega, cidade)}
+      onDragOver={onDragOver}
+      onDrop={(e) => onDrop(e, entrega, cidade)}
+      onDragEnd={onDragEnd}
     >
-      {/* Controles de Ordenação - Mobile Friendly */}
-      {modoOrganizar && (
-        <div className="bg-gradient-to-r from-[#890d5d] to-[#457bba] p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white">
-            <GripVertical className="w-5 h-5" />
-            <span className="font-bold text-lg">#{posicao + 1}</span>
+      {/* Header do Card */}
+      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing" />
+          <span className="text-sm font-medium text-slate-500">#{index}</span>
+          <span className="font-bold text-slate-800">REQ #{entrega.requisicao || '0000'}</span>
+
+          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}>
+            {statusBadge.label}
+          </span>
+
+          {temCobranca && valorCobrar > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 flex items-center gap-1">
+              <DollarSign className="w-3 h-3" /> COBRAR
+            </span>
+          )}
+
+          {entrega.taxa && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> R$ {parseFloat(entrega.taxa).toFixed(2)}
+            </span>
+          )}
+        </div>
+
+        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">
+          {entrega.periodo || 'Sem período'}
+        </span>
+      </div>
+
+      {/* Nome do Cliente */}
+      <div className="px-4 py-2 border-b border-slate-100">
+        <span className="text-sm font-medium" style={{ color: theme.colors.primary }}>
+          {entrega.cliente?.nome || 'Cliente'}
+        </span>
+      </div>
+
+      {/* Valor a Cobrar */}
+      {temCobranca && valorCobrar > 0 && (
+        <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
+          <div className="flex items-center gap-2 text-yellow-700 text-xs font-semibold mb-1">
+            <Wallet className="w-3 h-3" /> COBRAR NA ENTREGA:
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoverCima && onMoverCima();
-              }}
-              disabled={posicao === 0}
-              className={`p-3 rounded-xl font-bold transition-all ${
-                posicao === 0
-                  ? 'bg-white/30 text-white/50 cursor-not-allowed'
-                  : 'bg-white text-[#890d5d] hover:bg-slate-100 active:scale-95'
-              }`}
-            >
-              <ArrowUp className="w-6 h-6" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoverBaixo && onMoverBaixo();
-              }}
-              disabled={posicao === totalEntregas - 1}
-              className={`p-3 rounded-xl font-bold transition-all ${
-                posicao === totalEntregas - 1
-                  ? 'bg-white/30 text-white/50 cursor-not-allowed'
-                  : 'bg-white text-[#890d5d] hover:bg-slate-100 active:scale-95'
-              }`}
-            >
-              <ArrowDown className="w-6 h-6" />
-            </button>
+          <div className="text-2xl font-bold text-yellow-700">
+            R$ {valorCobrar.toFixed(2)}
           </div>
         </div>
       )}
 
-      <div className="p-4" style={{ pointerEvents: modoOrganizar ? 'auto' : 'none' }}>
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-bold text-slate-900 text-lg">
-                {entrega.cliente?.nome || 'Cliente'}
-              </h3>
-              {entrega.recibo_medico && (
-                <span className="text-white text-xs px-2 py-0.5 rounded font-semibold" style={{ backgroundColor: '#376295' }}>
-                  RECEITA
-                </span>
-              )}
-            </div>
-            <div className="text-xs text-slate-600 mb-2">
-              Requisição: <span className="font-mono font-semibold">{entrega.requisicao || '-'}</span>
-            </div>
-          </div>
-          <div className="px-3 py-1 rounded-lg text-xs font-bold" style={getStatusBadgeColor(entrega.status)}>
-            {entrega.status || 'Pendente'}
-          </div>
-        </div>
-
-        <div className="space-y-2 mb-4">
-          <div className="flex items-start gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
-            <div className="text-slate-700">
-              <div className="font-medium">
-                {entrega.endereco?.logradouro}, {entrega.endereco?.numero}
-              </div>
-              <div className="text-xs text-slate-600">
-                {entrega.endereco?.bairro} - {entrega.endereco?.cidade}
-                {entrega.endereco?.complemento && ` • ${entrega.endereco.complemento}`}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <Phone className="w-4 h-4 text-slate-500 flex-shrink-0" />
-            <span className="text-slate-700 font-medium">
-              {entrega.cliente?.telefone || 'Sem telefone'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="w-4 h-4 text-slate-500 flex-shrink-0" />
-            <span className="text-slate-700">
-              <span className="font-semibold">{entrega.horario || 'Sem horário'}</span>
-              {entrega.observacoes && ` • ${entrega.observacoes}`}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-slate-500 flex-shrink-0" />
-              <span className="text-slate-700">
-                Pagamento: <span className="font-semibold">{entrega.forma_pagamento || '-'}</span>
-              </span>
-            </div>
-            {entrega.valor && (
-              <div className="text-slate-700">
-                Valor: <span className="font-bold" style={{ color: '#376295' }}>R$ {parseFloat(entrega.valor).toFixed(2)}</span>
-              </div>
+      {/* Endereço */}
+      <div className="px-4 py-3 border-b border-slate-100">
+        <div className="flex items-start gap-2">
+          <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm">
+            <p className="text-slate-800 font-medium">
+              {entrega.endereco?.logradouro}, {entrega.endereco?.numero}
+            </p>
+            <p className="text-slate-600">
+              {entrega.endereco?.bairro} - {entrega.endereco?.cidade}
+            </p>
+            {entrega.endereco?.referencia && (
+              <p className="text-xs" style={{ color: theme.colors.secondary }}>Ref: {entrega.endereco.referencia}</p>
+            )}
+            {entrega.endereco?.complemento && (
+              <p className="text-slate-500 text-xs">A/C: {entrega.endereco.complemento}</p>
             )}
           </div>
         </div>
 
-        {/* Botões de Ação */}
-        <div className="flex gap-2" style={{ pointerEvents: 'auto' }} onClick={(e) => e.stopPropagation()}>
-          {entrega.status !== 'Entregue' && (
-            <>
-              {entrega.status !== 'A Caminho' && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStatusChange(entrega.id, 'A Caminho');
-                  }}
-                  disabled={isUpdating}
-                  className="flex-1 text-white font-semibold py-2 px-4 rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50 text-sm"
-                  style={{ backgroundColor: '#f97316' }}
-                >
-                  🚀 A Caminho
-                </button>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStatusChange(entrega.id, 'Entregue');
-                }}
-                disabled={isUpdating}
-                className="flex-1 text-white font-semibold py-2 px-4 rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50 text-sm"
-                style={{ backgroundColor: '#22c55e' }}
-              >
-                ✓ Entregar
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStatusChange(entrega.id, 'Não Entregue');
-                }}
-                disabled={isUpdating}
-                className="flex-1 text-white font-semibold py-2 px-4 rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50 text-sm"
-                style={{ backgroundColor: '#ef4444' }}
-              >
-                ✗ Não Entregue
-              </button>
-            </>
-          )}
-          {entrega.status === 'Entregue' && (
-            <div className="flex-1 font-semibold py-2 px-4 rounded-lg text-center text-sm" style={{ backgroundColor: '#E8F5E8', color: '#22c55e' }}>
-              ✓ Entrega Concluída
-            </div>
-          )}
+        <button
+          onClick={() => onAbrirMapa(entrega.endereco)}
+          className="mt-2 w-full flex items-center justify-center gap-2 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+        >
+          <Navigation className="w-4 h-4" />
+          Abrir no Mapa
+        </button>
+      </div>
+
+      {/* Forma de Pagamento e Telefone */}
+      <div className="px-4 py-3 border-b border-slate-100 space-y-2">
+        <div className="flex items-center gap-2 text-sm">
+          <Wallet className="w-4 h-4 text-slate-400" />
+          <span className="text-slate-700">{entrega.forma_pagamento || 'Não informado'}</span>
         </div>
+
+        {entrega.cliente?.telefone && (
+          <div className="flex items-center gap-2 text-sm">
+            <Phone className="w-4 h-4 text-slate-400" />
+            <a
+              href={`tel:${entrega.cliente.telefone}`}
+              className="text-slate-700 hover:text-blue-600"
+            >
+              {entrega.cliente.telefone}
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Botões de Ação */}
+      <div className="px-4 py-3 flex gap-2">
+        {entrega.status !== 'Entregue' && (
+          <button
+            onClick={() => onStatusChange(entrega.id, 'Entregue')}
+            disabled={isUpdating}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 text-white font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
+            style={{ backgroundColor: theme.colors.success }}
+          >
+            <Check className="w-4 h-4" />
+            Concluir
+          </button>
+        )}
+
+        {entrega.status !== 'Não Entregue' && (
+          <button
+            onClick={() => onStatusChange(entrega.id, 'Não Entregue')}
+            disabled={isUpdating}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition-colors disabled:opacity-50"
+          >
+            <AlertCircle className="w-4 h-4" />
+            Problema
+          </button>
+        )}
+
+        {(entrega.status === 'Entregue' || entrega.status === 'Não Entregue') && (
+          <button
+            onClick={() => onStatusChange(entrega.id, 'A Caminho')}
+            disabled={isUpdating}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
+            style={{
+              backgroundColor: '#e8f0f8',
+              color: theme.colors.primary,
+              border: `1px solid ${theme.colors.primary}`
+            }}
+          >
+            <Navigation className="w-4 h-4" />
+            Voltar
+          </button>
+        )}
       </div>
     </div>
   );

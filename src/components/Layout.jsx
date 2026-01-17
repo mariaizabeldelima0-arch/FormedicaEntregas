@@ -135,7 +135,12 @@ export default function Layout({ children }) {
         borderRight: `1px solid ${theme.colors.border}`,
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.3s ease'
+        transition: 'width 0.3s ease',
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
+        overflowY: 'auto',
+        flexShrink: 0
       }}>
         {/* Logo */}
         <div style={{
