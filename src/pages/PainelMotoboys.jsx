@@ -28,7 +28,11 @@ import {
   GripVertical,
   Sun,
   Sunset,
-  Search
+  Search,
+  Play,
+  Truck,
+  RotateCcw,
+  Pause
 } from 'lucide-react';
 
 export default function PainelMotoboys() {
@@ -40,8 +44,18 @@ export default function PainelMotoboys() {
   const [mesAtual, setMesAtual] = useState(new Date());
   const [filtroLocal, setFiltroLocal] = useState('todos');
   const [filtroPeriodo, setFiltroPeriodo] = useState('todos');
+  const [filtroStatus, setFiltroStatus] = useState('todos');
   const [termoBusca, setTermoBusca] = useState('');
   const [ordemEntregas, setOrdemEntregas] = useState({});
+
+  // Definição dos status disponíveis
+  const statusOptions = [
+    { value: 'Iniciar', label: 'Iniciar', icon: Play, bg: 'bg-slate-100', text: 'text-slate-700', color: '#64748b' },
+    { value: 'Em Rota', label: 'Em Rota', icon: Truck, bg: 'bg-blue-100', text: 'text-blue-700', color: '#3b82f6' },
+    { value: 'Entregue', label: 'Entregue', icon: Check, bg: 'bg-green-100', text: 'text-green-700', color: '#3dac38' },
+    { value: 'Pendente', label: 'Pendente', icon: Pause, bg: 'bg-yellow-100', text: 'text-yellow-700', color: '#eab308' },
+    { value: 'Voltou p/ Farmácia', label: 'Voltou', icon: RotateCcw, bg: 'bg-red-100', text: 'text-red-700', color: '#ef4444' },
+  ];
   const [draggedItem, setDraggedItem] = useState(null);
 
   const isMotoboy = userType === 'motoboy';
@@ -112,6 +126,10 @@ export default function PainelMotoboys() {
   const entregasFiltradas = entregasDoDia.filter(entrega => {
     if (filtroLocal !== 'todos' && entrega.endereco?.cidade !== filtroLocal) return false;
     if (filtroPeriodo !== 'todos' && entrega.periodo !== filtroPeriodo) return false;
+    if (filtroStatus !== 'todos') {
+      const statusEntrega = entrega.status || 'Iniciar';
+      if (statusEntrega !== filtroStatus) return false;
+    }
 
     // Filtro de busca
     if (termoBusca.trim()) {
@@ -154,6 +172,12 @@ export default function PainelMotoboys() {
 
   // Lista de cidades disponíveis
   const cidadesDisponiveis = [...new Set(entregasDoDia.map(e => e.endereco?.cidade).filter(Boolean))];
+
+  // Contagem de entregas por status
+  const contagemPorStatus = statusOptions.map(status => ({
+    ...status,
+    quantidade: entregasDoDia.filter(e => (e.status || 'Iniciar') === status.value).length
+  }));
 
   // Resumo do dia por cidade
   const resumoDia = cidadesDisponiveis.map(cidade => {
@@ -583,6 +607,48 @@ export default function PainelMotoboys() {
               </div>
             </div>
 
+            {/* Cards de Filtro por Status */}
+            <div className="grid grid-cols-5 gap-2">
+              {contagemPorStatus.map((status) => {
+                const Icon = status.icon;
+                const isActive = filtroStatus === status.value;
+                return (
+                  <button
+                    key={status.value}
+                    onClick={() => setFiltroStatus(isActive ? 'todos' : status.value)}
+                    className={`p-3 rounded-xl border-2 transition-all ${
+                      isActive
+                        ? 'border-current shadow-md'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                    style={{
+                      backgroundColor: isActive ? status.color + '20' : 'white',
+                      borderColor: isActive ? status.color : undefined,
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <Icon
+                        className="w-5 h-5"
+                        style={{ color: status.color }}
+                      />
+                      <span
+                        className="text-xs font-semibold"
+                        style={{ color: status.color }}
+                      >
+                        {status.label}
+                      </span>
+                      <span
+                        className="text-lg font-bold"
+                        style={{ color: status.color }}
+                      >
+                        {status.quantidade}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Dica de arrastar */}
             <div className="flex items-center gap-2 text-sm text-slate-500 px-2">
               <GripVertical className="w-4 h-4" />
@@ -635,6 +701,7 @@ export default function PainelMotoboys() {
                                 onDrop={handleDrop}
                                 onDragEnd={handleDragEnd}
                                 isDragging={draggedItem?.entrega.id === entrega.id}
+                                statusOptions={statusOptions}
                               />
                             ))}
                           </div>
@@ -687,6 +754,7 @@ export default function PainelMotoboys() {
                                 onDrop={handleDrop}
                                 onDragEnd={handleDragEnd}
                                 isDragging={draggedItem?.entrega.id === entrega.id}
+                                statusOptions={statusOptions}
                               />
                             ))}
                           </div>
@@ -738,6 +806,7 @@ export default function PainelMotoboys() {
                                 onDrop={handleDrop}
                                 onDragEnd={handleDragEnd}
                                 isDragging={draggedItem?.entrega.id === entrega.id}
+                                statusOptions={statusOptions}
                               />
                             ))}
                           </div>
@@ -772,18 +841,22 @@ function EntregaCard({
   onDragOver,
   onDrop,
   onDragEnd,
-  isDragging
+  isDragging,
+  statusOptions
 }) {
   const getStatusBadge = (status) => {
+    const option = statusOptions?.find(s => s.value === status);
+    if (option) {
+      return { bg: option.bg, text: option.text, label: option.label, color: option.color };
+    }
+    // Fallback para status antigos ou não definidos
     switch (status) {
-      case 'Entregue':
-        return { bg: 'bg-green-100', text: 'text-green-700', label: 'Entregue' };
       case 'A Caminho':
-        return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'A Caminho' };
+        return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Em Rota', color: '#3b82f6' };
       case 'Não Entregue':
-        return { bg: 'bg-red-100', text: 'text-red-700', label: 'Não Entregue' };
+        return { bg: 'bg-red-100', text: 'text-red-700', label: 'Voltou', color: '#ef4444' };
       default:
-        return { bg: 'bg-slate-100', text: 'text-slate-700', label: status || 'Pendente' };
+        return { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Iniciar', color: '#64748b' };
     }
   };
 
@@ -897,46 +970,35 @@ function EntregaCard({
         )}
       </div>
 
-      {/* Botões de Ação */}
-      <div className="px-4 py-3 flex gap-2">
-        {entrega.status !== 'Entregue' && (
-          <button
-            onClick={() => onStatusChange(entrega.id, 'Entregue')}
-            disabled={isUpdating}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 text-white font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: theme.colors.success }}
-          >
-            <Check className="w-4 h-4" />
-            Concluir
-          </button>
-        )}
-
-        {entrega.status !== 'Não Entregue' && (
-          <button
-            onClick={() => onStatusChange(entrega.id, 'Não Entregue')}
-            disabled={isUpdating}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition-colors disabled:opacity-50"
-          >
-            <AlertCircle className="w-4 h-4" />
-            Problema
-          </button>
-        )}
-
-        {(entrega.status === 'Entregue' || entrega.status === 'Não Entregue') && (
-          <button
-            onClick={() => onStatusChange(entrega.id, 'A Caminho')}
-            disabled={isUpdating}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{
-              backgroundColor: '#e8f0f8',
-              color: theme.colors.primary,
-              border: `1px solid ${theme.colors.primary}`
-            }}
-          >
-            <Navigation className="w-4 h-4" />
-            Voltar
-          </button>
-        )}
+      {/* Botões de Ação - Todos os Status */}
+      <div className="px-4 py-3">
+        <div className="grid grid-cols-5 gap-1.5">
+          {statusOptions?.map((status) => {
+            const Icon = status.icon;
+            const isCurrentStatus = (entrega.status || 'Iniciar') === status.value;
+            return (
+              <button
+                key={status.value}
+                onClick={() => !isCurrentStatus && onStatusChange(entrega.id, status.value)}
+                disabled={isUpdating || isCurrentStatus}
+                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all text-xs font-medium ${
+                  isCurrentStatus
+                    ? 'ring-2 ring-offset-1'
+                    : 'hover:opacity-80 border border-slate-200'
+                }`}
+                style={{
+                  backgroundColor: isCurrentStatus ? status.color + '20' : 'white',
+                  color: status.color,
+                  ringColor: isCurrentStatus ? status.color : undefined,
+                  opacity: isUpdating ? 0.5 : 1,
+                }}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="truncate w-full text-center">{status.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
