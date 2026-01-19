@@ -57,6 +57,18 @@ export default function PainelMotoboys() {
     { value: 'Voltou p/ Farmácia', label: 'Voltou', icon: RotateCcw, bg: 'bg-red-100', text: 'text-red-700', color: '#ef4444' },
   ];
   const STATUS_PADRAO = 'Em Rota';
+
+  // Função para normalizar status antigos para os novos
+  const normalizarStatus = (status) => {
+    if (!status) return STATUS_PADRAO;
+    // Mapear status antigos
+    const mapeamento = {
+      'A Caminho': 'Em Rota',
+      'Não Entregue': 'Voltou p/ Farmácia',
+    };
+    return mapeamento[status] || status;
+  };
+
   const [draggedItem, setDraggedItem] = useState(null);
 
   const isMotoboy = userType === 'motoboy';
@@ -128,7 +140,7 @@ export default function PainelMotoboys() {
     if (filtroLocal !== 'todos' && entrega.endereco?.cidade !== filtroLocal) return false;
     if (filtroPeriodo !== 'todos' && entrega.periodo !== filtroPeriodo) return false;
     if (filtroStatus !== 'todos') {
-      const statusEntrega = entrega.status || STATUS_PADRAO;
+      const statusEntrega = normalizarStatus(entrega.status);
       if (statusEntrega !== filtroStatus) return false;
     }
 
@@ -177,7 +189,7 @@ export default function PainelMotoboys() {
   // Contagem de entregas por status
   const contagemPorStatus = statusOptions.map(status => ({
     ...status,
-    quantidade: entregasDoDia.filter(e => (e.status || STATUS_PADRAO) === status.value).length
+    quantidade: entregasDoDia.filter(e => normalizarStatus(e.status) === status.value).length
   }));
 
   // Resumo do dia por cidade
@@ -553,7 +565,39 @@ export default function PainelMotoboys() {
           {/* Coluna Direita - Entregas */}
           <div className="lg:col-span-2 space-y-4">
             {/* Cards de Filtro por Status */}
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-6 gap-3">
+              {/* Card Todas */}
+              <button
+                onClick={() => setFiltroStatus('todos')}
+                className={`bg-white p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                  filtroStatus === 'todos' ? 'shadow-md' : ''
+                }`}
+                style={{
+                  borderColor: filtroStatus === 'todos' ? theme.colors.primary : '#e2e8f0',
+                }}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: theme.colors.primary + '20' }}
+                  >
+                    <Package
+                      className="w-5 h-5"
+                      style={{ color: theme.colors.primary }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-slate-600">
+                    Todas
+                  </span>
+                  <span
+                    className="text-2xl font-bold"
+                    style={{ color: theme.colors.primary }}
+                  >
+                    {entregasDoDia.length}
+                  </span>
+                </div>
+              </button>
+
               {contagemPorStatus.map((status) => {
                 const Icon = status.icon;
                 const isActive = filtroStatus === status.value;
@@ -655,44 +699,36 @@ export default function PainelMotoboys() {
               <span>Arraste as entregas para reorganizar sua rota</span>
             </div>
 
-            {/* Lista de Entregas por Período e Cidade */}
+            {/* Lista de Entregas organizada por Status */}
             {entregasFiltradas.length > 0 ? (
               <>
-                {/* Entregas da Manhã */}
-                {(() => {
-                  const entregasManha = entregasFiltradas.filter(e => e.periodo === 'Manhã');
-                  if (entregasManha.length === 0) return null;
+                {/* Quando filtro é "todos", organiza por status */}
+                {filtroStatus === 'todos' ? (
+                  <>
+                    {statusOptions.map((status) => {
+                      const Icon = status.icon;
+                      const entregasDoStatus = entregasFiltradas.filter(e => normalizarStatus(e.status) === status.value);
+                      if (entregasDoStatus.length === 0) return null;
 
-                  const entregasManhaPorCidade = entregasManha.reduce((acc, e) => {
-                    const cidade = e.endereco?.cidade || 'Sem cidade';
-                    if (!acc[cidade]) acc[cidade] = [];
-                    acc[cidade].push(e);
-                    return acc;
-                  }, {});
-
-                  return (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-slate-800 px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#facc15' }}>
-                          <Sun className="w-4 h-4" />
-                          MANHÃ ({entregasManha.length})
-                        </div>
-                      </div>
-
-                      {Object.entries(entregasManhaPorCidade).map(([cidade, entregas]) => (
-                        <div key={cidade} className="mb-4">
-                          <div className="flex items-center gap-2 mb-3 ml-2">
-                            <MapPin className="w-4 h-4" style={{ color: theme.colors.secondary }} />
-                            <span className="font-semibold text-slate-700">{cidade} ({entregas.length})</span>
+                      return (
+                        <div key={status.value} className="mb-6">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm"
+                              style={{ backgroundColor: status.color + '20', color: status.color }}
+                            >
+                              <Icon className="w-4 h-4" />
+                              {status.label.toUpperCase()} ({entregasDoStatus.length})
+                            </div>
                           </div>
 
                           <div className="space-y-3">
-                            {ordenarEntregas(entregas).map((entrega, index) => (
+                            {ordenarEntregas(entregasDoStatus).map((entrega, index) => (
                               <EntregaCard
                                 key={entrega.id}
                                 entrega={entrega}
                                 index={index + 1}
-                                cidade={cidade}
+                                cidade={entrega.endereco?.cidade || 'Sem cidade'}
                                 onStatusChange={handleStatusChange}
                                 isUpdating={updateStatusMutation.isPending}
                                 onAbrirMapa={abrirMapa}
@@ -702,50 +738,38 @@ export default function PainelMotoboys() {
                                 onDragEnd={handleDragEnd}
                                 isDragging={draggedItem?.entrega.id === entrega.id}
                                 statusOptions={statusOptions}
+                                normalizarStatus={normalizarStatus}
                               />
                             ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                      );
+                    })}
+                  </>
+                ) : (
+                  /* Quando um status específico está selecionado, organiza por período */
+                  <>
+                    {/* Entregas da Manhã */}
+                    {(() => {
+                      const entregasManha = entregasFiltradas.filter(e => e.periodo === 'Manhã');
+                      if (entregasManha.length === 0) return null;
 
-                {/* Entregas da Tarde */}
-                {(() => {
-                  const entregasTarde = entregasFiltradas.filter(e => e.periodo === 'Tarde');
-                  if (entregasTarde.length === 0) return null;
-
-                  const entregasTardePorCidade = entregasTarde.reduce((acc, e) => {
-                    const cidade = e.endereco?.cidade || 'Sem cidade';
-                    if (!acc[cidade]) acc[cidade] = [];
-                    acc[cidade].push(e);
-                    return acc;
-                  }, {});
-
-                  return (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
-                          <Sunset className="w-4 h-4" />
-                          TARDE ({entregasTarde.length})
-                        </div>
-                      </div>
-
-                      {Object.entries(entregasTardePorCidade).map(([cidade, entregas]) => (
-                        <div key={cidade} className="mb-4">
-                          <div className="flex items-center gap-2 mb-3 ml-2">
-                            <MapPin className="w-4 h-4" style={{ color: theme.colors.secondary }} />
-                            <span className="font-semibold text-slate-700">{cidade} ({entregas.length})</span>
+                      return (
+                        <div className="mb-6">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="flex items-center gap-2 text-slate-800 px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#facc15' }}>
+                              <Sun className="w-4 h-4" />
+                              MANHÃ ({entregasManha.length})
+                            </div>
                           </div>
 
                           <div className="space-y-3">
-                            {ordenarEntregas(entregas).map((entrega, index) => (
+                            {ordenarEntregas(entregasManha).map((entrega, index) => (
                               <EntregaCard
                                 key={entrega.id}
                                 entrega={entrega}
                                 index={index + 1}
-                                cidade={cidade}
+                                cidade={entrega.endereco?.cidade || 'Sem cidade'}
                                 onStatusChange={handleStatusChange}
                                 isUpdating={updateStatusMutation.isPending}
                                 onAbrirMapa={abrirMapa}
@@ -755,49 +779,35 @@ export default function PainelMotoboys() {
                                 onDragEnd={handleDragEnd}
                                 isDragging={draggedItem?.entrega.id === entrega.id}
                                 statusOptions={statusOptions}
+                                normalizarStatus={normalizarStatus}
                               />
                             ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                      );
+                    })()}
 
-                {/* Entregas sem período definido */}
-                {(() => {
-                  const entregasSemPeriodo = entregasFiltradas.filter(e => !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde'));
-                  if (entregasSemPeriodo.length === 0) return null;
+                    {/* Entregas da Tarde */}
+                    {(() => {
+                      const entregasTarde = entregasFiltradas.filter(e => e.periodo === 'Tarde');
+                      if (entregasTarde.length === 0) return null;
 
-                  const entregasSemPeriodoPorCidade = entregasSemPeriodo.reduce((acc, e) => {
-                    const cidade = e.endereco?.cidade || 'Sem cidade';
-                    if (!acc[cidade]) acc[cidade] = [];
-                    acc[cidade].push(e);
-                    return acc;
-                  }, {});
-
-                  return (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm bg-slate-500">
-                          SEM PERÍODO ({entregasSemPeriodo.length})
-                        </div>
-                      </div>
-
-                      {Object.entries(entregasSemPeriodoPorCidade).map(([cidade, entregas]) => (
-                        <div key={cidade} className="mb-4">
-                          <div className="flex items-center gap-2 mb-3 ml-2">
-                            <MapPin className="w-4 h-4" style={{ color: theme.colors.secondary }} />
-                            <span className="font-semibold text-slate-700">{cidade} ({entregas.length})</span>
+                      return (
+                        <div className="mb-6">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
+                              <Sunset className="w-4 h-4" />
+                              TARDE ({entregasTarde.length})
+                            </div>
                           </div>
 
                           <div className="space-y-3">
-                            {ordenarEntregas(entregas).map((entrega, index) => (
+                            {ordenarEntregas(entregasTarde).map((entrega, index) => (
                               <EntregaCard
                                 key={entrega.id}
                                 entrega={entrega}
                                 index={index + 1}
-                                cidade={cidade}
+                                cidade={entrega.endereco?.cidade || 'Sem cidade'}
                                 onStatusChange={handleStatusChange}
                                 isUpdating={updateStatusMutation.isPending}
                                 onAbrirMapa={abrirMapa}
@@ -807,14 +817,52 @@ export default function PainelMotoboys() {
                                 onDragEnd={handleDragEnd}
                                 isDragging={draggedItem?.entrega.id === entrega.id}
                                 statusOptions={statusOptions}
+                                normalizarStatus={normalizarStatus}
                               />
                             ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                      );
+                    })()}
+
+                    {/* Entregas sem período definido */}
+                    {(() => {
+                      const entregasSemPeriodo = entregasFiltradas.filter(e => !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde'));
+                      if (entregasSemPeriodo.length === 0) return null;
+
+                      return (
+                        <div className="mb-6">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm bg-slate-500">
+                              SEM PERÍODO ({entregasSemPeriodo.length})
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            {ordenarEntregas(entregasSemPeriodo).map((entrega, index) => (
+                              <EntregaCard
+                                key={entrega.id}
+                                entrega={entrega}
+                                index={index + 1}
+                                cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                                onStatusChange={handleStatusChange}
+                                isUpdating={updateStatusMutation.isPending}
+                                onAbrirMapa={abrirMapa}
+                                onDragStart={handleDragStart}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                                onDragEnd={handleDragEnd}
+                                isDragging={draggedItem?.entrega.id === entrega.id}
+                                statusOptions={statusOptions}
+                                normalizarStatus={normalizarStatus}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
               </>
             ) : (
               <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
@@ -842,7 +890,8 @@ function EntregaCard({
   onDrop,
   onDragEnd,
   isDragging,
-  statusOptions
+  statusOptions,
+  normalizarStatus
 }) {
   const getStatusBadge = (status) => {
     const option = statusOptions?.find(s => s.value === status);
@@ -860,7 +909,8 @@ function EntregaCard({
     }
   };
 
-  const statusBadge = getStatusBadge(entrega.status);
+  const statusNormalizado = normalizarStatus ? normalizarStatus(entrega.status) : entrega.status;
+  const statusBadge = getStatusBadge(statusNormalizado);
   const temCobranca = entrega.forma_pagamento === 'Dinheiro' || entrega.forma_pagamento === 'Cartão' || entrega.forma_pagamento === 'Pix';
   const valorCobrar = parseFloat(entrega.valor) || 0;
 
@@ -975,7 +1025,7 @@ function EntregaCard({
         <div className="grid grid-cols-5 gap-1.5">
           {statusOptions?.map((status) => {
             const Icon = status.icon;
-            const isCurrentStatus = (entrega.status || 'Em Rota') === status.value;
+            const isCurrentStatus = statusNormalizado === status.value;
             return (
               <button
                 key={status.value}
