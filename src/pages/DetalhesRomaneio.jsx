@@ -231,7 +231,7 @@ export default function DetalhesRomaneio() {
     const colors = {
       'A Caminho': '#8b5cf6',
       'Produzindo no Laboratório': '#3b82f6',
-      'Entregue': '#10b981',
+      'Entregue': '#3dac38',
       'Não Entregue': '#ef4444',
       'Pendente': '#6b7280'
     };
@@ -339,7 +339,7 @@ export default function DetalhesRomaneio() {
                     <div>
                       <span className="px-3 py-1 rounded text-xs font-medium" style={{
                         backgroundColor: romaneio.status === 'Entregue' ? '#E8F5E8' : romaneio.status === 'A Caminho' ? '#FEF3E8' : '#F5E8F5',
-                        color: romaneio.status === 'Entregue' ? '#22c55e' : romaneio.status === 'A Caminho' ? '#f97316' : '#890d5d'
+                        color: romaneio.status === 'Entregue' ? '#3dac38' : romaneio.status === 'A Caminho' ? '#f97316' : '#890d5d'
                       }}>
                         {romaneio.status === 'Produzindo no Laboratório' ? 'Produção' : romaneio.status}
                       </span>

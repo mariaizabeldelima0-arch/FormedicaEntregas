@@ -174,7 +174,7 @@ export default function Relatorios() {
       "Produzindo no Laboratório": { bgColor: "#F5E8F5", textColor: "#890d5d", label: "Produção" },
       "Preparando no Setor de Entregas": { bgColor: "#FEF3E8", textColor: "#f97316", label: "Preparando" },
       "A Caminho": { bgColor: "#FEF3E8", textColor: "#f97316", label: "A Caminho" },
-      "Entregue": { bgColor: "#E8F5E8", textColor: "#22c55e", label: "Entregue" },
+      "Entregue": { bgColor: "#E8F5E8", textColor: "#3dac38", label: "Entregue" },
       "Não Entregue": { bgColor: "#fef2f2", textColor: "#ef4444", label: "Não Entregue" },
       "Voltou": { bgColor: "#FEF3E8", textColor: "#f97316", label: "Voltou" },
       "Cancelado": { bgColor: "#f1f5f9", textColor: "#64748b", label: "Cancelado" },
@@ -376,13 +376,13 @@ export default function Relatorios() {
               <Card
                 className="cursor-pointer hover:shadow-xl transition-all"
                 style={{
-                  border: filtroStatus === "Entregue" ? '2px solid #22c55e' : '2px solid transparent'
+                  border: filtroStatus === "Entregue" ? '2px solid #3dac38' : '2px solid transparent'
                 }}
                 onClick={() => setFiltroStatus(filtroStatus === "Entregue" ? "todos" : "Entregue")}
               >
                 <CardContent className="p-6">
                   <p className="text-sm text-slate-600 mb-1">Entregues</p>
-                  <p className="text-4xl font-bold" style={{ color: '#22c55e' }}>{porStatus['Entregue'].length}</p>
+                  <p className="text-4xl font-bold" style={{ color: '#3dac38' }}>{porStatus['Entregue'].length}</p>
                 </CardContent>
               </Card>
 

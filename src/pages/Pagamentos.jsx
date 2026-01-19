@@ -425,11 +425,11 @@ export default function Pagamentos() {
               <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                    <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
+                    <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
                   </div>
                   <span className="text-sm font-bold text-slate-700">Recebidos</span>
                 </div>
-                <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+                <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
                   {stats.recebidos}
                 </div>
               </div>
@@ -494,7 +494,7 @@ export default function Pagamentos() {
                                 className="px-3 py-1 rounded text-xs font-medium"
                                 style={{
                                   backgroundColor: entrega.pagamento_recebido ? "#E8F5E8" : "#FEF3E8",
-                                  color: entrega.pagamento_recebido ? "#22c55e" : "#f97316"
+                                  color: entrega.pagamento_recebido ? "#3dac38" : "#f97316"
                                 }}
                               >
                                 {entrega.pagamento_recebido ? "Recebido" : "Pendente"}

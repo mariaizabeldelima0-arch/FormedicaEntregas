@@ -380,9 +380,9 @@ export default function PlanilhaDiaria() {
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              rom.periodo === 'Manhã' ? 'text-orange-800' : 'text-orange-800'
+                              rom.periodo === 'Manhã' ? 'text-yellow-800' : 'text-orange-800'
                             }`} style={{
-                              backgroundColor: '#FEF3E8'
+                              backgroundColor: rom.periodo === 'Manhã' ? '#fef9c3' : '#ffedd5'
                             }}>
                               {rom.periodo || '-'}
                             </span>

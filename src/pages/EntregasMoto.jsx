@@ -890,16 +890,16 @@ export default function EntregasMoto() {
               onClick={() => { setFiltroStatus('Entregue'); setCardSelecionado('entregues'); }}
               className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
               style={{
-                border: cardSelecionado === 'entregues' ? '2px solid #22c55e' : '2px solid transparent'
+                border: cardSelecionado === 'entregues' ? '2px solid #3dac38' : '2px solid transparent'
               }}
             >
               <div className="flex items-center justify-center gap-2 mb-3">
                 <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                  <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
+                  <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
                 </div>
                 <span className="text-sm font-bold text-slate-700">Entregues</span>
               </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+              <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
                 {stats.entregues}
               </div>
             </div>
@@ -977,7 +977,7 @@ export default function EntregasMoto() {
                         filtroStatus === 'Entregue' ? '#E8F5E8' :
                         filtroStatus === 'A Caminho' ? '#FEF3E8' : '#F5E8F5',
                       color:
-                        filtroStatus === 'Entregue' ? '#22c55e' :
+                        filtroStatus === 'Entregue' ? '#3dac38' :
                         filtroStatus === 'A Caminho' ? '#f97316' : '#890d5d'
                     }}
                   >
@@ -1160,7 +1160,7 @@ export default function EntregasMoto() {
                   <div className="bg-white rounded-xl shadow-sm border-2 border-slate-300 p-6">
                     <div className="mb-6">
                       <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <Sunrise className="w-7 h-7" style={{ color: '#f97316' }} />
+                        <Sunrise className="w-7 h-7" style={{ color: '#eab308' }} />
                         Entregas da Manhã
                         <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
                           {entregasManha.length}
@@ -1201,7 +1201,7 @@ export default function EntregasMoto() {
                                       : '#F5E8F5',
                                   color:
                                     entrega.status === 'Entregue'
-                                      ? '#22c55e'
+                                      ? '#3dac38'
                                       : entrega.status === 'A Caminho'
                                       ? '#f97316'
                                       : '#890d5d'
@@ -1340,7 +1340,7 @@ export default function EntregasMoto() {
                   <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <div className="mb-6">
                       <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <Sun className="w-7 h-7" style={{ color: '#f59e0b' }} />
+                        <Sun className="w-7 h-7" style={{ color: '#f97316' }} />
                         Entregas da Tarde
                         <span className="text-lg font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
                           {entregasTarde.length}
@@ -1381,7 +1381,7 @@ export default function EntregasMoto() {
                                       : '#F5E8F5',
                                   color:
                                     entrega.status === 'Entregue'
-                                      ? '#22c55e'
+                                      ? '#3dac38'
                                       : entrega.status === 'A Caminho'
                                       ? '#f97316'
                                       : '#890d5d'

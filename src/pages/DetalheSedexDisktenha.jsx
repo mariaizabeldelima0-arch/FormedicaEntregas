@@ -165,7 +165,7 @@ export default function DetalheSedexDisktenha() {
   const tipoColors = {
     SEDEX: { bg: '#F5E8F5', text: '#890d5d' },
     PAC: { bg: '#FEF3E8', text: '#f97316' },
-    DISKTENHA: { bg: '#E8F5E8', text: '#22c55e' },
+    DISKTENHA: { bg: '#E8F5E8', text: '#3dac38' },
   };
 
   const tipoColor = tipoColors[entrega.tipo] || tipoColors.SEDEX;
@@ -273,7 +273,7 @@ export default function DetalheSedexDisktenha() {
                       entrega.status === 'Entregue' ? '#E8F5E8' :
                       entrega.status === 'Saiu' ? '#FEF3E8' : '#F5E8F5',
                     color:
-                      entrega.status === 'Entregue' ? '#22c55e' :
+                      entrega.status === 'Entregue' ? '#3dac38' :
                       entrega.status === 'Saiu' ? '#f97316' : '#890d5d'
                   }}
                 >
@@ -331,10 +331,10 @@ export default function DetalheSedexDisktenha() {
             {entrega.tipo === 'DISKTENHA' && (
               <div className="border-t pt-6 mt-6">
                 <div className="flex items-center gap-3">
-                  <DollarSign className="w-5 h-5" style={{ color: '#22c55e' }} />
+                  <DollarSign className="w-5 h-5" style={{ color: '#3dac38' }} />
                   <div>
                     <p className="text-sm text-slate-500 mb-1">A Pagar</p>
-                    <p className="text-2xl font-bold" style={{ color: '#22c55e' }}>
+                    <p className="text-2xl font-bold" style={{ color: '#3dac38' }}>
                       R$ {parseFloat(entrega.valor || 0).toFixed(2)}
                     </p>
                   </div>

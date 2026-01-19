@@ -343,11 +343,11 @@ export default function Sedex() {
             <div className="bg-white rounded-xl shadow-sm p-5">
               <div className="flex items-center justify-center gap-2 mb-3">
                 <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                  <DollarSign className="w-6 h-6" style={{ color: '#22c55e' }} />
+                  <DollarSign className="w-6 h-6" style={{ color: '#3dac38' }} />
                 </div>
                 <span className="text-sm font-bold text-slate-700">Total R$</span>
               </div>
-              <div className="text-3xl font-bold text-center" style={{ color: '#22c55e' }}>
+              <div className="text-3xl font-bold text-center" style={{ color: '#3dac38' }}>
                 {stats.valorDisktenha.toFixed(2)}
               </div>
             </div>

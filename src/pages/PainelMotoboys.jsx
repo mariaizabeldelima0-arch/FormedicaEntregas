@@ -75,29 +75,29 @@ export default function PainelMotoboys() {
   }, [motoboys, motoboyId, isMotoboy, nomeMotoboyUsuario]);
 
   // Buscar entregas do motoboy
-  const { data: todasEntregas = [], isLoading } = useQuery({
-    queryKey: ['entregas-motoboy', motoboyId],
+  const { data: todasEntregasRaw = [], isLoading } = useQuery({
+    queryKey: ['entregas-motoboy-all'],
     queryFn: async () => {
-      if (!motoboyId) return [];
       const { data, error } = await supabase
         .from('entregas')
         .select(`
           *,
           cliente:clientes(id, nome, telefone),
-          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, referencia),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
           motoboy:motoboys(id, nome)
         `)
         .eq('tipo', 'moto')
-        .eq('motoboy_id', motoboyId)
         .order('data_entrega', { ascending: true });
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!motoboyId,
     refetchOnMount: 'always',
     staleTime: 0,
   });
+
+  // Filtrar entregas pelo motoboy selecionado
+  const todasEntregas = todasEntregasRaw.filter(e => e.motoboy?.id === motoboyId);
 
   // Filtrar entregas do dia selecionado
   const entregasDoDia = todasEntregas.filter(entrega => {
@@ -552,7 +552,7 @@ export default function PainelMotoboys() {
                   return (
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
+                        <div className="flex items-center gap-2 text-slate-800 px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#facc15' }}>
                           <Sun className="w-4 h-4" />
                           MANHÃ ({entregasManha.length})
                         </div>
@@ -604,7 +604,7 @@ export default function PainelMotoboys() {
                   return (
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#8b5cf6' }}>
+                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
                           <Sunset className="w-4 h-4" />
                           TARDE ({entregasTarde.length})
                         </div>

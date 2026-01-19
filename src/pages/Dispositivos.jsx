@@ -249,16 +249,16 @@ export default function Dispositivos() {
             onClick={() => setFiltroStatus('autorizados')}
             className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
             style={{
-              border: filtroStatus === 'autorizados' ? '2px solid #22c55e' : '2px solid transparent'
+              border: filtroStatus === 'autorizados' ? '2px solid #3dac38' : '2px solid transparent'
             }}
           >
             <div className="flex items-center justify-center gap-2 mb-3">
               <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                <CheckCircle className="w-6 h-6" style={{ color: '#22c55e' }} />
+                <CheckCircle className="w-6 h-6" style={{ color: '#3dac38' }} />
               </div>
               <span className="text-sm font-bold text-slate-700">Autorizados</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>{stats.autorizados}</div>
+            <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>{stats.autorizados}</div>
           </div>
 
           <div
@@ -385,7 +385,7 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
     switch (status) {
       case 'Autorizado':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#E8F5E8', color: '#22c55e' }}>
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#E8F5E8', color: '#3dac38' }}>
             <CheckCircle className="w-3 h-3" />
             Autorizado
           </span>
@@ -516,7 +516,7 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
                 onClick={() => onAutorizar(dispositivo.id)}
                 disabled={isUpdating}
                 className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: '#22c55e' }}
+                style={{ backgroundColor: '#3dac38' }}
               >
                 <CheckCircle className="w-4 h-4" />
                 Autorizar
@@ -550,7 +550,7 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
               onClick={() => onAutorizar(dispositivo.id)}
               disabled={isUpdating}
               className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: '#22c55e' }}
+              style={{ backgroundColor: '#3dac38' }}
             >
               <CheckCircle className="w-4 h-4" />
               Autorizar

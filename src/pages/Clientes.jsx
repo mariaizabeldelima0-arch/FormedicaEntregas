@@ -1072,16 +1072,16 @@ export default function Clientes() {
                             onClick={() => setFiltroStatusEntrega("Entregue")}
                             className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
                             style={{
-                              border: filtroStatusEntrega === "Entregue" ? '2px solid #22c55e' : '2px solid transparent'
+                              border: filtroStatusEntrega === "Entregue" ? '2px solid #3dac38' : '2px solid transparent'
                             }}
                           >
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                                <Check className="w-6 h-6" style={{ color: '#22c55e' }} />
+                                <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
                               </div>
                               <span className="text-sm font-bold text-slate-700">Entregues</span>
                             </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+                            <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
                               {entregasEntregues}
                             </div>
                           </button>

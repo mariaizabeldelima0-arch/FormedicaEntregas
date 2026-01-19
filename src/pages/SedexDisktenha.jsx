@@ -407,33 +407,33 @@ export default function SedexDisktenha() {
               <Card
                 className="cursor-pointer transition-all hover:shadow-md bg-white rounded-xl shadow-sm"
                 style={{
-                  border: filtroTipo === 'DISKTENHA' ? '2px solid #22c55e' : '2px solid transparent'
+                  border: filtroTipo === 'DISKTENHA' ? '2px solid #3dac38' : '2px solid transparent'
                 }}
                 onClick={() => setFiltroTipo(filtroTipo === 'DISKTENHA' ? 'todos' : 'DISKTENHA')}
               >
                 <CardContent className="p-5">
                   <div className="flex items-center justify-center gap-2 mb-3">
                     <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                      <Truck className="w-6 h-6" style={{ color: '#22c55e' }} />
+                      <Truck className="w-6 h-6" style={{ color: '#3dac38' }} />
                     </div>
                     <span className="text-sm font-bold text-slate-700">Disktenha</span>
                   </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#22c55e' }}>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
                     {diskenha}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Total Disktenha */}
-              <Card className="cursor-pointer transition-all hover:shadow-md rounded-xl shadow-sm" style={{ backgroundColor: '#E8F5E8', border: '3px solid #22c55e' }}>
+              <Card className="cursor-pointer transition-all hover:shadow-md rounded-xl shadow-sm" style={{ backgroundColor: '#E8F5E8', border: '3px solid #3dac38' }}>
                 <CardContent className="p-5">
                   <div className="flex items-center justify-center gap-2 mb-3">
                     <div className="p-2 rounded-lg" style={{ backgroundColor: '#d1f0d1' }}>
-                      <DollarSign className="w-6 h-6" style={{ color: '#22c55e' }} />
+                      <DollarSign className="w-6 h-6" style={{ color: '#3dac38' }} />
                     </div>
                     <span className="text-sm font-bold text-slate-700">Total Disktenha</span>
                   </div>
-                  <div className="text-3xl font-bold text-center" style={{ color: '#22c55e' }}>
+                  <div className="text-3xl font-bold text-center" style={{ color: '#3dac38' }}>
                     R$ {valorTotalDisktenha.toFixed(2)}
                   </div>
                 </CardContent>
@@ -506,7 +506,7 @@ export default function SedexDisktenha() {
                                     entrega.tipo === 'PAC' ? '#FEF3E8' : '#E8F5E8',
                                   color:
                                     entrega.tipo === 'SEDEX' ? '#890d5d' :
-                                    entrega.tipo === 'PAC' ? '#f97316' : '#22c55e'
+                                    entrega.tipo === 'PAC' ? '#f97316' : '#3dac38'
                                 }}
                               >
                                 {entrega.tipo}
@@ -518,7 +518,7 @@ export default function SedexDisktenha() {
                                     entrega.status === 'Entregue' ? '#E8F5E8' :
                                     entrega.status === 'Saiu' ? '#FEF3E8' : '#F5E8F5',
                                   color:
-                                    entrega.status === 'Entregue' ? '#22c55e' :
+                                    entrega.status === 'Entregue' ? '#3dac38' :
                                     entrega.status === 'Saiu' ? '#f97316' : '#890d5d'
                                 }}
                               >
@@ -558,7 +558,7 @@ export default function SedexDisktenha() {
                             {entrega.tipo === 'DISKTENHA' && (
                               <div className="mb-2">
                                 <p className="text-xs text-slate-500">{entrega.forma_pagamento}</p>
-                                <p className="text-xl font-bold" style={{ color: '#22c55e' }}>
+                                <p className="text-xl font-bold" style={{ color: '#3dac38' }}>
                                   R$ {parseFloat(entrega.valor || 0).toFixed(2)}
                                 </p>
                               </div>
