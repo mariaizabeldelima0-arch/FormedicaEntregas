@@ -957,16 +957,16 @@ function EntregaCard({
                 key={status.value}
                 onClick={() => !isCurrentStatus && onStatusChange(entrega.id, status.value)}
                 disabled={isUpdating || isCurrentStatus}
-                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all text-xs font-medium ${
+                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all text-xs font-semibold ${
                   isCurrentStatus
                     ? 'ring-2 ring-offset-1'
-                    : 'hover:opacity-80 border border-slate-200'
+                    : 'hover:opacity-80'
                 }`}
                 style={{
-                  backgroundColor: isCurrentStatus ? status.color + '20' : 'white',
-                  color: status.color,
+                  backgroundColor: status.color,
+                  color: 'white',
                   ringColor: isCurrentStatus ? status.color : undefined,
-                  opacity: isUpdating ? 0.5 : 1,
+                  opacity: isUpdating ? 0.5 : isCurrentStatus ? 1 : 0.7,
                 }}
               >
                 <Icon className="w-4 h-4" />
