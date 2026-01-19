@@ -699,170 +699,121 @@ export default function PainelMotoboys() {
               <span>Arraste as entregas para reorganizar sua rota</span>
             </div>
 
-            {/* Lista de Entregas organizada por Status */}
+            {/* Lista de Entregas */}
             {entregasFiltradas.length > 0 ? (
               <>
-                {/* Quando filtro é "todos", organiza por status */}
-                {filtroStatus === 'todos' ? (
-                  <>
-                    {statusOptions.map((status) => {
-                      const Icon = status.icon;
-                      const entregasDoStatus = entregasFiltradas.filter(e => normalizarStatus(e.status) === status.value);
-                      if (entregasDoStatus.length === 0) return null;
+                {/* Entregas da Manhã */}
+                {(() => {
+                  const entregasManha = entregasFiltradas.filter(e => e.periodo === 'Manhã');
+                  if (entregasManha.length === 0) return null;
 
-                      return (
-                        <div key={status.value} className="mb-6">
-                          <div className="flex items-center gap-2 mb-4">
-                            <div
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm"
-                              style={{ backgroundColor: status.color + '20', color: status.color }}
-                            >
-                              <Icon className="w-4 h-4" />
-                              {status.label.toUpperCase()} ({entregasDoStatus.length})
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            {ordenarEntregas(entregasDoStatus).map((entrega, index) => (
-                              <EntregaCard
-                                key={entrega.id}
-                                entrega={entrega}
-                                index={index + 1}
-                                cidade={entrega.endereco?.cidade || 'Sem cidade'}
-                                onStatusChange={handleStatusChange}
-                                isUpdating={updateStatusMutation.isPending}
-                                onAbrirMapa={abrirMapa}
-                                onDragStart={handleDragStart}
-                                onDragOver={handleDragOver}
-                                onDrop={handleDrop}
-                                onDragEnd={handleDragEnd}
-                                isDragging={draggedItem?.entrega.id === entrega.id}
-                                statusOptions={statusOptions}
-                                normalizarStatus={normalizarStatus}
-                              />
-                            ))}
-                          </div>
+                  return (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 text-slate-800 px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#facc15' }}>
+                          <Sun className="w-4 h-4" />
+                          MANHÃ ({entregasManha.length})
                         </div>
-                      );
-                    })}
-                  </>
-                ) : (
-                  /* Quando um status específico está selecionado, organiza por período */
-                  <>
-                    {/* Entregas da Manhã */}
-                    {(() => {
-                      const entregasManha = entregasFiltradas.filter(e => e.periodo === 'Manhã');
-                      if (entregasManha.length === 0) return null;
+                      </div>
 
-                      return (
-                        <div className="mb-6">
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="flex items-center gap-2 text-slate-800 px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#facc15' }}>
-                              <Sun className="w-4 h-4" />
-                              MANHÃ ({entregasManha.length})
-                            </div>
-                          </div>
+                      <div className="space-y-3">
+                        {ordenarEntregas(entregasManha).map((entrega, index) => (
+                          <EntregaCard
+                            key={entrega.id}
+                            entrega={entrega}
+                            index={index + 1}
+                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            onStatusChange={handleStatusChange}
+                            isUpdating={updateStatusMutation.isPending}
+                            onAbrirMapa={abrirMapa}
+                            onDragStart={handleDragStart}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            onDragEnd={handleDragEnd}
+                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            statusOptions={statusOptions}
+                            normalizarStatus={normalizarStatus}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
-                          <div className="space-y-3">
-                            {ordenarEntregas(entregasManha).map((entrega, index) => (
-                              <EntregaCard
-                                key={entrega.id}
-                                entrega={entrega}
-                                index={index + 1}
-                                cidade={entrega.endereco?.cidade || 'Sem cidade'}
-                                onStatusChange={handleStatusChange}
-                                isUpdating={updateStatusMutation.isPending}
-                                onAbrirMapa={abrirMapa}
-                                onDragStart={handleDragStart}
-                                onDragOver={handleDragOver}
-                                onDrop={handleDrop}
-                                onDragEnd={handleDragEnd}
-                                isDragging={draggedItem?.entrega.id === entrega.id}
-                                statusOptions={statusOptions}
-                                normalizarStatus={normalizarStatus}
-                              />
-                            ))}
-                          </div>
+                {/* Entregas da Tarde */}
+                {(() => {
+                  const entregasTarde = entregasFiltradas.filter(e => e.periodo === 'Tarde');
+                  if (entregasTarde.length === 0) return null;
+
+                  return (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
+                          <Sunset className="w-4 h-4" />
+                          TARDE ({entregasTarde.length})
                         </div>
-                      );
-                    })()}
+                      </div>
 
-                    {/* Entregas da Tarde */}
-                    {(() => {
-                      const entregasTarde = entregasFiltradas.filter(e => e.periodo === 'Tarde');
-                      if (entregasTarde.length === 0) return null;
+                      <div className="space-y-3">
+                        {ordenarEntregas(entregasTarde).map((entrega, index) => (
+                          <EntregaCard
+                            key={entrega.id}
+                            entrega={entrega}
+                            index={index + 1}
+                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            onStatusChange={handleStatusChange}
+                            isUpdating={updateStatusMutation.isPending}
+                            onAbrirMapa={abrirMapa}
+                            onDragStart={handleDragStart}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            onDragEnd={handleDragEnd}
+                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            statusOptions={statusOptions}
+                            normalizarStatus={normalizarStatus}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
-                      return (
-                        <div className="mb-6">
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
-                              <Sunset className="w-4 h-4" />
-                              TARDE ({entregasTarde.length})
-                            </div>
-                          </div>
+                {/* Entregas sem período definido */}
+                {(() => {
+                  const entregasSemPeriodo = entregasFiltradas.filter(e => !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde'));
+                  if (entregasSemPeriodo.length === 0) return null;
 
-                          <div className="space-y-3">
-                            {ordenarEntregas(entregasTarde).map((entrega, index) => (
-                              <EntregaCard
-                                key={entrega.id}
-                                entrega={entrega}
-                                index={index + 1}
-                                cidade={entrega.endereco?.cidade || 'Sem cidade'}
-                                onStatusChange={handleStatusChange}
-                                isUpdating={updateStatusMutation.isPending}
-                                onAbrirMapa={abrirMapa}
-                                onDragStart={handleDragStart}
-                                onDragOver={handleDragOver}
-                                onDrop={handleDrop}
-                                onDragEnd={handleDragEnd}
-                                isDragging={draggedItem?.entrega.id === entrega.id}
-                                statusOptions={statusOptions}
-                                normalizarStatus={normalizarStatus}
-                              />
-                            ))}
-                          </div>
+                  return (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm bg-slate-500">
+                          SEM PERÍODO ({entregasSemPeriodo.length})
                         </div>
-                      );
-                    })()}
+                      </div>
 
-                    {/* Entregas sem período definido */}
-                    {(() => {
-                      const entregasSemPeriodo = entregasFiltradas.filter(e => !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde'));
-                      if (entregasSemPeriodo.length === 0) return null;
-
-                      return (
-                        <div className="mb-6">
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm bg-slate-500">
-                              SEM PERÍODO ({entregasSemPeriodo.length})
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            {ordenarEntregas(entregasSemPeriodo).map((entrega, index) => (
-                              <EntregaCard
-                                key={entrega.id}
-                                entrega={entrega}
-                                index={index + 1}
-                                cidade={entrega.endereco?.cidade || 'Sem cidade'}
-                                onStatusChange={handleStatusChange}
-                                isUpdating={updateStatusMutation.isPending}
-                                onAbrirMapa={abrirMapa}
-                                onDragStart={handleDragStart}
-                                onDragOver={handleDragOver}
-                                onDrop={handleDrop}
-                                onDragEnd={handleDragEnd}
-                                isDragging={draggedItem?.entrega.id === entrega.id}
-                                statusOptions={statusOptions}
-                                normalizarStatus={normalizarStatus}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </>
-                )}
+                      <div className="space-y-3">
+                        {ordenarEntregas(entregasSemPeriodo).map((entrega, index) => (
+                          <EntregaCard
+                            key={entrega.id}
+                            entrega={entrega}
+                            index={index + 1}
+                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            onStatusChange={handleStatusChange}
+                            isUpdating={updateStatusMutation.isPending}
+                            onAbrirMapa={abrirMapa}
+                            onDragStart={handleDragStart}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            onDragEnd={handleDragEnd}
+                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            statusOptions={statusOptions}
+                            normalizarStatus={normalizarStatus}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </>
             ) : (
               <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
