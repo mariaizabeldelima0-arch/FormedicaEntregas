@@ -48,14 +48,15 @@ export default function PainelMotoboys() {
   const [termoBusca, setTermoBusca] = useState('');
   const [ordemEntregas, setOrdemEntregas] = useState({});
 
-  // Definição dos status disponíveis
+  // Definição dos status disponíveis (Em Rota é o padrão)
   const statusOptions = [
-    { value: 'Iniciar', label: 'Iniciar', icon: Play, bg: 'bg-slate-100', text: 'text-slate-700', color: '#64748b' },
     { value: 'Em Rota', label: 'Em Rota', icon: Truck, bg: 'bg-blue-100', text: 'text-blue-700', color: '#3b82f6' },
+    { value: 'Iniciar', label: 'Iniciar', icon: Play, bg: 'bg-slate-100', text: 'text-slate-700', color: '#64748b' },
     { value: 'Entregue', label: 'Entregue', icon: Check, bg: 'bg-green-100', text: 'text-green-700', color: '#3dac38' },
     { value: 'Pendente', label: 'Pendente', icon: Pause, bg: 'bg-yellow-100', text: 'text-yellow-700', color: '#eab308' },
     { value: 'Voltou p/ Farmácia', label: 'Voltou', icon: RotateCcw, bg: 'bg-red-100', text: 'text-red-700', color: '#ef4444' },
   ];
+  const STATUS_PADRAO = 'Em Rota';
   const [draggedItem, setDraggedItem] = useState(null);
 
   const isMotoboy = userType === 'motoboy';
@@ -127,7 +128,7 @@ export default function PainelMotoboys() {
     if (filtroLocal !== 'todos' && entrega.endereco?.cidade !== filtroLocal) return false;
     if (filtroPeriodo !== 'todos' && entrega.periodo !== filtroPeriodo) return false;
     if (filtroStatus !== 'todos') {
-      const statusEntrega = entrega.status || 'Iniciar';
+      const statusEntrega = entrega.status || STATUS_PADRAO;
       if (statusEntrega !== filtroStatus) return false;
     }
 
@@ -176,7 +177,7 @@ export default function PainelMotoboys() {
   // Contagem de entregas por status
   const contagemPorStatus = statusOptions.map(status => ({
     ...status,
-    quantidade: entregasDoDia.filter(e => (e.status || 'Iniciar') === status.value).length
+    quantidade: entregasDoDia.filter(e => (e.status || STATUS_PADRAO) === status.value).length
   }));
 
   // Resumo do dia por cidade
@@ -551,6 +552,47 @@ export default function PainelMotoboys() {
 
           {/* Coluna Direita - Entregas */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Cards de Filtro por Status */}
+            <div className="grid grid-cols-5 gap-3">
+              {contagemPorStatus.map((status) => {
+                const Icon = status.icon;
+                const isActive = filtroStatus === status.value;
+                return (
+                  <button
+                    key={status.value}
+                    onClick={() => setFiltroStatus(isActive ? 'todos' : status.value)}
+                    className={`bg-white p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                      isActive ? 'shadow-md' : ''
+                    }`}
+                    style={{
+                      borderColor: isActive ? status.color : '#e2e8f0',
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: status.color + '20' }}
+                      >
+                        <Icon
+                          className="w-5 h-5"
+                          style={{ color: status.color }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-slate-600">
+                        {status.label}
+                      </span>
+                      <span
+                        className="text-2xl font-bold"
+                        style={{ color: status.color }}
+                      >
+                        {status.quantidade}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Filtros */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="font-semibold text-slate-700 mb-3">Filtros</h3>
@@ -605,48 +647,6 @@ export default function PainelMotoboys() {
                   </select>
                 </div>
               </div>
-            </div>
-
-            {/* Cards de Filtro por Status */}
-            <div className="grid grid-cols-5 gap-2">
-              {contagemPorStatus.map((status) => {
-                const Icon = status.icon;
-                const isActive = filtroStatus === status.value;
-                return (
-                  <button
-                    key={status.value}
-                    onClick={() => setFiltroStatus(isActive ? 'todos' : status.value)}
-                    className={`p-3 rounded-xl border-2 transition-all ${
-                      isActive
-                        ? 'border-current shadow-md'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                    style={{
-                      backgroundColor: isActive ? status.color + '20' : 'white',
-                      borderColor: isActive ? status.color : undefined,
-                    }}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <Icon
-                        className="w-5 h-5"
-                        style={{ color: status.color }}
-                      />
-                      <span
-                        className="text-xs font-semibold"
-                        style={{ color: status.color }}
-                      >
-                        {status.label}
-                      </span>
-                      <span
-                        className="text-lg font-bold"
-                        style={{ color: status.color }}
-                      >
-                        {status.quantidade}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
             </div>
 
             {/* Dica de arrastar */}
@@ -856,7 +856,7 @@ function EntregaCard({
       case 'Não Entregue':
         return { bg: 'bg-red-100', text: 'text-red-700', label: 'Voltou', color: '#ef4444' };
       default:
-        return { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Iniciar', color: '#64748b' };
+        return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Em Rota', color: '#3b82f6' };
     }
   };
 
@@ -975,7 +975,7 @@ function EntregaCard({
         <div className="grid grid-cols-5 gap-1.5">
           {statusOptions?.map((status) => {
             const Icon = status.icon;
-            const isCurrentStatus = (entrega.status || 'Iniciar') === status.value;
+            const isCurrentStatus = (entrega.status || 'Em Rota') === status.value;
             return (
               <button
                 key={status.value}
