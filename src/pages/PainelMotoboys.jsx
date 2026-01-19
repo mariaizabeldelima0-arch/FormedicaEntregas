@@ -50,11 +50,11 @@ export default function PainelMotoboys() {
 
   // Definição dos status disponíveis (Em Rota é o padrão)
   const statusOptions = [
-    { value: 'Em Rota', label: 'Em Rota', icon: Truck, bg: 'bg-blue-100', text: 'text-blue-700', color: '#3b82f6' },
-    { value: 'Iniciar', label: 'Iniciar', icon: Play, bg: 'bg-purple-100', text: 'text-purple-700', color: '#890d5d' },
-    { value: 'Entregue', label: 'Entregue', icon: Check, bg: 'bg-green-100', text: 'text-green-700', color: '#3dac38' },
-    { value: 'Pendente', label: 'Pendente', icon: Pause, bg: 'bg-yellow-100', text: 'text-yellow-700', color: '#eab308' },
-    { value: 'Voltou p/ Farmácia', label: 'Voltou', icon: RotateCcw, bg: 'bg-red-100', text: 'text-red-700', color: '#ef4444' },
+    { value: 'Em Rota', label: 'Em Rota', icon: Truck, bg: 'bg-blue-100', text: 'text-blue-700', color: '#2563eb' },
+    { value: 'Iniciar', label: 'Iniciar', icon: Play, bg: 'bg-purple-100', text: 'text-purple-700', color: '#9333ea' },
+    { value: 'Entregue', label: 'Entregue', icon: Check, bg: 'bg-green-100', text: 'text-green-700', color: '#16a34a' },
+    { value: 'Pendente', label: 'Pendente', icon: Pause, bg: 'bg-yellow-100', text: 'text-yellow-700', color: '#f59e0b' },
+    { value: 'Voltou p/ Farmácia', label: 'Voltou', icon: RotateCcw, bg: 'bg-red-100', text: 'text-red-700', color: '#dc2626' },
   ];
   const STATUS_PADRAO = 'Em Rota';
 

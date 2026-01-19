@@ -34,7 +34,9 @@
       "Bash(copy:*)",
       "Bash(cmd /c copy:*)",
       "Bash(npm run deploy:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(xargs sed:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
