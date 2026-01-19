@@ -565,74 +565,49 @@ export default function PainelMotoboys() {
           {/* Coluna Direita - Entregas */}
           <div className="lg:col-span-2 space-y-4">
             {/* Cards de Filtro por Status */}
-            <div className="grid grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-4">
               {/* Card Todas */}
-              <button
+              <div
                 onClick={() => setFiltroStatus('todos')}
-                className={`bg-white p-4 rounded-xl border-2 transition-all hover:shadow-md ${
-                  filtroStatus === 'todos' ? 'shadow-md' : ''
-                }`}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
                 style={{
-                  borderColor: filtroStatus === 'todos' ? theme.colors.primary : '#e2e8f0',
+                  border: filtroStatus === 'todos' ? `2px solid ${theme.colors.primary}` : '2px solid transparent'
                 }}
               >
-                <div className="flex flex-col items-center gap-2">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: theme.colors.primary + '20' }}
-                  >
-                    <Package
-                      className="w-5 h-5"
-                      style={{ color: theme.colors.primary }}
-                    />
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <Package className="w-6 h-6" style={{ color: theme.colors.primary }} />
                   </div>
-                  <span className="text-xs font-medium text-slate-600">
-                    Todas
-                  </span>
-                  <span
-                    className="text-2xl font-bold"
-                    style={{ color: theme.colors.primary }}
-                  >
-                    {entregasDoDia.length}
-                  </span>
+                  <span className="text-sm font-bold text-slate-700">Todas</span>
                 </div>
-              </button>
+                <div className="text-4xl font-bold text-center" style={{ color: theme.colors.primary }}>
+                  {entregasDoDia.length}
+                </div>
+              </div>
 
               {contagemPorStatus.map((status) => {
                 const Icon = status.icon;
                 const isActive = filtroStatus === status.value;
+                const bgColor = status.color + '15';
                 return (
-                  <button
+                  <div
                     key={status.value}
                     onClick={() => setFiltroStatus(isActive ? 'todos' : status.value)}
-                    className={`bg-white p-4 rounded-xl border-2 transition-all hover:shadow-md ${
-                      isActive ? 'shadow-md' : ''
-                    }`}
+                    className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
                     style={{
-                      borderColor: isActive ? status.color : '#e2e8f0',
+                      border: isActive ? `2px solid ${status.color}` : '2px solid transparent'
                     }}
                   >
-                    <div className="flex flex-col items-center gap-2">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: status.color + '20' }}
-                      >
-                        <Icon
-                          className="w-5 h-5"
-                          style={{ color: status.color }}
-                        />
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <div className="p-2 rounded-lg" style={{ backgroundColor: bgColor }}>
+                        <Icon className="w-6 h-6" style={{ color: status.color }} />
                       </div>
-                      <span className="text-xs font-medium text-slate-600">
-                        {status.label}
-                      </span>
-                      <span
-                        className="text-2xl font-bold"
-                        style={{ color: status.color }}
-                      >
-                        {status.quantidade}
-                      </span>
+                      <span className="text-sm font-bold text-slate-700">{status.label}</span>
                     </div>
-                  </button>
+                    <div className="text-4xl font-bold text-center" style={{ color: status.color }}>
+                      {status.quantidade}
+                    </div>
+                  </div>
                 );
               })}
             </div>
