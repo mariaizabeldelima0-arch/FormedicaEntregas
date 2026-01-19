@@ -27,7 +27,8 @@ import {
   X,
   GripVertical,
   Sun,
-  Sunset
+  Sunset,
+  Search
 } from 'lucide-react';
 
 export default function PainelMotoboys() {
@@ -39,6 +40,7 @@ export default function PainelMotoboys() {
   const [mesAtual, setMesAtual] = useState(new Date());
   const [filtroLocal, setFiltroLocal] = useState('todos');
   const [filtroPeriodo, setFiltroPeriodo] = useState('todos');
+  const [termoBusca, setTermoBusca] = useState('');
   const [ordemEntregas, setOrdemEntregas] = useState({});
   const [draggedItem, setDraggedItem] = useState(null);
 
@@ -110,6 +112,35 @@ export default function PainelMotoboys() {
   const entregasFiltradas = entregasDoDia.filter(entrega => {
     if (filtroLocal !== 'todos' && entrega.endereco?.cidade !== filtroLocal) return false;
     if (filtroPeriodo !== 'todos' && entrega.periodo !== filtroPeriodo) return false;
+
+    // Filtro de busca
+    if (termoBusca.trim()) {
+      const termo = termoBusca.toLowerCase().trim();
+      const nomeCliente = entrega.cliente?.nome?.toLowerCase() || '';
+      const telefone = entrega.cliente?.telefone?.toLowerCase() || '';
+      const logradouro = entrega.endereco?.logradouro?.toLowerCase() || '';
+      const bairro = entrega.endereco?.bairro?.toLowerCase() || '';
+      const cidade = entrega.endereco?.cidade?.toLowerCase() || '';
+      const numero = entrega.endereco?.numero?.toLowerCase() || '';
+      const complemento = entrega.endereco?.complemento?.toLowerCase() || '';
+      const requisicao = String(entrega.requisicao || '').toLowerCase();
+      const observacao = entrega.observacao?.toLowerCase() || '';
+      const formaPagamento = entrega.forma_pagamento?.toLowerCase() || '';
+
+      const match = nomeCliente.includes(termo) ||
+                    telefone.includes(termo) ||
+                    logradouro.includes(termo) ||
+                    bairro.includes(termo) ||
+                    cidade.includes(termo) ||
+                    numero.includes(termo) ||
+                    complemento.includes(termo) ||
+                    requisicao.includes(termo) ||
+                    observacao.includes(termo) ||
+                    formaPagamento.includes(termo);
+
+      if (!match) return false;
+    }
+
     return true;
   });
 
@@ -499,6 +530,30 @@ export default function PainelMotoboys() {
             {/* Filtros */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="font-semibold text-slate-700 mb-3">Filtros</h3>
+
+              {/* Campo de Busca */}
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-slate-500 mb-1">Buscar</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Nome, endereço, requisição..."
+                    value={termoBusca}
+                    onChange={(e) => setTermoBusca(e.target.value)}
+                    className="w-full border border-slate-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  {termoBusca && (
+                    <button
+                      onClick={() => setTermoBusca('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Local</label>
