@@ -291,8 +291,8 @@ export default function ImpressaoRomaneio({ romaneio }) {
       `}</style>
 
       <div className="print-page">
-        {/* Carimbo PAGO - aparece quando NÃO precisa cobrar na entrega */}
-        {romaneio.forma_pagamento && !['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento) && (
+        {/* Carimbo PAGO - aparece apenas quando status for Pago ou Só Entregar */}
+        {romaneio.forma_pagamento && ['Pago', 'Só Entregar'].includes(romaneio.forma_pagamento) && (
           <div className="print-carimbo-pago">PAGO</div>
         )}
 

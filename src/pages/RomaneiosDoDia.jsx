@@ -22,7 +22,7 @@ function RomaneioCard({ romaneio }) {
     return d.toLocaleDateString('pt-BR');
   };
 
-  const isPago = romaneio.forma_pagamento && !['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento);
+  const isPago = romaneio.forma_pagamento && ['Pago', 'Só Entregar'].includes(romaneio.forma_pagamento);
 
   return (
     <div className="romaneio-card" style={{ position: 'relative' }}>
@@ -49,7 +49,7 @@ function RomaneioCard({ romaneio }) {
       )}
 
       {/* Logo e Titulo */}
-      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
         <img src="/logo-formedica.png" alt="Formédica" style={{ width: '100px', height: 'auto', marginBottom: '5px' }} />
         <h2 style={{ fontSize: '14px', fontWeight: 'bold', margin: 0 }}>ROMANEIO DE ENTREGA</h2>
       </div>
