@@ -1302,7 +1302,13 @@ export default function EditarRomaneio() {
               }}
             />
             {clientesSugestoes.length > 0 && (
-              <div className="absolute z-50 bg-white border border-slate-300 rounded-lg mt-1 max-h-[200px] overflow-y-auto shadow-lg">
+              <div
+                className="absolute z-50 bg-white mt-1 max-h-[200px] overflow-y-auto shadow-lg"
+                style={{
+                  border: '2px solid #93c5fd',
+                  borderRadius: '0.625rem'
+                }}
+              >
                 {clientesSugestoes.map(cliente => (
                   <div
                     key={cliente.id}
