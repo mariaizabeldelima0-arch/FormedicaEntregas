@@ -36,7 +36,8 @@
       "Bash(npm run deploy:*)",
       "Bash(git branch:*)",
       "Bash(xargs sed:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(node scripts/criar-romaneios-teste.js:*)"
     ]
   }
 }
