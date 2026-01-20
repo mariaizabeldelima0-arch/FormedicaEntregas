@@ -58,36 +58,24 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 bg-white transition-all"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          textAlign: 'left',
-          borderRadius: '0.625rem',
-          border: isOpen ? '2px solid #3b82f6' : '2px solid #93c5fd',
-          boxShadow: isOpen ? '0 0 0 3px rgba(59, 130, 246, 0.15)' : 'none'
-        }}
+        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left' }}
       >
         <span className="text-sm text-slate-700">{displayText}</span>
         <svg
-          className={`w-4 h-4 transition-transform flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`}
-          style={{ color: '#93c5fd' }}
+          className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {isOpen && (
         <div
-          className="absolute z-50 w-full mt-2 bg-white shadow-lg overflow-hidden"
-          style={{
-            border: '2px solid #93c5fd',
-            borderRadius: '0.625rem'
-          }}
+          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-lg overflow-hidden"
+          style={{ border: '1px solid #376295' }}
         >
           {options.map((option) => (
             <div
@@ -98,7 +86,7 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
               }}
               className="px-4 py-3 cursor-pointer transition-colors text-sm text-slate-700 hover:bg-blue-50"
               style={{
-                backgroundColor: value === option.value ? '#dbeafe' : 'white',
+                backgroundColor: value === option.value ? '#E8F0F8' : 'white',
                 fontWeight: value === option.value ? '600' : 'normal'
               }}
             >

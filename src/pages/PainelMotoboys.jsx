@@ -524,7 +524,7 @@ export default function PainelMotoboys() {
           {/* Coluna Esquerda */}
           <div className="space-y-4">
             {/* Calendário */}
-            <div className="bg-white rounded-xl border-2 border-blue-300 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               {/* Navegação do mês */}
               <div className="flex items-center justify-between mb-4">
                 <button
@@ -614,7 +614,7 @@ export default function PainelMotoboys() {
             </div>
 
             {/* Resumo do Dia */}
-            <div className="bg-white rounded-xl border-2 border-blue-300 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="font-semibold text-slate-700 mb-3">Resumo do Dia</h3>
 
               {/* Cabeçalho */}
@@ -647,7 +647,7 @@ export default function PainelMotoboys() {
             </div>
 
             {/* Semana */}
-            <div className="bg-white rounded-xl border-2 border-blue-300 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-slate-700">Semana - Aguardando</h3>
                 <span className="text-xs text-slate-500">
@@ -732,7 +732,7 @@ export default function PainelMotoboys() {
             </div>
 
             {/* Filtros */}
-            <div className="bg-white rounded-xl border-2 border-blue-300 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="font-semibold text-slate-700 mb-3">Filtros</h3>
 
               {/* Campo de Busca */}
@@ -802,7 +802,7 @@ export default function PainelMotoboys() {
 
             {/* Mapa da Rota */}
             {mostrarMapa && (
-              <div className="bg-white rounded-xl border-2 border-blue-300 p-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-4">
                 <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
                   <Map className="w-5 h-5" style={{ color: '#890d5d' }} />
                   Mapa da Rota - {entregasFiltradas.length} entregas
@@ -815,7 +815,7 @@ export default function PainelMotoboys() {
                   </div>
                 )}
 
-                <div className="rounded-lg overflow-hidden border-2 border-blue-300" style={{ height: '400px' }}>
+                <div className="rounded-lg overflow-hidden border border-slate-200" style={{ height: '400px' }}>
                   <MapContainer
                     center={centroMapa}
                     zoom={12}
@@ -1015,7 +1015,7 @@ export default function PainelMotoboys() {
                 })()}
               </>
             ) : (
-              <div className="bg-white rounded-xl border-2 border-blue-300 p-12 text-center">
+              <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                 <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <p className="text-slate-500">Nenhuma entrega para este dia</p>
               </div>
@@ -1066,7 +1066,7 @@ function EntregaCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border-2 border-blue-300 overflow-hidden transition-all ${isDragging ? 'opacity-50 scale-95' : ''}`}
+      className={`bg-white rounded-xl border border-slate-200 overflow-hidden transition-all ${isDragging ? 'opacity-50 scale-95' : ''}`}
       draggable
       onDragStart={(e) => onDragStart(e, entrega, cidade)}
       onDragOver={onDragOver}
@@ -1143,7 +1143,7 @@ function EntregaCard({
 
         <button
           onClick={() => onAbrirMapa(entrega.endereco)}
-          className="mt-2 w-full flex items-center justify-center gap-2 py-2 border-2 border-blue-300 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+          className="mt-2 w-full flex items-center justify-center gap-2 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors"
         >
           <Navigation className="w-4 h-4" />
           Abrir no Mapa

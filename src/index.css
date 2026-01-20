@@ -159,16 +159,16 @@ button:focus-visible {
 
 /* Estilos Globais para Select/Dropdown */
 select {
-  border-radius: 0.625rem !important;
+  border-radius: 0.5rem !important;
   padding: 0.625rem 0.875rem !important;
-  border: 2px solid #93c5fd !important;
+  border: 1px solid #e2e8f0 !important;
   background-color: white !important;
   font-size: 0.875rem !important;
   color: #334155 !important;
   transition: all 0.2s ease !important;
   cursor: pointer !important;
   appearance: none !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2393c5fd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
   background-position: right 0.5rem center !important;
   background-repeat: no-repeat !important;
   background-size: 1.5em 1.5em !important;
@@ -176,20 +176,20 @@ select {
 }
 
 select:hover {
-  border-color: #60a5fa !important;
+  border-color: #94a3b8 !important;
 }
 
 select:focus {
   outline: none !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  border-color: #376295 !important;
+  box-shadow: 0 0 0 3px rgba(55, 98, 149, 0.1) !important;
 }
 
 /* Estilos Globais para Inputs de Data/Calendário */
 input[type="date"] {
-  border-radius: 0.625rem !important;
+  border-radius: 0.5rem !important;
   padding: 0.625rem 0.875rem !important;
-  border: 2px solid #93c5fd !important;
+  border: 1px solid #e2e8f0 !important;
   background-color: white !important;
   font-size: 0.875rem !important;
   color: #334155 !important;
@@ -198,13 +198,13 @@ input[type="date"] {
 }
 
 input[type="date"]:hover {
-  border-color: #60a5fa !important;
+  border-color: #94a3b8 !important;
 }
 
 input[type="date"]:focus {
   outline: none !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  border-color: #376295 !important;
+  box-shadow: 0 0 0 3px rgba(55, 98, 149, 0.1) !important;
 }
 
 /* Estilizar o ícone do calendário nativo */
@@ -216,42 +216,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
-/* Estilos para CustomDropdown */
-.custom-dropdown {
-  border-radius: 0.625rem !important;
-  border: 2px solid #93c5fd !important;
-  transition: all 0.2s ease !important;
-}
-
-.custom-dropdown:hover {
-  border-color: #60a5fa !important;
-}
-
-.custom-dropdown:focus,
-.custom-dropdown.open {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
-}
-
-/* Estilos para calendários personalizados */
-.calendar-container,
-[class*="calendar"],
-.rdp {
-  border-radius: 0.75rem !important;
-  border: 2px solid #93c5fd !important;
-  overflow: hidden;
-}
-
-/* Dropdown menu/options */
-.dropdown-menu,
-[role="listbox"],
-[role="menu"] {
-  border-radius: 0.625rem !important;
-  border: 2px solid #93c5fd !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  background-color: rgba(55, 98, 149, 0.1);
 }
 
 /* Estilos de Impressão */
