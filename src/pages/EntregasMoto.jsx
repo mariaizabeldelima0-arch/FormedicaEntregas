@@ -624,6 +624,9 @@ export default function EntregasMoto() {
     producao: entregasPorData.filter(e => e.status === 'Produzindo no Laboratório').length,
     caminho: entregasPorData.filter(e => e.status === 'A Caminho' || e.status === 'Em Rota').length,
     entregues: entregasPorData.filter(e => e.status === 'Entregue').length,
+    iniciar: entregasPorData.filter(e => e.status === 'Iniciar').length,
+    pendente: entregasPorData.filter(e => e.status === 'Pendente').length,
+    voltou: entregasPorData.filter(e => e.status === 'Voltou p/ Farmácia').length,
   };
 
   // Formatação de data
@@ -836,87 +839,143 @@ export default function EntregasMoto() {
         {/* Conteúdo Principal */}
         <div className="flex-1">
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-            {/* Card Total */}
-            <div
-              onClick={() => { setFiltroStatus(''); setCardSelecionado('total'); }}
-              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-              style={{
-                border: cardSelecionado === 'total' ? '2px solid #376295' : '2px solid transparent'
-              }}
-            >
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                  <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+          <div className="grid grid-cols-5 gap-4 mb-6">
+            {/* Coluna dos 4 cards principais + cards menores */}
+            <div className="col-span-4 space-y-3">
+              {/* Linha 1: Cards principais */}
+              <div className="grid grid-cols-4 gap-4">
+                {/* Card Total */}
+                <div
+                  onClick={() => { setFiltroStatus(''); setCardSelecionado('total'); }}
+                  className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                  style={{
+                    border: cardSelecionado === 'total' ? '2px solid #376295' : '2px solid transparent'
+                  }}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                      <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Total</span>
+                  </div>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                    {stats.total}
+                  </div>
                 </div>
-                <span className="text-sm font-bold text-slate-700">Total</span>
+
+                {/* Card Produção */}
+                <div
+                  onClick={() => { setFiltroStatus('Produzindo no Laboratório'); setCardSelecionado('producao'); }}
+                  className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                  style={{
+                    border: cardSelecionado === 'producao' ? '2px solid #890d5d' : '2px solid transparent'
+                  }}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                      <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Produção</span>
+                  </div>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
+                    {stats.producao}
+                  </div>
+                </div>
+
+                {/* Card A Caminho */}
+                <div
+                  onClick={() => { setFiltroStatus('A Caminho'); setCardSelecionado('caminho'); }}
+                  className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                  style={{
+                    border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
+                  }}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                      <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">A Caminho</span>
+                  </div>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+                    {stats.caminho}
+                  </div>
+                </div>
+
+                {/* Card Entregues */}
+                <div
+                  onClick={() => { setFiltroStatus('Entregue'); setCardSelecionado('entregues'); }}
+                  className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                  style={{
+                    border: cardSelecionado === 'entregues' ? '2px solid #3dac38' : '2px solid transparent'
+                  }}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                      <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Entregues</span>
+                  </div>
+                  <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
+                    {stats.entregues}
+                  </div>
+                </div>
               </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
-                {stats.total}
+
+              {/* Linha 2: Cards menores - Filtros Motoboy */}
+              <div className="grid grid-cols-4 gap-4">
+                {/* Card Filtros Motoboy - Informativo */}
+                <div
+                  className="bg-slate-100 rounded-lg shadow-sm px-3 py-2 flex items-center gap-2"
+                >
+                  <Truck className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-semibold text-slate-600">Filtros Motoboy</span>
+                </div>
+
+                {/* Card Iniciar */}
+                <div
+                  onClick={() => { setFiltroStatus('Iniciar'); setCardSelecionado('iniciar'); }}
+                  className="bg-white rounded-lg shadow-sm px-3 py-2 cursor-pointer transition-all hover:shadow-md flex items-center gap-2"
+                  style={{
+                    border: cardSelecionado === 'iniciar' ? '2px solid #ca8a04' : '2px solid transparent'
+                  }}
+                >
+                  <Play className="w-4 h-4" style={{ color: '#ca8a04' }} />
+                  <span className="text-xs font-semibold text-slate-700">Iniciar</span>
+                  <span className="text-xs font-bold ml-auto" style={{ color: '#ca8a04' }}>{stats.iniciar}</span>
+                </div>
+
+                {/* Card Pendente */}
+                <div
+                  onClick={() => { setFiltroStatus('Pendente'); setCardSelecionado('pendente'); }}
+                  className="bg-white rounded-lg shadow-sm px-3 py-2 cursor-pointer transition-all hover:shadow-md flex items-center gap-2"
+                  style={{
+                    border: cardSelecionado === 'pendente' ? '2px solid #c2410c' : '2px solid transparent'
+                  }}
+                >
+                  <Pause className="w-4 h-4" style={{ color: '#c2410c' }} />
+                  <span className="text-xs font-semibold text-slate-700">Pendente</span>
+                  <span className="text-xs font-bold ml-auto" style={{ color: '#c2410c' }}>{stats.pendente}</span>
+                </div>
+
+                {/* Card Voltou */}
+                <div
+                  onClick={() => { setFiltroStatus('Voltou p/ Farmácia'); setCardSelecionado('voltou'); }}
+                  className="bg-white rounded-lg shadow-sm px-3 py-2 cursor-pointer transition-all hover:shadow-md flex items-center gap-2"
+                  style={{
+                    border: cardSelecionado === 'voltou' ? '2px solid #b91c1c' : '2px solid transparent'
+                  }}
+                >
+                  <RotateCcw className="w-4 h-4" style={{ color: '#b91c1c' }} />
+                  <span className="text-xs font-semibold text-slate-700">Voltou</span>
+                  <span className="text-xs font-bold ml-auto" style={{ color: '#b91c1c' }}>{stats.voltou}</span>
+                </div>
               </div>
             </div>
 
-            {/* Card Produção */}
-            <div
-              onClick={() => { setFiltroStatus('Produzindo no Laboratório'); setCardSelecionado('producao'); }}
-              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-              style={{
-                border: cardSelecionado === 'producao' ? '2px solid #890d5d' : '2px solid transparent'
-              }}
-            >
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                  <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
-                </div>
-                <span className="text-sm font-bold text-slate-700">Produção</span>
-              </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
-                {stats.producao}
-              </div>
-            </div>
-
-            {/* Card A Caminho */}
-            <div
-              onClick={() => { setFiltroStatus('A Caminho'); setCardSelecionado('caminho'); }}
-              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-              style={{
-                border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
-              }}
-            >
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                  <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
-                </div>
-                <span className="text-sm font-bold text-slate-700">A Caminho</span>
-              </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
-                {stats.caminho}
-              </div>
-            </div>
-
-            {/* Card Entregues */}
-            <div
-              onClick={() => { setFiltroStatus('Entregue'); setCardSelecionado('entregues'); }}
-              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-              style={{
-                border: cardSelecionado === 'entregues' ? '2px solid #3dac38' : '2px solid transparent'
-              }}
-            >
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                  <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
-                </div>
-                <span className="text-sm font-bold text-slate-700">Entregues</span>
-              </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
-                {stats.entregues}
-              </div>
-            </div>
-
-            {/* Card Novo Romaneio */}
+            {/* Card Novo Romaneio - Ocupa as duas linhas */}
             <div
               onClick={() => navigate('/novo-romaneio')}
-              className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center text-center"
+              className="bg-white rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center text-center"
               style={{
                 background: 'linear-gradient(135deg, #890d5d 0%, #6E0A4A 100%)'
               }}
