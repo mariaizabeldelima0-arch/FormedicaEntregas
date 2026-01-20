@@ -367,10 +367,9 @@ export default function DetalheSedexDisktenha() {
                 <div>
                   <Label>Tipo *</Label>
                   <select
-                    className="w-full h-10 bg-white px-3 py-2 text-sm"
+                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                     value={editData.tipo}
                     onChange={(e) => setEditData({ ...editData, tipo: e.target.value })}
-                    style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                   >
                     <option value="SEDEX">SEDEX</option>
                     <option value="PAC">PAC</option>
@@ -380,10 +379,9 @@ export default function DetalheSedexDisktenha() {
                 <div>
                   <Label>Status *</Label>
                   <select
-                    className="w-full h-10 bg-white px-3 py-2 text-sm"
+                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                     value={editData.status}
                     onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                    style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                   >
                     <option value="Pendente">Pendente</option>
                     <option value="Saiu">Saiu</option>
@@ -443,10 +441,9 @@ export default function DetalheSedexDisktenha() {
                 <div>
                   <Label>Status do Pagamento</Label>
                   <select
-                    className="w-full h-10 bg-white px-3 py-2 text-sm"
+                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                     value={editData.forma_pagamento}
                     onChange={(e) => setEditData({ ...editData, forma_pagamento: e.target.value })}
-                    style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                   >
                     <option value="Aguardando">Aguardando</option>
                     <option value="Pago">Pago</option>

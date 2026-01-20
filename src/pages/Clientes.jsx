@@ -358,8 +358,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
                   <select
                     value={endereco.regiao || ""}
                     onChange={(e) => updateEndereco(index, 'regiao', e.target.value)}
-                    className="w-full px-3 py-2 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
                     <option value="">Selecione a região</option>
                     {REGIOES.map(regiao => (
@@ -1118,8 +1117,7 @@ export default function Clientes() {
                       <select
                         value={filtroStatusEntrega}
                         onChange={(e) => setFiltroStatusEntrega(e.target.value)}
-                        className="h-10 w-full bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#457bba] focus:border-transparent"
-                        style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
+                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#457bba] focus:border-transparent"
                       >
                         <option value="todas">Todos os Status</option>
                         <option value="Produzindo no Laboratório">Produção</option>

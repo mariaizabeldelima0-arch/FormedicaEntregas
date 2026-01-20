@@ -455,8 +455,7 @@ export default function RomaneiosDoDia() {
                 <select
                   value={filtros.motoboy}
                   onChange={(e) => setFiltros({ ...filtros, motoboy: e.target.value })}
-                  className="px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                  style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
+                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                 >
                   <option value="">Todos Motoboys</option>
                   {motoboys.map(m => (
@@ -467,8 +466,7 @@ export default function RomaneiosDoDia() {
                 <select
                   value={filtros.periodo}
                   onChange={(e) => setFiltros({ ...filtros, periodo: e.target.value })}
-                  className="px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                  style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
+                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                 >
                   <option value="">Todos Períodos</option>
                   <option value="Manhã">Manhã</option>
@@ -478,8 +476,7 @@ export default function RomaneiosDoDia() {
                 <select
                   value={filtros.status}
                   onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
-                  className="px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                  style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
+                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                 >
                   <option value="">Todos Status</option>
                   <option value="Produzindo no Laboratório">Produção</option>

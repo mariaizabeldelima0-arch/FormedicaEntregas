@@ -571,8 +571,7 @@ export default function DetalhesRomaneio() {
                     <select
                       value={pagamentoMotoboy}
                       onChange={(e) => setPagamentoMotoboy(e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     >
                       <option value="Aguardando">Aguardando</option>
                       <option value="Pago">Pago</option>
