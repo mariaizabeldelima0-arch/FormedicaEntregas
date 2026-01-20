@@ -1988,8 +1988,8 @@ export default function EditarRomaneio() {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
+                  border: errors.regiao ? `2px solid ${theme.colors.danger}` : '2px solid #93c5fd',
+                  borderRadius: '0.625rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -2071,8 +2071,8 @@ export default function EditarRomaneio() {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
+                  border: '2px solid #93c5fd',
+                  borderRadius: '0.625rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -2238,8 +2238,8 @@ export default function EditarRomaneio() {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
+                  border: errors.motoboy ? `2px solid ${theme.colors.danger}` : '2px solid #93c5fd',
+                  borderRadius: '0.625rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -2551,7 +2551,8 @@ export default function EditarRomaneio() {
                       <select
                         value={endereco.regiao}
                         onChange={(e) => updateEnderecoNovoCliente(index, 'regiao', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="w-full px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                       >
                         <option value="">Selecione</option>
                         {REGIOES.map(regiao => (

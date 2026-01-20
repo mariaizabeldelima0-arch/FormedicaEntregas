@@ -281,7 +281,8 @@ export default function PlanilhaDiaria() {
                 <select
                   value={filtroMotoboy}
                   onChange={(e) => setFiltroMotoboy(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                  className="w-full px-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                  style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                 >
                   <option value="todos">Todos os Motoboys</option>
                   {motoboysUnicos.map(m => (
@@ -391,8 +392,9 @@ export default function PlanilhaDiaria() {
                             <select
                               value={rom.status || 'Pendente'}
                               onChange={(e) => handleQuickStatusUpdate(rom.id, e.target.value, 'romaneio')}
-                              className="w-full text-[10px] p-1 border border-slate-300 rounded-lg bg-white"
+                              className="w-full text-[10px] p-1 bg-white"
                               disabled={updateRomaneioMutation.isPending}
+                              style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                             >
                               <option value="Pendente">Pendente</option>
                               <option value="Produção">Produção</option>
@@ -507,8 +509,9 @@ export default function PlanilhaDiaria() {
                             <select
                               value={entrega.status || 'Pendente'}
                               onChange={(e) => handleQuickStatusUpdate(entrega.id, e.target.value, 'sedex')}
-                              className="w-full text-[10px] p-1 border border-blue-300 rounded-lg bg-white"
+                              className="w-full text-[10px] p-1 bg-white"
                               disabled={updateSedexMutation.isPending}
+                              style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                             >
                               <option value="Pendente">Pendente</option>
                               <option value="Em Trânsito">Em Trânsito</option>

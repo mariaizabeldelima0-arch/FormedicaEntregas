@@ -1859,8 +1859,8 @@ export default function NovoRomaneio() {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
+                  border: errors.regiao ? `2px solid ${theme.colors.danger}` : '2px solid #93c5fd',
+                  borderRadius: '0.625rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -1942,8 +1942,8 @@ export default function NovoRomaneio() {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
+                  border: '2px solid #93c5fd',
+                  borderRadius: '0.625rem',
                   fontSize: '0.875rem'
                 }}
               >
@@ -2202,8 +2202,8 @@ export default function NovoRomaneio() {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
+                  border: errors.motoboy ? `2px solid ${theme.colors.danger}` : '2px solid #93c5fd',
+                  borderRadius: '0.625rem',
                   fontSize: '0.875rem'
                 }}
               >

@@ -466,7 +466,8 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
                     value={tipoUsuario}
                     onChange={(e) => handleTipoChange(e.target.value)}
                     disabled={isUpdating}
-                    className="min-w-[160px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+                    className="min-w-[160px] h-10 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+                    style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                   >
                     <option value="">Selecione...</option>
                     <option value="admin">Administrador</option>
@@ -482,7 +483,8 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
                       value={nomeMotoboy}
                       onChange={(e) => handleMotoboyChange(e.target.value)}
                       disabled={isUpdating}
-                      className="min-w-[150px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+                      className="min-w-[150px] h-10 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+                      style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                     >
                       <option value="">Selecione...</option>
                       {motoboys?.map(m => (

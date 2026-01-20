@@ -418,7 +418,8 @@ export default function Usuarios() {
               <select
                 value={novoUsuario.tipo_usuario}
                 onChange={(e) => setNovoUsuario({ ...novoUsuario, tipo_usuario: e.target.value })}
-                className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
+                className="w-full h-10 bg-white px-3 py-2 text-sm font-medium"
+                style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
               >
                 <option value="admin">Administrador</option>
                 <option value="atendente">Atendente</option>
@@ -443,7 +444,8 @@ export default function Usuarios() {
                 <select
                   value={novoUsuario.nome_motoboy}
                   onChange={(e) => setNovoUsuario({ ...novoUsuario, nome_motoboy: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
+                  className="w-full h-10 bg-white px-3 py-2 text-sm font-medium"
+                  style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                 >
                   <option value="">Selecione...</option>
                   {motoboys.map(m => (
@@ -519,7 +521,8 @@ export default function Usuarios() {
                 <select
                   value={usuarioEditando.tipo_usuario}
                   onChange={(e) => setUsuarioEditando({ ...usuarioEditando, tipo_usuario: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
+                  className="w-full h-10 bg-white px-3 py-2 text-sm font-medium"
+                  style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                 >
                   <option value="admin">Administrador</option>
                   <option value="atendente">Atendente</option>
@@ -544,7 +547,8 @@ export default function Usuarios() {
                   <select
                     value={usuarioEditando.nome_motoboy}
                     onChange={(e) => setUsuarioEditando({ ...usuarioEditando, nome_motoboy: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
+                    className="w-full h-10 bg-white px-3 py-2 text-sm font-medium"
+                    style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                   >
                     <option value="">Selecione...</option>
                     {motoboys.map(m => (
@@ -670,7 +674,8 @@ function UsuarioCard({ dispositivo, motoboys, onUpdateTipo, onEditar, onExcluir,
               value={tipoUsuario}
               onChange={(e) => handleTipoChange(e.target.value)}
               disabled={isUpdating}
-              className="min-w-[160px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+              className="min-w-[160px] h-10 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+              style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
             >
               <option value="">Selecione...</option>
               <option value="admin">Administrador</option>
@@ -686,7 +691,8 @@ function UsuarioCard({ dispositivo, motoboys, onUpdateTipo, onEditar, onExcluir,
                 value={nomeMotoboy}
                 onChange={(e) => handleMotoboyChange(e.target.value)}
                 disabled={isUpdating}
-                className="min-w-[150px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+                className="min-w-[150px] h-10 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
+                style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
               >
                 <option value="">Selecione...</option>
                 {motoboys?.map(m => (

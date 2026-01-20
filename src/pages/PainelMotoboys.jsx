@@ -764,7 +764,8 @@ export default function PainelMotoboys() {
                   <select
                     value={filtroLocal}
                     onChange={(e) => setFiltroLocal(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full px-3 py-2 text-sm"
+                    style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                   >
                     <option value="todos">Todos os Locais</option>
                     {cidadesDisponiveis.map(cidade => (
@@ -777,7 +778,8 @@ export default function PainelMotoboys() {
                   <select
                     value={filtroPeriodo}
                     onChange={(e) => setFiltroPeriodo(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full px-3 py-2 text-sm"
+                    style={{ border: '2px solid #93c5fd', borderRadius: '0.625rem' }}
                   >
                     <option value="todos">Todos os Períodos</option>
                     <option value="Manhã">Manhã</option>
