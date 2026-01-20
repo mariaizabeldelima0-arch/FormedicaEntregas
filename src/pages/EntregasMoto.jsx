@@ -925,49 +925,49 @@ export default function EntregasMoto() {
               <div className="grid grid-cols-4 gap-4">
                 {/* Card Filtros Motoboy - Informativo */}
                 <div
-                  className="bg-slate-100 rounded-lg shadow-sm px-3 py-2 flex items-center gap-2"
+                  className="bg-slate-100 rounded-lg shadow-sm px-4 py-3 flex items-center justify-center gap-2"
                 >
-                  <Truck className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-600">Filtros Motoboy</span>
+                  <Truck className="w-5 h-5 text-slate-500" />
+                  <span className="text-sm font-semibold text-slate-600">Filtros Motoboy</span>
                 </div>
 
                 {/* Card Iniciar */}
                 <div
                   onClick={() => { setFiltroStatus('Iniciar'); setCardSelecionado('iniciar'); }}
-                  className="bg-white rounded-lg shadow-sm px-3 py-2 cursor-pointer transition-all hover:shadow-md flex items-center gap-2"
+                  className="bg-white rounded-lg shadow-sm px-4 py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-2"
                   style={{
                     border: cardSelecionado === 'iniciar' ? '2px solid #ca8a04' : '2px solid transparent'
                   }}
                 >
-                  <Play className="w-4 h-4" style={{ color: '#ca8a04' }} />
-                  <span className="text-xs font-semibold text-slate-700">Iniciar</span>
-                  <span className="text-xs font-bold ml-auto" style={{ color: '#ca8a04' }}>{stats.iniciar}</span>
+                  <Play className="w-5 h-5" style={{ color: '#ca8a04' }} />
+                  <span className="text-sm font-semibold text-slate-700">Iniciar</span>
+                  <span className="text-lg font-bold" style={{ color: '#ca8a04' }}>{stats.iniciar}</span>
                 </div>
 
                 {/* Card Pendente */}
                 <div
                   onClick={() => { setFiltroStatus('Pendente'); setCardSelecionado('pendente'); }}
-                  className="bg-white rounded-lg shadow-sm px-3 py-2 cursor-pointer transition-all hover:shadow-md flex items-center gap-2"
+                  className="bg-white rounded-lg shadow-sm px-4 py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-2"
                   style={{
                     border: cardSelecionado === 'pendente' ? '2px solid #c2410c' : '2px solid transparent'
                   }}
                 >
-                  <Pause className="w-4 h-4" style={{ color: '#c2410c' }} />
-                  <span className="text-xs font-semibold text-slate-700">Pendente</span>
-                  <span className="text-xs font-bold ml-auto" style={{ color: '#c2410c' }}>{stats.pendente}</span>
+                  <Pause className="w-5 h-5" style={{ color: '#c2410c' }} />
+                  <span className="text-sm font-semibold text-slate-700">Pendente</span>
+                  <span className="text-lg font-bold" style={{ color: '#c2410c' }}>{stats.pendente}</span>
                 </div>
 
                 {/* Card Voltou */}
                 <div
                   onClick={() => { setFiltroStatus('Voltou p/ Farmácia'); setCardSelecionado('voltou'); }}
-                  className="bg-white rounded-lg shadow-sm px-3 py-2 cursor-pointer transition-all hover:shadow-md flex items-center gap-2"
+                  className="bg-white rounded-lg shadow-sm px-4 py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-2"
                   style={{
                     border: cardSelecionado === 'voltou' ? '2px solid #b91c1c' : '2px solid transparent'
                   }}
                 >
-                  <RotateCcw className="w-4 h-4" style={{ color: '#b91c1c' }} />
-                  <span className="text-xs font-semibold text-slate-700">Voltou</span>
-                  <span className="text-xs font-bold ml-auto" style={{ color: '#b91c1c' }}>{stats.voltou}</span>
+                  <RotateCcw className="w-5 h-5" style={{ color: '#b91c1c' }} />
+                  <span className="text-sm font-semibold text-slate-700">Voltou</span>
+                  <span className="text-lg font-bold" style={{ color: '#b91c1c' }}>{stats.voltou}</span>
                 </div>
               </div>
             </div>
