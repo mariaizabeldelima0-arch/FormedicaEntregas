@@ -74,8 +74,11 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
 
       {isOpen && (
         <div
-          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-lg overflow-hidden"
-          style={{ border: '1px solid #376295' }}
+          className="absolute z-50 w-full mt-2 bg-white shadow-lg overflow-hidden"
+          style={{
+            border: '2px solid #93c5fd',
+            borderRadius: '0.625rem'
+          }}
         >
           {options.map((option) => (
             <div
@@ -86,7 +89,7 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
               }}
               className="px-4 py-3 cursor-pointer transition-colors text-sm text-slate-700 hover:bg-blue-50"
               style={{
-                backgroundColor: value === option.value ? '#E8F0F8' : 'white',
+                backgroundColor: value === option.value ? '#dbeafe' : 'white',
                 fontWeight: value === option.value ? '600' : 'normal'
               }}
             >
