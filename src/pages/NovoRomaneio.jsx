@@ -5,6 +5,7 @@ import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, ChevronLeft } from 'lucide-react';
+import { CustomDropdown, CustomDatePicker } from '@/components';
 import {
   Dialog,
   DialogContent,
@@ -1843,57 +1844,21 @@ export default function NovoRomaneio() {
 
           {/* Grid: Região e Data */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Cidade/Região *
-              </label>
-              <select
-                value={formData.regiao}
-                onChange={(e) => handleRegiaoChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="">Selecione a cidade</option>
-                {REGIOES.map(regiao => (
-                  <option key={regiao} value={regiao}>{regiao}</option>
-                ))}
-              </select>
-            </div>
+            <CustomDropdown
+              label="Cidade/Região *"
+              options={REGIOES.map(regiao => ({ value: regiao, label: regiao }))}
+              value={formData.regiao}
+              onChange={handleRegiaoChange}
+              placeholder="Selecione a cidade"
+              error={errors.regiao}
+            />
 
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Data de Entrega *
-              </label>
-              <input
-                type="date"
-                value={formData.data_entrega}
-                onChange={(e) => setFormData({...formData, data_entrega: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              />
-            </div>
+            <CustomDatePicker
+              label="Data de Entrega *"
+              value={formData.data_entrega}
+              onChange={(date) => setFormData({...formData, data_entrega: date})}
+              placeholder="Selecione a data"
+            />
           </div>
 
           {/* Outra Cidade (se OUTRO) */}
@@ -1926,31 +1891,16 @@ export default function NovoRomaneio() {
 
           {/* Grid: Período e Forma de Pagamento */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Período de Entrega *
-              </label>
-              <select
-                value={formData.periodo}
-                onChange={(e) => setFormData({...formData, periodo: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="Manhã">Manhã</option>
-                <option value="Tarde">Tarde</option>
-              </select>
-            </div>
+            <CustomDropdown
+              label="Período de Entrega *"
+              options={[
+                { value: 'Manhã', label: 'Manhã' },
+                { value: 'Tarde', label: 'Tarde' }
+              ]}
+              value={formData.periodo}
+              onChange={(value) => setFormData({...formData, periodo: value})}
+              placeholder="Selecione o período"
+            />
 
             <div style={{ position: 'relative' }}>
               <label style={{
@@ -2187,30 +2137,17 @@ export default function NovoRomaneio() {
           {/* Grid: Motoboy e Valor */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Motoboy *
-              </label>
-              <select
+              <CustomDropdown
+                label="Motoboy *"
+                options={[
+                  { value: 'Marcio', label: 'Marcio' },
+                  { value: 'Bruno', label: 'Bruno' }
+                ]}
                 value={formData.motoboy}
-                onChange={(e) => handleMotoboyChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="">Selecione o motoboy</option>
-                <option value="Marcio">Marcio</option>
-                <option value="Bruno">Bruno</option>
-              </select>
+                onChange={handleMotoboyChange}
+                placeholder="Selecione o motoboy"
+                error={errors.motoboy}
+              />
               <p style={{ fontSize: '0.75rem', color: theme.colors.textLight, marginTop: '0.25rem' }}>
                 Valor calculado automaticamente
               </p>
