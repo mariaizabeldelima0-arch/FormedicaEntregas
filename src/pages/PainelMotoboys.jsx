@@ -50,11 +50,11 @@ export default function PainelMotoboys() {
 
   // Definição dos status disponíveis (Em Rota é o padrão)
   const statusOptions = [
-    { value: 'Em Rota', label: 'Em Rota', icon: Truck, bg: 'bg-blue-100', text: 'text-blue-700', color: '#2563eb' },
-    { value: 'Iniciar', label: 'Iniciar', icon: Play, bg: 'bg-purple-100', text: 'text-purple-700', color: '#9333ea' },
-    { value: 'Entregue', label: 'Entregue', icon: Check, bg: 'bg-green-100', text: 'text-green-700', color: '#16a34a' },
-    { value: 'Pendente', label: 'Pendente', icon: Pause, bg: 'bg-yellow-100', text: 'text-yellow-700', color: '#f59e0b' },
-    { value: 'Voltou p/ Farmácia', label: 'Voltou', icon: RotateCcw, bg: 'bg-red-100', text: 'text-red-700', color: '#dc2626' },
+    { value: 'Em Rota', label: 'A Caminho', icon: Truck, bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', color: '#890d5d' },
+    { value: 'Iniciar', label: 'Iniciar', icon: Play, bg: 'bg-yellow-100', text: 'text-yellow-800', color: '#ca8a04' },
+    { value: 'Entregue', label: 'Entregue', icon: Check, bg: 'bg-green-100', text: 'text-green-800', color: '#15803d' },
+    { value: 'Pendente', label: 'Pendente', icon: Pause, bg: 'bg-orange-100', text: 'text-orange-800', color: '#c2410c' },
+    { value: 'Voltou p/ Farmácia', label: 'Voltou', icon: RotateCcw, bg: 'bg-red-100', text: 'text-red-800', color: '#b91c1c' },
   ];
   const STATUS_PADRAO = 'Em Rota';
 
@@ -247,7 +247,7 @@ export default function PainelMotoboys() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['entregas-motoboy'] });
+      queryClient.invalidateQueries({ queryKey: ['entregas-motoboy-all'] });
       toast.success('Status atualizado!');
     },
     onError: () => {
@@ -272,7 +272,7 @@ export default function PainelMotoboys() {
       await Promise.all(promises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['entregas-motoboy'] });
+      queryClient.invalidateQueries({ queryKey: ['entregas-motoboy-all'] });
       toast.success('Ordem salva!');
     },
     onError: (error) => {
@@ -948,7 +948,7 @@ function EntregaCard({
 
       {/* Botões de Ação - Todos os Status */}
       <div className="px-4 py-3">
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-5 gap-2">
           {statusOptions?.map((status) => {
             const Icon = status.icon;
             const isCurrentStatus = statusNormalizado === status.value;
@@ -956,17 +956,17 @@ function EntregaCard({
               <button
                 key={status.value}
                 onClick={() => !isCurrentStatus && onStatusChange(entrega.id, status.value)}
-                disabled={isUpdating || isCurrentStatus}
+                disabled={isUpdating}
                 className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all text-xs font-semibold ${
                   isCurrentStatus
-                    ? 'ring-2 ring-offset-1'
-                    : 'hover:opacity-80'
+                    ? 'ring-4 ring-offset-2 shadow-lg scale-105'
+                    : 'hover:scale-105 hover:shadow-md'
                 }`}
                 style={{
                   backgroundColor: status.color,
                   color: 'white',
-                  ringColor: isCurrentStatus ? status.color : undefined,
-                  opacity: isUpdating ? 0.5 : isCurrentStatus ? 1 : 0.7,
+                  '--tw-ring-color': status.color,
+                  opacity: isUpdating ? 0.5 : isCurrentStatus ? 1 : 0.5,
                 }}
               >
                 <Icon className="w-4 h-4" />

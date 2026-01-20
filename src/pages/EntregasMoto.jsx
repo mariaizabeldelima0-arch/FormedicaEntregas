@@ -29,7 +29,10 @@ import {
   Sun,
   MapPin,
   User,
-  AlertTriangle
+  AlertTriangle,
+  Play,
+  Pause,
+  RotateCcw
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -544,9 +547,15 @@ export default function EntregasMoto() {
       }
     }
 
-    // Filtro de status
-    if (filtroStatus && entrega.status !== filtroStatus) {
-      return false;
+    // Filtro de status (considera "A Caminho" e "Em Rota" como equivalentes)
+    if (filtroStatus) {
+      if (filtroStatus === 'A Caminho') {
+        if (entrega.status !== 'A Caminho' && entrega.status !== 'Em Rota') {
+          return false;
+        }
+      } else if (entrega.status !== filtroStatus) {
+        return false;
+      }
     }
 
     // Filtro de busca
@@ -613,7 +622,7 @@ export default function EntregasMoto() {
   const stats = {
     total: entregasPorData.length,
     producao: entregasPorData.filter(e => e.status === 'Produzindo no Laboratório').length,
-    caminho: entregasPorData.filter(e => e.status === 'A Caminho').length,
+    caminho: entregasPorData.filter(e => e.status === 'A Caminho' || e.status === 'Em Rota').length,
     entregues: entregasPorData.filter(e => e.status === 'Entregue').length,
   };
 
@@ -871,16 +880,16 @@ export default function EntregasMoto() {
               onClick={() => { setFiltroStatus('A Caminho'); setCardSelecionado('caminho'); }}
               className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
               style={{
-                border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
+                border: cardSelecionado === 'caminho' ? '2px solid #890d5d' : '2px solid transparent'
               }}
             >
               <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                  <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                  <Truck className="w-6 h-6" style={{ color: '#890d5d' }} />
                 </div>
                 <span className="text-sm font-bold text-slate-700">A Caminho</span>
               </div>
-              <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+              <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
                 {stats.caminho}
               </div>
             </div>
@@ -1072,7 +1081,22 @@ export default function EntregasMoto() {
               </div>
 
               {/* Filtros em Linha */}
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-5 gap-4">
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Status' },
+                    { value: 'Produzindo no Laboratório', label: 'Produção' },
+                    { value: 'A Caminho', label: 'A Caminho' },
+                    { value: 'Entregue', label: 'Entregue' },
+                    { value: 'Iniciar', label: 'Iniciar' },
+                    { value: 'Pendente', label: 'Pendente' },
+                    { value: 'Voltou p/ Farmácia', label: 'Voltou' }
+                  ]}
+                  value={filtroStatus}
+                  onChange={(value) => { setFiltroStatus(value); setCardSelecionado(''); }}
+                  placeholder="Status"
+                />
+
                 <CustomDropdown
                   options={[
                     { value: '', label: 'Atendentes' },
