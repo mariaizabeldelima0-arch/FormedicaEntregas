@@ -21,6 +21,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import ImpressaoRomaneio from "@/components/ImpressaoRomaneio";
+import { CustomDropdown } from "@/components/CustomDropdown";
 
 export default function DetalhesRomaneio() {
   const navigate = useNavigate();
@@ -565,18 +566,17 @@ export default function DetalhesRomaneio() {
                   )}
 
                   <div className="border-t border-slate-200 pt-4 mt-2">
-                    <div className="text-xs text-slate-500 mb-2">
-                      Pagamento Motoboy
-                    </div>
-                    <select
+                    <CustomDropdown
+                      label="Pagamento Motoboy"
+                      options={[
+                        { value: 'Aguardando', label: 'Aguardando' },
+                        { value: 'Pago', label: 'Pago' },
+                        { value: 'Pendente', label: 'Pendente' }
+                      ]}
                       value={pagamentoMotoboy}
-                      onChange={(e) => setPagamentoMotoboy(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    >
-                      <option value="Aguardando">Aguardando</option>
-                      <option value="Pago">Pago</option>
-                      <option value="Pendente">Pendente</option>
-                    </select>
+                      onChange={setPagamentoMotoboy}
+                      placeholder="Selecione..."
+                    />
                   </div>
 
                   <div>

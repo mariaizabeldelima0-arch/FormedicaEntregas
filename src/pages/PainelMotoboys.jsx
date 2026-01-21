@@ -10,6 +10,7 @@ import { theme } from '@/lib/theme';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { CustomDropdown } from '@/components/CustomDropdown';
 import {
   Package,
   CheckCircle,
@@ -22,21 +23,29 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Printer,
   Navigation,
   Wallet,
   AlertCircle,
+  AlertTriangle,
   Check,
   X,
   GripVertical,
   Sun,
+  Sunrise,
   Sunset,
   Search,
   Play,
   Truck,
   RotateCcw,
   Pause,
-  Map
+  Map,
+  Snowflake,
+  FileText,
+  Banknote,
+  ExternalLink
 } from 'lucide-react';
 
 // Função para criar ícone personalizado do marcador
@@ -498,23 +507,6 @@ export default function PainelMotoboys() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {!isMotoboy && (
-                <select
-                  value={motoboyId || ''}
-                  onChange={(e) => setMotoboyId(e.target.value)}
-                  className="border border-white/30 bg-white/20 text-white rounded-lg px-3 py-2 text-sm"
-                >
-                  {motoboys.map(m => (
-                    <option key={m.id} value={m.id} className="text-slate-800">{m.nome}</option>
-                  ))}
-                </select>
-              )}
-              <button className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium text-white transition-colors">
-                <Printer className="w-4 h-4" />
-                Imprimir
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -523,6 +515,21 @@ export default function PainelMotoboys() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Coluna Esquerda */}
           <div className="space-y-4">
+            {/* Seletor de Motoboy */}
+            {!isMotoboy && (
+              <div className="rounded-xl p-4" style={{ backgroundColor: '#890d5d' }}>
+                <label className="block text-sm font-semibold text-white mb-2">
+                  Selecione o Motoboy
+                </label>
+                <CustomDropdown
+                  options={motoboys.map(m => ({ value: m.id, label: m.nome }))}
+                  value={motoboyId || ''}
+                  onChange={setMotoboyId}
+                  placeholder="Selecione o motoboy"
+                />
+              </div>
+            )}
+
             {/* Calendário */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               {/* Navegação do mês */}
@@ -759,31 +766,27 @@ export default function PainelMotoboys() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Local</label>
-                  <select
-                    value={filtroLocal}
-                    onChange={(e) => setFiltroLocal(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="todos">Todos os Locais</option>
-                    {cidadesDisponiveis.map(cidade => (
-                      <option key={cidade} value={cidade}>{cidade}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Período</label>
-                  <select
-                    value={filtroPeriodo}
-                    onChange={(e) => setFiltroPeriodo(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="todos">Todos os Períodos</option>
-                    <option value="Manhã">Manhã</option>
-                    <option value="Tarde">Tarde</option>
-                  </select>
-                </div>
+                <CustomDropdown
+                  label="Local"
+                  options={[
+                    { value: 'todos', label: 'Todos os Locais' },
+                    ...cidadesDisponiveis.map(cidade => ({ value: cidade, label: cidade }))
+                  ]}
+                  value={filtroLocal}
+                  onChange={setFiltroLocal}
+                  placeholder="Selecione o local"
+                />
+                <CustomDropdown
+                  label="Período"
+                  options={[
+                    { value: 'todos', label: 'Todos os Períodos' },
+                    { value: 'Manhã', label: 'Manhã' },
+                    { value: 'Tarde', label: 'Tarde' }
+                  ]}
+                  value={filtroPeriodo}
+                  onChange={setFiltroPeriodo}
+                  placeholder="Selecione o período"
+                />
               </div>
 
               {/* Botão Ver Mapa */}
@@ -908,11 +911,14 @@ export default function PainelMotoboys() {
 
                   return (
                     <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-slate-800 px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#facc15' }}>
-                          <Sun className="w-4 h-4" />
-                          MANHÃ ({entregasManha.length})
-                        </div>
+                      <div className="mb-4">
+                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                          <Sunrise className="w-8 h-8" style={{ color: '#eab308' }} />
+                          Entregas da Manhã
+                          <span className="text-lg font-semibold px-4 py-1 rounded-full bg-slate-100 text-slate-700">
+                            {entregasManha.length}
+                          </span>
+                        </h2>
                       </div>
 
                       <div className="space-y-3">
@@ -946,11 +952,14 @@ export default function PainelMotoboys() {
 
                   return (
                     <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
-                          <Sunset className="w-4 h-4" />
-                          TARDE ({entregasTarde.length})
-                        </div>
+                      <div className="mb-4">
+                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                          <Sun className="w-8 h-8" style={{ color: '#f97316' }} />
+                          Entregas da Tarde
+                          <span className="text-lg font-semibold px-4 py-1 rounded-full bg-slate-100 text-slate-700">
+                            {entregasTarde.length}
+                          </span>
+                        </h2>
                       </div>
 
                       <div className="space-y-3">
@@ -984,10 +993,14 @@ export default function PainelMotoboys() {
 
                   return (
                     <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm bg-slate-500">
-                          SEM PERÍODO ({entregasSemPeriodo.length})
-                        </div>
+                      <div className="mb-4">
+                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                          <Clock className="w-8 h-8" style={{ color: '#64748b' }} />
+                          Sem Período Definido
+                          <span className="text-lg font-semibold px-4 py-1 rounded-full bg-slate-100 text-slate-700">
+                            {entregasSemPeriodo.length}
+                          </span>
+                        </h2>
                       </div>
 
                       <div className="space-y-3">
@@ -1031,15 +1044,12 @@ export default function PainelMotoboys() {
 function EntregaCard({
   entrega,
   index,
-  cidade,
+  totalEntregas,
   onStatusChange,
   isUpdating,
   onAbrirMapa,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-  isDragging,
+  onMoverEntrega,
+  onVerDetalhes,
   statusOptions,
   normalizarStatus
 }) {
@@ -1048,7 +1058,6 @@ function EntregaCard({
     if (option) {
       return { bg: option.bg, text: option.text, label: option.label, color: option.color };
     }
-    // Fallback para status antigos ou não definidos
     switch (status) {
       case 'A Caminho':
         return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Em Rota', color: '#3b82f6' };
@@ -1061,117 +1070,184 @@ function EntregaCard({
 
   const statusNormalizado = normalizarStatus ? normalizarStatus(entrega.status) : entrega.status;
   const statusBadge = getStatusBadge(statusNormalizado);
-  const temCobranca = entrega.forma_pagamento === 'Dinheiro' || entrega.forma_pagamento === 'Cartão' || entrega.forma_pagamento === 'Pix';
-  const valorCobrar = parseFloat(entrega.valor) || 0;
+
+  // Verifica se precisa cobrar (Receber Dinheiro ou Receber Máquina)
+  const temCobranca = ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(entrega.forma_pagamento);
+  const valorCobrar = parseFloat(entrega.valor_venda) || parseFloat(entrega.valor) || 0;
+  const temTroco = entrega.precisa_troco && entrega.valor_troco > 0;
 
   return (
-    <div
-      className={`bg-white rounded-xl border border-slate-200 overflow-hidden transition-all ${isDragging ? 'opacity-50 scale-95' : ''}`}
-      draggable
-      onDragStart={(e) => onDragStart(e, entrega, cidade)}
-      onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e, entrega, cidade)}
-      onDragEnd={onDragEnd}
-    >
-      {/* Header do Card */}
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing" />
-          <span className="text-sm font-medium text-slate-500">#{index}</span>
-          <span className="font-bold text-slate-800">REQ #{entrega.requisicao || '0000'}</span>
-
-          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}>
-            {statusBadge.label}
-          </span>
-
-          {temCobranca && valorCobrar > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 flex items-center gap-1">
-              <DollarSign className="w-3 h-3" /> COBRAR
-            </span>
-          )}
-
-          {entrega.taxa && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> R$ {parseFloat(entrega.taxa).toFixed(2)}
-            </span>
-          )}
-        </div>
-
-        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">
-          {entrega.periodo || 'Sem período'}
-        </span>
-      </div>
-
-      {/* Nome do Cliente */}
-      <div className="px-4 py-2 border-b border-slate-100">
-        <span className="text-sm font-medium" style={{ color: theme.colors.primary }}>
-          {entrega.cliente?.nome || 'Cliente'}
-        </span>
-      </div>
-
-      {/* Valor a Cobrar */}
-      {temCobranca && valorCobrar > 0 && (
-        <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
-          <div className="flex items-center gap-2 text-yellow-700 text-xs font-semibold mb-1">
-            <Wallet className="w-3 h-3" /> COBRAR NA ENTREGA:
-          </div>
-          <div className="text-2xl font-bold text-yellow-700">
-            R$ {valorCobrar.toFixed(2)}
-          </div>
-        </div>
-      )}
-
-      {/* Endereço */}
-      <div className="px-4 py-3 border-b border-slate-100">
-        <div className="flex items-start gap-2">
-          <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-          <div className="text-sm">
-            <p className="text-slate-800 font-medium">
-              {entrega.endereco?.logradouro}, {entrega.endereco?.numero}
-            </p>
-            <p className="text-slate-600">
-              {entrega.endereco?.bairro} - {entrega.endereco?.cidade}
-            </p>
-            {entrega.endereco?.referencia && (
-              <p className="text-xs" style={{ color: theme.colors.secondary }}>Ref: {entrega.endereco.referencia}</p>
-            )}
-            {entrega.endereco?.complemento && (
-              <p className="text-slate-500 text-xs">A/C: {entrega.endereco.complemento}</p>
-            )}
-          </div>
-        </div>
-
-        <button
-          onClick={() => onAbrirMapa(entrega.endereco)}
-          className="mt-2 w-full flex items-center justify-center gap-2 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-        >
-          <Navigation className="w-4 h-4" />
-          Abrir no Mapa
-        </button>
-      </div>
-
-      {/* Forma de Pagamento e Telefone */}
-      <div className="px-4 py-3 border-b border-slate-100 space-y-2">
-        <div className="flex items-center gap-2 text-sm">
-          <Wallet className="w-4 h-4 text-slate-400" />
-          <span className="text-slate-700">{entrega.forma_pagamento || 'Não informado'}</span>
-        </div>
-
-        {entrega.cliente?.telefone && (
-          <div className="flex items-center gap-2 text-sm">
-            <Phone className="w-4 h-4 text-slate-400" />
-            <a
-              href={`tel:${entrega.cliente.telefone}`}
-              className="text-slate-700 hover:text-blue-600"
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden transition-all hover:shadow-md">
+      {/* Card Principal */}
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          {/* Setas de Ordenação */}
+          <div className="flex flex-col items-center gap-1 pt-1">
+            <button
+              onClick={() => onMoverEntrega(entrega.id, 'up')}
+              disabled={index === 1}
+              className={`p-1 rounded transition-colors ${index === 1 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
             >
-              {entrega.cliente.telefone}
-            </a>
+              <ChevronUp className="w-5 h-5" />
+            </button>
+            <span className="text-sm font-bold text-slate-500">#{index}</span>
+            <button
+              onClick={() => onMoverEntrega(entrega.id, 'down')}
+              disabled={index === totalEntregas}
+              className={`p-1 rounded transition-colors ${index === totalEntregas ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
           </div>
-        )}
+
+          {/* Conteúdo Principal */}
+          <div className="flex-1">
+            {/* Linha 1: Requisição + Atendente + Status */}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                #{entrega.requisicao || '0000'}
+              </span>
+              {entrega.atendente && (
+                <>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1">
+                    <User className="w-3.5 h-3.5" />
+                    {entrega.atendente}
+                  </span>
+                </>
+              )}
+              <span
+                className="px-3 py-1 rounded text-xs font-medium"
+                style={{
+                  backgroundColor: statusBadge.color + '20',
+                  color: statusBadge.color
+                }}
+              >
+                {statusBadge.label}
+              </span>
+            </div>
+
+            {/* Linha 2: Nome do Cliente */}
+            <h3 className="text-lg font-bold text-slate-900 mb-2">
+              {entrega.cliente?.nome || 'Cliente'}
+            </h3>
+
+            {/* Linha 3: Endereço */}
+            <div className="mb-3 text-sm text-slate-600">
+              <span>
+                {entrega.endereco
+                  ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                  : 'Endereço não informado'}
+              </span>
+              {entrega.endereco?.complemento && (
+                <span className="text-slate-500"> (A/C: {entrega.endereco.complemento})</span>
+              )}
+              {entrega.endereco?.referencia && (
+                <p className="text-xs mt-1" style={{ color: '#890d5d' }}>Ref: {entrega.endereco.referencia}</p>
+              )}
+            </div>
+
+            {/* Linha 4: Informações com ícones */}
+            <div className="flex flex-wrap gap-3 text-sm text-slate-900 mb-2">
+              {entrega.cliente?.telefone && (
+                <a
+                  href={`tel:${entrega.cliente.telefone}`}
+                  className="flex items-center gap-1.5 hover:text-blue-600"
+                >
+                  <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
+                  <span>{entrega.cliente.telefone}</span>
+                </a>
+              )}
+              {entrega.forma_pagamento && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
+                  <span>{entrega.forma_pagamento}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Destaque para Cobrança */}
+            {temCobranca && valorCobrar > 0 && (
+              <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: '#e8f5e9', border: '2px solid #4caf50' }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <DollarSign className="w-5 h-5" style={{ color: '#1b5e20' }} />
+                  <span className="font-bold text-sm" style={{ color: '#1b5e20' }}>COBRAR NA ENTREGA:</span>
+                </div>
+                <div className="text-2xl font-bold" style={{ color: '#1b5e20' }}>
+                  R$ {valorCobrar.toFixed(2)}
+                </div>
+                {temTroco && (
+                  <div className="mt-2 flex items-center gap-2 p-2 rounded" style={{ backgroundColor: '#fff3e0', border: '1px solid #ff9800' }}>
+                    <AlertTriangle className="w-4 h-4" style={{ color: '#e65100' }} />
+                    <span className="font-bold text-sm" style={{ color: '#e65100' }}>
+                      LEVAR TROCO: R$ {parseFloat(entrega.valor_troco).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Observações */}
+            {(entrega.observacao || entrega.observacoes) && (
+              <div className="mt-3 text-sm text-slate-600 italic bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <span className="font-semibold not-italic">Obs:</span> {entrega.observacao || entrega.observacoes}
+              </div>
+            )}
+          </div>
+
+          {/* Lado Direito - Badges + Valor + Região */}
+          <div className="flex flex-col items-end gap-3">
+            {/* Badges Geladeira e Reter Receita */}
+            {(entrega.item_geladeira || entrega.buscar_receita || entrega.reter_receita) && (
+              <div className="flex flex-col gap-2">
+                {entrega.item_geladeira && (
+                  <span className="px-3 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e', border: '2px solid #06b6d4' }}>
+                    <Snowflake className="w-5 h-5" />
+                    Geladeira
+                  </span>
+                )}
+                {(entrega.buscar_receita || entrega.reter_receita) && (
+                  <span className="px-3 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '2px solid #f59e0b' }}>
+                    <FileText className="w-5 h-5" />
+                    Reter Receita
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Valor e Região */}
+            <div className="text-right">
+              <div className="text-xl font-bold" style={{ color: '#376295' }}>
+                R$ {(parseFloat(entrega.valor) || 0).toFixed(2)}
+              </div>
+              <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                {entrega.regiao || entrega.endereco?.cidade}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Botões de Ação - Todos os Status */}
-      <div className="px-4 py-3">
+      {/* Botões de Ação */}
+      <div className="px-5 py-3 bg-slate-50 border-t border-slate-200">
+        <div className="flex items-center gap-3 mb-3">
+          <button
+            onClick={() => onAbrirMapa(entrega.endereco)}
+            className="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-white transition-colors"
+          >
+            <Navigation className="w-4 h-4" />
+            Abrir no Mapa
+          </button>
+          <button
+            onClick={() => onVerDetalhes(entrega)}
+            className="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-white transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Ver Romaneio
+          </button>
+        </div>
+
+        {/* Botões de Status */}
         <div className="grid grid-cols-5 gap-2">
           {statusOptions?.map((status) => {
             const Icon = status.icon;

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CustomDatePicker } from "@/components/CustomDatePicker";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -257,13 +258,12 @@ export default function Relatorios() {
               <CardTitle>Filtros e Busca</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Dados</label>
-                <Input
-                  type="date"
+              <div className="max-w-xs">
+                <CustomDatePicker
+                  label="Data"
                   value={dataSelecionada}
-                  onChange={(e) => setDataSelecionada(e.target.value)}
-                  className="max-w-xs"
+                  onChange={setDataSelecionada}
+                  placeholder="Selecione a data"
                 />
               </div>
 

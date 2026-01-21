@@ -79,17 +79,16 @@ export function CustomDropdown({
               position: 'absolute',
               zIndex: 50,
               width: '100%',
-              marginTop: '0.5rem',
+              marginTop: '0.25rem',
               backgroundColor: 'white',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-              overflow: 'hidden',
-              border: '2px solid #93c5fd',
-              borderRadius: '0.625rem',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0',
+              borderRadius: '0.5rem',
               maxHeight: '200px',
               overflowY: 'auto'
             }}
           >
-            {options.map((option) => (
+            {options.map((option, index) => (
               <div
                 key={option.value}
                 onClick={() => {
@@ -97,21 +96,20 @@ export function CustomDropdown({
                   setIsOpen(false);
                 }}
                 style={{
-                  padding: '0.75rem 1rem',
+                  padding: '0.75rem',
                   cursor: 'pointer',
                   fontSize: '0.875rem',
                   color: '#334155',
-                  backgroundColor: value === option.value ? '#dbeafe' : 'white',
-                  fontWeight: value === option.value ? '600' : 'normal',
+                  backgroundColor: value === option.value ? '#e3f2fd' : 'white',
+                  fontWeight: value === option.value ? '500' : 'normal',
+                  borderBottom: index < options.length - 1 ? '1px solid #e2e8f0' : 'none',
                   transition: 'background-color 0.15s'
                 }}
                 onMouseEnter={(e) => {
-                  if (value !== option.value) {
-                    e.target.style.backgroundColor = '#eff6ff';
-                  }
+                  e.target.style.backgroundColor = '#e3f2fd';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = value === option.value ? '#dbeafe' : 'white';
+                  e.target.style.backgroundColor = value === option.value ? '#e3f2fd' : 'white';
                 }}
               >
                 {option.label}

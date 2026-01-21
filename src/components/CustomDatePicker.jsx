@@ -148,11 +148,11 @@ export function CustomDatePicker({
               position: 'absolute',
               zIndex: 50,
               width: '280px',
-              marginTop: '0.5rem',
+              marginTop: '0.25rem',
               backgroundColor: 'white',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-              border: '2px solid #93c5fd',
-              borderRadius: '0.625rem',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0',
+              borderRadius: '0.5rem',
               padding: '1rem'
             }}
           >
@@ -264,7 +264,7 @@ export function CustomDatePicker({
                   }}
                   onMouseEnter={(e) => {
                     if (date && !isSelected(date)) {
-                      e.target.style.backgroundColor = '#eff6ff';
+                      e.target.style.backgroundColor = '#e3f2fd';
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -299,7 +299,7 @@ export function CustomDatePicker({
                 transition: 'all 0.15s'
               }}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#eff6ff';
+                e.target.style.backgroundColor = '#e3f2fd';
               }}
               onMouseLeave={(e) => {
                 e.target.style.backgroundColor = 'white';

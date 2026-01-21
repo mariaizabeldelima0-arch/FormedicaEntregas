@@ -9,6 +9,8 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { createPageUrl } from "@/utils";
+import { CustomDropdown } from "@/components/CustomDropdown";
+import { CustomDatePicker } from "@/components/CustomDatePicker";
 
 export default function PlanilhaDiaria() {
   const navigate = useNavigate();
@@ -263,31 +265,29 @@ export default function PlanilhaDiaria() {
               {/* Campo de Busca por Data */}
               {!visualizarTodas && (
                 <div className="flex items-center gap-2">
-                  <input
-                    type="date"
+                  <CustomDatePicker
                     value={format(selectedDate, 'yyyy-MM-dd')}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setSelectedDate(new Date(e.target.value + 'T00:00:00'));
+                    onChange={(dateStr) => {
+                      if (dateStr) {
+                        setSelectedDate(new Date(dateStr + 'T00:00:00'));
                       }
                     }}
-                    className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                    placeholder="Selecione a data"
                   />
                 </div>
               )}
 
               {/* Filtro por Motoboy */}
               <div className="flex-1 max-w-xs">
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: 'todos', label: 'Todos os Motoboys' },
+                    ...motoboysUnicos.map(m => ({ value: m, label: m }))
+                  ]}
                   value={filtroMotoboy}
-                  onChange={(e) => setFiltroMotoboy(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
-                >
-                  <option value="todos">Todos os Motoboys</option>
-                  {motoboysUnicos.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+                  onChange={setFiltroMotoboy}
+                  placeholder="Todos os Motoboys"
+                />
               </div>
             </div>
           </div>
@@ -388,21 +388,22 @@ export default function PlanilhaDiaria() {
                             </span>
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
-                            <select
+                            <CustomDropdown
+                              options={[
+                                { value: 'Pendente', label: 'Pendente' },
+                                { value: 'Produção', label: 'Produção' },
+                                { value: 'Preparando', label: 'Preparando' },
+                                { value: 'A Caminho', label: 'A Caminho' },
+                                { value: 'Entregue', label: 'Entregue' },
+                                { value: 'Não Entregue', label: 'Não Entregue' },
+                                { value: 'Voltou', label: 'Voltou' },
+                                { value: 'Cancelado', label: 'Cancelado' }
+                              ]}
                               value={rom.status || 'Pendente'}
-                              onChange={(e) => handleQuickStatusUpdate(rom.id, e.target.value, 'romaneio')}
-                              className="w-full text-[10px] p-1 border border-slate-300 rounded-lg bg-white"
+                              onChange={(val) => handleQuickStatusUpdate(rom.id, val, 'romaneio')}
                               disabled={updateRomaneioMutation.isPending}
-                            >
-                              <option value="Pendente">Pendente</option>
-                              <option value="Produção">Produção</option>
-                              <option value="Preparando">Preparando</option>
-                              <option value="A Caminho">A Caminho</option>
-                              <option value="Entregue">Entregue</option>
-                              <option value="Não Entregue">Não Entregue</option>
-                              <option value="Voltou">Voltou</option>
-                              <option value="Cancelado">Cancelado</option>
-                            </select>
+                              className="text-[10px]"
+                            />
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-center">
                             {rom.recibo_medico ? (
@@ -504,17 +505,18 @@ export default function PlanilhaDiaria() {
                             {entrega.data_saida ? format(parseISO(entrega.data_saida), 'dd/MM/yyyy') : '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-blue-200">
-                            <select
+                            <CustomDropdown
+                              options={[
+                                { value: 'Pendente', label: 'Pendente' },
+                                { value: 'Em Trânsito', label: 'Em Trânsito' },
+                                { value: 'Entregue', label: 'Entregue' },
+                                { value: 'Devolvido', label: 'Devolvido' }
+                              ]}
                               value={entrega.status || 'Pendente'}
-                              onChange={(e) => handleQuickStatusUpdate(entrega.id, e.target.value, 'sedex')}
-                              className="w-full text-[10px] p-1 border border-blue-300 rounded-lg bg-white"
+                              onChange={(val) => handleQuickStatusUpdate(entrega.id, val, 'sedex')}
                               disabled={updateSedexMutation.isPending}
-                            >
-                              <option value="Pendente">Pendente</option>
-                              <option value="Em Trânsito">Em Trânsito</option>
-                              <option value="Entregue">Entregue</option>
-                              <option value="Devolvido">Devolvido</option>
-                            </select>
+                              className="text-[10px]"
+                            />
                           </td>
                           <td className="px-2 py-1.5 text-slate-600 max-w-[200px] truncate">
                             {entrega.observacoes || '-'}

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, User, Monitor, Smartphone, UserCog, Search, UserPlus, Pencil, Trash2, CheckCircle, XCircle, Clock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { CustomDropdown } from '@/components/CustomDropdown';
 import {
   Dialog,
   DialogContent,
@@ -413,18 +414,17 @@ export default function Usuarios() {
               />
             </div>
 
-            <div>
-              <Label>Tipo de Usuário *</Label>
-              <select
-                value={novoUsuario.tipo_usuario}
-                onChange={(e) => setNovoUsuario({ ...novoUsuario, tipo_usuario: e.target.value })}
-                className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
-              >
-                <option value="admin">Administrador</option>
-                <option value="atendente">Atendente</option>
-                <option value="motoboy">Motoboy</option>
-              </select>
-            </div>
+            <CustomDropdown
+              label="Tipo de Usuário *"
+              options={[
+                { value: 'admin', label: 'Administrador' },
+                { value: 'atendente', label: 'Atendente' },
+                { value: 'motoboy', label: 'Motoboy' }
+              ]}
+              value={novoUsuario.tipo_usuario}
+              onChange={(value) => setNovoUsuario({ ...novoUsuario, tipo_usuario: value })}
+              placeholder="Selecione o tipo"
+            />
 
             {novoUsuario.tipo_usuario === 'atendente' && (
               <div>
@@ -439,17 +439,16 @@ export default function Usuarios() {
 
             {novoUsuario.tipo_usuario === 'motoboy' && (
               <div>
-                <Label>Selecionar Motoboy *</Label>
-                <select
+                <CustomDropdown
+                  label="Selecionar Motoboy *"
+                  options={[
+                    { value: '', label: 'Selecione...' },
+                    ...motoboys.map(m => ({ value: m.nome, label: m.nome }))
+                  ]}
                   value={novoUsuario.nome_motoboy}
-                  onChange={(e) => setNovoUsuario({ ...novoUsuario, nome_motoboy: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
-                >
-                  <option value="">Selecione...</option>
-                  {motoboys.map(m => (
-                    <option key={m.id} value={m.nome}>{m.nome}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setNovoUsuario({ ...novoUsuario, nome_motoboy: value })}
+                  placeholder="Selecione..."
+                />
                 <p className="text-xs text-slate-500 mt-1">
                   O motoboy só verá suas próprias entregas
                 </p>
@@ -514,18 +513,17 @@ export default function Usuarios() {
                 />
               </div>
 
-              <div>
-                <Label>Tipo de Usuário *</Label>
-                <select
-                  value={usuarioEditando.tipo_usuario}
-                  onChange={(e) => setUsuarioEditando({ ...usuarioEditando, tipo_usuario: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
-                >
-                  <option value="admin">Administrador</option>
-                  <option value="atendente">Atendente</option>
-                  <option value="motoboy">Motoboy</option>
-                </select>
-              </div>
+              <CustomDropdown
+                label="Tipo de Usuário *"
+                options={[
+                  { value: 'admin', label: 'Administrador' },
+                  { value: 'atendente', label: 'Atendente' },
+                  { value: 'motoboy', label: 'Motoboy' }
+                ]}
+                value={usuarioEditando.tipo_usuario}
+                onChange={(value) => setUsuarioEditando({ ...usuarioEditando, tipo_usuario: value })}
+                placeholder="Selecione o tipo"
+              />
 
               {usuarioEditando.tipo_usuario === 'atendente' && (
                 <div>
@@ -539,19 +537,16 @@ export default function Usuarios() {
               )}
 
               {usuarioEditando.tipo_usuario === 'motoboy' && (
-                <div>
-                  <Label>Selecionar Motoboy *</Label>
-                  <select
-                    value={usuarioEditando.nome_motoboy}
-                    onChange={(e) => setUsuarioEditando({ ...usuarioEditando, nome_motoboy: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
-                  >
-                    <option value="">Selecione...</option>
-                    {motoboys.map(m => (
-                      <option key={m.id} value={m.nome}>{m.nome}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomDropdown
+                  label="Selecionar Motoboy *"
+                  options={[
+                    { value: '', label: 'Selecione...' },
+                    ...motoboys.map(m => ({ value: m.nome, label: m.nome }))
+                  ]}
+                  value={usuarioEditando.nome_motoboy}
+                  onChange={(value) => setUsuarioEditando({ ...usuarioEditando, nome_motoboy: value })}
+                  placeholder="Selecione..."
+                />
               )}
 
               <div className="flex justify-end gap-2 pt-4">
@@ -666,33 +661,37 @@ function UsuarioCard({ dispositivo, motoboys, onUpdateTipo, onEditar, onExcluir,
 
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-600">Tipo:</span>
-            <select
-              value={tipoUsuario}
-              onChange={(e) => handleTipoChange(e.target.value)}
-              disabled={isUpdating}
-              className="min-w-[160px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
-            >
-              <option value="">Selecione...</option>
-              <option value="admin">Administrador</option>
-              <option value="atendente">Atendente</option>
-              <option value="motoboy">Motoboy</option>
-            </select>
+            <div className="min-w-[160px]">
+              <CustomDropdown
+                options={[
+                  { value: '', label: 'Selecione...' },
+                  { value: 'admin', label: 'Administrador' },
+                  { value: 'atendente', label: 'Atendente' },
+                  { value: 'motoboy', label: 'Motoboy' }
+                ]}
+                value={tipoUsuario}
+                onChange={handleTipoChange}
+                disabled={isUpdating}
+                placeholder="Selecione..."
+              />
+            </div>
           </div>
 
           {tipoUsuario === 'motoboy' && (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-slate-600">Motoboy:</span>
-              <select
-                value={nomeMotoboy}
-                onChange={(e) => handleMotoboyChange(e.target.value)}
-                disabled={isUpdating}
-                className="min-w-[150px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
-              >
-                <option value="">Selecione...</option>
-                {motoboys?.map(m => (
-                  <option key={m.id} value={m.nome}>{m.nome}</option>
-                ))}
-              </select>
+              <div className="min-w-[150px]">
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Selecione...' },
+                    ...(motoboys?.map(m => ({ value: m.nome, label: m.nome })) || [])
+                  ]}
+                  value={nomeMotoboy}
+                  onChange={handleMotoboyChange}
+                  disabled={isUpdating}
+                  placeholder="Selecione..."
+                />
+              </div>
             </div>
           )}
 

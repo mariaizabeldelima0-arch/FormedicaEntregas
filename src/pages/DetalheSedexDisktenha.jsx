@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   Dialog,
   DialogContent,
@@ -364,30 +366,28 @@ export default function DetalheSedexDisktenha() {
           {editData && (
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Tipo *</Label>
-                  <select
-                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={editData.tipo}
-                    onChange={(e) => setEditData({ ...editData, tipo: e.target.value })}
-                  >
-                    <option value="SEDEX">SEDEX</option>
-                    <option value="PAC">PAC</option>
-                    <option value="DISKTENHA">DISKTENHA</option>
-                  </select>
-                </div>
-                <div>
-                  <Label>Status *</Label>
-                  <select
-                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={editData.status}
-                    onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                  >
-                    <option value="Pendente">Pendente</option>
-                    <option value="Saiu">Saiu</option>
-                    <option value="Entregue">Entregue</option>
-                  </select>
-                </div>
+                <CustomDropdown
+                  label="Tipo *"
+                  options={[
+                    { value: 'SEDEX', label: 'SEDEX' },
+                    { value: 'PAC', label: 'PAC' },
+                    { value: 'DISKTENHA', label: 'DISKTENHA' }
+                  ]}
+                  value={editData.tipo}
+                  onChange={(value) => setEditData({ ...editData, tipo: value })}
+                  placeholder="Selecione o tipo"
+                />
+                <CustomDropdown
+                  label="Status *"
+                  options={[
+                    { value: 'Pendente', label: 'Pendente' },
+                    { value: 'Saiu', label: 'Saiu' },
+                    { value: 'Entregue', label: 'Entregue' }
+                  ]}
+                  value={editData.status}
+                  onChange={(value) => setEditData({ ...editData, status: value })}
+                  placeholder="Selecione o status"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -438,25 +438,24 @@ export default function DetalheSedexDisktenha() {
                     />
                   </div>
                 )}
-                <div>
-                  <Label>Status do Pagamento</Label>
-                  <select
-                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={editData.forma_pagamento}
-                    onChange={(e) => setEditData({ ...editData, forma_pagamento: e.target.value })}
-                  >
-                    <option value="Aguardando">Aguardando</option>
-                    <option value="Pago">Pago</option>
-                  </select>
-                </div>
+                <CustomDropdown
+                  label="Status do Pagamento"
+                  options={[
+                    { value: 'Aguardando', label: 'Aguardando' },
+                    { value: 'Pago', label: 'Pago' }
+                  ]}
+                  value={editData.forma_pagamento}
+                  onChange={(value) => setEditData({ ...editData, forma_pagamento: value })}
+                  placeholder="Selecione..."
+                />
               </div>
 
               <div>
-                <Label>Data de Saída</Label>
-                <Input
-                  type="date"
+                <CustomDatePicker
+                  label="Data de Saída"
                   value={editData.data_saida}
-                  onChange={(e) => setEditData({ ...editData, data_saida: e.target.value })}
+                  onChange={(value) => setEditData({ ...editData, data_saida: value })}
+                  placeholder="Selecione a data"
                 />
               </div>
 

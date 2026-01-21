@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createPageUrl } from '@/utils';
+import { CustomDropdown } from '@/components/CustomDropdown';
 
 export default function Dispositivos() {
   const navigate = useNavigate();
@@ -462,33 +463,37 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
               <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-slate-600">Tipo:</span>
-                  <select
-                    value={tipoUsuario}
-                    onChange={(e) => handleTipoChange(e.target.value)}
-                    disabled={isUpdating}
-                    className="min-w-[160px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="admin">Administrador</option>
-                    <option value="atendente">Atendente</option>
-                    <option value="motoboy">Motoboy</option>
-                  </select>
+                  <div className="min-w-[160px]">
+                    <CustomDropdown
+                      options={[
+                        { value: '', label: 'Selecione...' },
+                        { value: 'admin', label: 'Administrador' },
+                        { value: 'atendente', label: 'Atendente' },
+                        { value: 'motoboy', label: 'Motoboy' }
+                      ]}
+                      value={tipoUsuario}
+                      onChange={handleTipoChange}
+                      disabled={isUpdating}
+                      placeholder="Selecione..."
+                    />
+                  </div>
                 </div>
 
                 {tipoUsuario === 'motoboy' && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-slate-600">Motoboy:</span>
-                    <select
-                      value={nomeMotoboy}
-                      onChange={(e) => handleMotoboyChange(e.target.value)}
-                      disabled={isUpdating}
-                      className="min-w-[150px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
-                    >
-                      <option value="">Selecione...</option>
-                      {motoboys?.map(m => (
-                        <option key={m.id} value={m.nome}>{m.nome}</option>
-                      ))}
-                    </select>
+                    <div className="min-w-[150px]">
+                      <CustomDropdown
+                        options={[
+                          { value: '', label: 'Selecione...' },
+                          ...(motoboys?.map(m => ({ value: m.nome, label: m.nome })) || [])
+                        ]}
+                        value={nomeMotoboy}
+                        onChange={handleMotoboyChange}
+                        disabled={isUpdating}
+                        placeholder="Selecione..."
+                      />
+                    </div>
                   </div>
                 )}
 

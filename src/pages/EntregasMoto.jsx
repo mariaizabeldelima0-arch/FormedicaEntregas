@@ -74,24 +74,29 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
 
       {isOpen && (
         <div
-          className="absolute z-50 w-full mt-2 bg-white shadow-lg overflow-hidden"
+          className="absolute z-50 w-full mt-1 bg-white shadow-lg overflow-hidden"
           style={{
-            border: '2px solid #93c5fd',
-            borderRadius: '0.625rem'
+            border: '1px solid #e2e8f0',
+            borderRadius: '0.5rem',
+            maxHeight: '200px',
+            overflowY: 'auto'
           }}
         >
-          {options.map((option) => (
+          {options.map((option, index) => (
             <div
               key={option.value}
               onClick={() => {
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className="px-4 py-3 cursor-pointer transition-colors text-sm text-slate-700 hover:bg-blue-50"
+              className="px-3 py-3 cursor-pointer transition-colors text-sm text-slate-700"
               style={{
-                backgroundColor: value === option.value ? '#dbeafe' : 'white',
-                fontWeight: value === option.value ? '600' : 'normal'
+                backgroundColor: value === option.value ? '#e3f2fd' : 'white',
+                fontWeight: value === option.value ? '500' : 'normal',
+                borderBottom: index < options.length - 1 ? '1px solid #e2e8f0' : 'none'
               }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e3f2fd'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = value === option.value ? '#e3f2fd' : 'white'}
             >
               {option.label}
             </div>

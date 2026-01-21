@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
 import { toast } from 'sonner';
+import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   ChevronLeft,
   Printer,
@@ -404,12 +406,10 @@ export default function RomaneiosDoDia() {
             <div className="flex items-center gap-4 flex-wrap">
               {/* Seletor de Data */}
               <div className="flex items-center gap-2">
-                <Calendar size={18} className="text-slate-500" />
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                  onChange={setSelectedDate}
+                  placeholder="Selecione a data"
                 />
               </div>
 
@@ -452,37 +452,38 @@ export default function RomaneiosDoDia() {
             {/* Filtros Expandidos */}
             {showFiltros && (
               <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-200">
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Todos Motoboys' },
+                    ...motoboys.map(m => ({ value: m, label: m }))
+                  ]}
                   value={filtros.motoboy}
-                  onChange={(e) => setFiltros({ ...filtros, motoboy: e.target.value })}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Todos Motoboys</option>
-                  {motoboys.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFiltros({ ...filtros, motoboy: value })}
+                  placeholder="Todos Motoboys"
+                />
 
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Todos Períodos' },
+                    { value: 'Manhã', label: 'Manhã' },
+                    { value: 'Tarde', label: 'Tarde' }
+                  ]}
                   value={filtros.periodo}
-                  onChange={(e) => setFiltros({ ...filtros, periodo: e.target.value })}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Todos Períodos</option>
-                  <option value="Manhã">Manhã</option>
-                  <option value="Tarde">Tarde</option>
-                </select>
+                  onChange={(value) => setFiltros({ ...filtros, periodo: value })}
+                  placeholder="Todos Períodos"
+                />
 
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Todos Status' },
+                    { value: 'Produzindo no Laboratório', label: 'Produção' },
+                    { value: 'A Caminho', label: 'A Caminho' },
+                    { value: 'Entregue', label: 'Entregue' }
+                  ]}
                   value={filtros.status}
-                  onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Todos Status</option>
-                  <option value="Produzindo no Laboratório">Produção</option>
-                  <option value="A Caminho">A Caminho</option>
-                  <option value="Entregue">Entregue</option>
-                </select>
+                  onChange={(value) => setFiltros({ ...filtros, status: value })}
+                  placeholder="Todos Status"
+                />
               </div>
             )}
           </div>

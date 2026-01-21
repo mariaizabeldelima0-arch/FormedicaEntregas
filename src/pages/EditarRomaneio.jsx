@@ -5,6 +5,8 @@ import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
+import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   Dialog,
   DialogContent,
@@ -1305,15 +1307,20 @@ export default function EditarRomaneio() {
               <div
                 className="absolute z-50 bg-white mt-1 max-h-[200px] overflow-y-auto shadow-lg"
                 style={{
-                  border: '2px solid #93c5fd',
-                  borderRadius: '0.625rem'
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '0.5rem'
                 }}
               >
-                {clientesSugestoes.map(cliente => (
+                {clientesSugestoes.map((cliente, index) => (
                   <div
                     key={cliente.id}
                     onClick={() => adicionarCliente(cliente)}
-                    className="p-3 cursor-pointer border-b border-slate-200 hover:bg-slate-50 transition-colors"
+                    className="p-3 cursor-pointer transition-colors"
+                    style={{
+                      borderBottom: index < clientesSugestoes.length - 1 ? '1px solid #e2e8f0' : 'none'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e3f2fd'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                   >
                     <p className="font-semibold text-slate-900 m-0">{cliente.nome}</p>
                     <p className="text-xs text-slate-600 m-0">{cliente.telefone}</p>
@@ -1972,55 +1979,23 @@ export default function EditarRomaneio() {
 
           {/* Grid: Região e Data */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Cidade/Região *
-              </label>
-              <select
-                value={formData.regiao}
-                onChange={(e) => handleRegiaoChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="">Selecione a cidade</option>
-                {REGIOES.map(regiao => (
-                  <option key={regiao} value={regiao}>{regiao}</option>
-                ))}
-              </select>
-            </div>
+            <CustomDropdown
+              label="Cidade/Região *"
+              options={[
+                { value: '', label: 'Selecione a região' },
+                ...REGIOES.map(regiao => ({ value: regiao, label: regiao }))
+              ]}
+              value={formData.regiao}
+              onChange={handleRegiaoChange}
+              placeholder="Selecione a região"
+            />
 
             <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Data de Entrega *
-              </label>
-              <input
-                type="date"
+              <CustomDatePicker
+                label="Data de Entrega *"
                 value={formData.data_entrega}
-                onChange={(e) => setFormData({...formData, data_entrega: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
+                onChange={(value) => setFormData({...formData, data_entrega: value})}
+                placeholder="Selecione a data"
               />
             </div>
           </div>
@@ -2055,31 +2030,16 @@ export default function EditarRomaneio() {
 
           {/* Grid: Período e Forma de Pagamento */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Período de Entrega *
-              </label>
-              <select
-                value={formData.periodo}
-                onChange={(e) => setFormData({...formData, periodo: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="Manhã">Manhã</option>
-                <option value="Tarde">Tarde</option>
-              </select>
-            </div>
+            <CustomDropdown
+              label="Período de Entrega *"
+              options={[
+                { value: 'Manhã', label: 'Manhã' },
+                { value: 'Tarde', label: 'Tarde' }
+              ]}
+              value={formData.periodo}
+              onChange={(value) => setFormData({...formData, periodo: value})}
+              placeholder="Selecione o período"
+            />
 
             <div style={{ position: 'relative' }}>
               <label style={{
@@ -2223,30 +2183,17 @@ export default function EditarRomaneio() {
           {/* Grid: Motoboy e Valor */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Motoboy *
-              </label>
-              <select
+              <CustomDropdown
+                label="Motoboy *"
+                options={[
+                  { value: '', label: 'Selecione o motoboy' },
+                  { value: 'Marcio', label: 'Marcio' },
+                  { value: 'Bruno', label: 'Bruno' }
+                ]}
                 value={formData.motoboy}
-                onChange={(e) => handleMotoboyChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="">Selecione o motoboy</option>
-                <option value="Marcio">Marcio</option>
-                <option value="Bruno">Bruno</option>
-              </select>
+                onChange={handleMotoboyChange}
+                placeholder="Selecione o motoboy"
+              />
               <p style={{ fontSize: '0.75rem', color: theme.colors.textLight, marginTop: '0.25rem' }}>
                 Valor calculado automaticamente
               </p>
@@ -2544,21 +2491,16 @@ export default function EditarRomaneio() {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 mb-1">
-                        Região
-                      </label>
-                      <select
-                        value={endereco.regiao}
-                        onChange={(e) => updateEnderecoNovoCliente(index, 'regiao', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      >
-                        <option value="">Selecione</option>
-                        {REGIOES.map(regiao => (
-                          <option key={regiao} value={regiao}>{regiao}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <CustomDropdown
+                      label="Região"
+                      options={[
+                        { value: '', label: 'Selecione' },
+                        ...REGIOES.map(regiao => ({ value: regiao, label: regiao }))
+                      ]}
+                      value={endereco.regiao}
+                      onChange={(value) => updateEnderecoNovoCliente(index, 'regiao', value)}
+                      placeholder="Selecione"
+                    />
                   </div>
 
                   <div className="grid grid-cols-3 gap-3 mb-3">

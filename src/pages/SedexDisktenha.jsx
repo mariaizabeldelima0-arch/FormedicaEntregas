@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   Dialog,
   DialogContent,
@@ -586,25 +588,24 @@ export default function SedexDisktenha() {
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Data e Horário *</Label>
-                <Input
-                  type="date"
+                <CustomDatePicker
+                  label="Data e Horário *"
                   value={novaEntrega.data_saida}
-                  onChange={(e) => setNovaEntrega({ ...novaEntrega, data_saida: e.target.value })}
+                  onChange={(value) => setNovaEntrega({ ...novaEntrega, data_saida: value })}
+                  placeholder="Selecione a data"
                 />
               </div>
-              <div>
-                <Label>Tipo de Entrega *</Label>
-                <select
-                  className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                  value={novaEntrega.tipo}
-                  onChange={(e) => setNovaEntrega({ ...novaEntrega, tipo: e.target.value })}
-                >
-                  <option value="SEDEX">SEDEX</option>
-                  <option value="PAC">PAC</option>
-                  <option value="DISKTENHA">DISKTENHA</option>
-                </select>
-              </div>
+              <CustomDropdown
+                label="Tipo de Entrega *"
+                options={[
+                  { value: 'SEDEX', label: 'SEDEX' },
+                  { value: 'PAC', label: 'PAC' },
+                  { value: 'DISKTENHA', label: 'DISKTENHA' }
+                ]}
+                value={novaEntrega.tipo}
+                onChange={(value) => setNovaEntrega({ ...novaEntrega, tipo: value })}
+                placeholder="Selecione o tipo"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -668,17 +669,16 @@ export default function SedexDisktenha() {
                   />
                 </div>
               )}
-              <div>
-                <Label>Status do Pagamento</Label>
-                <select
-                  className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                  value={novaEntrega.forma_pagamento}
-                  onChange={(e) => setNovaEntrega({ ...novaEntrega, forma_pagamento: e.target.value })}
-                >
-                  <option value="Aguardando">Aguardando</option>
-                  <option value="Pago">Pago</option>
-                </select>
-              </div>
+              <CustomDropdown
+                label="Status do Pagamento"
+                options={[
+                  { value: 'Aguardando', label: 'Aguardando' },
+                  { value: 'Pago', label: 'Pago' }
+                ]}
+                value={novaEntrega.forma_pagamento}
+                onChange={(value) => setNovaEntrega({ ...novaEntrega, forma_pagamento: value })}
+                placeholder="Selecione..."
+              />
             </div>
           </div>
 

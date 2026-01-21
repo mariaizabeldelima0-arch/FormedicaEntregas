@@ -1227,8 +1227,8 @@ export default function NovoRomaneio() {
                 position: 'absolute',
                 zIndex: 10,
                 background: 'white',
-                border: '2px solid #93c5fd',
-                borderRadius: '0.625rem',
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '0.5rem',
                 marginTop: '0.25rem',
                 maxHeight: '200px',
                 overflowY: 'auto',
@@ -1243,7 +1243,7 @@ export default function NovoRomaneio() {
                     style={{
                       padding: '0.75rem',
                       cursor: 'pointer',
-                      borderBottom: `1px solid ${theme.colors.border}`,
+                      borderBottom: index < clientesSugestoes.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
                       background: index === indiceSelecionado ? '#e3f2fd' : 'white',
                       transition: 'background 0.15s'
                     }}

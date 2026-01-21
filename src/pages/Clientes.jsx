@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CustomDropdown } from "@/components/CustomDropdown";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -352,21 +353,16 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Região
-                  </label>
-                  <select
+                  <CustomDropdown
+                    label="Região"
+                    options={[
+                      { value: '', label: 'Selecione a região' },
+                      ...REGIOES.map(regiao => ({ value: regiao.value, label: regiao.label }))
+                    ]}
                     value={endereco.regiao || ""}
-                    onChange={(e) => updateEndereco(index, 'regiao', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
-                    <option value="">Selecione a região</option>
-                    {REGIOES.map(regiao => (
-                      <option key={regiao.value} value={regiao.value}>
-                        {regiao.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => updateEndereco(index, 'regiao', value)}
+                    placeholder="Selecione a região"
+                  />
                 </div>
               </div>
 
@@ -1114,20 +1110,21 @@ export default function Clientes() {
                           className="pl-10"
                         />
                       </div>
-                      <select
+                      <CustomDropdown
+                        options={[
+                          { value: 'todas', label: 'Todos os Status' },
+                          { value: 'Produzindo no Laboratório', label: 'Produção' },
+                          { value: 'A Caminho', label: 'A Caminho' },
+                          { value: 'Entregue', label: 'Entregue' },
+                          { value: 'Pendente', label: 'Pendente' },
+                          { value: 'Não Entregue', label: 'Não Entregue' },
+                          { value: 'Voltou', label: 'Voltou' },
+                          { value: 'Cancelado', label: 'Cancelado' }
+                        ]}
                         value={filtroStatusEntrega}
-                        onChange={(e) => setFiltroStatusEntrega(e.target.value)}
-                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#457bba] focus:border-transparent"
-                      >
-                        <option value="todas">Todos os Status</option>
-                        <option value="Produzindo no Laboratório">Produção</option>
-                        <option value="A Caminho">A Caminho</option>
-                        <option value="Entregue">Entregue</option>
-                        <option value="Pendente">Pendente</option>
-                        <option value="Não Entregue">Não Entregue</option>
-                        <option value="Voltou">Voltou</option>
-                        <option value="Cancelado">Cancelado</option>
-                      </select>
+                        onChange={setFiltroStatusEntrega}
+                        placeholder="Todos os Status"
+                      />
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
