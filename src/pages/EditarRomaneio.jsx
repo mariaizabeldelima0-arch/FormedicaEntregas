@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
@@ -274,6 +274,7 @@ export default function EditarRomaneio() {
 
   const [loading, setLoading] = useState(false);
   const [loadingEntrega, setLoadingEntrega] = useState(true);
+  const carregamentoInicialRef = useRef(true);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
   const [showCadastroCliente, setShowCadastroCliente] = useState(false);
@@ -452,11 +453,10 @@ export default function EditarRomaneio() {
 
   // Detectar região automaticamente quando cidade ou bairro do novo endereço mudam
   useEffect(() => {
+    if (carregamentoInicialRef.current) return; // Não alterar região durante carregamento inicial
     if (novoEndereco.cidade && novoEndereco.bairro && showNovoEndereco) {
       const regiaoDetectada = detectarRegiao(novoEndereco.cidade, novoEndereco.bairro);
-      console.log('🔍 useEffect detectando região:', { cidade: novoEndereco.cidade, bairro: novoEndereco.bairro, regiaoDetectada });
       if (regiaoDetectada && regiaoDetectada !== formData.regiao) {
-        console.log('✅ Atualizando região para:', regiaoDetectada);
         handleRegiaoChange(regiaoDetectada);
       }
     }
@@ -572,9 +572,9 @@ export default function EditarRomaneio() {
         }
         setTodosEnderecos(todosEnderecosTemp);
 
-        // Carregar endereços do cliente principal (para compatibilidade)
+        // Carregar endereços do cliente principal (para compatibilidade) - sem auto-selecionar para não sobrescrever a região salva
         if (entrega.cliente_id) {
-          await carregarEnderecosCliente(entrega.cliente_id);
+          await carregarEnderecosCliente(entrega.cliente_id, false);
         }
 
         // Definir endereço selecionado baseado no endereco_id da entrega
@@ -593,10 +593,13 @@ export default function EditarRomaneio() {
         }
 
         setLoadingEntrega(false);
+        // Marcar que o carregamento inicial terminou (com delay para evitar que useEffects sobrescrevam a região)
+        setTimeout(() => { carregamentoInicialRef.current = false; }, 100);
       } catch (error) {
         console.error('Erro ao carregar entrega:', error);
         toast.error('Erro ao carregar dados da entrega');
         setLoadingEntrega(false);
+        carregamentoInicialRef.current = false;
       }
     }
 
@@ -724,7 +727,7 @@ export default function EditarRomaneio() {
   };
 
   // Carregar endereços do cliente
-  const carregarEnderecosCliente = async (clienteId) => {
+  const carregarEnderecosCliente = async (clienteId, autoSelecionar = true) => {
     console.log('Buscando endereços para cliente ID:', clienteId);
     try {
       const { data, error } = await supabase
@@ -739,8 +742,8 @@ export default function EditarRomaneio() {
       if (error) throw error;
       setClienteEnderecos(data || []);
 
-      // Se só tem um endereço, seleciona automaticamente
-      if (data && data.length === 1) {
+      // Se só tem um endereço, seleciona automaticamente (apenas quando não é carregamento inicial)
+      if (autoSelecionar && data && data.length === 1) {
         console.log('Selecionando endereço automaticamente:', data[0]);
         selecionarEndereco(data[0]);
       }
@@ -756,18 +759,28 @@ export default function EditarRomaneio() {
 
     setEnderecoSelecionado(endereco);
 
-    setFormData(prevFormData => ({
-      ...prevFormData,
-      endereco_id: endereco.id,
-      endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`,
-      regiao: endereco.regiao || ''
-    }));
+    // Só atualizar a região se NÃO for carregamento inicial
+    if (carregamentoInicialRef.current) {
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        endereco_id: endereco.id,
+        endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`
+      }));
+    } else {
+      const regiaoEndereco = endereco.regiao || detectarRegiao(endereco.cidade, endereco.bairro) || '';
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        endereco_id: endereco.id,
+        endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`,
+        regiao: regiaoEndereco
+      }));
 
-    setShowNovoEndereco(false);
+      setShowNovoEndereco(false);
 
-    // Atualizar região e calcular valor
-    if (endereco.regiao) {
-      handleRegiaoChange(endereco.regiao);
+      // Atualizar região e calcular valor
+      if (regiaoEndereco) {
+        handleRegiaoChange(regiaoEndereco);
+      }
     }
   };
 

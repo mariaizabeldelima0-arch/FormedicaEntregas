@@ -457,25 +457,46 @@ export default function PainelMotoboys() {
   // Primeiro dia do mês (para posicionar corretamente no calendário)
   const primeiroDiaDoMes = getDay(startOfMonth(mesAtual));
 
+  // Carregar status de pagamento da semana atual (semana: terça a segunda)
+  const inicioSemanaAtual = format(startOfWeek(dataSelecionada, { weekStartsOn: 2 }), 'yyyy-MM-dd');
+
+  useEffect(() => {
+    const carregarPagamentoSemana = async () => {
+      if (!motoboyId) return;
+      const { data } = await supabase
+        .from('motoboys')
+        .select('pagamentos_semanais')
+        .eq('id', motoboyId)
+        .single();
+
+      if (data?.pagamentos_semanais?.[inicioSemanaAtual]) {
+        setStatusPagamentoSemana(data.pagamentos_semanais[inicioSemanaAtual]);
+      } else {
+        setStatusPagamentoSemana('Aguardando');
+      }
+    };
+    carregarPagamentoSemana();
+  }, [motoboyId, inicioSemanaAtual]);
+
   // Mutation para salvar status de pagamento da semana
   const salvarPagamentoSemanaMutation = useMutation({
     mutationFn: async (status) => {
-      // Salvar no motoboy o status de pagamento da semana atual
-      const inicioSemana = format(startOfWeek(dataSelecionada, { weekStartsOn: 0 }), 'yyyy-MM-dd');
+      // Buscar pagamentos atuais do motoboy
+      const { data: motoboy } = await supabase
+        .from('motoboys')
+        .select('pagamentos_semanais')
+        .eq('id', motoboyId)
+        .single();
+
+      const pagamentosAtuais = motoboy?.pagamentos_semanais || {};
+      pagamentosAtuais[inicioSemanaAtual] = status;
+
       const { error } = await supabase
         .from('motoboys')
-        .update({ [`pagamento_semana_${inicioSemana}`]: status })
+        .update({ pagamentos_semanais: pagamentosAtuais })
         .eq('id', motoboyId);
 
-      // Se o campo não existir, salvar em metadados genéricos
-      if (error) {
-        // Fallback: salvar em campo pagamento_status
-        const { error: error2 } = await supabase
-          .from('motoboys')
-          .update({ pagamento_status: status })
-          .eq('id', motoboyId);
-        if (error2) throw error2;
-      }
+      if (error) throw error;
     },
     onSuccess: (_, status) => {
       setStatusPagamentoSemana(status);

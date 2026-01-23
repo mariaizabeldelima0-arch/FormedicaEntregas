@@ -31,9 +31,6 @@ export default function DetalhesRomaneio() {
   const { id } = useParams();
   const romaneioId = id || new URLSearchParams(window.location.search).get('id');
 
-  const [pagamentoMotoboy, setPagamentoMotoboy] = useState("Aguardando");
-  const [pagamentoRecebido, setPagamentoRecebido] = useState(false);
-
   const { data: romaneio, isLoading, error: queryError } = useQuery({
     queryKey: ['romaneio', romaneioId],
     queryFn: async () => {
@@ -114,12 +111,6 @@ export default function DetalhesRomaneio() {
     }
   }, [queryError]);
 
-  useEffect(() => {
-    if (romaneio) {
-      setPagamentoRecebido(romaneio.pagamento_recebido || false);
-    }
-  }, [romaneio]);
-
   const handleDelete = async () => {
     if (!confirm('Tem certeza que deseja excluir este romaneio?')) return;
 
@@ -136,26 +127,6 @@ export default function DetalhesRomaneio() {
     } catch (error) {
       console.error('Erro ao excluir:', error);
       toast.error('Erro ao excluir romaneio');
-    }
-  };
-
-  const handlePagamentoRecebidoChange = async (checked) => {
-    setPagamentoRecebido(checked);
-
-    try {
-      const { error } = await supabase
-        .from('entregas')
-        .update({ pagamento_recebido: checked })
-        .eq('id', romaneioId);
-
-      if (error) throw error;
-
-      toast.success('Pagamento atualizado!');
-      queryClient.invalidateQueries(['romaneio', romaneioId]);
-    } catch (error) {
-      console.error('Erro ao atualizar pagamento:', error);
-      toast.error('Erro ao atualizar pagamento');
-      setPagamentoRecebido(!checked);
     }
   };
 
@@ -569,48 +540,6 @@ export default function DetalhesRomaneio() {
                     </div>
                   )}
 
-                  <div className="border-t border-slate-200 pt-4 mt-2">
-                    <CustomDropdown
-                      label="Pagamento Motoboy"
-                      options={[
-                        { value: 'Aguardando', label: 'Aguardando' },
-                        { value: 'Pago', label: 'Pago' },
-                        { value: 'Pendente', label: 'Pendente' }
-                      ]}
-                      value={pagamentoMotoboy}
-                      onChange={setPagamentoMotoboy}
-                      placeholder="Selecione..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={pagamentoRecebido}
-                        onChange={(e) => handlePagamentoRecebidoChange(e.target.checked)}
-                        className="w-4 h-4"
-                        style={{ accentColor: '#376295' }}
-                      />
-                      <span className="text-sm text-slate-700 font-medium">
-                        Pagamento Recebido
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Código de Rastreio */}
-              <div className="rounded-xl shadow-lg p-6" style={{
-                background: 'linear-gradient(135deg, #890d5d 0%, #457bba 100%)'
-              }}>
-                <div className="text-sm font-semibold text-white opacity-90 mb-4 text-center">
-                  Código de Rastreio
-                </div>
-                <div className="bg-white bg-opacity-20 p-6 rounded-lg text-center backdrop-blur-sm">
-                  <div className="text-2xl font-bold text-white tracking-widest font-mono">
-                    {romaneio.codigo_rastreio || '54NVT9NS'}
-                  </div>
                 </div>
               </div>
 
