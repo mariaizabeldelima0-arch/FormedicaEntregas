@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, ChevronLeft } from 'lucide-react';
 import { CustomDropdown, CustomDatePicker } from '@/components';
 import {
@@ -268,6 +269,7 @@ const detectarRegiao = (cidade, bairro) => {
 export default function NovoRomaneio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
@@ -1128,6 +1130,7 @@ export default function NovoRomaneio() {
         item_geladeira: formData.item_geladeira,
         buscar_receita: formData.buscar_receita,
         observacoes: formData.observacoes,
+        atendente: user?.nome_atendente || user?.nome || '',
         clientes_adicionais: clientesAdicionais,
         precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,
         valor_troco: formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco ? formData.valor_troco : 0,

@@ -20,12 +20,14 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from '@/contexts/AuthContext';
 import ImpressaoRomaneio from "@/components/ImpressaoRomaneio";
 import { CustomDropdown } from "@/components/CustomDropdown";
 
 export default function DetalhesRomaneio() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { userType } = useAuth();
   const { id } = useParams();
   const romaneioId = id || new URLSearchParams(window.location.search).get('id');
 
@@ -276,37 +278,39 @@ export default function DetalhesRomaneio() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => navigate(`/editar-romaneio?id=${romaneioId}`)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                  style={{ backgroundColor: '#376295', color: 'white' }}
-                  title="Editar"
-                >
-                  <Edit size={16} />
-                  Editar
-                </button>
+              {userType !== 'motoboy' && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => navigate(`/editar-romaneio?id=${romaneioId}`)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                    style={{ backgroundColor: '#376295', color: 'white' }}
+                    title="Editar"
+                  >
+                    <Edit size={16} />
+                    Editar
+                  </button>
 
-                <button
-                  onClick={() => window.print()}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                  style={{ backgroundColor: '#890d5d', color: 'white' }}
-                  title="Imprimir"
-                >
-                  <Printer size={16} />
-                  Imprimir
-                </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                    style={{ backgroundColor: '#890d5d', color: 'white' }}
+                    title="Imprimir"
+                  >
+                    <Printer size={16} />
+                    Imprimir
+                  </button>
 
-                <button
-                  onClick={handleDelete}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                  style={{ backgroundColor: '#ef4444', color: 'white' }}
-                  title="Excluir"
-                >
-                  <Trash2 size={16} />
-                  Excluir
-                </button>
-              </div>
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                    style={{ backgroundColor: '#ef4444', color: 'white' }}
+                    title="Excluir"
+                  >
+                    <Trash2 size={16} />
+                    Excluir
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

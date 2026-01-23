@@ -96,7 +96,6 @@ export default function Layout({ children }) {
       { icon: 'aviao', label: 'Sedex/Disktenha', path: '/sedex' },
       { icon: 'adicionar', label: 'Novo Romaneio', path: '/novo-romaneio' },
       { icon: 'usuarios', label: 'Clientes', path: '/clientes' },
-      { icon: 'grafico', label: 'Relatórios', path: '/relatorios' },
       { icon: 'documento', label: 'Receitas', path: '/receitas' },
       { icon: 'dinheiro', label: 'Pagamentos', path: '/pagamentos' },
       { icon: 'calendario', label: 'Planilha Diária', path: '/planilha-diaria' },
@@ -108,7 +107,6 @@ export default function Layout({ children }) {
       { icon: 'aviao', label: 'Sedex/Disktenha', path: '/sedex' },
       { icon: 'adicionar', label: 'Novo Romaneio', path: '/novo-romaneio' },
       { icon: 'usuarios', label: 'Clientes', path: '/clientes' },
-      { icon: 'grafico', label: 'Relatórios', path: '/relatorios' },
       { icon: 'dinheiro', label: 'Pagamentos', path: '/pagamentos' },
     ],
     motoboy: [

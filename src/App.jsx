@@ -109,7 +109,7 @@ function AppRoutes() {
                 <Route path="/sedex-detalhes" element={<MotoboyRoute><DetalheSedexDisktenha /></MotoboyRoute>} />
                 <Route path="/novo-romaneio" element={<MotoboyRoute><NovoRomaneio /></MotoboyRoute>} />
                 <Route path="/editar-romaneio" element={<MotoboyRoute><EditarRomaneio /></MotoboyRoute>} />
-                <Route path="/detalhes-romaneio" element={<MotoboyRoute><DetalhesRomaneio /></MotoboyRoute>} />
+                <Route path="/detalhes-romaneio" element={<DetalhesRomaneio />} />
                 <Route path="/clientes" element={<MotoboyRoute><Clientes /></MotoboyRoute>} />
                 <Route path="/historico-clientes" element={<MotoboyRoute><div style={{padding: '2rem'}}>Histórico - Em construção</div></MotoboyRoute>} />
                 <Route path="/relatorios" element={<MotoboyRoute><Relatorios /></MotoboyRoute>} />

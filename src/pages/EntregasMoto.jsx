@@ -933,9 +933,10 @@ export default function EntregasMoto() {
               <div className="grid grid-cols-4 gap-4">
                 {/* Card Filtros Motoboy - Informativo */}
                 <div
-                  className="bg-slate-100 rounded-lg shadow-sm px-4 py-3 flex items-center justify-center gap-2"
+                  className="rounded-lg shadow-sm px-4 py-3 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#e2e8f0' }}
                 >
-                  <Truck className="w-5 h-5 text-slate-500" />
+                  <Truck className="w-5 h-5 text-slate-600" />
                   <span className="text-sm font-semibold text-slate-600">Filtros Motoboy</span>
                 </div>
 
@@ -1267,20 +1268,15 @@ export default function EntregasMoto() {
                         <div className="flex items-center justify-between gap-6">
                           {/* Lado Esquerdo - Informações */}
                           <div className="flex-1">
-                            {/* Linha 1: Requisição + Atendente + Status */}
-                            <div className="flex items-center gap-2 mb-3">
+                            {/* Linha 1: Requisição + Nome do Cliente + Status */}
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <span className="text-base font-semibold" style={{ color: '#376295' }}>
                                 #{entrega.requisicao}
                               </span>
-                              {entrega.atendente && (
-                                <>
-                                  <span className="text-slate-400">•</span>
-                                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5" />
-                                    {entrega.atendente}
-                                  </span>
-                                </>
-                              )}
+                              <span className="text-slate-400">•</span>
+                              <span className="text-lg font-bold text-slate-900">
+                                {formatarNomesClientes(entrega)}
+                              </span>
                               <span
                                 className="px-3 py-1 rounded text-xs font-medium"
                                 style={{
@@ -1302,10 +1298,13 @@ export default function EntregasMoto() {
                               </span>
                             </div>
 
-                            {/* Linha 2: Nome do Cliente */}
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">
-                              {formatarNomesClientes(entrega)}
-                            </h3>
+                            {/* Linha 2: Atendente */}
+                            {entrega.atendente && (
+                              <div className="text-sm text-slate-500 mb-2 flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5" />
+                                {entrega.atendente}
+                              </div>
+                            )}
 
                             {/* Linha 3: Endereço */}
                             <div className="mb-3 text-sm text-slate-600">
@@ -1447,20 +1446,15 @@ export default function EntregasMoto() {
                         <div className="flex items-center justify-between gap-6">
                           {/* Lado Esquerdo - Informações */}
                           <div className="flex-1">
-                            {/* Linha 1: Requisição + Atendente + Status */}
-                            <div className="flex items-center gap-2 mb-3">
+                            {/* Linha 1: Requisição + Nome do Cliente + Status */}
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <span className="text-base font-semibold" style={{ color: '#376295' }}>
                                 #{entrega.requisicao}
                               </span>
-                              {entrega.atendente && (
-                                <>
-                                  <span className="text-slate-400">•</span>
-                                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5" />
-                                    {entrega.atendente}
-                                  </span>
-                                </>
-                              )}
+                              <span className="text-slate-400">•</span>
+                              <span className="text-lg font-bold text-slate-900">
+                                {formatarNomesClientes(entrega)}
+                              </span>
                               <span
                                 className="px-3 py-1 rounded text-xs font-medium"
                                 style={{
@@ -1482,10 +1476,13 @@ export default function EntregasMoto() {
                               </span>
                             </div>
 
-                            {/* Linha 2: Nome do Cliente */}
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">
-                              {formatarNomesClientes(entrega)}
-                            </h3>
+                            {/* Linha 2: Atendente */}
+                            {entrega.atendente && (
+                              <div className="text-sm text-slate-500 mb-2 flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5" />
+                                {entrega.atendente}
+                              </div>
+                            )}
 
                             {/* Linha 3: Endereço */}
                             <div className="mb-3 text-sm text-slate-600">

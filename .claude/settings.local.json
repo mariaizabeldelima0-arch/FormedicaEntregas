@@ -38,7 +38,10 @@
       "Bash(xargs sed:*)",
       "Bash(git checkout:*)",
       "Bash(node scripts/criar-romaneios-teste.js:*)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(node -e:*)",
+      "Bash(node --experimental-fetch -e \"\nasync function main\\(\\) {\n  const res = await fetch\\(''https://ccnbkympqhtgfotrmguz.supabase.co/rest/v1/rpc/exec_raw_sql'', {\n    method: ''POST'',\n    headers: {\n      ''Content-Type'': ''application/json'',\n      ''apikey'': ''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjbmJreW1wcWh0Z2ZvdHJtZ3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NzAxNzcsImV4cCI6MjA4MTE0NjE3N30.2uhxv75YfnO_eqsCR_-r2v78S-fe_sWAYp6vKOUrWm0'',\n      ''Authorization'': ''Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjbmJreW1wcWh0Z2ZvdHJtZ3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NzAxNzcsImV4cCI6MjA4MTE0NjE3N30.2uhxv75YfnO_eqsCR_-r2v78S-fe_sWAYp6vKOUrWm0''\n    },\n    body: JSON.stringify\\({ query: \"\"ALTER TABLE entregas ADD COLUMN IF NOT EXISTS atendente text\"\" }\\)\n  }\\);\n  console.log\\(''Status:'', res.status, await res.text\\(\\)\\);\n}\nmain\\(\\);\n\")",
+      "Bash(npx supabase --version)"
     ]
   }
 }

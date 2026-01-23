@@ -32,7 +32,6 @@ import {
   AlertTriangle,
   Check,
   X,
-  GripVertical,
   Sun,
   Sunrise,
   Sunset,
@@ -94,6 +93,7 @@ export default function PainelMotoboys() {
   const [mostrarMapa, setMostrarMapa] = useState(false);
   const [coordenadas, setCoordenadas] = useState({});
   const [carregandoMapa, setCarregandoMapa] = useState(false);
+  const [statusPagamentoSemana, setStatusPagamentoSemana] = useState('Aguardando');
 
   // Definição dos status disponíveis (Em Rota é o padrão)
   const statusOptions = [
@@ -108,7 +108,6 @@ export default function PainelMotoboys() {
   // Função para normalizar status antigos para os novos
   const normalizarStatus = (status) => {
     if (!status) return STATUS_PADRAO;
-    // Mapear status antigos
     const mapeamento = {
       'A Caminho': 'Em Rota',
       'Não Entregue': 'Voltou p/ Farmácia',
@@ -116,9 +115,8 @@ export default function PainelMotoboys() {
     return mapeamento[status] || status;
   };
 
-  const [draggedItem, setDraggedItem] = useState(null);
-
   const isMotoboy = userType === 'motoboy';
+  const isAdmin = userType === 'admin';
   const nomeMotoboyUsuario = user?.nome_motoboy;
 
   // Buscar lista de motoboys
@@ -222,14 +220,6 @@ export default function PainelMotoboys() {
     return true;
   });
 
-  // Agrupar por cidade
-  const entregasPorCidade = entregasFiltradas.reduce((acc, entrega) => {
-    const cidade = entrega.endereco?.cidade || 'Sem cidade';
-    if (!acc[cidade]) acc[cidade] = [];
-    acc[cidade].push(entrega);
-    return acc;
-  }, {});
-
   // Lista de cidades disponíveis
   const cidadesDisponiveis = [...new Set(entregasDoDia.map(e => e.endereco?.cidade).filter(Boolean))];
 
@@ -324,45 +314,37 @@ export default function PainelMotoboys() {
     },
     onError: (error) => {
       console.error('Erro ao salvar ordem:', error);
-      toast.error('Erro ao salvar ordem. O campo pode não existir no banco.');
+      toast.error('Erro ao salvar ordem.');
     }
   });
 
-  // Funções de Drag and Drop
-  const handleDragStart = (e, entrega, cidade) => {
-    setDraggedItem({ entrega, cidade });
-    e.dataTransfer.effectAllowed = 'move';
-  };
+  // Função para mover entrega com setas (cima/baixo)
+  const handleMoverEntrega = (entregaId, direcao, periodo) => {
+    // Pegar entregas do mesmo período ordenadas
+    const entregasDoPeriodo = entregasFiltradas
+      .filter(e => {
+        if (periodo === 'Manhã') return e.periodo === 'Manhã';
+        if (periodo === 'Tarde') return e.periodo === 'Tarde';
+        return !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde');
+      });
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+    const entregasOrdenadas = [...entregasDoPeriodo].sort((a, b) => {
+      const ordemA = ordemEntregas[a.id] ?? a.ordem_entrega ?? 999;
+      const ordemB = ordemEntregas[b.id] ?? b.ordem_entrega ?? 999;
+      return ordemA - ordemB;
+    });
 
-  const handleDrop = (e, targetEntrega, targetCidade) => {
-    e.preventDefault();
-    if (!draggedItem || draggedItem.entrega.id === targetEntrega.id) return;
+    const currentIndex = entregasOrdenadas.findIndex(e => e.id === entregaId);
+    if (currentIndex === -1) return;
 
-    // Só permite reorganizar dentro da mesma cidade
-    if (draggedItem.cidade !== targetCidade) {
-      toast.error('Só é possível reorganizar entregas da mesma cidade');
-      return;
-    }
+    const targetIndex = direcao === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= entregasOrdenadas.length) return;
 
-    const cidade = targetCidade;
-    const entregasDaCidade = entregasFiltradas
-      .filter(e => (e.endereco?.cidade || 'Sem cidade') === cidade)
-      .sort((a, b) => (ordemEntregas[a.id] ?? a.ordem_entrega ?? 999) - (ordemEntregas[b.id] ?? b.ordem_entrega ?? 999));
-
-    const dragIndex = entregasDaCidade.findIndex(e => e.id === draggedItem.entrega.id);
-    const dropIndex = entregasDaCidade.findIndex(e => e.id === targetEntrega.id);
-
-    if (dragIndex === -1 || dropIndex === -1) return;
-
-    // Reordenar
-    const novaOrdem = [...entregasDaCidade];
-    const [removed] = novaOrdem.splice(dragIndex, 1);
-    novaOrdem.splice(dropIndex, 0, removed);
+    // Trocar posições
+    const novaOrdem = [...entregasOrdenadas];
+    const temp = novaOrdem[currentIndex];
+    novaOrdem[currentIndex] = novaOrdem[targetIndex];
+    novaOrdem[targetIndex] = temp;
 
     // Atualizar estado de ordem
     const novaOrdemObj = { ...ordemEntregas };
@@ -371,14 +353,7 @@ export default function PainelMotoboys() {
     });
 
     setOrdemEntregas(novaOrdemObj);
-    setDraggedItem(null);
-
-    // Salvar automaticamente
     salvarOrdemMutation.mutate(novaOrdemObj);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedItem(null);
   };
 
   // Ordenar entregas por ordem personalizada
@@ -395,13 +370,16 @@ export default function PainelMotoboys() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
   };
 
+  const abrirRomaneio = (entrega) => {
+    navigate(`/detalhes-romaneio?id=${entrega.id}`);
+  };
+
   const motoboyAtual = motoboys.find(m => m.id === motoboyId);
 
   // Função para geocodificar um endereço
   const geocodificarEndereco = async (endereco) => {
     const query = `${endereco.logradouro}, ${endereco.numero}, ${endereco.bairro}, ${endereco.cidade}, Brasil`;
 
-    // Verificar cache
     if (geocodeCache[query]) {
       return geocodeCache[query];
     }
@@ -442,7 +420,6 @@ export default function PainelMotoboys() {
           novasCoordenadas[entrega.id] = coords;
         }
 
-        // Delay para respeitar limite da API Nominatim
         await new Promise(resolve => setTimeout(resolve, 300));
       }
 
@@ -457,7 +434,6 @@ export default function PainelMotoboys() {
   const centroMapa = useMemo(() => {
     const coords = Object.values(coordenadas);
     if (coords.length === 0) {
-      // Centro padrão (São Paulo)
       return [-23.5505, -46.6333];
     }
 
@@ -480,6 +456,35 @@ export default function PainelMotoboys() {
 
   // Primeiro dia do mês (para posicionar corretamente no calendário)
   const primeiroDiaDoMes = getDay(startOfMonth(mesAtual));
+
+  // Mutation para salvar status de pagamento da semana
+  const salvarPagamentoSemanaMutation = useMutation({
+    mutationFn: async (status) => {
+      // Salvar no motoboy o status de pagamento da semana atual
+      const inicioSemana = format(startOfWeek(dataSelecionada, { weekStartsOn: 0 }), 'yyyy-MM-dd');
+      const { error } = await supabase
+        .from('motoboys')
+        .update({ [`pagamento_semana_${inicioSemana}`]: status })
+        .eq('id', motoboyId);
+
+      // Se o campo não existir, salvar em metadados genéricos
+      if (error) {
+        // Fallback: salvar em campo pagamento_status
+        const { error: error2 } = await supabase
+          .from('motoboys')
+          .update({ pagamento_status: status })
+          .eq('id', motoboyId);
+        if (error2) throw error2;
+      }
+    },
+    onSuccess: (_, status) => {
+      setStatusPagamentoSemana(status);
+      toast.success(`Status de pagamento: ${status}`);
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar status de pagamento');
+    }
+  });
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
@@ -562,7 +567,6 @@ export default function PainelMotoboys() {
 
               {/* Dias do mês */}
               <div className="grid grid-cols-7 gap-1">
-                {/* Espaços vazios antes do primeiro dia */}
                 {Array.from({ length: primeiroDiaDoMes }).map((_, i) => (
                   <div key={`empty-${i}`} className="aspect-square" />
                 ))}
@@ -624,7 +628,6 @@ export default function PainelMotoboys() {
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="font-semibold text-slate-700 mb-3">Resumo do Dia</h3>
 
-              {/* Cabeçalho */}
               <div className="flex items-center justify-between text-xs text-slate-500 mb-2 pb-2 border-b border-slate-100">
                 <span>Local</span>
                 <div className="flex items-center gap-4">
@@ -656,7 +659,7 @@ export default function PainelMotoboys() {
             {/* Semana */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-slate-700">Semana - Aguardando</h3>
+                <h3 className="font-semibold text-slate-700">Semana</h3>
                 <span className="text-xs text-slate-500">
                   {format(semanaTrabalho[0]?.data || new Date(), 'dd/MM')} - {format(semanaTrabalho[6]?.data || new Date(), 'dd/MM')}
                 </span>
@@ -684,6 +687,59 @@ export default function PainelMotoboys() {
               <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
                 <span className="font-bold text-slate-700">TOTAL</span>
                 <span className="font-bold text-green-600">R$ {totalSemana.toFixed(2)}</span>
+              </div>
+
+              {/* Status de Pagamento da Semana */}
+              <div className="mt-3 pt-3 border-t border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-slate-700">Pagamento da Semana</span>
+                </div>
+
+                {isAdmin ? (
+                  // Admin: mostra botões para alternar
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setStatusPagamentoSemana('Aguardando');
+                        salvarPagamentoSemanaMutation.mutate('Aguardando');
+                      }}
+                      className="flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all"
+                      style={{
+                        backgroundColor: statusPagamentoSemana === 'Aguardando' ? '#f59e0b' : '#fef3c7',
+                        color: statusPagamentoSemana === 'Aguardando' ? 'white' : '#92400e',
+                        border: statusPagamentoSemana === 'Aguardando' ? '2px solid #f59e0b' : '2px solid #fcd34d'
+                      }}
+                    >
+                      Aguardando
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStatusPagamentoSemana('Pago');
+                        salvarPagamentoSemanaMutation.mutate('Pago');
+                      }}
+                      className="flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all"
+                      style={{
+                        backgroundColor: statusPagamentoSemana === 'Pago' ? '#15803d' : '#dcfce7',
+                        color: statusPagamentoSemana === 'Pago' ? 'white' : '#166534',
+                        border: statusPagamentoSemana === 'Pago' ? '2px solid #15803d' : '2px solid #86efac'
+                      }}
+                    >
+                      Pago
+                    </button>
+                  </div>
+                ) : (
+                  // Motoboy: mostra apenas o status selecionado
+                  <div
+                    className="py-2 px-4 rounded-lg text-sm font-bold text-center"
+                    style={{
+                      backgroundColor: statusPagamentoSemana === 'Pago' ? '#dcfce7' : '#fef3c7',
+                      color: statusPagamentoSemana === 'Pago' ? '#166534' : '#92400e',
+                      border: statusPagamentoSemana === 'Pago' ? '2px solid #86efac' : '2px solid #fcd34d'
+                    }}
+                  >
+                    {statusPagamentoSemana === 'Pago' ? '✓ Pago' : '⏳ Aguardando'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -830,7 +886,6 @@ export default function PainelMotoboys() {
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
 
-                    {/* Linha da rota */}
                     {rotaCoordenadas.length > 1 && (
                       <Polyline
                         positions={rotaCoordenadas}
@@ -841,7 +896,6 @@ export default function PainelMotoboys() {
                       />
                     )}
 
-                    {/* Marcadores das entregas */}
                     {entregasOrdenadas.map((entrega, index) => {
                       const coords = coordenadas[entrega.id];
                       if (!coords) return null;
@@ -895,10 +949,11 @@ export default function PainelMotoboys() {
               </div>
             )}
 
-            {/* Dica de arrastar */}
+            {/* Dica de setas */}
             <div className="flex items-center gap-2 text-sm text-slate-500 px-2">
-              <GripVertical className="w-4 h-4" />
-              <span>Arraste as entregas para reorganizar sua rota</span>
+              <ChevronUp className="w-4 h-4" />
+              <ChevronDown className="w-4 h-4" />
+              <span>Use as setas para reorganizar a ordem das entregas</span>
             </div>
 
             {/* Lista de Entregas */}
@@ -908,6 +963,7 @@ export default function PainelMotoboys() {
                 {(() => {
                   const entregasManha = entregasFiltradas.filter(e => e.periodo === 'Manhã');
                   if (entregasManha.length === 0) return null;
+                  const entregasOrdenadas = ordenarEntregas(entregasManha);
 
                   return (
                     <div className="mb-6">
@@ -922,20 +978,17 @@ export default function PainelMotoboys() {
                       </div>
 
                       <div className="space-y-3">
-                        {ordenarEntregas(entregasManha).map((entrega, index) => (
+                        {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
                             entrega={entrega}
                             index={index + 1}
-                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            totalEntregas={entregasManha.length}
                             onStatusChange={handleStatusChange}
                             isUpdating={updateStatusMutation.isPending}
                             onAbrirMapa={abrirMapa}
-                            onDragStart={handleDragStart}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            onDragEnd={handleDragEnd}
-                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            onMoverEntrega={(id, dir) => handleMoverEntrega(id, dir, 'Manhã')}
+                            onVerDetalhes={abrirRomaneio}
                             statusOptions={statusOptions}
                             normalizarStatus={normalizarStatus}
                           />
@@ -949,6 +1002,7 @@ export default function PainelMotoboys() {
                 {(() => {
                   const entregasTarde = entregasFiltradas.filter(e => e.periodo === 'Tarde');
                   if (entregasTarde.length === 0) return null;
+                  const entregasOrdenadas = ordenarEntregas(entregasTarde);
 
                   return (
                     <div className="mb-6">
@@ -963,20 +1017,17 @@ export default function PainelMotoboys() {
                       </div>
 
                       <div className="space-y-3">
-                        {ordenarEntregas(entregasTarde).map((entrega, index) => (
+                        {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
                             entrega={entrega}
                             index={index + 1}
-                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            totalEntregas={entregasTarde.length}
                             onStatusChange={handleStatusChange}
                             isUpdating={updateStatusMutation.isPending}
                             onAbrirMapa={abrirMapa}
-                            onDragStart={handleDragStart}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            onDragEnd={handleDragEnd}
-                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            onMoverEntrega={(id, dir) => handleMoverEntrega(id, dir, 'Tarde')}
+                            onVerDetalhes={abrirRomaneio}
                             statusOptions={statusOptions}
                             normalizarStatus={normalizarStatus}
                           />
@@ -990,6 +1041,7 @@ export default function PainelMotoboys() {
                 {(() => {
                   const entregasSemPeriodo = entregasFiltradas.filter(e => !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde'));
                   if (entregasSemPeriodo.length === 0) return null;
+                  const entregasOrdenadas = ordenarEntregas(entregasSemPeriodo);
 
                   return (
                     <div className="mb-6">
@@ -1004,20 +1056,17 @@ export default function PainelMotoboys() {
                       </div>
 
                       <div className="space-y-3">
-                        {ordenarEntregas(entregasSemPeriodo).map((entrega, index) => (
+                        {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
                             entrega={entrega}
                             index={index + 1}
-                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            totalEntregas={entregasSemPeriodo.length}
                             onStatusChange={handleStatusChange}
                             isUpdating={updateStatusMutation.isPending}
                             onAbrirMapa={abrirMapa}
-                            onDragStart={handleDragStart}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            onDragEnd={handleDragEnd}
-                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            onMoverEntrega={(id, dir) => handleMoverEntrega(id, dir, 'sem_periodo')}
+                            onVerDetalhes={abrirRomaneio}
                             statusOptions={statusOptions}
                             normalizarStatus={normalizarStatus}
                           />
@@ -1102,20 +1151,15 @@ function EntregaCard({
 
           {/* Conteúdo Principal */}
           <div className="flex-1">
-            {/* Linha 1: Requisição + Atendente + Status */}
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
+            {/* Linha 1: Requisição + Nome do Cliente + Status */}
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="text-base font-semibold" style={{ color: '#376295' }}>
                 #{entrega.requisicao || '0000'}
               </span>
-              {entrega.atendente && (
-                <>
-                  <span className="text-slate-400">•</span>
-                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5" />
-                    {entrega.atendente}
-                  </span>
-                </>
-              )}
+              <span className="text-slate-400">•</span>
+              <span className="text-lg font-bold text-slate-900">
+                {entrega.cliente?.nome || 'Cliente'}
+              </span>
               <span
                 className="px-3 py-1 rounded text-xs font-medium"
                 style={{
@@ -1127,10 +1171,13 @@ function EntregaCard({
               </span>
             </div>
 
-            {/* Linha 2: Nome do Cliente */}
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
-              {entrega.cliente?.nome || 'Cliente'}
-            </h3>
+            {/* Linha 2: Atendente */}
+            {entrega.atendente && (
+              <div className="text-sm text-slate-500 mb-2 flex items-center gap-1">
+                <User className="w-3.5 h-3.5" />
+                {entrega.atendente}
+              </div>
+            )}
 
             {/* Linha 3: Endereço */}
             <div className="mb-3 text-sm text-slate-600">
@@ -1166,7 +1213,7 @@ function EntregaCard({
               )}
             </div>
 
-            {/* Destaque para Cobrança */}
+            {/* Destaque para Cobrança (Receber Dinheiro / Receber Máquina) */}
             {temCobranca && valorCobrar > 0 && (
               <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: '#e8f5e9', border: '2px solid #4caf50' }}>
                 <div className="flex items-center gap-2 mb-1">
