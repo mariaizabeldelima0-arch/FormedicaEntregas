@@ -8,6 +8,7 @@ import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown } from "lucide-react";
+import html2pdf from "html2pdf.js";
 import { createPageUrl } from "@/utils";
 import { CustomDropdown } from "@/components/CustomDropdown";
 import { CustomDatePicker } from "@/components/CustomDatePicker";
@@ -208,7 +209,44 @@ export default function PlanilhaDiaria() {
     setSelectedDate(newDate);
   };
 
-  // Função para imprimir/salvar PDF
+  const contentRef = React.useRef(null);
+
+  // Função para salvar PDF automaticamente na pasta Downloads
+  const handleSavePDF = () => {
+    const element = contentRef.current;
+    if (!element) return;
+
+    const dataStr = !visualizarTodas ? format(selectedDate, 'dd-MM-yyyy') : 'Todas';
+    const nomeArquivo = `Entregas ${dataStr}.pdf`;
+
+    // Esconder elementos que não devem aparecer no PDF (resumo + coluna Ver)
+    const hideElements = element.querySelectorAll('.print-hide');
+    hideElements.forEach(el => el.style.display = 'none');
+
+    // Mostrar título do PDF
+    const pdfTitle = element.querySelector('.pdf-title');
+    if (pdfTitle) pdfTitle.style.display = 'block';
+
+    const opt = {
+      margin: 5,
+      filename: nomeArquivo,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      hideElements.forEach(el => el.style.display = '');
+      if (pdfTitle) pdfTitle.style.display = 'none';
+      toast.success(`PDF salvo: ${nomeArquivo}`);
+    }).catch(() => {
+      hideElements.forEach(el => el.style.display = '');
+      if (pdfTitle) pdfTitle.style.display = 'none';
+      toast.error('Erro ao salvar PDF');
+    });
+  };
+
+  // Função para imprimir
   const handlePrint = () => {
     window.print();
   };
@@ -377,7 +415,7 @@ export default function PlanilhaDiaria() {
 
               {/* Botão Salvar PDF */}
               <button
-                onClick={handlePrint}
+                onClick={handleSavePDF}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap text-white"
                 style={{ backgroundColor: '#376295' }}
               >
@@ -398,7 +436,12 @@ export default function PlanilhaDiaria() {
           </div>
 
           {/* Main Content - Tabelas */}
-          <div className="space-y-6">
+          <div className="space-y-6" ref={contentRef}>
+            {/* Título do PDF (escondido na tela, visível apenas no PDF gerado) */}
+            <div className="pdf-title" style={{ display: 'none', textAlign: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', paddingTop: '5px' }}>
+              Entregas {!visualizarTodas ? format(selectedDate, 'dd/MM/yyyy') : '- Todas'}
+              {filtroMotoboy !== 'todos' ? ` (${filtroMotoboy})` : ''}
+            </div>
             {/* Tabela Principal - Romaneios */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
               <div className="px-4 py-3" style={{ backgroundColor: '#376295' }}>
@@ -495,16 +538,14 @@ export default function PlanilhaDiaria() {
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <CustomDropdown
                               options={[
-                                { value: 'Pendente', label: 'Pendente' },
-                                { value: 'Produção', label: 'Produção' },
-                                { value: 'Preparando', label: 'Preparando' },
+                                { value: 'Produzindo no Laboratório', label: 'Produção' },
                                 { value: 'A Caminho', label: 'A Caminho' },
                                 { value: 'Entregue', label: 'Entregue' },
                                 { value: 'Não Entregue', label: 'Não Entregue' },
                                 { value: 'Voltou', label: 'Voltou' },
                                 { value: 'Cancelado', label: 'Cancelado' }
                               ]}
-                              value={rom.status || 'Pendente'}
+                              value={rom.status || 'Produzindo no Laboratório'}
                               onChange={(val) => handleQuickStatusUpdate(rom.id, val, 'romaneio')}
                               disabled={updateRomaneioMutation.isPending}
                               className="text-[10px]"
@@ -635,7 +676,7 @@ export default function PlanilhaDiaria() {
             </div>
 
             {/* Resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print-hide">
               <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
