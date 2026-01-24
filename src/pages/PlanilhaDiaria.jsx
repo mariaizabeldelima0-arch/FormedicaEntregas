@@ -541,7 +541,9 @@ export default function PlanilhaDiaria() {
                             <CustomDropdown
                               options={[
                                 { value: 'Produzindo no Laboratório', label: 'Produção' },
+                                { value: 'Preparando no Setor de Entregas', label: 'Preparando' },
                                 { value: 'A Caminho', label: 'A Caminho' },
+                                { value: 'Em Rota', label: 'Em Rota' },
                                 { value: 'Entregue', label: 'Entregue' },
                                 { value: 'Não Entregue', label: 'Não Entregue' },
                                 { value: 'Voltou', label: 'Voltou' },
@@ -550,7 +552,6 @@ export default function PlanilhaDiaria() {
                               value={rom.status || 'Produzindo no Laboratório'}
                               onChange={(val) => handleQuickStatusUpdate(rom.id, val, 'romaneio')}
                               disabled={updateRomaneioMutation.isPending}
-                              className="text-[10px]"
                             />
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-center">
