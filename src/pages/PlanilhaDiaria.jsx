@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { format, parseISO, isSameDay } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown } from "lucide-react";
@@ -144,8 +144,10 @@ export default function PlanilhaDiaria() {
   const romaneiosFiltrados = romaneios.filter(r => {
     if (!visualizarTodas && r.data_entrega) {
       try {
-        const dataEntrega = new Date(r.data_entrega);
-        if (!isSameDay(dataEntrega, selectedDate)) return false;
+        // Comparar apenas as strings de data (yyyy-MM-dd) para evitar problemas de timezone
+        const dataEntregaStr = r.data_entrega.substring(0, 10);
+        const dataSelecionadaStr = format(selectedDate, 'yyyy-MM-dd');
+        if (dataEntregaStr !== dataSelecionadaStr) return false;
       } catch (error) {
         console.error('Erro ao fazer parse da data:', r.data_entrega, error);
         return false;
