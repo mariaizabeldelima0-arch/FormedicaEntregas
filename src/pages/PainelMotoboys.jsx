@@ -647,7 +647,7 @@ export default function PainelMotoboys() {
 
             {/* Resumo do Dia */}
             <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-700 mb-3">Resumo do Dia</h3>
+              <h3 className="font-semibold text-slate-700 mb-3">Resumo do Dia - {format(dataSelecionada, "dd/MM/yyyy")}</h3>
 
               <div className="flex items-center justify-between text-xs text-slate-500 mb-2 pb-2 border-b border-slate-100">
                 <span>Local</span>

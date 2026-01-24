@@ -1235,6 +1235,60 @@ export default function EditarRomaneio() {
 
       if (error) throw error;
 
+      // Atualizar valores de entregas do Bruno (promover ou rebaixar entrega única)
+      if (formData.motoboy === 'Bruno' && motoboyId) {
+        try {
+          // Contar entregas do Bruno na data para cada período
+          const { count: countManha } = await supabase
+            .from('entregas')
+            .select('*', { count: 'exact', head: true })
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', formData.data_entrega)
+            .eq('periodo', 'Manhã');
+
+          const { count: countTarde } = await supabase
+            .from('entregas')
+            .select('*', { count: 'exact', head: true })
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', formData.data_entrega)
+            .eq('periodo', 'Tarde');
+
+          const { data: entregasDoDia } = await supabase
+            .from('entregas')
+            .select('id, regiao, valor')
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', formData.data_entrega);
+
+          if (entregasDoDia && entregasDoDia.length > 0) {
+            const ehUnica = countManha <= 1 && countTarde <= 1;
+
+            for (const entrega of entregasDoDia) {
+              const valorUnico = VALORES_ENTREGA_UNICA_BRUNO[entrega.regiao];
+              const valorNormal = VALORES_ENTREGA['Bruno']?.[entrega.regiao];
+              if (!valorUnico || !valorNormal) continue;
+
+              if (ehUnica && entrega.valor === valorNormal) {
+                // Promover para entrega única
+                await supabase
+                  .from('entregas')
+                  .update({ valor: valorUnico })
+                  .eq('id', entrega.id);
+                console.log(`Entrega ${entrega.id} promovida: R$${valorNormal} → R$${valorUnico}`);
+              } else if (!ehUnica && entrega.valor === valorUnico) {
+                // Rebaixar para valor normal
+                await supabase
+                  .from('entregas')
+                  .update({ valor: valorNormal })
+                  .eq('id', entrega.id);
+                console.log(`Entrega ${entrega.id} rebaixada: R$${valorUnico} → R$${valorNormal}`);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao atualizar entregas únicas do Bruno:', err);
+        }
+      }
+
       // Invalidar queries relevantes
       queryClient.invalidateQueries({ queryKey: ['entregas'] });
       queryClient.invalidateQueries({ queryKey: ['receitas'] });

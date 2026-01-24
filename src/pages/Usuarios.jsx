@@ -640,22 +640,14 @@ function UsuarioCard({ dispositivo, motoboys, onUpdateTipo, onEditar, onExcluir,
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">
-          {/* Botões de Autorização */}
-          {isPendente ? (
+          {/* Botão de Autorização (apenas para pendentes) */}
+          {isPendente && (
             <button
               onClick={() => onAutorizar(dispositivo.id, 'Autorizado')}
               className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium"
             >
               <CheckCircle className="w-4 h-4" />
               Autorizar
-            </button>
-          ) : (
-            <button
-              onClick={() => onAutorizar(dispositivo.id, 'Bloqueado')}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-200 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg transition-colors font-medium"
-            >
-              <XCircle className="w-4 h-4" />
-              Bloquear
             </button>
           )}
 

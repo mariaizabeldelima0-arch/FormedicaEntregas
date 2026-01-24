@@ -240,9 +240,68 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
     });
   };
 
+  // Mapeamento de bairro/cidade para região
+  const detectarRegiao = (bairro, cidade) => {
+    const bairroNorm = (bairro || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const cidadeNorm = (cidade || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Verificar bairro primeiro (mais específico)
+    const mapaBairro = {
+      'nova esperanca': 'NOVA ESPERANÇA',
+      'barra': 'BARRA',
+      'estaleiro': 'ESTALEIRO',
+      'taquaras': 'TAQUARAS',
+      'laranjeiras': 'LARANJEIRAS',
+      'praia dos amores': 'PRAIA DOS AMORES',
+      'praia brava': 'PRAIA BRAVA',
+      'tabuleiro': 'TABULEIRO',
+      'monte alegre': 'MONTE ALEGRE',
+      'espinheiros': 'ESPINHEIROS',
+      'centro': null, // centro depende da cidade
+    };
+
+    for (const [chave, regiao] of Object.entries(mapaBairro)) {
+      if (bairroNorm === chave && regiao) return regiao;
+    }
+
+    // Verificar cidade
+    const mapaCidade = {
+      'balneario camboriu': 'BC',
+      'bal. camboriu': 'BC',
+      'bal camboriu': 'BC',
+      'bc': 'BC',
+      'camboriu': 'CAMBORIÚ',
+      'itajai': 'ITAJAI',
+      'itapema': 'ITAPEMA',
+      'navegantes': 'NAVEGANTES',
+      'penha': 'PENHA',
+      'porto belo': 'PORTO BELO',
+      'tijucas': 'TIJUCAS',
+      'picarras': 'PIÇARRAS',
+      'bombinhas': 'BOMBINHAS',
+    };
+
+    for (const [chave, regiao] of Object.entries(mapaCidade)) {
+      if (cidadeNorm === chave) return regiao;
+    }
+
+    return null;
+  };
+
   const updateEndereco = (index, field, value) => {
     const newEnderecos = [...formData.enderecos];
     newEnderecos[index] = { ...newEnderecos[index], [field]: value };
+
+    // Auto-detectar região quando bairro ou cidade mudar
+    if (field === 'bairro' || field === 'cidade') {
+      const bairro = field === 'bairro' ? value : newEnderecos[index].bairro;
+      const cidade = field === 'cidade' ? value : newEnderecos[index].cidade;
+      const regiaoDetectada = detectarRegiao(bairro, cidade);
+      if (regiaoDetectada) {
+        newEnderecos[index].regiao = regiaoDetectada;
+      }
+    }
+
     setFormData({ ...formData, enderecos: newEnderecos });
   };
 
@@ -322,7 +381,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
         </div>
 
         {formData.enderecos.map((endereco, index) => (
-          <div key={`endereco-${index}-${endereco.logradouro || 'new'}`} className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+          <div key={`endereco-${index}`} className="bg-slate-50 rounded-lg border border-slate-200 p-4">
             <div className="flex justify-between items-center mb-4">
               <h4 className="text-sm font-semibold text-slate-700">
                 Endereço {index + 1} {index === 0 && "(Principal)"}
@@ -520,7 +579,6 @@ export default function Clientes() {
   const [entregasCliente, setEntregasCliente] = useState([]);
   const [loadingEntregas, setLoadingEntregas] = useState(false);
   const [buscaEntregas, setBuscaEntregas] = useState("");
-  const [filtroStatusEntrega, setFiltroStatusEntrega] = useState("todas");
 
   const loadClientes = async () => {
     setLoading(true);
@@ -582,7 +640,6 @@ export default function Clientes() {
   const handleSelectCliente = async (cliente) => {
     setClienteSelecionado(cliente);
     setBuscaEntregas("");
-    setFiltroStatusEntrega("todas");
     await loadEntregasCliente(cliente.id);
   };
 
@@ -762,12 +819,6 @@ export default function Clientes() {
 
   // Filtrar entregas
   const entregasFiltradas = entregasCliente.filter(e => {
-    // Filtro de status
-    if (filtroStatusEntrega !== "todas" && e.status !== filtroStatusEntrega) {
-      return false;
-    }
-
-    // Filtro de busca
     if (buscaEntregas) {
       const termo = buscaEntregas.toLowerCase();
       return e.requisicao?.toLowerCase().includes(termo) ||
@@ -776,11 +827,7 @@ export default function Clientes() {
     return true;
   });
 
-  // Calcular estatísticas
   const totalEntregas = entregasCliente.length;
-  const entregasProducao = entregasCliente.filter(e => e.status === 'Produzindo no Laboratório').length;
-  const entregasCaminho = entregasCliente.filter(e => e.status === 'A Caminho').length;
-  const entregasEntregues = entregasCliente.filter(e => e.status === 'Entregue').length;
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -998,89 +1045,19 @@ export default function Clientes() {
                         </div>
                       </div>
 
-                      {/* Lado Direito - Estatísticas */}
+                      {/* Lado Direito - Total de Entregas */}
                       <div>
-                        <h3 className="font-semibold text-lg text-slate-900 mb-4">Estatísticas de Entregas</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Card Total */}
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("todas")}
-                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                            style={{
-                              border: filtroStatusEntrega === "todas" ? '2px solid #376295' : '2px solid transparent'
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                                <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
-                              </div>
-                              <span className="text-sm font-bold text-slate-700">Total</span>
+                        <h3 className="font-semibold text-lg text-slate-900 mb-4">Entregas</h3>
+                        <div className="bg-white rounded-xl shadow-sm p-5" style={{ border: '2px solid #376295' }}>
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                              <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                             </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
-                              {totalEntregas}
-                            </div>
-                          </button>
-
-                          {/* Card Produção */}
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("Produzindo no Laboratório")}
-                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                            style={{
-                              border: filtroStatusEntrega === "Produzindo no Laboratório" ? '2px solid #890d5d' : '2px solid transparent'
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                                <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
-                              </div>
-                              <span className="text-sm font-bold text-slate-700">Produção</span>
-                            </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
-                              {entregasProducao}
-                            </div>
-                          </button>
-
-                          {/* Card A Caminho */}
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("A Caminho")}
-                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                            style={{
-                              border: filtroStatusEntrega === "A Caminho" ? '2px solid #f97316' : '2px solid transparent'
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                                <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
-                              </div>
-                              <span className="text-sm font-bold text-slate-700">A Caminho</span>
-                            </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
-                              {entregasCaminho}
-                            </div>
-                          </button>
-
-                          {/* Card Entregues */}
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("Entregue")}
-                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                            style={{
-                              border: filtroStatusEntrega === "Entregue" ? '2px solid #3dac38' : '2px solid transparent'
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                                <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
-                              </div>
-                              <span className="text-sm font-bold text-slate-700">Entregues</span>
-                            </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
-                              {entregasEntregues}
-                            </div>
-                          </button>
+                            <span className="text-sm font-bold text-slate-700">Total</span>
+                          </div>
+                          <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                            {totalEntregas}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1110,21 +1087,6 @@ export default function Clientes() {
                           className="pl-10"
                         />
                       </div>
-                      <CustomDropdown
-                        options={[
-                          { value: 'todas', label: 'Todos os Status' },
-                          { value: 'Produzindo no Laboratório', label: 'Produção' },
-                          { value: 'A Caminho', label: 'A Caminho' },
-                          { value: 'Entregue', label: 'Entregue' },
-                          { value: 'Pendente', label: 'Pendente' },
-                          { value: 'Não Entregue', label: 'Não Entregue' },
-                          { value: 'Voltou', label: 'Voltou' },
-                          { value: 'Cancelado', label: 'Cancelado' }
-                        ]}
-                        value={filtroStatusEntrega}
-                        onChange={setFiltroStatusEntrega}
-                        placeholder="Todos os Status"
-                      />
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -1136,8 +1098,8 @@ export default function Clientes() {
                       <div className="p-12 text-center">
                         <Package className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-500">
-                          {buscaEntregas || filtroStatusEntrega !== "todas"
-                            ? 'Nenhuma entrega encontrada com os filtros aplicados'
+                          {buscaEntregas
+                            ? 'Nenhuma entrega encontrada com a busca aplicada'
                             : 'Nenhuma entrega encontrada para este cliente'}
                         </p>
                       </div>
@@ -1156,7 +1118,6 @@ export default function Clientes() {
                                   <span className="font-bold text-slate-900">
                                     #{entrega.requisicao}
                                   </span>
-                                  <StatusBadge status={entrega.status} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
                                   {entrega.motoboy?.nome && (

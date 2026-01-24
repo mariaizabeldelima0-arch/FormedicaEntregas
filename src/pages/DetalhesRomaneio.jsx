@@ -111,16 +111,81 @@ export default function DetalhesRomaneio() {
     }
   }, [queryError]);
 
+  const VALORES_UNICA_BRUNO = {
+    'BC': 12, 'NOVA ESPERANÇA': 15, 'CAMBORIÚ': 20, 'TABULEIRO': 15,
+    'MONTE ALEGRE': 15, 'BARRA': 15, 'ESTALEIRO': 25, 'TAQUARAS': 25,
+    'LARANJEIRAS': 25, 'ITAJAI': 25, 'ESPINHEIROS': 35, 'PRAIA DOS AMORES': 15,
+    'PRAIA BRAVA': 15, 'ITAPEMA': 35, 'NAVEGANTES': 50, 'PENHA': 75,
+    'PORTO BELO': 60, 'TIJUCAS': 87, 'PIÇARRAS': 80, 'BOMBINHAS': 90, 'CLINICA': 12
+  };
+
+  const VALORES_NORMAIS_BRUNO = {
+    'BC': 7, 'NOVA ESPERANÇA': 9, 'CAMBORIÚ': 14, 'TABULEIRO': 9,
+    'MONTE ALEGRE': 9, 'BARRA': 9, 'ESTALEIRO': 14, 'TAQUARAS': 14,
+    'LARANJEIRAS': 14, 'ITAJAI': 17, 'ESPINHEIROS': 21, 'PRAIA DOS AMORES': 11.50,
+    'PRAIA BRAVA': 11.50, 'ITAPEMA': 25, 'NAVEGANTES': 40, 'PENHA': 50,
+    'PORTO BELO': 30, 'TIJUCAS': 50, 'PIÇARRAS': 50, 'BOMBINHAS': 50, 'CLINICA': 7
+  };
+
   const handleDelete = async () => {
     if (!confirm('Tem certeza que deseja excluir este romaneio?')) return;
 
     try {
+      // Guardar dados antes de excluir para verificar entrega única
+      const motoboyNome = romaneio?.motoboy?.nome;
+      const motoboyId = romaneio?.motoboy_id;
+      const dataEntrega = romaneio?.data_entrega;
+
       const { error } = await supabase
         .from('entregas')
         .delete()
         .eq('id', romaneioId);
 
       if (error) throw error;
+
+      // Após excluir, verificar se as entregas restantes do Bruno devem virar entrega única
+      if (motoboyNome === 'Bruno' && motoboyId && dataEntrega) {
+        try {
+          const { count: countManha } = await supabase
+            .from('entregas')
+            .select('*', { count: 'exact', head: true })
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', dataEntrega)
+            .eq('periodo', 'Manhã');
+
+          const { count: countTarde } = await supabase
+            .from('entregas')
+            .select('*', { count: 'exact', head: true })
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', dataEntrega)
+            .eq('periodo', 'Tarde');
+
+          // Se ambos períodos têm no máximo 1 entrega, são entregas únicas
+          if (countManha <= 1 && countTarde <= 1) {
+            const { data: entregasRestantes } = await supabase
+              .from('entregas')
+              .select('id, regiao, valor')
+              .eq('motoboy_id', motoboyId)
+              .eq('data_entrega', dataEntrega);
+
+            if (entregasRestantes) {
+              for (const entrega of entregasRestantes) {
+                const valorUnico = VALORES_UNICA_BRUNO[entrega.regiao];
+                const valorNormal = VALORES_NORMAIS_BRUNO[entrega.regiao];
+                if (valorUnico && valorNormal && entrega.valor === valorNormal) {
+                  await supabase
+                    .from('entregas')
+                    .update({ valor: valorUnico })
+                    .eq('id', entrega.id);
+                  console.log(`Entrega ${entrega.id} promovida para entrega única: R$${valorNormal} → R$${valorUnico}`);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao atualizar entregas únicas do Bruno:', err);
+        }
+      }
 
       toast.success('Romaneio excluído com sucesso!');
       navigate('/');

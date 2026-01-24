@@ -1153,6 +1153,56 @@ export default function NovoRomaneio() {
 
       console.log('Entregas criadas:', entregasCriadas);
 
+      // Atualizar valores de entregas do Bruno que não são mais entrega única
+      if (formData.motoboy === 'Bruno' && motoboyId) {
+        try {
+          // Contar entregas do Bruno na data para cada período
+          const { count: countManha } = await supabase
+            .from('entregas')
+            .select('*', { count: 'exact', head: true })
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', dataEntregaCorrigida)
+            .eq('periodo', 'Manhã');
+
+          const { count: countTarde } = await supabase
+            .from('entregas')
+            .select('*', { count: 'exact', head: true })
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', dataEntregaCorrigida)
+            .eq('periodo', 'Tarde');
+
+          // Se algum período tem mais de 1 entrega, nenhuma entrega do dia é "única"
+          const naoEhMaisUnica = countManha > 1 || countTarde > 1;
+
+          if (naoEhMaisUnica) {
+            // Buscar todas entregas do Bruno nessa data que têm valor de entrega única
+            const { data: entregasParaAtualizar } = await supabase
+              .from('entregas')
+              .select('id, regiao, valor')
+              .eq('motoboy_id', motoboyId)
+              .eq('data_entrega', dataEntregaCorrigida)
+              .neq('id', entregasCriadas[0].id);
+
+            if (entregasParaAtualizar && entregasParaAtualizar.length > 0) {
+              for (const entrega of entregasParaAtualizar) {
+                const valorUnico = VALORES_ENTREGA_UNICA_BRUNO[entrega.regiao];
+                const valorNormal = VALORES_ENTREGA['Bruno']?.[entrega.regiao];
+                // Só atualizar se o valor atual é o de entrega única
+                if (valorUnico && valorNormal && entrega.valor === valorUnico) {
+                  await supabase
+                    .from('entregas')
+                    .update({ valor: valorNormal })
+                    .eq('id', entrega.id);
+                  console.log(`Entrega ${entrega.id} atualizada de R$${valorUnico} para R$${valorNormal} (não é mais entrega única)`);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao atualizar entregas únicas do Bruno:', err);
+        }
+      }
+
       // Invalidar queries relevantes
       await queryClient.invalidateQueries({ queryKey: ['entregas'] });
       await queryClient.invalidateQueries({ queryKey: ['receitas'] });
