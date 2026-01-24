@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { ExternalLink, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { CustomDropdown } from "@/components/CustomDropdown";
 import { CustomDatePicker } from "@/components/CustomDatePicker";
@@ -208,75 +208,95 @@ export default function PlanilhaDiaria() {
     setSelectedDate(newDate);
   };
 
-  // Função para baixar planilha como CSV
-  const handleDownloadCSV = () => {
-    const separator = ';';
-    let csv = '';
-
-    // Header da tabela Entregas Moto
-    csv += 'ENTREGAS MOTO\n';
-    csv += ['Atendente', 'Requisição', 'Cliente', 'Telefone', 'Observação', 'Local', 'Forma de Pgto', 'Valor a Cobrar', 'Troco', 'Período', 'Status', 'Receita', 'Moto', 'Taxa'].join(separator) + '\n';
-
-    romaneiosOrdenados.forEach(rom => {
-      const linha = [
-        rom.atendente || '',
-        rom.requisicao || '',
-        rom.cliente?.nome || '',
-        rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '',
-        (rom.observacoes || '').replace(/[;\n\r]/g, ' '),
-        rom.endereco?.cidade || '',
-        rom.forma_pagamento || '',
-        rom.valor ? parseFloat(rom.valor).toFixed(2) : '0.00',
-        rom.precisa_troco ? `R$ ${parseFloat(rom.valor_troco || 0).toFixed(2)}` : '',
-        rom.periodo || '',
-        rom.status || '',
-        rom.buscar_receita ? 'Sim' : 'Não',
-        rom.motoboy?.nome || '',
-        rom.valor ? `R$ ${parseFloat(rom.valor).toFixed(2)}` : 'R$ 0.00'
-      ];
-      csv += linha.join(separator) + '\n';
-    });
-
-    // Header da tabela Sedex/Disktenha
-    csv += '\nSEDEX / DISKTENHA\n';
-    csv += ['Tipo', 'Cliente', 'Remetente', 'Código Rastreio', 'Valor', 'Forma de Pgto', 'Data Saída', 'Status', 'Observações'].join(separator) + '\n';
-
-    sedexDisktenha.forEach(entrega => {
-      const linha = [
-        entrega.tipo || '',
-        entrega.cliente || '',
-        entrega.remetente || '',
-        entrega.codigo_rastreio || '',
-        entrega.valor ? `R$ ${parseFloat(entrega.valor).toFixed(2)}` : 'R$ 0.00',
-        entrega.forma_pagamento || '',
-        entrega.data_saida ? format(new Date(entrega.data_saida), 'dd/MM/yyyy') : '',
-        entrega.status || '',
-        (entrega.observacoes || '').replace(/[;\n\r]/g, ' ')
-      ];
-      csv += linha.join(separator) + '\n';
-    });
-
-    // Criar e baixar arquivo
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    const nomeArquivo = visualizarTodas
-      ? 'planilha-todas-entregas.csv'
-      : `planilha-${format(selectedDate, 'dd-MM-yyyy')}.csv`;
-    link.download = nomeArquivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success('Planilha baixada!');
+  // Função para imprimir/salvar PDF
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Estilos de impressão */}
+      <style>{`
+        @media print {
+          /* Esconder sidebar, header e filtros */
+          .no-print,
+          nav,
+          aside,
+          [data-sidebar],
+          .print-hide {
+            display: none !important;
+          }
+
+          /* Reset layout para impressão */
+          body, html {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+
+          .min-h-screen {
+            min-height: auto !important;
+          }
+
+          /* Tabelas: tamanho adequado */
+          table {
+            font-size: 9px !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+
+          th, td {
+            padding: 3px 4px !important;
+            border: 1px solid #ccc !important;
+          }
+
+          /* Mostrar overflow */
+          .overflow-x-auto {
+            overflow: visible !important;
+          }
+
+          .max-w-7xl {
+            max-width: 100% !important;
+          }
+
+          /* Remover sombras e bordas arredondadas */
+          .shadow-sm, .shadow-lg {
+            box-shadow: none !important;
+          }
+
+          .rounded-xl, .rounded-lg {
+            border-radius: 0 !important;
+          }
+
+          /* Título para impressão */
+          .print-title {
+            display: block !important;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+          }
+
+          /* Página paisagem */
+          @page {
+            size: landscape;
+            margin: 10mm;
+          }
+        }
+
+        .print-title {
+          display: none;
+        }
+      `}</style>
+
+      {/* Título visível apenas na impressão */}
+      <div className="print-title">
+        Planilha Diária {!visualizarTodas ? `- ${format(selectedDate, 'dd/MM/yyyy')}` : '- Todas as Entregas'}
+        {filtroMotoboy !== 'todos' ? ` (${filtroMotoboy})` : ''}
+      </div>
+
       {/* Header */}
-      <div className="py-8 shadow-sm" style={{
+      <div className="py-8 shadow-sm print-hide" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
         <div className="max-w-7xl mx-auto px-6">
@@ -298,7 +318,7 @@ export default function PlanilhaDiaria() {
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
           {/* Linha de Filtros no Topo */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 print-hide">
             <div className="flex items-center gap-4">
               {/* Botões Todas / Por Dia */}
               <div className="flex items-center gap-2">
@@ -355,14 +375,24 @@ export default function PlanilhaDiaria() {
                 />
               </div>
 
-              {/* Botão Salvar CSV */}
+              {/* Botão Salvar PDF */}
               <button
-                onClick={handleDownloadCSV}
+                onClick={handlePrint}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap text-white"
                 style={{ backgroundColor: '#376295' }}
               >
-                <Download className="w-4 h-4" />
-                Salvar Planilha
+                <FileDown className="w-4 h-4" />
+                Salvar PDF
+              </button>
+
+              {/* Botão Imprimir */}
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap text-white"
+                style={{ backgroundColor: '#890d5d' }}
+              >
+                <Printer className="w-4 h-4" />
+                Imprimir
               </button>
             </div>
           </div>
@@ -393,7 +423,7 @@ export default function PlanilhaDiaria() {
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Receita</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Moto</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Taxa</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700">Ver</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 print-hide">Ver</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -493,7 +523,7 @@ export default function PlanilhaDiaria() {
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-semibold">
                             R$ {rom.taxa ? parseFloat(rom.taxa).toFixed(2) : '0.00'}
                           </td>
-                          <td className="px-2 py-1.5">
+                          <td className="px-2 py-1.5 print-hide">
                             <Link
                               to={`/detalhes-romaneio?id=${rom.id}`}
                               className="hover:opacity-80 transition-opacity"
