@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { CustomDropdown } from "@/components/CustomDropdown";
 import { CustomDatePicker } from "@/components/CustomDatePicker";
@@ -208,6 +208,71 @@ export default function PlanilhaDiaria() {
     setSelectedDate(newDate);
   };
 
+  // Função para baixar planilha como CSV
+  const handleDownloadCSV = () => {
+    const separator = ';';
+    let csv = '';
+
+    // Header da tabela Entregas Moto
+    csv += 'ENTREGAS MOTO\n';
+    csv += ['Atendente', 'Requisição', 'Cliente', 'Telefone', 'Observação', 'Local', 'Forma de Pgto', 'Valor a Cobrar', 'Troco', 'Período', 'Status', 'Receita', 'Moto', 'Taxa'].join(separator) + '\n';
+
+    romaneiosOrdenados.forEach(rom => {
+      const linha = [
+        rom.atendente || '',
+        rom.requisicao || '',
+        rom.cliente?.nome || '',
+        rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '',
+        (rom.observacoes || '').replace(/[;\n\r]/g, ' '),
+        rom.endereco?.cidade || '',
+        rom.forma_pagamento || '',
+        rom.valor ? parseFloat(rom.valor).toFixed(2) : '0.00',
+        rom.precisa_troco ? `R$ ${parseFloat(rom.valor_troco || 0).toFixed(2)}` : '',
+        rom.periodo || '',
+        rom.status || '',
+        rom.buscar_receita ? 'Sim' : 'Não',
+        rom.motoboy?.nome || '',
+        rom.valor ? `R$ ${parseFloat(rom.valor).toFixed(2)}` : 'R$ 0.00'
+      ];
+      csv += linha.join(separator) + '\n';
+    });
+
+    // Header da tabela Sedex/Disktenha
+    csv += '\nSEDEX / DISKTENHA\n';
+    csv += ['Tipo', 'Cliente', 'Remetente', 'Código Rastreio', 'Valor', 'Forma de Pgto', 'Data Saída', 'Status', 'Observações'].join(separator) + '\n';
+
+    sedexDisktenha.forEach(entrega => {
+      const linha = [
+        entrega.tipo || '',
+        entrega.cliente || '',
+        entrega.remetente || '',
+        entrega.codigo_rastreio || '',
+        entrega.valor ? `R$ ${parseFloat(entrega.valor).toFixed(2)}` : 'R$ 0.00',
+        entrega.forma_pagamento || '',
+        entrega.data_saida ? format(new Date(entrega.data_saida), 'dd/MM/yyyy') : '',
+        entrega.status || '',
+        (entrega.observacoes || '').replace(/[;\n\r]/g, ' ')
+      ];
+      csv += linha.join(separator) + '\n';
+    });
+
+    // Criar e baixar arquivo
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const nomeArquivo = visualizarTodas
+      ? 'planilha-todas-entregas.csv'
+      : `planilha-${format(selectedDate, 'dd-MM-yyyy')}.csv`;
+    link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Planilha baixada!');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -289,6 +354,16 @@ export default function PlanilhaDiaria() {
                   placeholder="Todos os Motoboys"
                 />
               </div>
+
+              {/* Botão Salvar CSV */}
+              <button
+                onClick={handleDownloadCSV}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap text-white"
+                style={{ backgroundColor: '#376295' }}
+              >
+                <Download className="w-4 h-4" />
+                Salvar Planilha
+              </button>
             </div>
           </div>
 
