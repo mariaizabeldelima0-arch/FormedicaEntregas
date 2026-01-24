@@ -540,6 +540,8 @@ export default function PlanilhaDiaria() {
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <CustomDropdown
                               options={[
+                                { value: 'Iniciar', label: 'Iniciar' },
+                                { value: 'Pendente', label: 'Pendente' },
                                 { value: 'Produzindo no Laboratório', label: 'Produção' },
                                 { value: 'Preparando no Setor de Entregas', label: 'Preparando' },
                                 { value: 'A Caminho', label: 'A Caminho' },
@@ -547,6 +549,7 @@ export default function PlanilhaDiaria() {
                                 { value: 'Entregue', label: 'Entregue' },
                                 { value: 'Não Entregue', label: 'Não Entregue' },
                                 { value: 'Voltou', label: 'Voltou' },
+                                { value: 'Voltou p/ Farmácia', label: 'Voltou p/ Farmácia' },
                                 { value: 'Cancelado', label: 'Cancelado' }
                               ]}
                               value={rom.status || 'Produzindo no Laboratório'}

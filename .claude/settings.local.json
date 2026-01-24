@@ -44,7 +44,9 @@
       "Bash(npx supabase --version)",
       "Bash(git -C \"C:\\\\Users\\\\Atendimento_02\\\\meus-projetos\\\\formedica-entregas\" log -1 --stat)",
       "Bash(git -C \"C:\\\\Users\\\\Atendimento_02\\\\meus-projetos\\\\formedica-entregas\" show 640941f --stat --format=\"%B\")",
-      "Bash(git -C \"C:\\\\Users\\\\Atendimento_02\\\\meus-projetos\\\\formedica-entregas\" pull)"
+      "Bash(git -C \"C:\\\\Users\\\\Atendimento_02\\\\meus-projetos\\\\formedica-entregas\" pull)",
+      "Bash(npx vite build)",
+      "Bash(npx vite --host)"
     ]
   }
 }
