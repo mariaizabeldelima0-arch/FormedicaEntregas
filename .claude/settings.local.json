@@ -46,7 +46,9 @@
       "Bash(git -C \"C:\\\\Users\\\\Atendimento_02\\\\meus-projetos\\\\formedica-entregas\" show 640941f --stat --format=\"%B\")",
       "Bash(git -C \"C:\\\\Users\\\\Atendimento_02\\\\meus-projetos\\\\formedica-entregas\" pull)",
       "Bash(npx vite build)",
-      "Bash(npx vite --host)"
+      "Bash(npx vite --host)",
+      "Bash(node scripts/seed-test-data.js:*)",
+      "Bash(node scripts/seed-test-data.cjs:*)"
     ]
   }
 }

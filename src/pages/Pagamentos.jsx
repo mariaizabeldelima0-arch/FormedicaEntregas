@@ -22,6 +22,7 @@ import {
   ClipboardList,
   AlertCircle,
   Check,
+  Paperclip,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";

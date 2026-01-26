@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,8 @@ import {
   AlertTriangle,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Paperclip
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -130,6 +132,30 @@ export default function EntregasMoto() {
   // Estados para modals
   const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [entregaSelecionada, setEntregaSelecionada] = useState(null);
+
+  // Query client para invalidar cache
+  const queryClient = useQueryClient();
+
+  // Mutation para atualizar receita recebida
+  const updateReceitaMutation = useMutation({
+    mutationFn: async ({ entregaId, recebida }) => {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ receita_recebida: recebida })
+        .eq('id', entregaId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { recebida }) => {
+      // Recarregar entregas
+      fetchEntregas();
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      toast.success(recebida ? 'Receita marcada como recebida!' : 'Receita marcada como pendente!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar receita: ' + error.message);
+    },
+  });
 
   // Função para gerar dias do mês
   const getDaysInMonth = (date) => {
@@ -635,6 +661,8 @@ export default function EntregasMoto() {
     iniciar: entregasPorData.filter(e => e.status === 'Iniciar').length,
     pendente: entregasPorData.filter(e => e.status === 'Pendente').length,
     voltou: entregasPorData.filter(e => e.status === 'Voltou p/ Farmácia').length,
+    receitasPendentes: entregasPorData.filter(e => e.buscar_receita && !e.receita_recebida).length,
+    receitasRecebidas: entregasPorData.filter(e => e.buscar_receita && e.receita_recebida).length,
   };
 
   // Formatação de data
@@ -1153,12 +1181,14 @@ export default function EntregasMoto() {
                 <CustomDropdown
                   options={[
                     { value: '', label: 'Status' },
-                    { value: 'Produzindo no Laboratório', label: 'Produção' },
-                    { value: 'A Caminho', label: 'A Caminho' },
-                    { value: 'Entregue', label: 'Entregue' },
                     { value: 'Iniciar', label: 'Iniciar' },
                     { value: 'Pendente', label: 'Pendente' },
-                    { value: 'Voltou p/ Farmácia', label: 'Voltou' }
+                    { value: 'Produzindo no Laboratório', label: 'Produção' },
+                    { value: 'Preparando no Setor de Entregas', label: 'Preparando' },
+                    { value: 'Em Rota', label: 'Em Rota' },
+                    { value: 'Entregue', label: 'Entregue' },
+                    { value: 'Voltou p/ Farmácia', label: 'Voltou' },
+                    { value: 'Cancelado', label: 'Cancelado' }
                   ]}
                   value={filtroStatus}
                   onChange={(value) => { setFiltroStatus(value); setCardSelecionado(''); }}
@@ -1398,10 +1428,23 @@ export default function EntregasMoto() {
                                   </span>
                                 )}
                                 {entrega.buscar_receita && (
-                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                                    <FileText className="w-5 h-5" />
-                                    Reter Receita
-                                  </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateReceitaMutation.mutate({ entregaId: entrega.id, recebida: !entrega.receita_recebida });
+                                    }}
+                                    disabled={updateReceitaMutation.isPending}
+                                    className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2 transition-all hover:opacity-80"
+                                    style={{
+                                      backgroundColor: entrega.receita_recebida ? '#dcfce7' : '#fef3c7',
+                                      color: entrega.receita_recebida ? '#166534' : '#92400e',
+                                      border: entrega.receita_recebida ? '2px solid #22c55e' : '2px solid #f59e0b',
+                                      cursor: updateReceitaMutation.isPending ? 'not-allowed' : 'pointer'
+                                    }}
+                                  >
+                                    {entrega.receita_recebida ? <Check className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                                    {entrega.receita_recebida ? 'Receita OK' : 'Reter Receita'}
+                                  </button>
                                 )}
                               </div>
                             )}
@@ -1576,10 +1619,23 @@ export default function EntregasMoto() {
                                   </span>
                                 )}
                                 {entrega.buscar_receita && (
-                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                                    <FileText className="w-5 h-5" />
-                                    Reter Receita
-                                  </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateReceitaMutation.mutate({ entregaId: entrega.id, recebida: !entrega.receita_recebida });
+                                    }}
+                                    disabled={updateReceitaMutation.isPending}
+                                    className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2 transition-all hover:opacity-80"
+                                    style={{
+                                      backgroundColor: entrega.receita_recebida ? '#dcfce7' : '#fef3c7',
+                                      color: entrega.receita_recebida ? '#166534' : '#92400e',
+                                      border: entrega.receita_recebida ? '2px solid #22c55e' : '2px solid #f59e0b',
+                                      cursor: updateReceitaMutation.isPending ? 'not-allowed' : 'pointer'
+                                    }}
+                                  >
+                                    {entrega.receita_recebida ? <Check className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                                    {entrega.receita_recebida ? 'Receita OK' : 'Reter Receita'}
+                                  </button>
                                 )}
                               </div>
                             )}

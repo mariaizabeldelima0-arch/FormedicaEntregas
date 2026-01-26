@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Calendar,
   ClipboardList,
+  Paperclip,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -168,9 +169,9 @@ export default function Receitas() {
       if (!isSameDay(dataEntrega, dataSelecionada)) return false;
     }
 
-    // Filtro de status (pendente = sem anexo, recebida = com anexo)
-    if (filtroStatus === "pendentes" && e.receita_anexo) return false;
-    if (filtroStatus === "recebidas" && !e.receita_anexo) return false;
+    // Filtro de status (pendente = não recebida, recebida = marcada como recebida)
+    if (filtroStatus === "pendentes" && e.receita_recebida) return false;
+    if (filtroStatus === "recebidas" && !e.receita_recebida) return false;
 
     // Busca
     if (searchTerm) {
@@ -188,9 +189,18 @@ export default function Receitas() {
     return true;
   });
 
-  // Contar por status
-  const pendentes = entregas.filter(e => !e.receita_anexo).length;
-  const recebidas = entregas.filter(e => e.receita_anexo).length;
+  // Filtrar por data primeiro (para os cards refletirem o filtro de dia)
+  const entregasPorData = entregas.filter(e => {
+    if (!verTodas && dataSelecionada && e.data_entrega) {
+      const dataEntrega = parseISO(e.data_entrega);
+      if (!isSameDay(dataEntrega, dataSelecionada)) return false;
+    }
+    return true;
+  });
+
+  // Contar por status (baseado no filtro de data)
+  const pendentes = entregasPorData.filter(e => !e.receita_recebida).length;
+  const recebidas = entregasPorData.filter(e => e.receita_recebida).length;
 
   // Contar receitas por dia - garantir que está pegando o mês atual
   const receitasPorDia = entregas.reduce((acc, e) => {
@@ -472,11 +482,11 @@ export default function Receitas() {
                             <span
                               className="px-3 py-1 rounded text-xs font-medium"
                               style={{
-                                backgroundColor: receita.receita_anexo ? "#F5E8F5" : "#E8F0F8",
-                                color: receita.receita_anexo ? "#890d5d" : "#376295"
+                                backgroundColor: receita.receita_recebida ? "#F5E8F5" : "#E8F0F8",
+                                color: receita.receita_recebida ? "#890d5d" : "#376295"
                               }}
                             >
-                              {receita.receita_anexo ? "Recebida" : "Pendente"}
+                              {receita.receita_recebida ? "Recebida" : "Pendente"}
                             </span>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 mb-3">

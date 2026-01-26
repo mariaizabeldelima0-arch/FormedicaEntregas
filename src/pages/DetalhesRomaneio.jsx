@@ -142,6 +142,26 @@ export default function DetalhesRomaneio() {
     return f.includes('dinheiro') || f.includes('maquina') || f.includes('receber') || f.includes('cartao');
   };
 
+  // Mutation para atualizar status de receita recebida
+  const updateReceitaMutation = useMutation({
+    mutationFn: async ({ recebida }) => {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ receita_recebida: recebida })
+        .eq('id', romaneioId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { recebida }) => {
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      toast.success(recebida ? 'Receita marcada como recebida!' : 'Receita marcada como pendente!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar receita: ' + error.message);
+    },
+  });
+
   const VALORES_UNICA_BRUNO = {
     'BC': 12, 'NOVA ESPERANÇA': 15, 'CAMBORIÚ': 20, 'TABULEIRO': 15,
     'MONTE ALEGRE': 15, 'BARRA': 15, 'ESTALEIRO': 25, 'TAQUARAS': 25,
@@ -654,23 +674,57 @@ export default function DetalhesRomaneio() {
 
                   {/* Reter Receita */}
                   {romaneio.buscar_receita && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '12px',
-                      padding: '12px 15px',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      border: '2px solid #FF9800',
-                      backgroundColor: '#FFF3E0',
-                      color: '#E65100',
-                      borderRadius: '8px'
-                    }}>
-                      <FileText size={20} />
-                      <span>RETER RECEITA</span>
-                      <FileText size={20} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '12px',
+                        padding: '12px 15px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        border: romaneio.receita_recebida ? '2px solid #3dac38' : '2px solid #FF9800',
+                        backgroundColor: romaneio.receita_recebida ? '#E8F5E8' : '#FFF3E0',
+                        color: romaneio.receita_recebida ? '#3dac38' : '#E65100',
+                        borderRadius: '8px'
+                      }}>
+                        <FileText size={20} />
+                        <span>{romaneio.receita_recebida ? 'RECEITA RECEBIDA' : 'RETER RECEITA'}</span>
+                        {romaneio.receita_recebida ? <CheckCircle size={20} /> : <FileText size={20} />}
+                      </div>
+                      <button
+                        onClick={() => updateReceitaMutation.mutate({ recebida: !romaneio.receita_recebida })}
+                        disabled={updateReceitaMutation.isPending}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '0.5rem',
+                          fontWeight: '600',
+                          fontSize: '0.875rem',
+                          border: 'none',
+                          cursor: updateReceitaMutation.isPending ? 'not-allowed' : 'pointer',
+                          backgroundColor: romaneio.receita_recebida ? '#fef3c7' : '#dbeafe',
+                          color: romaneio.receita_recebida ? '#92400e' : '#1e40af',
+                          opacity: updateReceitaMutation.isPending ? 0.7 : 1
+                        }}
+                      >
+                        {romaneio.receita_recebida ? (
+                          <>
+                            <AlertCircle size={18} />
+                            {updateReceitaMutation.isPending ? 'Atualizando...' : 'Marcar como Pendente'}
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={18} />
+                            {updateReceitaMutation.isPending ? 'Atualizando...' : 'Marcar Receita Recebida'}
+                          </>
+                        )}
+                      </button>
                     </div>
                   )}
 
