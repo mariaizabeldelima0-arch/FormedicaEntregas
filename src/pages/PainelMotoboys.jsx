@@ -243,12 +243,14 @@ export default function PainelMotoboys() {
   const totalValorDia = resumoDia.reduce((sum, r) => sum + r.valor, 0);
   const totalTaxaDia = resumoDia.reduce((sum, r) => sum + r.taxa, 0);
 
-  // Calcular semana de trabalho
+  // Calcular semana de trabalho (começa na terça-feira, sem domingo)
   const calcularSemanaTrabalho = () => {
-    const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
+    const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 2 });
     const dias = [];
     for (let i = 0; i < 7; i++) {
       const data = addDays(inicioSemana, i);
+      // Pular domingo (dia 0)
+      if (data.getDay() === 0) continue;
       const dataStr = format(data, 'yyyy-MM-dd');
       const entregasDia = todasEntregas.filter(e => e.data_entrega === dataStr);
       dias.push({
@@ -682,7 +684,7 @@ export default function PainelMotoboys() {
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-slate-700">Semana</h3>
                 <span className="text-xs text-slate-500">
-                  {format(semanaTrabalho[0]?.data || new Date(), 'dd/MM')} - {format(semanaTrabalho[6]?.data || new Date(), 'dd/MM')}
+                  {format(semanaTrabalho[0]?.data || new Date(), 'dd/MM')} - {format(semanaTrabalho[semanaTrabalho.length - 1]?.data || new Date(), 'dd/MM')}
                 </span>
               </div>
 

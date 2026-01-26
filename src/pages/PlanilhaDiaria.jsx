@@ -544,11 +544,8 @@ export default function PlanilhaDiaria() {
                                 { value: 'Pendente', label: 'Pendente' },
                                 { value: 'Produzindo no Laboratório', label: 'Produção' },
                                 { value: 'Preparando no Setor de Entregas', label: 'Preparando' },
-                                { value: 'A Caminho', label: 'A Caminho' },
                                 { value: 'Em Rota', label: 'Em Rota' },
                                 { value: 'Entregue', label: 'Entregue' },
-                                { value: 'Não Entregue', label: 'Não Entregue' },
-                                { value: 'Voltou', label: 'Voltou' },
                                 { value: 'Voltou p/ Farmácia', label: 'Voltou p/ Farmácia' },
                                 { value: 'Cancelado', label: 'Cancelado' }
                               ]}
