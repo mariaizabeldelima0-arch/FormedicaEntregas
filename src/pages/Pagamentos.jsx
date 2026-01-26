@@ -35,17 +35,16 @@ const FORMAS_PAGAMENTO = [
 ];
 
 // Verifica se a forma de pagamento indica que já foi recebido
+// Apenas formas que começam com "Pago" indicam pagamento já realizado
+// "Dinheiro", "Máquina", "Receber" etc. indicam que ainda precisa cobrar
 const verificarSeJaRecebido = (forma) => {
   if (!forma) return false;
   // Normalizar removendo acentos e convertendo para minúsculo
   const formaLower = forma.toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  return formaLower.startsWith('pago') ||
-         formaLower === 'dinheiro' ||
-         formaLower.includes('maquina') ||
-         formaLower.includes('cartao') ||
-         formaLower.includes('pix');
+  // Apenas "Pago..." indica que já foi recebido
+  return formaLower.startsWith('pago');
 };
 
 export default function Pagamentos() {
@@ -58,6 +57,7 @@ export default function Pagamentos() {
   const [verTodos, setVerTodos] = useState(true); // Iniciar com "ver todos"
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("todos"); // "todos", "pendentes", "recebidos", "dinheiro", "cartao"
 
   // Estados para o modal de edição
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -255,8 +255,8 @@ export default function Pagamentos() {
     );
   }
 
-  // Filtrar entregas
-  const entregasFiltradas = entregas.filter(e => {
+  // Filtrar entregas (sem filtro de status para estatísticas)
+  const entregasBase = entregas.filter(e => {
     // Filtro de data
     if (!verTodos && dataSelecionada && e.data_entrega) {
       if (!isSameDay(parseISO(e.data_entrega), dataSelecionada)) return false;
@@ -278,16 +278,40 @@ export default function Pagamentos() {
     return true;
   });
 
-  // Calcular estatísticas
+  // Funções para verificar forma de pagamento
+  const ehDinheiro = (forma) => {
+    if (!forma) return false;
+    const f = forma.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // "Dinheiro", "Receber Dinheiro", "Receber" (sozinho = dinheiro por padrão)
+    return f.includes('dinheiro') || (f.includes('receber') && !f.includes('maquina') && !f.includes('cartao'));
+  };
+
+  const ehCartao = (forma) => {
+    if (!forma) return false;
+    const f = forma.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // "Máquina", "Maquina", "Cartão", "Receber Máquina", "Receber Cartão"
+    return f.includes('maquina') || f.includes('cartao');
+  };
+
+  // Aplicar filtro de status de pagamento
+  const entregasFiltradas = entregasBase.filter(e => {
+    if (filtroStatus === "pendentes" && e.pagamento_recebido) return false;
+    if (filtroStatus === "recebidos" && !e.pagamento_recebido) return false;
+    if (filtroStatus === "dinheiro" && !ehDinheiro(e.forma_pagamento)) return false;
+    if (filtroStatus === "cartao" && !ehCartao(e.forma_pagamento)) return false;
+    return true;
+  });
+
+  // Calcular estatísticas (baseado nas entregas sem filtro de status)
   const stats = {
-    pendentes: entregasFiltradas.filter(e => !e.pagamento_recebido).length,
-    recebidos: entregasFiltradas.filter(e => e.pagamento_recebido).length,
-    dinheiro: entregasFiltradas
-      .filter(e => e.pagamento_recebido && (e.forma_pagamento === 'Dinheiro' || e.forma_pagamento === 'dinheiro'))
-      .reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
-    cartao: entregasFiltradas
-      .filter(e => e.pagamento_recebido && (e.forma_pagamento === 'Cartão' || e.forma_pagamento === 'cartao' || e.forma_pagamento === 'Cartao'))
-      .reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
+    pendentes: entregasBase.filter(e => !e.pagamento_recebido).length,
+    recebidos: entregasBase.filter(e => e.pagamento_recebido).length,
+    dinheiro: entregasBase
+      .filter(e => ehDinheiro(e.forma_pagamento) && !e.pagamento_recebido)
+      .reduce((sum, e) => sum + (parseFloat(e.valor_venda) || 0), 0),
+    cartao: entregasBase
+      .filter(e => ehCartao(e.forma_pagamento) && !e.pagamento_recebido)
+      .reduce((sum, e) => sum + (parseFloat(e.valor_venda) || 0), 0),
   };
 
   // Motoboys únicos para o filtro
@@ -496,7 +520,11 @@ export default function Pagamentos() {
             {/* Cards de estatísticas */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Pendentes */}
-              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'pendentes' ? 'todos' : 'pendentes')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'pendentes' ? '2px solid #f97316' : '2px solid transparent' }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
                     <AlertCircle className="w-6 h-6" style={{ color: '#f97316' }} />
@@ -509,7 +537,11 @@ export default function Pagamentos() {
               </div>
 
               {/* Recebidos */}
-              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'recebidos' ? 'todos' : 'recebidos')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'recebidos' ? '2px solid #3dac38' : '2px solid transparent' }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
                     <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
@@ -522,7 +554,11 @@ export default function Pagamentos() {
               </div>
 
               {/* Dinheiro */}
-              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'dinheiro' ? 'todos' : 'dinheiro')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'dinheiro' ? '2px solid #376295' : '2px solid transparent' }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
                     <Banknote className="w-6 h-6" style={{ color: '#376295' }} />
@@ -535,7 +571,11 @@ export default function Pagamentos() {
               </div>
 
               {/* Cartão */}
-              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'cartao' ? 'todos' : 'cartao')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'cartao' ? '2px solid #890d5d' : '2px solid transparent' }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
                     <CreditCard className="w-6 h-6" style={{ color: '#890d5d' }} />
@@ -605,11 +645,13 @@ export default function Pagamentos() {
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            {entrega.valor && (
-                              <div className="text-right mr-3">
-                                <div className="font-bold text-xl" style={{ color: '#376295' }}>
-                                  R$ {parseFloat(entrega.valor).toFixed(2)}
+                          <div className="flex items-center gap-3 ml-4">
+                            {/* Valor a receber - apenas para formas que requerem cobrança */}
+                            {(ehDinheiro(entrega.forma_pagamento) || ehCartao(entrega.forma_pagamento)) && entrega.valor_venda > 0 && (
+                              <div className="text-right">
+                                <div className="text-xs text-slate-500">A Receber</div>
+                                <div className="font-bold text-lg" style={{ color: entrega.pagamento_recebido ? '#3dac38' : '#1b5e20' }}>
+                                  R$ {parseFloat(entrega.valor_venda).toFixed(2)}
                                 </div>
                               </div>
                             )}

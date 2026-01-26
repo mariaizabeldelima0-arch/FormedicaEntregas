@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
@@ -16,7 +16,9 @@ import {
   Truck,
   FileText,
   Image as ImageIcon,
-  Download
+  Download,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -110,6 +112,35 @@ export default function DetalhesRomaneio() {
       console.error('❌ Erro na query:', queryError);
     }
   }, [queryError]);
+
+  // Mutation para atualizar status de pagamento recebido
+  const updatePagamentoMutation = useMutation({
+    mutationFn: async ({ recebido }) => {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ pagamento_recebido: recebido })
+        .eq('id', romaneioId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { recebido }) => {
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      toast.success(recebido ? 'Pagamento marcado como recebido!' : 'Pagamento marcado como pendente!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar pagamento: ' + error.message);
+    },
+  });
+
+  // Verifica se a forma de pagamento requer cobrança (não começa com "Pago")
+  const requerCobranca = (forma) => {
+    if (!forma) return false;
+    const f = forma.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // Formas que requerem cobrança: Dinheiro, Máquina, Receber, etc.
+    return f.includes('dinheiro') || f.includes('maquina') || f.includes('receber') || f.includes('cartao');
+  };
 
   const VALORES_UNICA_BRUNO = {
     'BC': 12, 'NOVA ESPERANÇA': 15, 'CAMBORIÚ': 20, 'TABULEIRO': 15,
@@ -507,16 +538,17 @@ export default function DetalhesRomaneio() {
                       <div className="text-base font-semibold text-slate-900">
                         {romaneio.forma_pagamento}
                       </div>
-                      {romaneio.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento) ? (
+                      {romaneio.valor_venda > 0 && requerCobranca(romaneio.forma_pagamento) ? (
                         <div style={{
                           marginTop: '0.5rem',
                           padding: '0.75rem',
-                          background: '#1b5e20',
+                          background: romaneio.pagamento_recebido ? '#3dac38' : '#1b5e20',
                           borderRadius: '0.375rem',
                           textAlign: 'center'
                         }}>
                           <div style={{ color: 'white', fontSize: '0.75rem', fontWeight: '500' }}>
-                            {romaneio.forma_pagamento === 'Receber Máquina' ? 'Receber na Máquina:' :
+                            {romaneio.pagamento_recebido ? 'Valor Recebido:' :
+                             romaneio.forma_pagamento?.includes('Máquina') ? 'Receber na Máquina:' :
                              romaneio.forma_pagamento === 'Pagar MP' ? 'Cobrar via MP:' : 'Valor a Receber:'}
                           </div>
                           <div style={{ color: 'white', fontSize: '1.25rem', fontWeight: '700' }}>
@@ -527,6 +559,43 @@ export default function DetalhesRomaneio() {
                         <div className="text-lg font-bold mt-1" style={{ color: '#376295' }}>
                           R$ {(romaneio.valor || 0).toFixed(2)}
                         </div>
+                      )}
+
+                      {/* Botão de controle de pagamento - apenas para formas que requerem cobrança */}
+                      {requerCobranca(romaneio.forma_pagamento) && (
+                        <button
+                          onClick={() => updatePagamentoMutation.mutate({ recebido: !romaneio.pagamento_recebido })}
+                          disabled={updatePagamentoMutation.isPending}
+                          style={{
+                            marginTop: '0.75rem',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '0.5rem',
+                            fontWeight: '600',
+                            fontSize: '0.875rem',
+                            border: 'none',
+                            cursor: updatePagamentoMutation.isPending ? 'not-allowed' : 'pointer',
+                            backgroundColor: romaneio.pagamento_recebido ? '#fee2e2' : '#dcfce7',
+                            color: romaneio.pagamento_recebido ? '#991b1b' : '#166534',
+                            opacity: updatePagamentoMutation.isPending ? 0.7 : 1
+                          }}
+                        >
+                          {romaneio.pagamento_recebido ? (
+                            <>
+                              <AlertCircle size={18} />
+                              {updatePagamentoMutation.isPending ? 'Atualizando...' : 'Marcar como Pendente'}
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle size={18} />
+                              {updatePagamentoMutation.isPending ? 'Atualizando...' : 'Marcar como Recebido'}
+                            </>
+                          )}
+                        </button>
                       )}
                     </div>
                   </div>
