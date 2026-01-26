@@ -297,6 +297,7 @@ export default function Pagamentos() {
   const entregasFiltradas = entregasBase.filter(e => {
     if (filtroStatus === "pendentes" && e.pagamento_recebido) return false;
     if (filtroStatus === "recebidos" && !e.pagamento_recebido) return false;
+    // Filtros de dinheiro e cartão mostram todas as entregas com essa forma, independente do status
     if (filtroStatus === "dinheiro" && !ehDinheiro(e.forma_pagamento)) return false;
     if (filtroStatus === "cartao" && !ehCartao(e.forma_pagamento)) return false;
     return true;
