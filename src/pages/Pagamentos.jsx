@@ -34,6 +34,20 @@ const FORMAS_PAGAMENTO = [
   'Link - Aguardando', 'Boleto', 'Pagar MP'
 ];
 
+// Verifica se a forma de pagamento indica que já foi recebido
+const verificarSeJaRecebido = (forma) => {
+  if (!forma) return false;
+  // Normalizar removendo acentos e convertendo para minúsculo
+  const formaLower = forma.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  return formaLower.startsWith('pago') ||
+         formaLower === 'dinheiro' ||
+         formaLower.includes('maquina') ||
+         formaLower.includes('cartao') ||
+         formaLower.includes('pix');
+};
+
 export default function Pagamentos() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -119,10 +133,13 @@ export default function Pagamentos() {
       return;
     }
 
+    // Se a forma de pagamento indica que já foi pago, marcar automaticamente como recebido
+    const deveMarcarRecebido = verificarSeJaRecebido(formaPagamentoEdit);
+
     updatePagamentoMutation.mutate({
       entregaId: entregaEditando.id,
       formaPagamento: formaPagamentoEdit,
-      pagamentoRecebido: pagamentoRecebidoEdit,
+      pagamentoRecebido: deveMarcarRecebido ? true : pagamentoRecebidoEdit,
     });
   };
 
@@ -130,6 +147,76 @@ export default function Pagamentos() {
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
   }, [queryClient]);
+
+  // Mutation silenciosa para corrigir pagamentos (sem toast individual)
+  const corrigirPagamentoMutation = useMutation({
+    mutationFn: async (entregaId) => {
+      console.log('Tentando corrigir entrega:', entregaId);
+      const { data, error } = await supabase
+        .from('entregas')
+        .update({ pagamento_recebido: true })
+        .eq('id', entregaId)
+        .select();
+
+      console.log('Resultado:', { data, error });
+      if (error) {
+        console.error('Erro detalhado:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+      return data;
+    },
+  });
+
+  // Corrigir automaticamente entregas que têm forma de pagamento "Pago" mas não estão marcadas como recebidas
+  const [jaCorrigiu, setJaCorrigiu] = useState(false);
+  useEffect(() => {
+    const corrigirPagamentosExistentes = async () => {
+      if (jaCorrigiu) return;
+      if (isLoading) return;
+      if (!entregas || entregas.length === 0) return;
+
+      const entregasParaCorrigir = entregas.filter(e => {
+        const deveReceber = verificarSeJaRecebido(e.forma_pagamento);
+        const aindaNaoRecebido = !e.pagamento_recebido;
+        return deveReceber && aindaNaoRecebido;
+      });
+
+      if (entregasParaCorrigir.length === 0) {
+        setJaCorrigiu(true);
+        return;
+      }
+
+      setJaCorrigiu(true);
+
+      let corrigidos = 0;
+      let erros = 0;
+
+      // Corrigir uma por uma
+      for (const entrega of entregasParaCorrigir) {
+        try {
+          await corrigirPagamentoMutation.mutateAsync(entrega.id);
+          corrigidos++;
+        } catch (err) {
+          console.error('Erro ao corrigir entrega:', entrega.id, err);
+          erros++;
+        }
+      }
+
+      // Recarregar dados
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      queryClient.invalidateQueries({ queryKey: ['receitas'] });
+
+      if (corrigidos > 0) {
+        toast.success(`${corrigidos} pagamento(s) corrigido(s) automaticamente`);
+      }
+      if (erros > 0) {
+        toast.error(`${erros} pagamento(s) não puderam ser corrigidos`);
+      }
+    };
+
+    corrigirPagamentosExistentes();
+  }, [entregas, isLoading, jaCorrigiu, queryClient]);
 
   // Mostrar erro se houver
   useEffect(() => {
@@ -193,7 +280,7 @@ export default function Pagamentos() {
 
   // Calcular estatísticas
   const stats = {
-    pendentes: entregasFiltradas.filter(e => !e.pagamento_recebido && e.status === 'Entregue').length,
+    pendentes: entregasFiltradas.filter(e => !e.pagamento_recebido).length,
     recebidos: entregasFiltradas.filter(e => e.pagamento_recebido).length,
     dinheiro: entregasFiltradas
       .filter(e => e.pagamento_recebido && (e.forma_pagamento === 'Dinheiro' || e.forma_pagamento === 'dinheiro'))
