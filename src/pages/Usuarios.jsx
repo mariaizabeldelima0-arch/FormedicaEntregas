@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, User, Monitor, Smartphone, UserCog, Search, UserPlus, Pencil, Trash2, CheckCircle, XCircle, Clock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, User, UserCog, Search, UserPlus, Pencil, Trash2, CheckCircle, XCircle, Eye, EyeOff, Power } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { CustomDropdown } from '@/components/CustomDropdown';
@@ -31,15 +31,14 @@ export default function Usuarios() {
   const [showEditarUsuario, setShowEditarUsuario] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
 
-  // Buscar todos os usuários (dispositivos)
-  const { data: dispositivos = [], isLoading } = useQuery({
-    queryKey: ['dispositivos-usuarios'],
+  // Buscar todos os usuários da tabela usuarios
+  const { data: usuarios = [], isLoading } = useQuery({
+    queryKey: ['usuarios'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('dispositivos')
+        .from('usuarios')
         .select('*')
-        .order('status', { ascending: false })
-        .order('usuario');
+        .order('nome');
 
       if (error) throw error;
       return data || [];
@@ -63,14 +62,14 @@ export default function Usuarios() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, tipo_usuario, nome_motoboy }) => {
       const { error } = await supabase
-        .from('dispositivos')
+        .from('usuarios')
         .update({ tipo_usuario, nome_motoboy: nome_motoboy || null })
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dispositivos-usuarios'] });
+      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast.success('Tipo de usuário atualizado!');
     },
     onError: () => {
@@ -82,7 +81,7 @@ export default function Usuarios() {
   const criarUsuarioMutation = useMutation({
     mutationFn: async (novoUser) => {
       const { error } = await supabase
-        .from('dispositivos')
+        .from('usuarios')
         .insert([{
           usuario: novoUser.usuario,
           nome: novoUser.nome,
@@ -90,16 +89,14 @@ export default function Usuarios() {
           tipo_usuario: novoUser.tipo_usuario,
           nome_motoboy: novoUser.tipo_usuario === 'motoboy' ? novoUser.nome_motoboy : null,
           nome_atendente: novoUser.tipo_usuario === 'atendente' ? novoUser.nome_atendente : null,
-          status: 'Pendente',
-          impressao_digital: 'user-' + Date.now(),
-          ultimo_acesso: new Date().toISOString()
+          ativo: true
         }]);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dispositivos-usuarios'] });
-      toast.success('Usuário criado! Aguardando autorização.');
+      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      toast.success('Usuário criado com sucesso!');
       setShowNovoUsuario(false);
       setNovoUsuario({
         nome: '',
@@ -112,7 +109,11 @@ export default function Usuarios() {
     },
     onError: (error) => {
       console.error('Erro ao criar usuário:', error);
-      toast.error('Erro ao criar usuário');
+      if (error.message?.includes('duplicate') || error.code === '23505') {
+        toast.error('Já existe um usuário com esse login');
+      } else {
+        toast.error('Erro ao criar usuário');
+      }
     }
   });
 
@@ -148,24 +149,17 @@ export default function Usuarios() {
         updateData.senha = userEdit.senha;
       }
 
-      console.log('Atualizando usuário:', userEdit.id, updateData);
-
       const { data, error } = await supabase
-        .from('dispositivos')
+        .from('usuarios')
         .update(updateData)
         .eq('id', userEdit.id)
         .select();
 
-      if (error) {
-        console.error('Erro Supabase:', error);
-        throw error;
-      }
-
-      console.log('Resultado:', data);
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dispositivos-usuarios'] });
+      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast.success('Usuário atualizado com sucesso!');
       setShowEditarUsuario(false);
       setUsuarioEditando(null);
@@ -176,19 +170,19 @@ export default function Usuarios() {
     }
   });
 
-  // Mutation para autorizar usuário
-  const autorizarUsuarioMutation = useMutation({
-    mutationFn: async ({ id, status }) => {
+  // Mutation para ativar/desativar usuário
+  const toggleAtivoMutation = useMutation({
+    mutationFn: async ({ id, ativo }) => {
       const { error } = await supabase
-        .from('dispositivos')
-        .update({ status })
+        .from('usuarios')
+        .update({ ativo })
         .eq('id', id);
 
       if (error) throw error;
     },
-    onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: ['dispositivos-usuarios'] });
-      toast.success(status === 'Autorizado' ? 'Usuário autorizado!' : 'Usuário bloqueado!');
+    onSuccess: (_, { ativo }) => {
+      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      toast.success(ativo ? 'Usuário ativado!' : 'Usuário desativado!');
     },
     onError: () => {
       toast.error('Erro ao atualizar status');
@@ -199,14 +193,15 @@ export default function Usuarios() {
   const excluirUsuarioMutation = useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase
-        .from('dispositivos')
+        .from('usuarios')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dispositivos-usuarios'] });
+      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
       toast.success('Usuário excluído!');
     },
     onError: () => {
@@ -214,15 +209,15 @@ export default function Usuarios() {
     }
   });
 
-  const handleEditarUsuario = (dispositivo) => {
+  const handleEditarUsuario = (usuario) => {
     setUsuarioEditando({
-      id: dispositivo.id,
-      nome: dispositivo.nome || '',
-      usuario: dispositivo.usuario || '',
+      id: usuario.id,
+      nome: usuario.nome || '',
+      usuario: usuario.usuario || '',
       senha: '',
-      tipo_usuario: dispositivo.tipo_usuario || 'atendente',
-      nome_motoboy: dispositivo.nome_motoboy || '',
-      nome_atendente: dispositivo.nome_atendente || ''
+      tipo_usuario: usuario.tipo_usuario || 'atendente',
+      nome_motoboy: usuario.nome_motoboy || '',
+      nome_atendente: usuario.nome_atendente || ''
     });
     setShowEditarUsuario(true);
   };
@@ -243,12 +238,12 @@ export default function Usuarios() {
     editarUsuarioMutation.mutate(usuarioEditando);
   };
 
-  const handleAutorizar = (id, status) => {
-    autorizarUsuarioMutation.mutate({ id, status });
+  const handleToggleAtivo = (id, ativo) => {
+    toggleAtivoMutation.mutate({ id, ativo });
   };
 
   const handleExcluirUsuario = (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
+    if (window.confirm('Tem certeza que deseja excluir este usuário? Todos os dispositivos vinculados serão removidos.')) {
       excluirUsuarioMutation.mutate(id);
     }
   };
@@ -257,9 +252,9 @@ export default function Usuarios() {
     updateMutation.mutate({ id, tipo_usuario: tipo, nome_motoboy: nomeMotoboy });
   };
 
-  const filteredUsers = dispositivos.filter(d =>
-    d.usuario?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.nome?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = usuarios.filter(u =>
+    u.usuario?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.nome?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getTipoBadge = (tipo, nomeMotoboy) => {
@@ -270,13 +265,6 @@ export default function Usuarios() {
     };
     const { bg, text, label } = config[tipo] || { bg: "bg-slate-100", text: "text-slate-700", label: "Não Definido" };
     return <span className={`px-3 py-1 rounded-lg text-xs font-bold ${bg} ${text}`}>{label}</span>;
-  };
-
-  const getDeviceIcon = (nome) => {
-    if (nome?.toLowerCase().includes('safari') || nome?.toLowerCase().includes('mac') || nome?.toLowerCase().includes('windows')) {
-      return <Monitor className="w-5 h-5 text-slate-500" />;
-    }
-    return <Smartphone className="w-5 h-5 text-slate-500" />;
   };
 
   return (
@@ -295,7 +283,7 @@ export default function Usuarios() {
             </button>
             <div>
               <h1 className="text-4xl font-bold text-white">Gerenciar Usuários</h1>
-              <p className="text-base text-white opacity-90 mt-1">Defina os tipos de acesso para cada dispositivo</p>
+              <p className="text-base text-white opacity-90 mt-1">Gerencie os usuários e seus tipos de acesso</p>
             </div>
           </div>
         </div>
@@ -325,7 +313,7 @@ export default function Usuarios() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nome ou dispositivo..."
+              placeholder="Buscar por nome ou usuário..."
               className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ '--tw-ring-color': '#376295' }}
             />
@@ -337,7 +325,7 @@ export default function Usuarios() {
           <div className="px-6 py-4 border-b border-slate-200" style={{ backgroundColor: '#890d5d' }}>
             <div className="flex items-center gap-2">
               <UserCog className="w-5 h-5 text-white" />
-              <h2 className="text-lg font-bold text-white">Usuários Autorizados ({filteredUsers.length})</h2>
+              <h2 className="text-lg font-bold text-white">Usuários ({filteredUsers.length})</h2>
             </div>
           </div>
 
@@ -351,21 +339,20 @@ export default function Usuarios() {
                 <User className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <div className="text-slate-600 font-medium">Nenhum usuário encontrado</div>
                 <div className="text-sm text-slate-500 mt-1">
-                  Autorize dispositivos na página de Dispositivos
+                  Clique em "Criar Novo Usuário" para adicionar
                 </div>
               </div>
             ) : (
-              filteredUsers.map((dispositivo) => (
+              filteredUsers.map((usuario) => (
                 <UsuarioCard
-                  key={dispositivo.id}
-                  dispositivo={dispositivo}
+                  key={usuario.id}
+                  usuario={usuario}
                   motoboys={motoboys}
                   onUpdateTipo={handleUpdateTipo}
                   onEditar={handleEditarUsuario}
                   onExcluir={handleExcluirUsuario}
-                  onAutorizar={handleAutorizar}
+                  onToggleAtivo={handleToggleAtivo}
                   isUpdating={updateMutation.isPending}
-                  getDeviceIcon={getDeviceIcon}
                   getTipoBadge={getTipoBadge}
                 />
               ))
@@ -571,62 +558,62 @@ export default function Usuarios() {
 }
 
 // Componente de Card de Usuário
-function UsuarioCard({ dispositivo, motoboys, onUpdateTipo, onEditar, onExcluir, onAutorizar, isUpdating, getDeviceIcon, getTipoBadge }) {
-  const [tipoUsuario, setTipoUsuario] = React.useState(dispositivo.tipo_usuario || '');
-  const [nomeMotoboy, setNomeMotoboy] = React.useState(dispositivo.nome_motoboy || '');
+function UsuarioCard({ usuario, motoboys, onUpdateTipo, onEditar, onExcluir, onToggleAtivo, isUpdating, getTipoBadge }) {
+  const [tipoUsuario, setTipoUsuario] = React.useState(usuario.tipo_usuario || '');
+  const [nomeMotoboy, setNomeMotoboy] = React.useState(usuario.nome_motoboy || '');
   const [mostrarSenha, setMostrarSenha] = React.useState(false);
-  const isPendente = dispositivo.status !== 'Autorizado';
+  const isInativo = !usuario.ativo;
 
   const handleTipoChange = (novoTipo) => {
     setTipoUsuario(novoTipo);
     if (novoTipo !== 'motoboy') {
       setNomeMotoboy('');
-      onUpdateTipo(dispositivo.id, novoTipo, null);
+      onUpdateTipo(usuario.id, novoTipo, null);
     }
   };
 
   const handleMotoboyChange = (nome) => {
     setNomeMotoboy(nome);
     if (nome) {
-      onUpdateTipo(dispositivo.id, 'motoboy', nome);
+      onUpdateTipo(usuario.id, 'motoboy', nome);
     }
   };
 
   const getStatusBadge = () => {
-    if (isPendente) {
+    if (isInativo) {
       return (
-        <span className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold bg-yellow-100 text-yellow-700">
-          <Clock className="w-3 h-3" />
-          Pendente
+        <span className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700">
+          <XCircle className="w-3 h-3" />
+          Inativo
         </span>
       );
     }
     return (
       <span className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700">
         <CheckCircle className="w-3 h-3" />
-        Autorizado
+        Ativo
       </span>
     );
   };
 
   return (
-    <div className={`p-6 hover:bg-slate-50 transition-colors ${isPendente ? 'bg-yellow-50' : ''}`}>
+    <div className={`p-6 hover:bg-slate-50 transition-colors ${isInativo ? 'bg-red-50 opacity-70' : ''}`}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isPendente ? 'bg-yellow-400' : 'bg-gradient-to-br from-[#457bba] to-[#890d5d]'}`}>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isInativo ? 'bg-red-400' : 'bg-gradient-to-br from-[#457bba] to-[#890d5d]'}`}>
             <User className="w-6 h-6 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-slate-900 text-lg">
-                {dispositivo.nome || dispositivo.usuario || 'Usuário'}
+                {usuario.nome || usuario.usuario || 'Usuário'}
               </h3>
               {getStatusBadge()}
             </div>
             <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
-              <span className="font-medium">Login: {dispositivo.usuario || '-'}</span>
+              <span className="font-medium">Login: {usuario.usuario || '-'}</span>
               <span className="flex items-center gap-1 font-medium">
-                Senha: {mostrarSenha ? (dispositivo.senha || '-') : '••••••'}
+                Senha: {mostrarSenha ? (usuario.senha || '-') : '••••••'}
                 <button
                   onClick={() => setMostrarSenha(!mostrarSenha)}
                   className="p-1 hover:bg-slate-200 rounded transition-colors"
@@ -640,17 +627,6 @@ function UsuarioCard({ dispositivo, motoboys, onUpdateTipo, onEditar, onExcluir,
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">
-          {/* Botão de Autorização (apenas para pendentes) */}
-          {isPendente && (
-            <button
-              onClick={() => onAutorizar(dispositivo.id, 'Autorizado')}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Autorizar
-            </button>
-          )}
-
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-600">Tipo:</span>
             <div className="min-w-[160px]">
@@ -692,14 +668,21 @@ function UsuarioCard({ dispositivo, motoboys, onUpdateTipo, onEditar, onExcluir,
           {/* Botões de Ação */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onEditar(dispositivo)}
+              onClick={() => onToggleAtivo(usuario.id, !usuario.ativo)}
+              className={`p-2 rounded-lg transition-colors ${usuario.ativo ? 'text-orange-500 hover:bg-orange-100' : 'text-green-500 hover:bg-green-100'}`}
+              title={usuario.ativo ? 'Desativar usuário' : 'Ativar usuário'}
+            >
+              <Power className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => onEditar(usuario)}
               className="p-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
               title="Editar usuário"
             >
               <Pencil className="w-5 h-5" />
             </button>
             <button
-              onClick={() => onExcluir(dispositivo.id)}
+              onClick={() => onExcluir(usuario.id)}
               className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
               title="Excluir usuário"
             >

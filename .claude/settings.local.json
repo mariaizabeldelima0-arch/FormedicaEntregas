@@ -48,7 +48,11 @@
       "Bash(npx vite build)",
       "Bash(npx vite --host)",
       "Bash(node scripts/seed-test-data.js:*)",
-      "Bash(node scripts/seed-test-data.cjs:*)"
+      "Bash(node scripts/seed-test-data.cjs:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(dir:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ]
   }
 }

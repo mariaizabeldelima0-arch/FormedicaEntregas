@@ -12,21 +12,10 @@ import {
   XCircle,
   Trash2,
   Clock,
-  Plus,
-  UserPlus,
-  Users
+  Users,
+  User
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createPageUrl } from '@/utils';
-import { CustomDropdown } from '@/components/CustomDropdown';
 
 export default function Dispositivos() {
   const navigate = useNavigate();
@@ -34,26 +23,13 @@ export default function Dispositivos() {
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [busca, setBusca] = useState('');
 
-  // Buscar motoboys para seleção
-  const { data: motoboys = [] } = useQuery({
-    queryKey: ['motoboys-lista'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('motoboys')
-        .select('*')
-        .order('nome');
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Buscar dispositivos
+  // Buscar dispositivos com dados do usuário vinculado
   const { data: dispositivos = [], isLoading } = useQuery({
     queryKey: ['dispositivos'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dispositivos')
-        .select('*')
+        .select('*, usuarios(id, nome, usuario, tipo_usuario, nome_motoboy)')
         .order('ultimo_acesso', { ascending: false });
 
       if (error) throw error;
@@ -78,7 +54,8 @@ export default function Dispositivos() {
     const buscaLower = busca.toLowerCase();
     return (
       dispositivo.nome?.toLowerCase().includes(buscaLower) ||
-      dispositivo.usuario?.toLowerCase().includes(buscaLower) ||
+      dispositivo.usuarios?.nome?.toLowerCase().includes(buscaLower) ||
+      dispositivo.usuarios?.usuario?.toLowerCase().includes(buscaLower) ||
       dispositivo.impressao_digital?.toLowerCase().includes(buscaLower)
     );
   });
@@ -148,29 +125,6 @@ export default function Dispositivos() {
     }
   });
 
-  // Mutation para atualizar tipo de usuário do dispositivo
-  const atualizarTipoMutation = useMutation({
-    mutationFn: async ({ dispositivoId, tipoUsuario, nomeMotoboy }) => {
-      const { error } = await supabase
-        .from('dispositivos')
-        .update({
-          tipo_usuario: tipoUsuario,
-          nome_motoboy: nomeMotoboy || null
-        })
-        .eq('id', dispositivoId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
-      toast.success('Tipo de usuário atualizado!');
-    },
-    onError: (error) => {
-      console.error('Erro:', error);
-      toast.error('Erro ao atualizar tipo de usuário');
-    }
-  });
-
   const handleAutorizar = (id) => {
     autorizarMutation.mutate(id);
   };
@@ -183,10 +137,6 @@ export default function Dispositivos() {
     if (window.confirm('Tem certeza que deseja remover este dispositivo?')) {
       deletarMutation.mutate(id);
     }
-  };
-
-  const handleAtualizarTipo = (dispositivoId, tipoUsuario, nomeMotoboy) => {
-    atualizarTipoMutation.mutate({ dispositivoId, tipoUsuario, nomeMotoboy });
   };
 
   return (
@@ -204,7 +154,7 @@ export default function Dispositivos() {
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
             <div>
-              <h1 className="text-4xl font-bold text-white">Gerenciar Usuários/Dispositivos</h1>
+              <h1 className="text-4xl font-bold text-white">Gerenciar Dispositivos</h1>
               <p className="text-base text-white opacity-90 mt-1">Autorizar ou bloquear dispositivos de acesso</p>
             </div>
           </div>
@@ -303,7 +253,7 @@ export default function Dispositivos() {
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por e-mail, dispositivo ou impressão digital..."
+              placeholder="Buscar por nome do usuário, dispositivo ou impressão digital..."
               className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 transition-all"
               style={{
                 '--tw-ring-color': '#376295'
@@ -341,16 +291,13 @@ export default function Dispositivos() {
                 <DispositivoCard
                   key={dispositivo.id}
                   dispositivo={dispositivo}
-                  motoboys={motoboys}
                   onAutorizar={handleAutorizar}
                   onBloquear={handleBloquear}
                   onDeletar={handleDeletar}
-                  onAtualizarTipo={handleAtualizarTipo}
                   isUpdating={
                     autorizarMutation.isPending ||
                     bloquearMutation.isPending ||
-                    deletarMutation.isPending ||
-                    atualizarTipoMutation.isPending
+                    deletarMutation.isPending
                   }
                 />
               ))
@@ -363,25 +310,7 @@ export default function Dispositivos() {
 }
 
 // Componente de Card de Dispositivo
-function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDeletar, onAtualizarTipo, isUpdating }) {
-  const [tipoUsuario, setTipoUsuario] = React.useState(dispositivo.tipo_usuario || '');
-  const [nomeMotoboy, setNomeMotoboy] = React.useState(dispositivo.nome_motoboy || '');
-
-  const handleTipoChange = (novoTipo) => {
-    setTipoUsuario(novoTipo);
-    if (novoTipo !== 'motoboy') {
-      setNomeMotoboy('');
-      onAtualizarTipo(dispositivo.id, novoTipo, null);
-    }
-  };
-
-  const handleMotoboyChange = (nome) => {
-    setNomeMotoboy(nome);
-    if (nome) {
-      onAtualizarTipo(dispositivo.id, 'motoboy', nome);
-    }
-  };
-
+function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUpdating }) {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Autorizado':
@@ -417,6 +346,17 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
     return <Smartphone className="w-5 h-5 text-slate-600" />;
   };
 
+  const getTipoBadge = (tipo, nomeMotoboy) => {
+    if (!tipo) return null;
+    const config = {
+      admin: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Admin' },
+      atendente: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Atendente' },
+      motoboy: { bg: 'bg-orange-100', text: 'text-orange-700', label: `Motoboy${nomeMotoboy ? `: ${nomeMotoboy}` : ''}` },
+    };
+    const c = config[tipo] || { bg: 'bg-slate-100', text: 'text-slate-700', label: tipo };
+    return <span className={`px-2 py-0.5 rounded text-xs font-bold ${c.bg} ${c.text}`}>{c.label}</span>;
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -428,6 +368,8 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
       minute: '2-digit'
     });
   };
+
+  const usuario = dispositivo.usuarios;
 
   return (
     <div className="p-6 hover:bg-slate-50 transition-colors">
@@ -442,10 +384,17 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
             </div>
 
             <div className="space-y-1 text-sm">
-              <div className="text-slate-600">
-                <span className="font-medium">Usuário:</span>{' '}
-                <span className="text-slate-900">{dispositivo.usuario || '-'}</span>
-              </div>
+              {usuario && (
+                <div className="text-slate-600 flex items-center gap-2">
+                  <User className="w-3.5 h-3.5" />
+                  <span className="font-medium">Usuário:</span>{' '}
+                  <span className="text-slate-900">{usuario.nome || usuario.usuario}</span>
+                  {' '}
+                  <span className="text-slate-400">({usuario.usuario})</span>
+                  {' '}
+                  {getTipoBadge(usuario.tipo_usuario, usuario.nome_motoboy)}
+                </div>
+              )}
               <div className="text-slate-600">
                 <span className="font-medium">Impressão digital:</span>{' '}
                 <span className="font-mono text-xs text-slate-700">
@@ -455,59 +404,6 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
               <div className="text-slate-600">
                 <span className="font-medium">Último acesso:</span>{' '}
                 <span className="text-slate-900">{formatDate(dispositivo.ultimo_acesso)}</span>
-              </div>
-            </div>
-
-            {/* Tipo de Usuário */}
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-600">Tipo:</span>
-                  <div className="min-w-[160px]">
-                    <CustomDropdown
-                      options={[
-                        { value: '', label: 'Selecione...' },
-                        { value: 'admin', label: 'Administrador' },
-                        { value: 'atendente', label: 'Atendente' },
-                        { value: 'motoboy', label: 'Motoboy' }
-                      ]}
-                      value={tipoUsuario}
-                      onChange={handleTipoChange}
-                      disabled={isUpdating}
-                      placeholder="Selecione..."
-                    />
-                  </div>
-                </div>
-
-                {tipoUsuario === 'motoboy' && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-600">Motoboy:</span>
-                    <div className="min-w-[150px]">
-                      <CustomDropdown
-                        options={[
-                          { value: '', label: 'Selecione...' },
-                          ...(motoboys?.map(m => ({ value: m.nome, label: m.nome })) || [])
-                        ]}
-                        value={nomeMotoboy}
-                        onChange={handleMotoboyChange}
-                        disabled={isUpdating}
-                        placeholder="Selecione..."
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {tipoUsuario && (
-                  <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-                    tipoUsuario === 'admin' ? 'bg-purple-100 text-purple-700' :
-                    tipoUsuario === 'motoboy' ? 'bg-orange-100 text-orange-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {tipoUsuario === 'admin' ? 'Administrador' :
-                     tipoUsuario === 'motoboy' ? `Motoboy${nomeMotoboy ? `: ${nomeMotoboy}` : ''}` :
-                     'Atendente'}
-                  </span>
-                )}
               </div>
             </div>
           </div>

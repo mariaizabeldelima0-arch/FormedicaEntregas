@@ -628,6 +628,12 @@ export default function Pagamentos() {
                               >
                                 {entrega.pagamento_recebido ? "Recebido" : "Pendente"}
                               </Badge>
+                              {(entrega.receita_anexo || entrega.pagamento_anexo || entrega.outros_anexo) && (
+                                <span className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
+                                  <Paperclip className="w-3.5 h-3.5" />
+                                  Anexo
+                                </span>
+                              )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 mb-3">
                               <div>

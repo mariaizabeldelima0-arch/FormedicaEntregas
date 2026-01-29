@@ -79,41 +79,48 @@ export const AuthProvider = ({ children }) => {
       const fingerprint = gerarFingerprint();
       const nomeDispositivo = obterNomeDispositivo();
 
-      // Primeiro, verificar se o usuário/senha existe em algum dispositivo autorizado
-      const { data: usuariosExistentes, error: erroUsuario } = await supabase
-        .from('dispositivos')
+      // 1. Verificar credenciais na tabela usuarios
+      const { data: usuarioData, error: erroUsuario } = await supabase
+        .from('usuarios')
         .select('*')
         .eq('usuario', usuarioLogin)
-        .eq('senha', senhaDigitada);
+        .eq('senha', senhaDigitada)
+        .eq('ativo', true)
+        .maybeSingle();
 
       if (erroUsuario) {
         console.error('Erro ao buscar usuário:', erroUsuario);
         return { success: false, error: 'Erro ao conectar' };
       }
 
-      if (!usuariosExistentes || usuariosExistentes.length === 0) {
+      if (!usuarioData) {
         return { success: false, error: 'Usuário ou senha inválidos' };
       }
 
-      // Pegar dados do primeiro registro encontrado (para copiar tipo_usuario, etc)
-      const usuarioBase = usuariosExistentes[0];
+      // 2. Verificar dispositivo para este usuário + fingerprint
+      const { data: dispositivo, error: erroDisp } = await supabase
+        .from('dispositivos')
+        .select('*')
+        .eq('usuario_id', usuarioData.id)
+        .eq('impressao_digital', fingerprint)
+        .maybeSingle();
 
-      // Verificar se existe registro para este usuário + dispositivo específico
-      const dispositivoAtual = usuariosExistentes.find(d => d.impressao_digital === fingerprint);
+      if (erroDisp) {
+        console.error('Erro ao buscar dispositivo:', erroDisp);
+        return { success: false, error: 'Erro ao verificar dispositivo' };
+      }
 
-      // Se não existe registro para este dispositivo específico, criar como Pendente
-      if (!dispositivoAtual) {
+      // 3. Se não existe registro para este dispositivo, criar
+      if (!dispositivo) {
+        const isAdmin = usuarioData.tipo_usuario === 'admin';
+
         const { error: erroCriar } = await supabase
           .from('dispositivos')
           .insert({
-            usuario: usuarioLogin,
-            senha: senhaDigitada,
+            usuario_id: usuarioData.id,
             nome: nomeDispositivo,
             impressao_digital: fingerprint,
-            status: 'Pendente',
-            tipo_usuario: usuarioBase.tipo_usuario,
-            nome_motoboy: usuarioBase.nome_motoboy,
-            nome_atendente: usuarioBase.nome_atendente,
+            status: isAdmin ? 'Autorizado' : 'Pendente',
             ultimo_acesso: new Date().toISOString()
           });
 
@@ -122,36 +129,39 @@ export const AuthProvider = ({ children }) => {
           return { success: false, error: 'Erro ao registrar dispositivo' };
         }
 
-        return {
-          success: false,
-          error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.'
-        };
+        if (!isAdmin) {
+          return {
+            success: false,
+            error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.'
+          };
+        }
+        // Admin auto-autorizado, continua para login
+      } else {
+        // 4. Dispositivo existe, verificar status
+        if (dispositivo.status === 'Pendente') {
+          return {
+            success: false,
+            error: 'Este dispositivo está aguardando autorização. Entre em contato com o administrador.'
+          };
+        }
+
+        if (dispositivo.status === 'Bloqueado') {
+          return {
+            success: false,
+            error: 'Este dispositivo está bloqueado. Entre em contato com o administrador.'
+          };
+        }
       }
 
-      // Verificar status do dispositivo
-      if (dispositivoAtual.status === 'Pendente') {
-        return {
-          success: false,
-          error: 'Este dispositivo está aguardando autorização. Entre em contato com o administrador.'
-        };
-      }
-
-      if (dispositivoAtual.status === 'Bloqueado') {
-        return {
-          success: false,
-          error: 'Este dispositivo está bloqueado. Entre em contato com o administrador.'
-        };
-      }
-
-      // Dispositivo autorizado - permitir login
+      // 5. Login autorizado — dados vêm da tabela usuarios
       const userData = {
-        id: dispositivoAtual.id,
-        usuario: dispositivoAtual.usuario,
-        nome: dispositivoAtual.nome,
-        tipo_usuario: dispositivoAtual.tipo_usuario,
-        nome_motoboy: dispositivoAtual.nome_motoboy,
-        nome_atendente: dispositivoAtual.nome_atendente,
-        full_name: dispositivoAtual.nome_motoboy || dispositivoAtual.nome_atendente || dispositivoAtual.usuario
+        id: usuarioData.id,
+        usuario: usuarioData.usuario,
+        nome: usuarioData.nome,
+        tipo_usuario: usuarioData.tipo_usuario,
+        nome_motoboy: usuarioData.nome_motoboy,
+        nome_atendente: usuarioData.nome_atendente,
+        full_name: usuarioData.nome_motoboy || usuarioData.nome_atendente || usuarioData.nome
       };
 
       setUser(userData);
@@ -160,11 +170,12 @@ export const AuthProvider = ({ children }) => {
       setUserType(userData.tipo_usuario || 'atendente');
       sessionStorage.setItem('formedica_user_type', userData.tipo_usuario || 'atendente');
 
-      // Atualizar último acesso
+      // Atualizar último acesso do dispositivo
       await supabase
         .from('dispositivos')
         .update({ ultimo_acesso: new Date().toISOString() })
-        .eq('id', dispositivoAtual.id);
+        .eq('usuario_id', usuarioData.id)
+        .eq('impressao_digital', fingerprint);
 
       return { success: true };
     } catch (error) {
