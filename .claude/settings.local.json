@@ -52,7 +52,14 @@
       "Bash(python -m json.tool:*)",
       "Bash(dir:*)",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(where:*)",
+      "Bash(npx supabase projects list)",
+      "Bash(npx supabase login)",
+      "Bash(npx supabase:*)",
+      "Bash(set SUPABASE_ACCESS_TOKEN=sbp_0bb9a568214230a65215023acc2eec4e31ff9a9b)",
+      "Bash($env:SUPABASE_ACCESS_TOKEN=\"sbp_0bb9a568214230a65215023acc2eec4e31ff9a9b\")",
+      "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_0bb9a568214230a65215023acc2eec4e31ff9a9b\")"
     ]
   }
 }

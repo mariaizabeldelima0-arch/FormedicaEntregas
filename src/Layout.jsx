@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import logoF from "@/assets/logo-f.png";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -186,9 +187,7 @@ export default function Layout({ children, currentPageName }) {
         <Sidebar className="border-r border-slate-200 bg-white print:hidden">
           <SidebarHeader className="border-b border-slate-200 p-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#457bba] to-[#890d5d] flex items-center justify-center shadow-lg">
-                <Truck className="w-6 h-6 text-white" />
-              </div>
+              <img src={logoF} alt="Formédica" className="w-10 h-10 rounded-xl shadow-lg" />
               <div>
                 <h2 className="font-bold text-slate-900 text-lg">Formédica Entregas</h2>
               </div>

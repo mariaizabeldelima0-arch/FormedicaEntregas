@@ -240,21 +240,12 @@ export default function Layout({ children }) {
           height: '132px',
           boxSizing: 'border-box'
         }}>
-          <div style={{
+          <img src="/logo-f.png" alt="Formédica" style={{
             width: '36px',
             height: '36px',
-            background: theme.colors.primary,
             borderRadius: '0.375rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '1.125rem',
             flexShrink: 0
-          }}>
-            F
-          </div>
+          }} />
           {isMenuExpanded && (
             <div style={{
               overflow: 'hidden',
