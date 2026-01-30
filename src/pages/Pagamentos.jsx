@@ -55,7 +55,7 @@ export default function Pagamentos() {
   // Estados
   const [mesAtual, setMesAtual] = useState(new Date());
   const [dataSelecionada, setDataSelecionada] = useState(null);
-  const [verTodos, setVerTodos] = useState(true); // Iniciar com "ver todos"
+  const [verTodos, setVerTodos] = useState(false); // Iniciar filtrando por dia
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos"); // "todos", "pendentes", "recebidos", "dinheiro", "cartao"
