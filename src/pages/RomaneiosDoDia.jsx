@@ -24,7 +24,7 @@ function RomaneioCard({ romaneio }) {
     return d.toLocaleDateString('pt-BR');
   };
 
-  const isPago = romaneio.forma_pagamento && ['Pago', 'Só Entregar'].includes(romaneio.forma_pagamento);
+  const isPago = romaneio.pagamento_recebido || (romaneio.forma_pagamento && ['Pago', 'Só Entregar'].includes(romaneio.forma_pagamento));
 
   return (
     <div className="romaneio-card" style={{ position: 'relative' }}>
