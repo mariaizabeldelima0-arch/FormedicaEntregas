@@ -76,7 +76,8 @@ export default function Pagamentos() {
           *,
           cliente:clientes(nome, telefone, cpf),
           endereco:enderecos(cidade, regiao),
-          motoboy:motoboys(nome)
+          motoboy:motoboys(nome),
+          anexos(id, tipo)
         `)
         .order('data_entrega', { ascending: false });
 
@@ -628,10 +629,10 @@ export default function Pagamentos() {
                               >
                                 {entrega.pagamento_recebido ? "Recebido" : "Pendente"}
                               </Badge>
-                              {(entrega.receita_anexo || entrega.pagamento_anexo || entrega.outros_anexo) && (
+                              {entrega.anexos?.length > 0 && (
                                 <span className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
                                   <Paperclip className="w-3.5 h-3.5" />
-                                  Anexo
+                                  {entrega.anexos.length} Anexo{entrega.anexos.length > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>

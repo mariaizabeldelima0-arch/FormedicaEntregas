@@ -51,7 +51,8 @@ export default function Receitas() {
           *,
           cliente:clientes(nome, telefone, cpf),
           endereco:enderecos(cidade, regiao),
-          motoboy:motoboys(nome)
+          motoboy:motoboys(nome),
+          anexos(id, tipo, url, descricao, created_at)
         `)
         .eq('buscar_receita', true)
         .order('data_entrega', { ascending: false });
@@ -117,18 +118,17 @@ export default function Receitas() {
         .from('entregas-anexos')
         .getPublicUrl(filePath);
 
-      // Atualizar o registro no banco de dados
-      const updateData = {
-        [`${tipoAnexo.toLowerCase()}_anexo`]: publicUrl,
-        [`${tipoAnexo.toLowerCase()}_descricao`]: descricaoAnexo || null,
-      };
+      // Inserir na tabela de anexos (permite múltiplos por tipo)
+      const { error: insertError } = await supabase
+        .from('anexos')
+        .insert({
+          entrega_id: receitaSelecionada.id,
+          tipo: tipoAnexo.toLowerCase(),
+          url: publicUrl,
+          descricao: descricaoAnexo || null,
+        });
 
-      const { error: updateError } = await supabase
-        .from('entregas')
-        .update(updateData)
-        .eq('id', receitaSelecionada.id);
-
-      if (updateError) throw updateError;
+      if (insertError) throw insertError;
 
       toast.success('Anexo enviado com sucesso!');
 
@@ -488,10 +488,10 @@ export default function Receitas() {
                             >
                               {receita.receita_recebida ? "Recebida" : "Pendente"}
                             </span>
-                            {(receita.receita_anexo || receita.pagamento_anexo || receita.outros_anexo) && (
+                            {receita.anexos?.length > 0 && (
                               <span className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
                                 <Paperclip className="w-3.5 h-3.5" />
-                                Anexo
+                                {receita.anexos.length} Anexo{receita.anexos.length > 1 ? 's' : ''}
                               </span>
                             )}
                           </div>
@@ -517,30 +517,30 @@ export default function Receitas() {
                         </div>
 
                         <div className="flex items-center gap-2 ml-4">
-                          {receita.receita_anexo ? (
+                          {receita.anexos?.some(a => a.tipo === 'receita') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                window.open(receita.receita_anexo, '_blank');
+                                const receitaAnexos = receita.anexos.filter(a => a.tipo === 'receita');
+                                window.open(receitaAnexos[receitaAnexos.length - 1].url, '_blank');
                               }}
                               className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-medium text-slate-700"
                             >
                               <Eye className="w-4 h-4" />
-                              Ver Receita
-                            </button>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                abrirModalUpload(receita);
-                              }}
-                              className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium text-white"
-                              style={{ backgroundColor: '#376295' }}
-                            >
-                              <Upload className="w-4 h-4" />
-                              Anexar
+                              Ver Receita {receita.anexos.filter(a => a.tipo === 'receita').length > 1 ? `(${receita.anexos.filter(a => a.tipo === 'receita').length})` : ''}
                             </button>
                           )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              abrirModalUpload(receita);
+                            }}
+                            className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium text-white"
+                            style={{ backgroundColor: '#376295' }}
+                          >
+                            <Upload className="w-4 h-4" />
+                            Anexar
+                          </button>
                         </div>
                       </div>
                     </div>

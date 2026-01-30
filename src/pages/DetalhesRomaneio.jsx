@@ -16,10 +16,21 @@ import {
   Truck,
   FileText,
   Image as ImageIcon,
-  Download,
+  Upload,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +43,62 @@ export default function DetalhesRomaneio() {
   const { userType } = useAuth();
   const { id } = useParams();
   const romaneioId = id || new URLSearchParams(window.location.search).get('id');
+
+  // Estados para modal de upload/anexo
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [tipoAnexo, setTipoAnexo] = useState("");
+  const [descricaoAnexo, setDescricaoAnexo] = useState("");
+  const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Função para fazer upload do anexo
+  const handleUploadAnexo = async () => {
+    if (!arquivoSelecionado || !tipoAnexo) {
+      toast.error('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = arquivoSelecionado.name.split('.').pop();
+      const fileName = `${romaneioId}_${tipoAnexo}_${Date.now()}.${fileExt}`;
+      const filePath = `anexos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('entregas-anexos')
+        .upload(filePath, arquivoSelecionado);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('entregas-anexos')
+        .getPublicUrl(filePath);
+
+      const { error: insertError } = await supabase
+        .from('anexos')
+        .insert({
+          entrega_id: romaneioId,
+          tipo: tipoAnexo.toLowerCase(),
+          url: publicUrl,
+          descricao: descricaoAnexo || null,
+        });
+
+      if (insertError) throw insertError;
+
+      toast.success('Anexo enviado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+
+      setUploadModalOpen(false);
+      setTipoAnexo("");
+      setDescricaoAnexo("");
+      setArquivoSelecionado(null);
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      toast.error('Erro ao enviar anexo: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const { data: romaneio, isLoading, error: queryError } = useQuery({
     queryKey: ['romaneio', romaneioId],
@@ -49,7 +116,8 @@ export default function DetalhesRomaneio() {
           *,
           cliente:clientes(id, nome, telefone, cpf, email),
           endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep, regiao),
-          motoboy:motoboys(id, nome)
+          motoboy:motoboys(id, nome),
+          anexos(id, tipo, url, descricao, created_at)
         `)
         .eq('id', romaneioId)
         .single();
@@ -514,18 +582,67 @@ export default function DetalhesRomaneio() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2" style={{ color: '#376295' }}>
                     <ImageIcon size={18} />
-                    <h2 className="text-lg font-bold">Imagens Anexadas</h2>
+                    <h2 className="text-lg font-bold">Anexos</h2>
                   </div>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all" style={{ backgroundColor: '#376295', color: 'white' }}>
-                    <Download size={14} />
+                  <button
+                    onClick={() => setUploadModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all hover:opacity-80"
+                    style={{ backgroundColor: '#376295', color: 'white' }}
+                  >
+                    <Upload size={14} />
                     Anexar Imagens
                   </button>
                 </div>
 
-                <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-300 rounded-lg text-slate-400">
-                  <ImageIcon size={48} className="mb-2 opacity-30" />
-                  <div className="text-sm">Nenhuma imagem anexada</div>
-                </div>
+                {(() => {
+                  const anexos = romaneio.anexos || [];
+                  const receitas = anexos.filter(a => a.tipo === 'receita');
+                  const pagamentos = anexos.filter(a => a.tipo === 'pagamento');
+                  const outros = anexos.filter(a => a.tipo === 'outros');
+                  const temAnexos = anexos.length > 0;
+
+                  const tipoConfig = {
+                    receita: { label: 'Receita', cor: 'text-blue-600' },
+                    pagamento: { label: 'Pagamento', cor: 'text-green-600' },
+                    outros: { label: 'Outros', cor: 'text-orange-600' },
+                  };
+
+                  const renderGrupo = (lista, tipo) => lista.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                        {tipoConfig[tipo].label} ({lista.length})
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {lista.map((anexo) => (
+                          <a key={anexo.id} href={anexo.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                            <ImageIcon size={20} className={`${tipoConfig[tipo].cor} flex-shrink-0`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-slate-900">{tipoConfig[tipo].label}</div>
+                              {anexo.descricao && <div className="text-xs text-slate-500 truncate">{anexo.descricao}</div>}
+                              <div className="text-xs text-slate-400">
+                                {new Date(anexo.created_at).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                            <ExternalLink size={14} className="text-slate-400 flex-shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  );
+
+                  return temAnexos ? (
+                    <div className="space-y-4">
+                      {renderGrupo(receitas, 'receita')}
+                      {renderGrupo(pagamentos, 'pagamento')}
+                      {renderGrupo(outros, 'outros')}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-300 rounded-lg text-slate-400">
+                      <ImageIcon size={48} className="mb-2 opacity-30" />
+                      <div className="text-sm">Nenhum anexo</div>
+                    </div>
+                  );
+                })()}
               </div>
 
             </div>
@@ -737,6 +854,82 @@ export default function DetalhesRomaneio() {
 
         </div>
       </div>
+
+      {/* Modal de Upload de Anexo */}
+      <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Anexar Imagens</DialogTitle>
+            <DialogDescription>
+              Envie fotos ou documentos relacionados a esta entrega.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de Anexo *</label>
+              <Select value={tipoAnexo} onValueChange={setTipoAnexo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Receita">Receita</SelectItem>
+                  <SelectItem value="Pagamento">Pagamento</SelectItem>
+                  <SelectItem value="Outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Arquivo *</label>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => setArquivoSelecionado(e.target.files?.[0] || null)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              {arquivoSelecionado && (
+                <p className="text-xs text-slate-500">
+                  Arquivo selecionado: {arquivoSelecionado.name}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descrição (opcional)</label>
+              <Textarea
+                placeholder="Adicione informações adicionais sobre este anexo..."
+                value={descricaoAnexo}
+                onChange={(e) => setDescricaoAnexo(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setUploadModalOpen(false);
+                setTipoAnexo("");
+                setDescricaoAnexo("");
+                setArquivoSelecionado(null);
+              }}
+              disabled={uploading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUploadAnexo}
+              disabled={uploading || !arquivoSelecionado || !tipoAnexo}
+              style={{ background: uploading ? '#94a3b8' : '#376295' }}
+              className="text-white"
+            >
+              {uploading ? 'Enviando...' : 'Enviar Anexo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Componente de impressão (oculto na tela, visível na impressão) */}
       <ImpressaoRomaneio romaneio={romaneio} />

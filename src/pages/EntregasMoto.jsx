@@ -133,6 +133,7 @@ export default function EntregasMoto() {
   const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [entregaSelecionada, setEntregaSelecionada] = useState(null);
 
+
   // Query client para invalidar cache
   const queryClient = useQueryClient();
 
@@ -197,7 +198,8 @@ export default function EntregasMoto() {
           *,
           cliente:clientes(id, nome, telefone),
           endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
-          motoboy:motoboys(id, nome)
+          motoboy:motoboys(id, nome),
+          anexos(id, tipo)
         `)
         .eq('tipo', 'moto')
         .order('data_entrega', { ascending: true });
@@ -1326,10 +1328,10 @@ export default function EntregasMoto() {
                               >
                                 {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                               </span>
-                              {(entrega.receita_anexo || entrega.pagamento_anexo || entrega.outros_anexo) && (
+                              {entrega.anexos?.some(a => a.tipo === 'receita') && (
                                 <span className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
                                   <Paperclip className="w-3.5 h-3.5" />
-                                  Anexo
+                                  Receita Anexada
                                 </span>
                               )}
                             </div>
@@ -1523,10 +1525,10 @@ export default function EntregasMoto() {
                               >
                                 {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                               </span>
-                              {(entrega.receita_anexo || entrega.pagamento_anexo || entrega.outros_anexo) && (
+                              {entrega.anexos?.some(a => a.tipo === 'receita') && (
                                 <span className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
                                   <Paperclip className="w-3.5 h-3.5" />
-                                  Anexo
+                                  Receita Anexada
                                 </span>
                               )}
                             </div>
@@ -1774,6 +1776,7 @@ export default function EntregasMoto() {
           )}
         </DialogContent>
       </Dialog>
+
 
     </div>
   );
