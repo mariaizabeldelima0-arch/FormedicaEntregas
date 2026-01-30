@@ -1328,10 +1328,10 @@ export default function EntregasMoto() {
                               >
                                 {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                               </span>
-                              {entrega.anexos?.some(a => a.tipo === 'receita') && (
+                              {entrega.anexos?.length > 0 && (
                                 <span className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
                                   <Paperclip className="w-3.5 h-3.5" />
-                                  Receita Anexada
+                                  {entrega.anexos.length} Anexo{entrega.anexos.length > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
@@ -1525,10 +1525,10 @@ export default function EntregasMoto() {
                               >
                                 {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                               </span>
-                              {entrega.anexos?.some(a => a.tipo === 'receita') && (
+                              {entrega.anexos?.length > 0 && (
                                 <span className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
                                   <Paperclip className="w-3.5 h-3.5" />
-                                  Receita Anexada
+                                  {entrega.anexos.length} Anexo{entrega.anexos.length > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
