@@ -157,11 +157,7 @@ export const AuthProvider = ({ children }) => {
       const userData = {
         id: usuarioData.id,
         usuario: usuarioData.usuario,
-        nome: usuarioData.nome,
         tipo_usuario: usuarioData.tipo_usuario,
-        nome_motoboy: usuarioData.nome_motoboy,
-        nome_atendente: usuarioData.nome_atendente,
-        full_name: usuarioData.nome_motoboy || usuarioData.nome_atendente || usuarioData.nome
       };
 
       setUser(userData);

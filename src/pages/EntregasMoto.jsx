@@ -725,7 +725,7 @@ export default function EntregasMoto() {
             </button>
             <div>
               <h1 className="text-4xl font-bold text-white">Entregas Moto</h1>
-              <p className="text-base text-white opacity-90 mt-1">Olá, {user?.nome || user?.usuario || 'Usuário'}</p>
+              <p className="text-base text-white opacity-90 mt-1">Olá, {user?.usuario || 'Usuário'}</p>
             </div>
           </div>
         </div>

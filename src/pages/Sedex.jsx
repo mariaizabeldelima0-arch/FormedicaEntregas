@@ -104,7 +104,7 @@ export default function Sedex() {
 
       return base44.entities.EntregaSedex.create({
         ...data,
-        atendente_nome: user?.nome_atendente || user?.full_name,
+        atendente_nome: user?.usuario,
         atendente_email: user?.email,
         valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : null,
       });
@@ -475,7 +475,7 @@ export default function Sedex() {
                   <div>
                     <Label>Atendente</Label>
                     <Input
-                      value={user?.nome_atendente || user?.full_name || ""}
+                      value={user?.usuario || ""}
                       disabled
                       className="bg-slate-100"
                     />

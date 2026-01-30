@@ -21,12 +21,9 @@ export default function Usuarios() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showNovoUsuario, setShowNovoUsuario] = useState(false);
   const [novoUsuario, setNovoUsuario] = useState({
-    nome: '',
     usuario: '',
     senha: '',
     tipo_usuario: 'atendente',
-    nome_motoboy: '',
-    nome_atendente: ''
   });
   const [showEditarUsuario, setShowEditarUsuario] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
@@ -38,21 +35,8 @@ export default function Usuarios() {
       const { data, error } = await supabase
         .from('usuarios')
         .select('*')
-        .order('nome');
+        .order('usuario');
 
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Buscar motoboys
-  const { data: motoboys = [] } = useQuery({
-    queryKey: ['motoboys-lista'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('motoboys')
-        .select('*')
-        .order('nome');
       if (error) throw error;
       return data || [];
     },
@@ -60,10 +44,10 @@ export default function Usuarios() {
 
   // Mutation para atualizar tipo
   const updateMutation = useMutation({
-    mutationFn: async ({ id, tipo_usuario, nome_motoboy }) => {
+    mutationFn: async ({ id, tipo_usuario }) => {
       const { error } = await supabase
         .from('usuarios')
-        .update({ tipo_usuario, nome_motoboy: nome_motoboy || null })
+        .update({ tipo_usuario })
         .eq('id', id);
 
       if (error) throw error;
@@ -84,11 +68,9 @@ export default function Usuarios() {
         .from('usuarios')
         .insert([{
           usuario: novoUser.usuario,
-          nome: novoUser.nome,
+          nome: novoUser.usuario,
           senha: novoUser.senha,
           tipo_usuario: novoUser.tipo_usuario,
-          nome_motoboy: novoUser.tipo_usuario === 'motoboy' ? novoUser.nome_motoboy : null,
-          nome_atendente: novoUser.tipo_usuario === 'atendente' ? novoUser.nome_atendente : null,
           ativo: true
         }]);
 
@@ -99,12 +81,9 @@ export default function Usuarios() {
       toast.success('Usuário criado com sucesso!');
       setShowNovoUsuario(false);
       setNovoUsuario({
-        nome: '',
         usuario: '',
         senha: '',
         tipo_usuario: 'atendente',
-        nome_motoboy: '',
-        nome_atendente: ''
       });
     },
     onError: (error) => {
@@ -118,16 +97,8 @@ export default function Usuarios() {
   });
 
   const handleCriarUsuario = () => {
-    if (!novoUsuario.nome || !novoUsuario.usuario || !novoUsuario.senha) {
-      toast.error('Preencha nome, usuário e senha');
-      return;
-    }
-    if (novoUsuario.tipo_usuario === 'motoboy' && !novoUsuario.nome_motoboy) {
-      toast.error('Selecione o motoboy');
-      return;
-    }
-    if (novoUsuario.tipo_usuario === 'atendente' && !novoUsuario.nome_atendente) {
-      toast.error('Informe o nome da atendente');
+    if (!novoUsuario.usuario || !novoUsuario.senha) {
+      toast.error('Preencha usuário e senha');
       return;
     }
     criarUsuarioMutation.mutate(novoUsuario);
@@ -137,11 +108,9 @@ export default function Usuarios() {
   const editarUsuarioMutation = useMutation({
     mutationFn: async (userEdit) => {
       const updateData = {
-        nome: userEdit.nome,
         usuario: userEdit.usuario,
+        nome: userEdit.usuario,
         tipo_usuario: userEdit.tipo_usuario,
-        nome_motoboy: userEdit.tipo_usuario === 'motoboy' ? userEdit.nome_motoboy : null,
-        nome_atendente: userEdit.tipo_usuario === 'atendente' ? userEdit.nome_atendente : null,
       };
 
       // Só atualiza a senha se foi informada uma nova
@@ -212,27 +181,16 @@ export default function Usuarios() {
   const handleEditarUsuario = (usuario) => {
     setUsuarioEditando({
       id: usuario.id,
-      nome: usuario.nome || '',
       usuario: usuario.usuario || '',
       senha: '',
       tipo_usuario: usuario.tipo_usuario || 'atendente',
-      nome_motoboy: usuario.nome_motoboy || '',
-      nome_atendente: usuario.nome_atendente || ''
     });
     setShowEditarUsuario(true);
   };
 
   const handleSalvarEdicao = () => {
-    if (!usuarioEditando.nome || !usuarioEditando.usuario) {
-      toast.error('Preencha nome e usuário');
-      return;
-    }
-    if (usuarioEditando.tipo_usuario === 'motoboy' && !usuarioEditando.nome_motoboy) {
-      toast.error('Selecione o motoboy');
-      return;
-    }
-    if (usuarioEditando.tipo_usuario === 'atendente' && !usuarioEditando.nome_atendente) {
-      toast.error('Informe o nome da atendente');
+    if (!usuarioEditando.usuario) {
+      toast.error('Preencha o usuário');
       return;
     }
     editarUsuarioMutation.mutate(usuarioEditando);
@@ -248,20 +206,19 @@ export default function Usuarios() {
     }
   };
 
-  const handleUpdateTipo = (id, tipo, nomeMotoboy) => {
-    updateMutation.mutate({ id, tipo_usuario: tipo, nome_motoboy: nomeMotoboy });
+  const handleUpdateTipo = (id, tipo) => {
+    updateMutation.mutate({ id, tipo_usuario: tipo });
   };
 
   const filteredUsers = usuarios.filter(u =>
-    u.usuario?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.nome?.toLowerCase().includes(searchTerm.toLowerCase())
+    u.usuario?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getTipoBadge = (tipo, nomeMotoboy) => {
+  const getTipoBadge = (tipo) => {
     const config = {
       admin: { bg: "bg-purple-100", text: "text-purple-700", label: "Administrador" },
       atendente: { bg: "bg-blue-100", text: "text-blue-700", label: "Atendente" },
-      motoboy: { bg: "bg-orange-100", text: "text-orange-700", label: `Motoboy${nomeMotoboy ? `: ${nomeMotoboy}` : ''}` },
+      motoboy: { bg: "bg-orange-100", text: "text-orange-700", label: "Motoboy" },
     };
     const { bg, text, label } = config[tipo] || { bg: "bg-slate-100", text: "text-slate-700", label: "Não Definido" };
     return <span className={`px-3 py-1 rounded-lg text-xs font-bold ${bg} ${text}`}>{label}</span>;
@@ -313,7 +270,7 @@ export default function Usuarios() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nome ou usuário..."
+              placeholder="Buscar por usuário..."
               className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ '--tw-ring-color': '#376295' }}
             />
@@ -347,7 +304,6 @@ export default function Usuarios() {
                 <UsuarioCard
                   key={usuario.id}
                   usuario={usuario}
-                  motoboys={motoboys}
                   onUpdateTipo={handleUpdateTipo}
                   onEditar={handleEditarUsuario}
                   onExcluir={handleExcluirUsuario}
@@ -373,16 +329,7 @@ export default function Usuarios() {
 
           <div className="space-y-4 py-4">
             <div>
-              <Label>Nome *</Label>
-              <Input
-                value={novoUsuario.nome}
-                onChange={(e) => setNovoUsuario({ ...novoUsuario, nome: e.target.value })}
-                placeholder="Nome do usuário"
-              />
-            </div>
-
-            <div>
-              <Label>Usuário (usado para login) *</Label>
+              <Label>Usuário *</Label>
               <Input
                 type="text"
                 value={novoUsuario.usuario}
@@ -412,35 +359,6 @@ export default function Usuarios() {
               onChange={(value) => setNovoUsuario({ ...novoUsuario, tipo_usuario: value })}
               placeholder="Selecione o tipo"
             />
-
-            {novoUsuario.tipo_usuario === 'atendente' && (
-              <div>
-                <Label>Nome da Atendente *</Label>
-                <Input
-                  value={novoUsuario.nome_atendente}
-                  onChange={(e) => setNovoUsuario({ ...novoUsuario, nome_atendente: e.target.value })}
-                  placeholder="Nome da atendente"
-                />
-              </div>
-            )}
-
-            {novoUsuario.tipo_usuario === 'motoboy' && (
-              <div>
-                <CustomDropdown
-                  label="Selecionar Motoboy *"
-                  options={[
-                    { value: '', label: 'Selecione...' },
-                    ...motoboys.map(m => ({ value: m.nome, label: m.nome }))
-                  ]}
-                  value={novoUsuario.nome_motoboy}
-                  onChange={(value) => setNovoUsuario({ ...novoUsuario, nome_motoboy: value })}
-                  placeholder="Selecione..."
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  O motoboy só verá suas próprias entregas
-                </p>
-              </div>
-            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setShowNovoUsuario(false)}>
@@ -472,16 +390,7 @@ export default function Usuarios() {
           {usuarioEditando && (
             <div className="space-y-4 py-4">
               <div>
-                <Label>Nome *</Label>
-                <Input
-                  value={usuarioEditando.nome}
-                  onChange={(e) => setUsuarioEditando({ ...usuarioEditando, nome: e.target.value })}
-                  placeholder="Nome do usuário"
-                />
-              </div>
-
-              <div>
-                <Label>Usuário (usado para login) *</Label>
+                <Label>Usuário *</Label>
                 <Input
                   type="text"
                   value={usuarioEditando.usuario}
@@ -512,30 +421,6 @@ export default function Usuarios() {
                 placeholder="Selecione o tipo"
               />
 
-              {usuarioEditando.tipo_usuario === 'atendente' && (
-                <div>
-                  <Label>Nome da Atendente *</Label>
-                  <Input
-                    value={usuarioEditando.nome_atendente}
-                    onChange={(e) => setUsuarioEditando({ ...usuarioEditando, nome_atendente: e.target.value })}
-                    placeholder="Nome da atendente"
-                  />
-                </div>
-              )}
-
-              {usuarioEditando.tipo_usuario === 'motoboy' && (
-                <CustomDropdown
-                  label="Selecionar Motoboy *"
-                  options={[
-                    { value: '', label: 'Selecione...' },
-                    ...motoboys.map(m => ({ value: m.nome, label: m.nome }))
-                  ]}
-                  value={usuarioEditando.nome_motoboy}
-                  onChange={(value) => setUsuarioEditando({ ...usuarioEditando, nome_motoboy: value })}
-                  placeholder="Selecione..."
-                />
-              )}
-
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setShowEditarUsuario(false)}>
                   Cancelar
@@ -558,25 +443,14 @@ export default function Usuarios() {
 }
 
 // Componente de Card de Usuário
-function UsuarioCard({ usuario, motoboys, onUpdateTipo, onEditar, onExcluir, onToggleAtivo, isUpdating, getTipoBadge }) {
+function UsuarioCard({ usuario, onUpdateTipo, onEditar, onExcluir, onToggleAtivo, isUpdating, getTipoBadge }) {
   const [tipoUsuario, setTipoUsuario] = React.useState(usuario.tipo_usuario || '');
-  const [nomeMotoboy, setNomeMotoboy] = React.useState(usuario.nome_motoboy || '');
   const [mostrarSenha, setMostrarSenha] = React.useState(false);
   const isInativo = !usuario.ativo;
 
   const handleTipoChange = (novoTipo) => {
     setTipoUsuario(novoTipo);
-    if (novoTipo !== 'motoboy') {
-      setNomeMotoboy('');
-      onUpdateTipo(usuario.id, novoTipo, null);
-    }
-  };
-
-  const handleMotoboyChange = (nome) => {
-    setNomeMotoboy(nome);
-    if (nome) {
-      onUpdateTipo(usuario.id, 'motoboy', nome);
-    }
+    onUpdateTipo(usuario.id, novoTipo);
   };
 
   const getStatusBadge = () => {
@@ -606,12 +480,11 @@ function UsuarioCard({ usuario, motoboys, onUpdateTipo, onEditar, onExcluir, onT
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-slate-900 text-lg">
-                {usuario.nome || usuario.usuario || 'Usuário'}
+                {usuario.usuario || 'Usuário'}
               </h3>
               {getStatusBadge()}
             </div>
             <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
-              <span className="font-medium">Login: {usuario.usuario || '-'}</span>
               <span className="flex items-center gap-1 font-medium">
                 Senha: {mostrarSenha ? (usuario.senha || '-') : '••••••'}
                 <button
@@ -645,25 +518,7 @@ function UsuarioCard({ usuario, motoboys, onUpdateTipo, onEditar, onExcluir, onT
             </div>
           </div>
 
-          {tipoUsuario === 'motoboy' && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-slate-600">Motoboy:</span>
-              <div className="min-w-[150px]">
-                <CustomDropdown
-                  options={[
-                    { value: '', label: 'Selecione...' },
-                    ...(motoboys?.map(m => ({ value: m.nome, label: m.nome })) || [])
-                  ]}
-                  value={nomeMotoboy}
-                  onChange={handleMotoboyChange}
-                  disabled={isUpdating}
-                  placeholder="Selecione..."
-                />
-              </div>
-            </div>
-          )}
-
-          {tipoUsuario && getTipoBadge(tipoUsuario, nomeMotoboy)}
+          {tipoUsuario && getTipoBadge(tipoUsuario)}
 
           {/* Botões de Ação */}
           <div className="flex items-center gap-2">

@@ -117,7 +117,7 @@ export default function PainelMotoboys() {
 
   const isMotoboy = userType === 'motoboy';
   const isAdmin = userType === 'admin';
-  const nomeMotoboyUsuario = user?.nome_motoboy;
+  const nomeMotoboyUsuario = user?.usuario;
 
   // Buscar lista de motoboys
   const { data: motoboys = [] } = useQuery({

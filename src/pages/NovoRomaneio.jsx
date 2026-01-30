@@ -1130,7 +1130,7 @@ export default function NovoRomaneio() {
         item_geladeira: formData.item_geladeira,
         buscar_receita: formData.buscar_receita,
         observacoes: formData.observacoes,
-        atendente: user?.nome_atendente || user?.nome || '',
+        atendente: user?.usuario || '',
         clientes_adicionais: clientesAdicionais,
         precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,
         valor_troco: formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco ? formData.valor_troco : 0,

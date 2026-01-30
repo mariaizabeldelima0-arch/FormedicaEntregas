@@ -237,12 +237,12 @@ export default function Layout({ children, currentPageName }) {
                 <div className="flex items-center gap-3 px-2">
                   <div className="w-9 h-9 bg-gradient-to-br from-[#457bba] to-[#890d5d] rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold text-sm">
-                      {user.nome_atendente?.[0] || user.full_name?.[0] || 'U'}
+                      {user.usuario?.[0] || 'U'}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-slate-900 text-sm truncate">
-                      {user.nome_atendente || user.full_name}
+                      {user.usuario}
                     </p>
                     <p className="text-xs text-slate-500 truncate capitalize">
                       {user.tipo_usuario || 'Usuário'}

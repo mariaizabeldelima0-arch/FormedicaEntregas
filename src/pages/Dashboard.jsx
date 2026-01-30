@@ -344,7 +344,7 @@ export default function Dashboard() {
             </h1>
             <p className="text-slate-600">
               Olá, <span className="font-semibold text-[#457bba]">
-                {user?.nome_atendente || user?.full_name}
+                {user?.usuario}
               </span>
             </p>
           </div>

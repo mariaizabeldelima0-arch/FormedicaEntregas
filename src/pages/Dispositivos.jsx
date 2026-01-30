@@ -29,7 +29,7 @@ export default function Dispositivos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dispositivos')
-        .select('*, usuarios(id, nome, usuario, tipo_usuario, nome_motoboy)')
+        .select('*, usuarios(id, usuario, tipo_usuario)')
         .order('ultimo_acesso', { ascending: false });
 
       if (error) throw error;
@@ -346,12 +346,12 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
     return <Smartphone className="w-5 h-5 text-slate-600" />;
   };
 
-  const getTipoBadge = (tipo, nomeMotoboy) => {
+  const getTipoBadge = (tipo) => {
     if (!tipo) return null;
     const config = {
       admin: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Admin' },
       atendente: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Atendente' },
-      motoboy: { bg: 'bg-orange-100', text: 'text-orange-700', label: `Motoboy${nomeMotoboy ? `: ${nomeMotoboy}` : ''}` },
+      motoboy: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Motoboy' },
     };
     const c = config[tipo] || { bg: 'bg-slate-100', text: 'text-slate-700', label: tipo };
     return <span className={`px-2 py-0.5 rounded text-xs font-bold ${c.bg} ${c.text}`}>{c.label}</span>;
@@ -388,11 +388,9 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
                 <div className="text-slate-600 flex items-center gap-2">
                   <User className="w-3.5 h-3.5" />
                   <span className="font-medium">Usuário:</span>{' '}
-                  <span className="text-slate-900">{usuario.nome || usuario.usuario}</span>
+                  <span className="text-slate-900">{usuario.usuario}</span>
                   {' '}
-                  <span className="text-slate-400">({usuario.usuario})</span>
-                  {' '}
-                  {getTipoBadge(usuario.tipo_usuario, usuario.nome_motoboy)}
+                  {getTipoBadge(usuario.tipo_usuario)}
                 </div>
               )}
               <div className="text-slate-600">
