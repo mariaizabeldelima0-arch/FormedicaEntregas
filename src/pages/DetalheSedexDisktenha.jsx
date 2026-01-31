@@ -107,7 +107,7 @@ export default function DetalheSedexDisktenha() {
       cliente: entrega.cliente,
       remetente: entrega.remetente || '',
       numero_requisicao: entrega.numero_requisicao || '',
-      codigo_rastreio: entrega.codigo_rastreio || '',
+      codigo_rastreio: (entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-')) ? entrega.codigo_rastreio : '',
       valor: entrega.valor,
       forma_pagamento: entrega.forma_pagamento,
       observacoes: entrega.observacoes || '',
@@ -125,6 +125,7 @@ export default function DetalheSedexDisktenha() {
 
     updateMutation.mutate({
       ...editData,
+      codigo_rastreio: editData.codigo_rastreio || `PENDING-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       valor: parseFloat(editData.valor) || 0,
     });
   };
@@ -201,7 +202,7 @@ export default function DetalheSedexDisktenha() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
-                {entrega.tipo} #{entrega.numero_requisicao || entrega.codigo_rastreio}
+                {entrega.tipo} #{entrega.numero_requisicao || (entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-') ? entrega.codigo_rastreio : '-')}
               </h1>
               <p className="text-sm text-slate-600 mt-1">
                 Criado em {format(parseISO(entrega.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -309,7 +310,7 @@ export default function DetalheSedexDisktenha() {
                 )}
 
                 {/* Código de Rastreio */}
-                {entrega.codigo_rastreio && (
+                {entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-') && (
                   <div>
                     <p className="text-sm text-slate-500 mb-1">Código de Rastreio</p>
                     <p className="text-lg font-medium text-slate-900">{entrega.codigo_rastreio}</p>

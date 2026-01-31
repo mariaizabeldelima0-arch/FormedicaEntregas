@@ -154,21 +154,23 @@ export default function DetalhesRomaneio() {
         : data.endereco;
 
       // Buscar informações do atendente se houver
-      let atendente = null;
+      let atendenteNome = data.atendente || null; // campo texto salvo na criação
       if (data.atendente_id) {
         const { data: atendenteData } = await supabase
           .from('usuarios')
-          .select('id, nome, email')
+          .select('id, usuario')
           .eq('id', data.atendente_id)
           .single();
-        atendente = atendenteData;
+        if (atendenteData) {
+          atendenteNome = atendenteData.usuario;
+        }
       }
 
       return {
         ...data,
         endereco: enderecoDisplay,
         clientesAdicionais,
-        atendente
+        atendente_nome: atendenteNome
       };
     },
     enabled: !!romaneioId,
@@ -762,7 +764,7 @@ export default function DetalhesRomaneio() {
                     <div className="flex-1">
                       <div className="text-sm text-slate-500 mb-1">Atendente</div>
                       <div className="text-base font-semibold text-slate-900">
-                        {romaneio.atendente?.email || romaneio.atendente?.nome || '-'}
+                        {romaneio.atendente_nome || '-'}
                       </div>
                     </div>
                   </div>

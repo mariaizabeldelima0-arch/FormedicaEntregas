@@ -74,7 +74,7 @@ function RomaneioCard({ romaneio }) {
           </div>
           <div style={{ fontSize: '9px' }}>
             <span>Atendente: </span>
-            <span>{romaneio.atendente?.nome || romaneio.atendente?.email || '-'}</span>
+            <span>{romaneio.atendente_nome || '-'}</span>
           </div>
         </div>
 
@@ -252,20 +252,22 @@ export default function RomaneiosDoDia() {
             : entrega.endereco;
 
           // Buscar atendente
-          let atendente = null;
+          let atendenteNome = entrega.atendente || null;
           if (entrega.atendente_id) {
             const { data: atendenteData } = await supabase
               .from('usuarios')
-              .select('id, nome, email')
+              .select('id, usuario')
               .eq('id', entrega.atendente_id)
               .single();
-            atendente = atendenteData;
+            if (atendenteData) {
+              atendenteNome = atendenteData.usuario;
+            }
           }
 
           return {
             ...entrega,
             endereco: enderecoDisplay,
-            atendente
+            atendente_nome: atendenteNome
           };
         })
       );

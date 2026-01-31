@@ -59,7 +59,11 @@
       "Bash(npx supabase:*)",
       "Bash(set SUPABASE_ACCESS_TOKEN=sbp_0bb9a568214230a65215023acc2eec4e31ff9a9b)",
       "Bash($env:SUPABASE_ACCESS_TOKEN=\"sbp_0bb9a568214230a65215023acc2eec4e31ff9a9b\")",
-      "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_0bb9a568214230a65215023acc2eec4e31ff9a9b\")"
+      "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_0bb9a568214230a65215023acc2eec4e31ff9a9b\")",
+      "Bash(ls:*)",
+      "Bash(xargs:*)",
+      "Bash(node scripts/corrigir-valores-bruno.js:*)",
+      "Bash(node scripts/corrigir-atendente-id.js:*)"
     ]
   }
 }

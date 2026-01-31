@@ -347,7 +347,7 @@ export default function EditarRomaneio() {
   const [indicePagamentoSelecionado, setIndicePagamentoSelecionado] = useState(-1);
   const [mostrarSugestoesPagamento, setMostrarSugestoesPagamento] = useState(false);
 
-  // Verificar se Bruno tem entrega única em AMBOS os períodos (manhã E tarde)
+  // Verificar se Bruno terá entrega única no período (Manhã ou Tarde)
   const verificarEntregaUnicaBruno = async (data, periodo, motoboy, entregaIdAtual) => {
     if (motoboy !== 'Bruno') {
       setIsEntregaUnica(false);
@@ -368,44 +368,22 @@ export default function EditarRomaneio() {
         return false;
       }
 
-      // Contar entregas do Bruno na data para MANHÃ (excluindo a entrega atual)
-      let queryManha = supabase
+      // Contar entregas do Bruno no mesmo período (excluindo a entrega atual)
+      let query = supabase
         .from('entregas')
         .select('*', { count: 'exact', head: true })
         .eq('motoboy_id', motoboyData.id)
         .eq('data_entrega', data)
-        .eq('periodo', 'Manhã');
+        .eq('periodo', periodo);
 
       if (entregaIdAtual) {
-        queryManha = queryManha.neq('id', entregaIdAtual);
+        query = query.neq('id', entregaIdAtual);
       }
 
-      const { count: countManha } = await queryManha;
+      const { count: countPeriodo } = await query;
 
-      // Contar entregas do Bruno na data para TARDE (excluindo a entrega atual)
-      let queryTarde = supabase
-        .from('entregas')
-        .select('*', { count: 'exact', head: true })
-        .eq('motoboy_id', motoboyData.id)
-        .eq('data_entrega', data)
-        .eq('periodo', 'Tarde');
-
-      if (entregaIdAtual) {
-        queryTarde = queryTarde.neq('id', entregaIdAtual);
-      }
-
-      const { count: countTarde } = await queryTarde;
-
-      // Determinar se o período atual será entrega única
-      const seriaUnicaNoPeriodoAtual = periodo === 'Manhã' ? countManha === 0 : countTarde === 0;
-
-      // Verificar se o outro período tem no máximo 1 entrega (ou seja, é única também)
-      const outroPeriodoTemUnica = periodo === 'Manhã'
-        ? (countTarde === 0 || countTarde === 1)
-        : (countManha === 0 || countManha === 1);
-
-      // Só é entrega única se AMBOS os períodos têm entregas únicas
-      const isUnica = seriaUnicaNoPeriodoAtual && outroPeriodoTemUnica;
+      // Só é entrega única se não existe nenhuma outra entrega no período
+      const isUnica = (countPeriodo || 0) === 0;
       setIsEntregaUnica(isUnica);
       return isUnica;
     } catch (error) {
@@ -1235,34 +1213,22 @@ export default function EditarRomaneio() {
 
       if (error) throw error;
 
-      // Atualizar valores de entregas do Bruno (promover ou rebaixar entrega única)
+      // Atualizar valores de entregas do Bruno (promover ou rebaixar entrega única por período)
       if (formData.motoboy === 'Bruno' && motoboyId) {
         try {
-          // Contar entregas do Bruno na data para cada período
-          const { count: countManha } = await supabase
-            .from('entregas')
-            .select('*', { count: 'exact', head: true })
-            .eq('motoboy_id', motoboyId)
-            .eq('data_entrega', formData.data_entrega)
-            .eq('periodo', 'Manhã');
-
-          const { count: countTarde } = await supabase
-            .from('entregas')
-            .select('*', { count: 'exact', head: true })
-            .eq('motoboy_id', motoboyId)
-            .eq('data_entrega', formData.data_entrega)
-            .eq('periodo', 'Tarde');
-
-          const { data: entregasDoDia } = await supabase
+          // Buscar entregas do Bruno no mesmo período
+          const { data: entregasDoPeriodo } = await supabase
             .from('entregas')
             .select('id, regiao, valor')
             .eq('motoboy_id', motoboyId)
-            .eq('data_entrega', formData.data_entrega);
+            .eq('data_entrega', formData.data_entrega)
+            .eq('periodo', formData.periodo);
 
-          if (entregasDoDia && entregasDoDia.length > 0) {
-            const ehUnica = countManha <= 1 && countTarde <= 1;
+          if (entregasDoPeriodo && entregasDoPeriodo.length > 0) {
+            // Entrega única = apenas 1 entrega no período
+            const ehUnica = entregasDoPeriodo.length === 1;
 
-            for (const entrega of entregasDoDia) {
+            for (const entrega of entregasDoPeriodo) {
               const valorUnico = VALORES_ENTREGA_UNICA_BRUNO[entrega.regiao];
               const valorNormal = VALORES_ENTREGA['Bruno']?.[entrega.regiao];
               if (!valorUnico || !valorNormal) continue;

@@ -13,7 +13,10 @@ import {
   Trash2,
   Clock,
   Users,
-  User
+  User,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 
@@ -124,6 +127,29 @@ export default function Dispositivos() {
       toast.error('Erro ao remover dispositivo');
     }
   });
+
+  // Mutation para renomear
+  const renomearMutation = useMutation({
+    mutationFn: async ({ id, nome }) => {
+      const { error } = await supabase
+        .from('dispositivos')
+        .update({ nome })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
+      toast.success('Dispositivo renomeado!');
+    },
+    onError: () => {
+      toast.error('Erro ao renomear dispositivo');
+    }
+  });
+
+  const handleRenomear = (id, nome) => {
+    renomearMutation.mutate({ id, nome });
+  };
 
   const handleAutorizar = (id) => {
     autorizarMutation.mutate(id);
@@ -294,10 +320,12 @@ export default function Dispositivos() {
                   onAutorizar={handleAutorizar}
                   onBloquear={handleBloquear}
                   onDeletar={handleDeletar}
+                  onRenomear={handleRenomear}
                   isUpdating={
                     autorizarMutation.isPending ||
                     bloquearMutation.isPending ||
-                    deletarMutation.isPending
+                    deletarMutation.isPending ||
+                    renomearMutation.isPending
                   }
                 />
               ))
@@ -310,7 +338,31 @@ export default function Dispositivos() {
 }
 
 // Componente de Card de Dispositivo
-function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUpdating }) {
+function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRenomear, isUpdating }) {
+  const [editando, setEditando] = useState(false);
+  const [novoNome, setNovoNome] = useState(dispositivo.nome || '');
+
+  const handleSalvarNome = () => {
+    const nomeTrimmed = novoNome.trim();
+    if (!nomeTrimmed) {
+      toast.error('O nome não pode ficar vazio');
+      return;
+    }
+    if (nomeTrimmed !== dispositivo.nome) {
+      onRenomear(dispositivo.id, nomeTrimmed);
+    }
+    setEditando(false);
+  };
+
+  const handleCancelar = () => {
+    setNovoNome(dispositivo.nome || '');
+    setEditando(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSalvarNome();
+    if (e.key === 'Escape') handleCancelar();
+  };
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Autorizado':
@@ -379,7 +431,44 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, isUp
 
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h3 className="font-bold text-slate-900">{dispositivo.nome || 'Dispositivo Desconhecido'}</h3>
+              {editando ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={novoNome}
+                    onChange={(e) => setNovoNome(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                    className="font-bold text-slate-900 border border-slate-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#376295] focus:border-[#376295]"
+                  />
+                  <button
+                    onClick={handleSalvarNome}
+                    className="p-1.5 text-white rounded-lg hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: '#3dac38' }}
+                    title="Salvar"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleCancelar}
+                    className="p-1.5 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors"
+                    title="Cancelar"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-bold text-slate-900">{dispositivo.nome || 'Dispositivo Desconhecido'}</h3>
+                  <button
+                    onClick={() => setEditando(true)}
+                    className="p-1 text-slate-400 hover:text-[#376295] hover:bg-slate-100 rounded transition-colors"
+                    title="Renomear dispositivo"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
               {getStatusBadge(dispositivo.status)}
             </div>
 

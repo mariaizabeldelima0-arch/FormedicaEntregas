@@ -320,7 +320,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
             </div>
             <div className="print-section-row">
               <span className="print-section-label">Atendente:</span>
-              <span className="print-section-value">{romaneio.atendente?.nome || romaneio.atendente?.email || '-'}</span>
+              <span className="print-section-value">{romaneio.atendente_nome || '-'}</span>
             </div>
           </div>
 

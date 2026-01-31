@@ -35,9 +35,11 @@ import { format, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SedexDisktenha() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [visualizacao, setVisualizacao] = useState('dia'); // 'dia' ou 'todas'
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
@@ -54,23 +56,6 @@ export default function SedexDisktenha() {
     forma_pagamento: 'Aguardando',
     observacoes: '',
     data_saida: format(new Date(), 'yyyy-MM-dd'),
-  });
-
-  // Buscar usuário atual
-  const { data: currentUser } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) return null;
-
-      const { data } = await supabase
-        .from('usuarios')
-        .select('id, nome, email')
-        .eq('id', authUser.id)
-        .single();
-
-      return data;
-    },
   });
 
   // Função para gerar dias do mês
@@ -151,14 +136,20 @@ export default function SedexDisktenha() {
       return;
     }
 
+    if (novaEntrega.tipo === 'DISKTENHA' && (!novaEntrega.valor || parseFloat(novaEntrega.valor) <= 0)) {
+      toast.error('Informe o valor da entrega para Disktenha');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('sedex_disktenha')
         .insert([{
           ...novaEntrega,
+          codigo_rastreio: novaEntrega.codigo_rastreio || `PENDING-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           valor: parseFloat(novaEntrega.valor) || 0,
           status: 'Pendente',
-          atendente: currentUser?.nome || '',
+          atendente: user?.usuario || '',
           created_at: new Date().toISOString(),
         }]);
 
@@ -262,9 +253,7 @@ export default function SedexDisktenha() {
               <div className="flex items-center justify-between mb-3">
                 <button
                   onClick={() => {
-                    const newDate = new Date(currentMonthDate);
-                    newDate.setMonth(newDate.getMonth() - 1);
-                    setCurrentMonthDate(newDate);
+                    setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1));
                   }}
                   className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 >
@@ -277,9 +266,7 @@ export default function SedexDisktenha() {
 
                 <button
                   onClick={() => {
-                    const newDate = new Date(currentMonthDate);
-                    newDate.setMonth(newDate.getMonth() + 1);
-                    setCurrentMonthDate(newDate);
+                    setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1));
                   }}
                   className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 >
@@ -535,7 +522,7 @@ export default function SedexDisktenha() {
 
                             {/* Linha 3: Informações adicionais */}
                             <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                              {entrega.codigo_rastreio && (
+                              {entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-') && (
                                 <div className="flex items-center gap-1.5">
                                   <Package className="w-4 h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.codigo_rastreio}</span>

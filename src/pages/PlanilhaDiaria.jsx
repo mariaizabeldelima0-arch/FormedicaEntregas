@@ -26,6 +26,7 @@ export default function PlanilhaDiaria() {
   });
   const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || "todos");
   const [visualizarTodas, setVisualizarTodas] = useState(urlParams.get('todas') === 'true');
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   // Atualizar URL quando estado mudar
   useEffect(() => {
@@ -178,12 +179,20 @@ export default function PlanilhaDiaria() {
   const motoboysUnicos = [...new Set(romaneios.map(r => r.motoboy?.nome).filter(Boolean))];
 
   // Função para obter cor da linha baseado no status
-  const getRowColor = (status, formaPagamento) => {
-    if (status === "Entregue") return "bg-green-50";
-    if (status === "A Caminho") return "bg-yellow-50";
-    if (formaPagamento === "Cartanhex pago") return "bg-orange-50";
-    if (formaPagamento === "Maquina") return "bg-purple-50";
-    return "bg-white";
+  const getRowColor = (status) => {
+    switch (status) {
+      case 'Em Rota':
+      case 'A Caminho':
+        return { backgroundColor: '#dbeafe' }; // azul claro
+      case 'Entregue':
+        return { backgroundColor: '#F5E8F5' }; // roxo claro
+      case 'Voltou p/ Farmácia':
+        return { backgroundColor: '#fef9c3' }; // amarelo
+      case 'Cancelado':
+        return { backgroundColor: '#fee2e2' }; // vermelho
+      default:
+        return {};
+    }
   };
 
   // Função para atualizar status rapidamente
@@ -195,6 +204,54 @@ export default function PlanilhaDiaria() {
       });
     } else {
       updateSedexMutation.mutate({ id, status: newStatus });
+    }
+  };
+
+  // Mutation para atualizar receita
+  const updateReceitaMutation = useMutation({
+    mutationFn: async ({ id, recebida }) => {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ receita_recebida: recebida })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { recebida }) => {
+      queryClient.invalidateQueries({ queryKey: ['entregas-moto-planilha'] });
+      toast.success(recebida ? 'Receita marcada como recebida!' : 'Receita desmarcada');
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar receita');
+    }
+  });
+
+  // Toggle seleção individual
+  const toggleSelection = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Alterar status em lote
+  const handleBulkStatusChange = async (novoStatus) => {
+    if (selectedIds.size === 0) return;
+    const toastId = toast.loading(`Alterando ${selectedIds.size} entregas...`);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from('entregas')
+        .update({ status: novoStatus })
+        .in('id', ids);
+      if (error) throw error;
+      toast.success(`${ids.length} entregas alteradas para "${novoStatus}"!`, { id: toastId });
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['entregas-moto-planilha'] });
+    } catch (error) {
+      console.error('Erro ao alterar status em lote:', error);
+      toast.error('Erro ao alterar status em lote', { id: toastId });
     }
   };
 
@@ -444,6 +501,41 @@ export default function PlanilhaDiaria() {
               Entregas {!visualizarTodas ? format(selectedDate, 'dd/MM/yyyy') : '- Todas'}
               {filtroMotoboy !== 'todos' ? ` (${filtroMotoboy})` : ''}
             </div>
+            {/* Barra de Seleção em Lote */}
+            {selectedIds.size > 0 && (
+              <div className="rounded-lg border-2 p-4 flex flex-wrap items-center justify-between gap-3 print-hide" style={{ borderColor: '#376295', backgroundColor: '#f0f5ff' }}>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-bold" style={{ color: '#376295' }}>
+                    {selectedIds.size} entrega{selectedIds.size > 1 ? 's' : ''} selecionada{selectedIds.size > 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    className="text-sm text-slate-500 hover:text-slate-700 underline"
+                  >
+                    Desmarcar
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm text-slate-600 font-medium">Alterar para:</span>
+                  {[
+                    { status: 'Em Rota', bg: '#dbeafe', color: '#1e40af' },
+                    { status: 'Entregue', bg: '#F5E8F5', color: '#890d5d' },
+                    { status: 'Voltou p/ Farmácia', label: 'Voltou', bg: '#fef9c3', color: '#92400e' },
+                    { status: 'Cancelado', bg: '#fee2e2', color: '#dc2626' },
+                  ].map(item => (
+                    <button
+                      key={item.status}
+                      onClick={() => handleBulkStatusChange(item.status)}
+                      className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
+                      style={{ backgroundColor: item.bg, color: item.color }}
+                    >
+                      {item.label || item.status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Tabela Principal - Romaneios */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
               <div className="px-4 py-3" style={{ backgroundColor: '#376295' }}>
@@ -454,6 +546,25 @@ export default function PlanilhaDiaria() {
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-300">
+                      <th className="px-2 py-2 text-center font-semibold text-slate-700 border-r border-slate-200 print-hide">
+                        <input
+                          type="checkbox"
+                          checked={romaneiosOrdenados.length > 0 && romaneiosOrdenados.every(r => selectedIds.has(r.id))}
+                          onChange={() => {
+                            const allSelected = romaneiosOrdenados.every(r => selectedIds.has(r.id));
+                            setSelectedIds(prev => {
+                              const next = new Set(prev);
+                              romaneiosOrdenados.forEach(r => allSelected ? next.delete(r.id) : next.add(r.id));
+                              return next;
+                            });
+                          }}
+                          className="w-4 h-4 cursor-pointer"
+                          style={{ accentColor: '#376295' }}
+                        />
+                      </th>
+                      {visualizarTodas && (
+                        <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Data</th>
+                      )}
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Atendente</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Requisição</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Cliente</th>
@@ -474,13 +585,13 @@ export default function PlanilhaDiaria() {
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan="15" className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 17 : 16} className="p-8 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : romaneiosOrdenados.length === 0 ? (
                       <tr>
-                        <td colSpan="15" className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 17 : 16} className="p-8 text-center text-slate-500">
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
@@ -488,8 +599,23 @@ export default function PlanilhaDiaria() {
                       romaneiosOrdenados.map((rom) => (
                         <tr
                           key={rom.id}
-                          className={`border-b border-slate-200 hover:bg-slate-50 ${getRowColor(rom.status, rom.forma_pagamento)}`}
+                          className="border-b border-slate-200"
+                          style={getRowColor(rom.status)}
                         >
+                          <td className="px-2 py-1.5 border-r border-slate-200 text-center print-hide">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(rom.id)}
+                              onChange={() => toggleSelection(rom.id)}
+                              className="w-4 h-4 cursor-pointer"
+                              style={{ accentColor: '#376295' }}
+                            />
+                          </td>
+                          {visualizarTodas && (
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 whitespace-nowrap">
+                              {rom.data_entrega ? format(parseISO(rom.data_entrega), 'dd/MM/yyyy') : '-'}
+                            </td>
+                          )}
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                             {rom.atendente || '-'}
                           </td>
@@ -523,10 +649,10 @@ export default function PlanilhaDiaria() {
                             </span>
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-semibold">
-                            R$ {rom.valor ? parseFloat(rom.valor).toFixed(2) : '0.00'}
+                            {rom.valor_venda > 0 ? `R$ ${parseFloat(rom.valor_venda).toFixed(2)}` : '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.troco || '-'}
+                            {rom.precisa_troco && rom.valor_troco > 0 ? `R$ ${parseFloat(rom.valor_troco).toFixed(2)}` : '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -555,17 +681,28 @@ export default function PlanilhaDiaria() {
                             />
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-center">
-                            {rom.recibo_medico ? (
-                              <span className="inline-block w-4 h-4 rounded-full bg-green-500"></span>
+                            {rom.buscar_receita ? (
+                              <button
+                                onClick={() => updateReceitaMutation.mutate({ id: rom.id, recebida: !rom.receita_recebida })}
+                                disabled={updateReceitaMutation.isPending}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition-all hover:opacity-80"
+                                style={{
+                                  backgroundColor: rom.receita_recebida ? '#dcfce7' : '#fef3c7',
+                                  color: rom.receita_recebida ? '#166534' : '#92400e',
+                                  border: rom.receita_recebida ? '1px solid #22c55e' : '1px solid #f59e0b',
+                                }}
+                              >
+                                {rom.receita_recebida ? 'Recebida' : 'Pendente'}
+                              </button>
                             ) : (
-                              <span className="inline-block w-4 h-4 rounded-full bg-slate-300"></span>
+                              <span className="text-slate-300">-</span>
                             )}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-medium">
                             {rom.motoboy?.nome || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-semibold">
-                            R$ {rom.taxa ? parseFloat(rom.taxa).toFixed(2) : '0.00'}
+                            R$ {rom.valor ? parseFloat(rom.valor).toFixed(2) : '0.00'}
                           </td>
                           <td className="px-2 py-1.5 print-hide">
                             <Link
@@ -640,7 +777,7 @@ export default function PlanilhaDiaria() {
                             {entrega.remetente || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-blue-200 font-mono text-slate-700">
-                            {entrega.codigo_rastreio}
+                            {entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-') ? entrega.codigo_rastreio : '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-blue-200 text-slate-700 font-semibold">
                             R$ {entrega.valor ? parseFloat(entrega.valor).toFixed(2) : '0.00'}

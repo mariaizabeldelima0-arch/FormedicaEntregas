@@ -286,6 +286,7 @@ export default function NovoRomaneio() {
       bairro: '',
       cidade: '',
       cep: '',
+      regiao: '',
       is_principal: true
     }]
   });
@@ -477,9 +478,12 @@ export default function NovoRomaneio() {
 
           // Se é o primeiro endereço adicionado, seleciona automaticamente
           if (prev.length === 0 && enderecosComCliente.length > 0) {
-            setEnderecoSelecionado(enderecosComCliente[0]);
-            if (enderecosComCliente[0].regiao) {
-              handleRegiaoChange(enderecosComCliente[0].regiao);
+            const primeiroEndereco = enderecosComCliente[0];
+            setEnderecoSelecionado(primeiroEndereco);
+            // Detectar região do endereço (salva ou por cidade/bairro)
+            const regiao = primeiroEndereco.regiao || detectarRegiao(primeiroEndereco.cidade, primeiroEndereco.bairro);
+            if (regiao) {
+              handleRegiaoChange(regiao);
             }
           }
 
@@ -791,7 +795,7 @@ export default function NovoRomaneio() {
     }
   }, [formData.forma_pagamento]);
 
-  // Verificar se Bruno tem entrega única em AMBOS os períodos (manhã E tarde)
+  // Verificar se Bruno terá entrega única no período (Manhã ou Tarde)
   const verificarEntregaUnicaBruno = async (data, periodo, motoboy) => {
     if (motoboy !== 'Bruno') {
       setIsEntregaUnica(false);
@@ -812,32 +816,16 @@ export default function NovoRomaneio() {
         return false;
       }
 
-      // Contar entregas do Bruno na data para MANHÃ
-      const { count: countManha } = await supabase
+      // Contar entregas do Bruno na data para o MESMO período
+      const { count: countPeriodo } = await supabase
         .from('entregas')
         .select('*', { count: 'exact', head: true })
         .eq('motoboy_id', motoboyData.id)
         .eq('data_entrega', data)
-        .eq('periodo', 'Manhã');
+        .eq('periodo', periodo);
 
-      // Contar entregas do Bruno na data para TARDE
-      const { count: countTarde } = await supabase
-        .from('entregas')
-        .select('*', { count: 'exact', head: true })
-        .eq('motoboy_id', motoboyData.id)
-        .eq('data_entrega', data)
-        .eq('periodo', 'Tarde');
-
-      // Determinar se o período atual será entrega única
-      const seriaUnicaNoPeriodoAtual = periodo === 'Manhã' ? countManha === 0 : countTarde === 0;
-
-      // Verificar se o outro período tem no máximo 1 entrega (ou seja, é única também)
-      const outroPeriodoTemUnica = periodo === 'Manhã'
-        ? (countTarde === 0 || countTarde === 1)
-        : (countManha === 0 || countManha === 1);
-
-      // Só é entrega única se AMBOS os períodos têm entregas únicas
-      const isUnica = seriaUnicaNoPeriodoAtual && outroPeriodoTemUnica;
+      // Só é entrega única se não existe nenhuma entrega no período (a nova será a única)
+      const isUnica = (countPeriodo || 0) === 0;
       setIsEntregaUnica(isUnica);
       return isUnica;
     } catch (error) {
@@ -960,6 +948,7 @@ export default function NovoRomaneio() {
           bairro: '',
           cidade: '',
           cep: '',
+          regiao: '',
           is_principal: false
         }
       ]
@@ -980,6 +969,15 @@ export default function NovoRomaneio() {
   const updateEnderecoNovoCliente = (index, field, value) => {
     const newEnderecos = [...novoCliente.enderecos];
     newEnderecos[index] = { ...newEnderecos[index], [field]: value };
+
+    // Auto-detectar região quando cidade ou bairro mudam
+    if (field === 'cidade' || field === 'bairro') {
+      const cidade = field === 'cidade' ? value : newEnderecos[index].cidade;
+      const bairro = field === 'bairro' ? value : newEnderecos[index].bairro;
+      const regiaoDetectada = detectarRegiao(cidade, bairro);
+      newEnderecos[index].regiao = regiaoDetectada || '';
+    }
+
     setNovoCliente({ ...novoCliente, enderecos: newEnderecos });
   };
 
@@ -1027,17 +1025,20 @@ export default function NovoRomaneio() {
       // 2. Criar endereços
       const enderecosParaInserir = novoCliente.enderecos
         .filter(end => end.logradouro && end.numero && end.cidade)
-        .map((end, index) => ({
-          cliente_id: clienteData.id,
-          logradouro: end.logradouro,
-          numero: end.numero,
-          complemento: end.complemento || null,
-          bairro: end.bairro || null,
-          cidade: end.cidade,
-          cep: end.cep || null,
-          regiao: end.regiao || null,
-          is_principal: index === 0
-        }));
+        .map((end, index) => {
+          const regiaoDetectada = detectarRegiao(end.cidade, end.bairro);
+          return {
+            cliente_id: clienteData.id,
+            logradouro: end.logradouro,
+            numero: end.numero,
+            complemento: end.complemento || null,
+            bairro: end.bairro || null,
+            cidade: end.cidade,
+            cep: end.cep || null,
+            regiao: regiaoDetectada || end.regiao || null,
+            is_principal: index === 0
+          };
+        });
 
       if (enderecosParaInserir.length > 0) {
         const { error: enderecoError } = await supabase
@@ -1065,6 +1066,7 @@ export default function NovoRomaneio() {
           bairro: '',
           cidade: '',
           cep: '',
+          regiao: '',
           is_principal: true
         }]
       });
@@ -1131,6 +1133,7 @@ export default function NovoRomaneio() {
         buscar_receita: formData.buscar_receita,
         observacoes: formData.observacoes,
         atendente: user?.usuario || '',
+        atendente_id: user?.id || null,
         clientes_adicionais: clientesAdicionais,
         precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,
         valor_troco: formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco ? formData.valor_troco : 0,
@@ -1156,31 +1159,25 @@ export default function NovoRomaneio() {
       // Atualizar valores de entregas do Bruno que não são mais entrega única
       if (formData.motoboy === 'Bruno' && motoboyId) {
         try {
-          // Contar entregas do Bruno na data para cada período
-          const { count: countManha } = await supabase
+          // Contar entregas do Bruno no mesmo período
+          const { count: countPeriodo } = await supabase
             .from('entregas')
             .select('*', { count: 'exact', head: true })
             .eq('motoboy_id', motoboyId)
             .eq('data_entrega', dataEntregaCorrigida)
-            .eq('periodo', 'Manhã');
+            .eq('periodo', formData.periodo);
 
-          const { count: countTarde } = await supabase
-            .from('entregas')
-            .select('*', { count: 'exact', head: true })
-            .eq('motoboy_id', motoboyId)
-            .eq('data_entrega', dataEntregaCorrigida)
-            .eq('periodo', 'Tarde');
-
-          // Se algum período tem mais de 1 entrega, nenhuma entrega do dia é "única"
-          const naoEhMaisUnica = countManha > 1 || countTarde > 1;
+          // Se tem mais de 1 entrega no período, nenhuma desse período é "única"
+          const naoEhMaisUnica = (countPeriodo || 0) > 1;
 
           if (naoEhMaisUnica) {
-            // Buscar todas entregas do Bruno nessa data que têm valor de entrega única
+            // Buscar entregas do Bruno no mesmo período que têm valor de entrega única
             const { data: entregasParaAtualizar } = await supabase
               .from('entregas')
               .select('id, regiao, valor')
               .eq('motoboy_id', motoboyId)
               .eq('data_entrega', dataEntregaCorrigida)
+              .eq('periodo', formData.periodo)
               .neq('id', entregasCriadas[0].id);
 
             if (entregasParaAtualizar && entregasParaAtualizar.length > 0) {
@@ -2600,6 +2597,19 @@ export default function NovoRomaneio() {
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Região (auto-detectada)
+                      </label>
+                      <input
+                        type="text"
+                        value={endereco.regiao || ''}
+                        readOnly
+                        placeholder="Preencha cidade e bairro"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-600"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2623,6 +2633,7 @@ export default function NovoRomaneio() {
                       bairro: '',
                       cidade: '',
                       cep: '',
+                      regiao: '',
                       is_principal: true
                     }]
                   });
