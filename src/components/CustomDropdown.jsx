@@ -27,7 +27,7 @@ export function CustomDropdown({
   const displayText = selectedOption ? selectedOption.label : placeholder;
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }} data-custom-dropdown="true">
       {label && (
         <label style={{
           display: 'block',
@@ -60,7 +60,7 @@ export function CustomDropdown({
             opacity: disabled ? 0.7 : 1
           }}
         >
-          <span>{displayText}</span>
+          <span data-selected-text="true">{displayText}</span>
           <ChevronDown
             size={18}
             style={{

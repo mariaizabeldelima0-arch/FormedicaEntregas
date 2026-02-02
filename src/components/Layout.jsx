@@ -240,7 +240,7 @@ export default function Layout({ children }) {
           height: '132px',
           boxSizing: 'border-box'
         }}>
-          <img src="/logo-f.png" alt="Formédica" style={{
+          <img src={`${import.meta.env.BASE_URL}logo-f.png`} alt="Formédica" style={{
             width: '36px',
             height: '36px',
             borderRadius: '0.375rem',

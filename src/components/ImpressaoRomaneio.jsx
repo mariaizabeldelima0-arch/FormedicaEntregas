@@ -298,7 +298,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         {/* Logo e Titulo */}
         <div className="print-title">
-          <img src="/logo-formedica.png" alt="Formédica" className="print-logo-img" />
+          <img src={`${import.meta.env.BASE_URL}logo-formedica.png`} alt="Formédica" className="print-logo-img" />
           <h1>ROMANEIO DE ENTREGA</h1>
         </div>
 

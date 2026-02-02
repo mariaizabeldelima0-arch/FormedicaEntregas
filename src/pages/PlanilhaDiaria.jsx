@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown, MousePointerClick } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { createPageUrl } from "@/utils";
 import { CustomDropdown } from "@/components/CustomDropdown";
@@ -27,6 +27,7 @@ export default function PlanilhaDiaria() {
   const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || "todos");
   const [visualizarTodas, setVisualizarTodas] = useState(urlParams.get('todas') === 'true');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
 
   // Atualizar URL quando estado mudar
   useEffect(() => {
@@ -248,6 +249,7 @@ export default function PlanilhaDiaria() {
       if (error) throw error;
       toast.success(`${ids.length} entregas alteradas para "${novoStatus}"!`, { id: toastId });
       setSelectedIds(new Set());
+      setSelectionMode(false);
       queryClient.invalidateQueries({ queryKey: ['entregas-moto-planilha'] });
     } catch (error) {
       console.error('Erro ao alterar status em lote:', error);
@@ -278,7 +280,7 @@ export default function PlanilhaDiaria() {
     const dataStr = !visualizarTodas ? format(selectedDate, 'dd-MM-yyyy') : 'Todas';
     const nomeArquivo = `Entregas ${dataStr}.pdf`;
 
-    // Esconder elementos que não devem aparecer no PDF (resumo + coluna Ver)
+    // Esconder elementos que não devem aparecer no PDF (resumo + coluna Ver + barra seleção)
     const hideElements = element.querySelectorAll('.print-hide');
     hideElements.forEach(el => el.style.display = 'none');
 
@@ -286,21 +288,95 @@ export default function PlanilhaDiaria() {
     const pdfTitle = element.querySelector('.pdf-title');
     if (pdfTitle) pdfTitle.style.display = 'block';
 
+    // Remover overflow hidden/auto para mostrar tudo
+    const overflowEls = element.querySelectorAll('.overflow-x-auto, .overflow-hidden');
+    overflowEls.forEach(el => el.style.overflow = 'visible');
+
+    // Remover truncate e max-width para mostrar texto completo
+    const truncatedEls = element.querySelectorAll('.truncate');
+    truncatedEls.forEach(el => {
+      el.style.overflow = 'visible';
+      el.style.textOverflow = 'clip';
+      el.style.whiteSpace = 'normal';
+      el.style.maxWidth = 'none';
+      el.style.wordBreak = 'break-word';
+    });
+
+    // Substituir dropdowns de status por texto simples no PDF
+    const dropdownContainers = element.querySelectorAll('[data-custom-dropdown]');
+    const dropdownBackups = [];
+    dropdownContainers.forEach(container => {
+      const selectedText = container.querySelector('[data-selected-text]');
+      const text = selectedText ? selectedText.textContent : container.textContent.trim();
+      dropdownBackups.push({ el: container, original: container.innerHTML });
+      container.innerHTML = `<span style="font-size:10px;font-weight:600;">${text}</span>`;
+    });
+
+    // Reduzir tamanho da fonte da tabela para caber tudo
+    const tables = element.querySelectorAll('table');
+    tables.forEach(t => {
+      t.style.fontSize = '7px';
+      t.style.tableLayout = 'auto';
+    });
+
+    // Garantir que as células não tenham largura fixa
+    const cells = element.querySelectorAll('th, td');
+    cells.forEach(c => {
+      c.style.whiteSpace = 'nowrap';
+      c.style.padding = '2px 3px';
+    });
+
+    // Permitir wrap na coluna de observação
+    const obsCells = element.querySelectorAll('.obs-cell-pdf');
+    obsCells.forEach(c => {
+      c.style.whiteSpace = 'normal';
+      c.style.minWidth = '80px';
+    });
+
     const opt = {
-      margin: 5,
+      margin: [3, 3, 3, 3],
       filename: nomeArquivo,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: element.scrollWidth + 100,
+      },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
     };
 
     html2pdf().set(opt).from(element).save().then(() => {
+      // Restaurar tudo
       hideElements.forEach(el => el.style.display = '');
       if (pdfTitle) pdfTitle.style.display = 'none';
+      overflowEls.forEach(el => el.style.overflow = '');
+      truncatedEls.forEach(el => {
+        el.style.overflow = '';
+        el.style.textOverflow = '';
+        el.style.whiteSpace = '';
+        el.style.maxWidth = '';
+        el.style.wordBreak = '';
+      });
+      dropdownBackups.forEach(b => b.el.innerHTML = b.original);
+      tables.forEach(t => { t.style.fontSize = ''; t.style.tableLayout = ''; });
+      cells.forEach(c => { c.style.whiteSpace = ''; c.style.padding = ''; });
       toast.success(`PDF salvo: ${nomeArquivo}`);
     }).catch(() => {
       hideElements.forEach(el => el.style.display = '');
       if (pdfTitle) pdfTitle.style.display = 'none';
+      overflowEls.forEach(el => el.style.overflow = '');
+      truncatedEls.forEach(el => {
+        el.style.overflow = '';
+        el.style.textOverflow = '';
+        el.style.whiteSpace = '';
+        el.style.maxWidth = '';
+        el.style.wordBreak = '';
+      });
+      dropdownBackups.forEach(b => b.el.innerHTML = b.original);
+      tables.forEach(t => { t.style.fontSize = ''; t.style.tableLayout = ''; });
+      cells.forEach(c => { c.style.whiteSpace = ''; c.style.padding = ''; });
       toast.error('Erro ao salvar PDF');
     });
   };
@@ -337,18 +413,38 @@ export default function PlanilhaDiaria() {
 
           /* Tabelas: tamanho adequado */
           table {
-            font-size: 9px !important;
+            font-size: 7px !important;
             width: 100% !important;
             border-collapse: collapse !important;
+            table-layout: auto !important;
           }
 
           th, td {
-            padding: 3px 4px !important;
+            padding: 2px 3px !important;
             border: 1px solid #ccc !important;
+            white-space: nowrap !important;
+          }
+
+          /* Observações podem quebrar linha */
+          .obs-cell-pdf {
+            white-space: normal !important;
+            max-width: none !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            word-break: break-word !important;
+          }
+
+          /* Remover truncate */
+          .truncate {
+            overflow: visible !important;
+            text-overflow: clip !important;
+            white-space: normal !important;
+            max-width: none !important;
           }
 
           /* Mostrar overflow */
-          .overflow-x-auto {
+          .overflow-x-auto,
+          .overflow-hidden {
             overflow: visible !important;
           }
 
@@ -472,6 +568,22 @@ export default function PlanilhaDiaria() {
                 />
               </div>
 
+              {/* Botão Selecionar */}
+              <button
+                onClick={() => {
+                  setSelectionMode(prev => !prev);
+                  if (selectionMode) setSelectedIds(new Set());
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap"
+                style={{
+                  backgroundColor: selectionMode ? '#dc2626' : '#376295',
+                  color: 'white'
+                }}
+              >
+                <MousePointerClick className="w-4 h-4" />
+                {selectionMode ? 'Cancelar Seleção' : 'Selecionar'}
+              </button>
+
               {/* Botão Salvar PDF */}
               <button
                 onClick={handleSavePDF}
@@ -502,18 +614,38 @@ export default function PlanilhaDiaria() {
               {filtroMotoboy !== 'todos' ? ` (${filtroMotoboy})` : ''}
             </div>
             {/* Barra de Seleção em Lote */}
-            {selectedIds.size > 0 && (
+            {selectionMode && (
               <div className="rounded-lg border-2 p-4 flex flex-wrap items-center justify-between gap-3 print-hide" style={{ borderColor: '#376295', backgroundColor: '#f0f5ff' }}>
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-bold" style={{ color: '#376295' }}>
-                    {selectedIds.size} entrega{selectedIds.size > 1 ? 's' : ''} selecionada{selectedIds.size > 1 ? 's' : ''}
+                    {selectedIds.size > 0
+                      ? `${selectedIds.size} entrega${selectedIds.size > 1 ? 's' : ''} selecionada${selectedIds.size > 1 ? 's' : ''}`
+                      : 'Clique nas entregas para selecionar'}
                   </span>
                   <button
-                    onClick={() => setSelectedIds(new Set())}
-                    className="text-sm text-slate-500 hover:text-slate-700 underline"
+                    onClick={() => {
+                      const allSelected = romaneiosOrdenados.length > 0 && romaneiosOrdenados.every(r => selectedIds.has(r.id));
+                      if (allSelected) {
+                        setSelectedIds(new Set());
+                      } else {
+                        setSelectedIds(new Set(romaneiosOrdenados.map(r => r.id)));
+                      }
+                    }}
+                    className="text-sm font-semibold underline"
+                    style={{ color: '#376295' }}
                   >
-                    Desmarcar
+                    {romaneiosOrdenados.length > 0 && romaneiosOrdenados.every(r => selectedIds.has(r.id))
+                      ? 'Desmarcar Todas'
+                      : 'Selecionar Todas'}
                   </button>
+                  {selectedIds.size > 0 && (
+                    <button
+                      onClick={() => setSelectedIds(new Set())}
+                      className="text-sm text-slate-500 hover:text-slate-700 underline"
+                    >
+                      Limpar
+                    </button>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm text-slate-600 font-medium">Alterar para:</span>
@@ -546,22 +678,6 @@ export default function PlanilhaDiaria() {
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-300">
-                      <th className="px-2 py-2 text-center font-semibold text-slate-700 border-r border-slate-200 print-hide">
-                        <input
-                          type="checkbox"
-                          checked={romaneiosOrdenados.length > 0 && romaneiosOrdenados.every(r => selectedIds.has(r.id))}
-                          onChange={() => {
-                            const allSelected = romaneiosOrdenados.every(r => selectedIds.has(r.id));
-                            setSelectedIds(prev => {
-                              const next = new Set(prev);
-                              romaneiosOrdenados.forEach(r => allSelected ? next.delete(r.id) : next.add(r.id));
-                              return next;
-                            });
-                          }}
-                          className="w-4 h-4 cursor-pointer"
-                          style={{ accentColor: '#376295' }}
-                        />
-                      </th>
                       {visualizarTodas && (
                         <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Data</th>
                       )}
@@ -585,13 +701,13 @@ export default function PlanilhaDiaria() {
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 17 : 16} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 16 : 15} className="p-8 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : romaneiosOrdenados.length === 0 ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 17 : 16} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 16 : 15} className="p-8 text-center text-slate-500">
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
@@ -599,18 +715,20 @@ export default function PlanilhaDiaria() {
                       romaneiosOrdenados.map((rom) => (
                         <tr
                           key={rom.id}
-                          className="border-b border-slate-200"
-                          style={getRowColor(rom.status)}
+                          className={`border-b border-slate-200 ${selectionMode ? 'cursor-pointer hover:opacity-80' : ''}`}
+                          style={{
+                            ...getRowColor(rom.status),
+                            ...(selectionMode && selectedIds.has(rom.id)
+                              ? { outline: '2px solid #376295', outlineOffset: '-2px', backgroundColor: '#dbeafe' }
+                              : {})
+                          }}
+                          onClick={(e) => {
+                            if (!selectionMode) return;
+                            const tag = e.target.tagName.toLowerCase();
+                            if (tag === 'a' || tag === 'button' || tag === 'select' || tag === 'input' || e.target.closest('a, button, select, [role="combobox"], [role="listbox"]')) return;
+                            toggleSelection(rom.id);
+                          }}
                         >
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-center print-hide">
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.has(rom.id)}
-                              onChange={() => toggleSelection(rom.id)}
-                              className="w-4 h-4 cursor-pointer"
-                              style={{ accentColor: '#376295' }}
-                            />
-                          </td>
                           {visualizarTodas && (
                             <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 whitespace-nowrap">
                               {rom.data_entrega ? format(parseISO(rom.data_entrega), 'dd/MM/yyyy') : '-'}
@@ -628,7 +746,7 @@ export default function PlanilhaDiaria() {
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                             {rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '-'}
                           </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate">
+                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate obs-cell-pdf">
                             {rom.observacoes || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">

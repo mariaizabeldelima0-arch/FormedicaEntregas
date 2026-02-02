@@ -52,7 +52,7 @@ function RomaneioCard({ romaneio }) {
 
       {/* Logo e Titulo */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-        <img src="/logo-formedica.png" alt="Formédica" style={{ width: '100px', height: 'auto', marginBottom: '5px' }} />
+        <img src={`${import.meta.env.BASE_URL}logo-formedica.png`} alt="Formédica" style={{ width: '100px', height: 'auto', marginBottom: '5px' }} />
         <h2 style={{ fontSize: '14px', fontWeight: 'bold', margin: 0 }}>ROMANEIO DE ENTREGA</h2>
       </div>
 
