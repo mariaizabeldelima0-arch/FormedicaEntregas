@@ -278,6 +278,7 @@ export default function PlanilhaDiaria() {
   // Alterar pagamento recebido em lote
   const handleBulkPagamentoChange = async (recebido) => {
     if (selectedIds.size === 0) return;
+    const label = recebido === true ? 'Pago' : recebido === false ? 'Não Recebido' : 'Cobrar';
     const toastId = toast.loading(`Alterando pagamento de ${selectedIds.size} entregas...`);
     try {
       const ids = Array.from(selectedIds);
@@ -286,7 +287,7 @@ export default function PlanilhaDiaria() {
         .update({ pagamento_recebido: recebido })
         .in('id', ids);
       if (error) throw error;
-      toast.success(`${ids.length} entregas marcadas como "${recebido ? 'Pago' : 'Não Recebido'}"!`, { id: toastId });
+      toast.success(`${ids.length} entregas marcadas como "${label}"!`, { id: toastId });
       setSelectedIds(new Set());
       setSelectionMode(false);
       queryClient.invalidateQueries({ queryKey: ['entregas-moto-planilha'] });
@@ -717,6 +718,12 @@ export default function PlanilhaDiaria() {
                   >
                     Não Recebido
                   </button>
+                  <button
+                    onClick={() => handleBulkPagamentoChange(null)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80 bg-slate-400 text-white"
+                  >
+                    Cobrar
+                  </button>
                 </div>
               </div>
             )}
@@ -821,24 +828,18 @@ export default function PlanilhaDiaria() {
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             {rom.valor_venda > 0 ? (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updatePagamentoRecebidoMutation.mutate({
-                                    id: rom.id,
-                                    pagamentoRecebido: !rom.pagamento_recebido
-                                  });
-                                }}
-                                disabled={updatePagamentoRecebidoMutation.isPending}
-                                className={`px-2 py-1 rounded font-semibold text-white transition-colors text-[11px] ${
-                                  rom.pagamento_recebido
-                                    ? 'bg-green-500 hover:bg-green-600'
-                                    : 'bg-red-500 hover:bg-red-600'
+                              <span
+                                className={`px-2 py-1 rounded font-semibold text-[11px] ${
+                                  rom.pagamento_recebido === true
+                                    ? 'bg-green-500 text-white'
+                                    : rom.pagamento_recebido === false
+                                    ? 'bg-red-500 text-white'
+                                    : 'bg-slate-200 text-slate-700'
                                 }`}
-                                title={rom.pagamento_recebido ? 'Recebido - Clique para marcar como Pendente' : 'Pendente - Clique para marcar como Recebido'}
+                                title={rom.pagamento_recebido === true ? 'Pago' : rom.pagamento_recebido === false ? 'Não Recebido' : 'Cobrar'}
                               >
                                 R$ {parseFloat(rom.valor_venda).toFixed(2)}
-                              </button>
+                              </span>
                             ) : (
                               <span className="text-slate-400">-</span>
                             )}
