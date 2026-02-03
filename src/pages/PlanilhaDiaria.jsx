@@ -275,19 +275,30 @@ export default function PlanilhaDiaria() {
     }
   };
 
-  // Alterar pagamento recebido em lote
+  // Alterar pagamento recebido em lote (apenas entregas com valor a cobrar)
   const handleBulkPagamentoChange = async (recebido) => {
     if (selectedIds.size === 0) return;
+
+    // Filtrar apenas entregas que têm valor_venda > 0
+    const idsComValor = Array.from(selectedIds).filter(id => {
+      const entrega = romaneios.find(r => r.id === id);
+      return entrega && entrega.valor_venda > 0;
+    });
+
+    if (idsComValor.length === 0) {
+      toast.error('Nenhuma entrega selecionada possui valor a cobrar');
+      return;
+    }
+
     const label = recebido === true ? 'Pago' : recebido === false ? 'Não Recebido' : 'Cobrar';
-    const toastId = toast.loading(`Alterando pagamento de ${selectedIds.size} entregas...`);
+    const toastId = toast.loading(`Alterando pagamento de ${idsComValor.length} entregas...`);
     try {
-      const ids = Array.from(selectedIds);
       const { error } = await supabase
         .from('entregas')
         .update({ pagamento_recebido: recebido })
-        .in('id', ids);
+        .in('id', idsComValor);
       if (error) throw error;
-      toast.success(`${ids.length} entregas marcadas como "${label}"!`, { id: toastId });
+      toast.success(`${idsComValor.length} entregas marcadas como "${label}"!`, { id: toastId });
       setSelectedIds(new Set());
       setSelectionMode(false);
       queryClient.invalidateQueries({ queryKey: ['entregas-moto-planilha'] });
