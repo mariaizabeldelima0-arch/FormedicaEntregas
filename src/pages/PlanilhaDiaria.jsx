@@ -275,6 +275,27 @@ export default function PlanilhaDiaria() {
     }
   };
 
+  // Alterar pagamento recebido em lote
+  const handleBulkPagamentoChange = async (recebido) => {
+    if (selectedIds.size === 0) return;
+    const toastId = toast.loading(`Alterando pagamento de ${selectedIds.size} entregas...`);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from('entregas')
+        .update({ pagamento_recebido: recebido })
+        .in('id', ids);
+      if (error) throw error;
+      toast.success(`${ids.length} entregas marcadas como "${recebido ? 'Pago' : 'Não Recebido'}"!`, { id: toastId });
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      queryClient.invalidateQueries({ queryKey: ['entregas-moto-planilha'] });
+    } catch (error) {
+      console.error('Erro ao alterar pagamento em lote:', error);
+      toast.error('Erro ao alterar pagamento em lote', { id: toastId });
+    }
+  };
+
   // Navegação de data
   const handlePrevDay = () => {
     const newDate = new Date(selectedDate);
@@ -666,7 +687,7 @@ export default function PlanilhaDiaria() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm text-slate-600 font-medium">Alterar para:</span>
+                  <span className="text-sm text-slate-600 font-medium">Status:</span>
                   {[
                     { status: 'Em Rota', bg: '#dbeafe', color: '#1e40af' },
                     { status: 'Entregue', bg: '#F5E8F5', color: '#890d5d' },
@@ -682,6 +703,20 @@ export default function PlanilhaDiaria() {
                       {item.label || item.status}
                     </button>
                   ))}
+                  <span className="text-slate-300 mx-1">|</span>
+                  <span className="text-sm text-slate-600 font-medium">Pagamento:</span>
+                  <button
+                    onClick={() => handleBulkPagamentoChange(true)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80 bg-green-500 text-white"
+                  >
+                    Pago
+                  </button>
+                  <button
+                    onClick={() => handleBulkPagamentoChange(false)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80 bg-red-500 text-white"
+                  >
+                    Não Recebido
+                  </button>
                 </div>
               </div>
             )}
