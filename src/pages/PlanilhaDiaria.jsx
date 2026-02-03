@@ -226,6 +226,24 @@ export default function PlanilhaDiaria() {
     }
   });
 
+  // Mutation para atualizar status de pagamento recebido
+  const updatePagamentoRecebidoMutation = useMutation({
+    mutationFn: async ({ id, pagamentoRecebido }) => {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ pagamento_recebido: pagamentoRecebido })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { pagamentoRecebido }) => {
+      queryClient.invalidateQueries({ queryKey: ['entregas-moto-planilha'] });
+      toast.success(pagamentoRecebido ? 'Pagamento marcado como Recebido' : 'Pagamento marcado como Pendente');
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar status do pagamento');
+    }
+  });
+
   // Toggle seleção individual
   const toggleSelection = (id) => {
     setSelectedIds(prev => {
@@ -766,8 +784,29 @@ export default function PlanilhaDiaria() {
                               {rom.forma_pagamento || '-'}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-semibold">
-                            {rom.valor_venda > 0 ? `R$ ${parseFloat(rom.valor_venda).toFixed(2)}` : '-'}
+                          <td className="px-2 py-1.5 border-r border-slate-200">
+                            {rom.valor_venda > 0 ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updatePagamentoRecebidoMutation.mutate({
+                                    id: rom.id,
+                                    pagamentoRecebido: !rom.pagamento_recebido
+                                  });
+                                }}
+                                disabled={updatePagamentoRecebidoMutation.isPending}
+                                className={`px-2 py-1 rounded font-semibold text-white transition-colors text-[11px] ${
+                                  rom.pagamento_recebido
+                                    ? 'bg-green-500 hover:bg-green-600'
+                                    : 'bg-red-500 hover:bg-red-600'
+                                }`}
+                                title={rom.pagamento_recebido ? 'Recebido - Clique para marcar como Pendente' : 'Pendente - Clique para marcar como Recebido'}
+                              >
+                                R$ {parseFloat(rom.valor_venda).toFixed(2)}
+                              </button>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                             {rom.precisa_troco && rom.valor_troco > 0 ? `R$ ${parseFloat(rom.valor_troco).toFixed(2)}` : '-'}
