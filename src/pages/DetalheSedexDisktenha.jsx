@@ -172,7 +172,10 @@ export default function DetalheSedexDisktenha() {
   };
 
   const tipoColor = tipoColors[entrega.tipo] || tipoColors.SEDEX;
-  const isPago = entrega.forma_pagamento === 'Pago' || entrega.forma_pagamento === 'Pix';
+  const isPago = entrega.forma_pagamento && (
+    entrega.forma_pagamento.startsWith('Pago') ||
+    entrega.forma_pagamento === 'Pix'
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
