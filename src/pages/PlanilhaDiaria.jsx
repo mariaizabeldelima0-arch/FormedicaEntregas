@@ -540,74 +540,77 @@ export default function PlanilhaDiaria() {
       </div>
 
       {/* Header */}
-      <div className="py-8 shadow-sm print-hide" style={{
+      <div className="py-4 sm:py-8 shadow-sm print-hide" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
-              <ChevronLeft className="w-6 h-6 text-white" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
             <div>
-              <h1 className="text-4xl font-bold text-white">Planilha Diária</h1>
-              <p className="text-base text-white opacity-90 mt-1">Visualize e edite todas as entregas do dia</p>
+              <h1 className="text-2xl sm:text-4xl font-bold text-white">Planilha Diária</h1>
+              <p className="text-sm sm:text-base text-white opacity-90 mt-0.5 sm:mt-1">Visualize e edite todas as entregas</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Linha de Filtros no Topo */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6 print-hide">
-            <div className="flex items-center gap-4">
-              {/* Botões Todas / Por Dia */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setVisualizarTodas(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap"
-                  style={{
-                    backgroundColor: visualizarTodas ? '#376295' : 'white',
-                    color: visualizarTodas ? 'white' : '#64748b',
-                    border: visualizarTodas ? 'none' : '1px solid #e2e8f0'
-                  }}
-                >
-                  Todas
-                </button>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-6 mb-4 sm:mb-6 print-hide">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              {/* Primeira linha mobile: Todas/Por Dia + Data */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Botões Todas / Por Dia */}
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <button
+                    onClick={() => setVisualizarTodas(true)}
+                    className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all whitespace-nowrap"
+                    style={{
+                      backgroundColor: visualizarTodas ? '#376295' : 'white',
+                      color: visualizarTodas ? 'white' : '#64748b',
+                      border: visualizarTodas ? 'none' : '1px solid #e2e8f0'
+                    }}
+                  >
+                    Todas
+                  </button>
 
-                <button
-                  onClick={() => setVisualizarTodas(false)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap"
-                  style={{
-                    backgroundColor: !visualizarTodas ? '#376295' : 'white',
-                    color: !visualizarTodas ? 'white' : '#64748b',
-                    border: !visualizarTodas ? 'none' : '1px solid #e2e8f0'
-                  }}
-                >
-                  Por Dia
-                </button>
+                  <button
+                    onClick={() => setVisualizarTodas(false)}
+                    className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all whitespace-nowrap"
+                    style={{
+                      backgroundColor: !visualizarTodas ? '#376295' : 'white',
+                      color: !visualizarTodas ? 'white' : '#64748b',
+                      border: !visualizarTodas ? 'none' : '1px solid #e2e8f0'
+                    }}
+                  >
+                    Por Dia
+                  </button>
+                </div>
+
+                {/* Campo de Busca por Data */}
+                {!visualizarTodas && (
+                  <div className="flex items-center gap-2">
+                    <CustomDatePicker
+                      value={format(selectedDate, 'yyyy-MM-dd')}
+                      onChange={(dateStr) => {
+                        if (dateStr) {
+                          setSelectedDate(new Date(dateStr + 'T00:00:00'));
+                        }
+                      }}
+                      placeholder="Selecione a data"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Campo de Busca por Data */}
-              {!visualizarTodas && (
-                <div className="flex items-center gap-2">
-                  <CustomDatePicker
-                    value={format(selectedDate, 'yyyy-MM-dd')}
-                    onChange={(dateStr) => {
-                      if (dateStr) {
-                        setSelectedDate(new Date(dateStr + 'T00:00:00'));
-                      }
-                    }}
-                    placeholder="Selecione a data"
-                  />
-                </div>
-              )}
-
               {/* Filtro por Motoboy */}
-              <div className="flex-1 max-w-xs">
+              <div className="flex-1 min-w-0 sm:max-w-xs">
                 <CustomDropdown
                   options={[
                     { value: 'todos', label: 'Todos os Motoboys' },
@@ -619,46 +622,49 @@ export default function PlanilhaDiaria() {
                 />
               </div>
 
-              {/* Botão Selecionar */}
-              <button
-                onClick={() => {
-                  setSelectionMode(prev => !prev);
-                  if (selectionMode) setSelectedIds(new Set());
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap"
-                style={{
-                  backgroundColor: selectionMode ? '#dc2626' : '#376295',
-                  color: 'white'
-                }}
-              >
-                <MousePointerClick className="w-4 h-4" />
-                {selectionMode ? 'Cancelar Seleção' : 'Selecionar'}
-              </button>
+              {/* Botões de ação */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Botão Selecionar */}
+                <button
+                  onClick={() => {
+                    setSelectionMode(prev => !prev);
+                    if (selectionMode) setSelectedIds(new Set());
+                  }}
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all whitespace-nowrap"
+                  style={{
+                    backgroundColor: selectionMode ? '#dc2626' : '#376295',
+                    color: 'white'
+                  }}
+                >
+                  <MousePointerClick className="w-4 h-4" />
+                  <span className="hidden sm:inline">{selectionMode ? 'Cancelar' : 'Selecionar'}</span>
+                </button>
 
-              {/* Botão Salvar PDF */}
-              <button
-                onClick={handleSavePDF}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap text-white"
-                style={{ backgroundColor: '#376295' }}
-              >
-                <FileDown className="w-4 h-4" />
-                Salvar PDF
-              </button>
+                {/* Botão Salvar PDF */}
+                <button
+                  onClick={handleSavePDF}
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all whitespace-nowrap text-white"
+                  style={{ backgroundColor: '#376295' }}
+                >
+                  <FileDown className="w-4 h-4" />
+                  <span className="hidden sm:inline">PDF</span>
+                </button>
 
-              {/* Botão Imprimir */}
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap text-white"
-                style={{ backgroundColor: '#890d5d' }}
-              >
-                <Printer className="w-4 h-4" />
-                Imprimir
-              </button>
+                {/* Botão Imprimir */}
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all whitespace-nowrap text-white"
+                  style={{ backgroundColor: '#890d5d' }}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">Imprimir</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Main Content - Tabelas */}
-          <div className="space-y-6" ref={contentRef}>
+          <div className="space-y-4 sm:space-y-6" ref={contentRef}>
             {/* Título do PDF (escondido na tela, visível apenas no PDF gerado) */}
             <div className="pdf-title" style={{ display: 'none', textAlign: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', paddingTop: '5px' }}>
               Entregas {!visualizarTodas ? format(selectedDate, 'dd/MM/yyyy') : '- Todas'}
@@ -666,12 +672,12 @@ export default function PlanilhaDiaria() {
             </div>
             {/* Barra de Seleção em Lote */}
             {selectionMode && (
-              <div className="rounded-lg border-2 p-4 flex flex-wrap items-center justify-between gap-3 print-hide" style={{ borderColor: '#376295', backgroundColor: '#f0f5ff' }}>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold" style={{ color: '#376295' }}>
+              <div className="rounded-lg border-2 p-3 sm:p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 print-hide" style={{ borderColor: '#376295', backgroundColor: '#f0f5ff' }}>
+                <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                  <span className="text-xs sm:text-sm font-bold" style={{ color: '#376295' }}>
                     {selectedIds.size > 0
-                      ? `${selectedIds.size} entrega${selectedIds.size > 1 ? 's' : ''} selecionada${selectedIds.size > 1 ? 's' : ''}`
-                      : 'Clique nas entregas para selecionar'}
+                      ? `${selectedIds.size} selecionada${selectedIds.size > 1 ? 's' : ''}`
+                      : 'Clique para selecionar'}
                   </span>
                   <button
                     onClick={() => {
@@ -682,67 +688,71 @@ export default function PlanilhaDiaria() {
                         setSelectedIds(new Set(romaneiosOrdenados.map(r => r.id)));
                       }
                     }}
-                    className="text-sm font-semibold underline"
+                    className="text-xs sm:text-sm font-semibold underline"
                     style={{ color: '#376295' }}
                   >
                     {romaneiosOrdenados.length > 0 && romaneiosOrdenados.every(r => selectedIds.has(r.id))
-                      ? 'Desmarcar Todas'
-                      : 'Selecionar Todas'}
+                      ? 'Desmarcar'
+                      : 'Todas'}
                   </button>
                   {selectedIds.size > 0 && (
                     <button
                       onClick={() => setSelectedIds(new Set())}
-                      className="text-sm text-slate-500 hover:text-slate-700 underline"
+                      className="text-xs sm:text-sm text-slate-500 hover:text-slate-700 underline"
                     >
                       Limpar
                     </button>
                   )}
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm text-slate-600 font-medium">Status:</span>
-                  {[
-                    { status: 'Em Rota', bg: '#dbeafe', color: '#1e40af' },
-                    { status: 'Entregue', bg: '#F5E8F5', color: '#890d5d' },
-                    { status: 'Voltou p/ Farmácia', label: 'Voltou', bg: '#fef9c3', color: '#92400e' },
-                    { status: 'Cancelado', bg: '#fee2e2', color: '#dc2626' },
-                  ].map(item => (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <span className="text-xs sm:text-sm text-slate-600 font-medium">Status:</span>
+                    {[
+                      { status: 'Em Rota', label: 'Rota', bg: '#dbeafe', color: '#1e40af' },
+                      { status: 'Entregue', bg: '#F5E8F5', color: '#890d5d' },
+                      { status: 'Voltou p/ Farmácia', label: 'Voltou', bg: '#fef9c3', color: '#92400e' },
+                      { status: 'Cancelado', label: 'Canc.', bg: '#fee2e2', color: '#dc2626' },
+                    ].map(item => (
+                      <button
+                        key={item.status}
+                        onClick={() => handleBulkStatusChange(item.status)}
+                        className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:opacity-80"
+                        style={{ backgroundColor: item.bg, color: item.color }}
+                      >
+                        {item.label || item.status}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="hidden sm:inline text-slate-300 mx-1">|</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <span className="text-xs sm:text-sm text-slate-600 font-medium">Pgto:</span>
                     <button
-                      key={item.status}
-                      onClick={() => handleBulkStatusChange(item.status)}
-                      className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
-                      style={{ backgroundColor: item.bg, color: item.color }}
+                      onClick={() => handleBulkPagamentoChange(true)}
+                      className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:opacity-80 bg-green-500 text-white"
                     >
-                      {item.label || item.status}
+                      Pago
                     </button>
-                  ))}
-                  <span className="text-slate-300 mx-1">|</span>
-                  <span className="text-sm text-slate-600 font-medium">Pagamento:</span>
-                  <button
-                    onClick={() => handleBulkPagamentoChange(true)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80 bg-green-500 text-white"
-                  >
-                    Pago
-                  </button>
-                  <button
-                    onClick={() => handleBulkPagamentoChange(false)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80 bg-red-500 text-white"
-                  >
-                    Não Recebido
-                  </button>
-                  <button
-                    onClick={() => handleBulkPagamentoChange(null)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:opacity-80 bg-slate-400 text-white"
-                  >
-                    Cobrar
-                  </button>
+                    <button
+                      onClick={() => handleBulkPagamentoChange(false)}
+                      className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:opacity-80 bg-red-500 text-white"
+                    >
+                      N/Receb
+                    </button>
+                    <button
+                      onClick={() => handleBulkPagamentoChange(null)}
+                      className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all hover:opacity-80 bg-slate-400 text-white"
+                    >
+                      Cobrar
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Tabela Principal - Romaneios */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-              <div className="px-4 py-3" style={{ backgroundColor: '#376295' }}>
-                <h2 className="text-white font-bold text-lg">ENTREGAS MOTO</h2>
+              <div className="px-3 sm:px-4 py-2 sm:py-3" style={{ backgroundColor: '#376295' }}>
+                <h2 className="text-white font-bold text-sm sm:text-lg">ENTREGAS MOTO</h2>
               </div>
 
               <div className="overflow-x-auto">
@@ -927,8 +937,8 @@ export default function PlanilhaDiaria() {
 
             {/* Tabela Sedex/Disktenha */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-              <div className="px-4 py-3" style={{ backgroundColor: '#890d5d' }}>
-                <h2 className="text-white font-bold text-lg">SEDEX / DISKTENHA</h2>
+              <div className="px-3 sm:px-4 py-2 sm:py-3" style={{ backgroundColor: '#890d5d' }}>
+                <h2 className="text-white font-bold text-sm sm:text-lg">SEDEX / DISKTENHA</h2>
               </div>
 
               <div className="overflow-x-auto">
