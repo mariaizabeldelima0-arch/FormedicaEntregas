@@ -28,6 +28,8 @@ export default function PlanilhaDiaria() {
   const [visualizarTodas, setVisualizarTodas] = useState(urlParams.get('todas') === 'true');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedSedexIds, setSelectedSedexIds] = useState(new Set());
+  const [selectionModeSedex, setSelectionModeSedex] = useState(false);
 
   // Atualizar URL quando estado mudar
   useEffect(() => {
@@ -335,6 +337,37 @@ export default function PlanilhaDiaria() {
     } catch (error) {
       console.error('Erro ao alterar pagamento em lote:', error);
       toast.error('Erro ao alterar pagamento em lote', { id: toastId });
+    }
+  };
+
+  // Toggle seleção individual Sedex
+  const toggleSedexSelection = (id) => {
+    setSelectedSedexIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Alterar status em lote para Sedex/Disktenha
+  const handleBulkSedexStatusChange = async (novoStatus) => {
+    if (selectedSedexIds.size === 0) return;
+    const toastId = toast.loading(`Alterando ${selectedSedexIds.size} entregas...`);
+    try {
+      const ids = Array.from(selectedSedexIds);
+      const { error } = await supabase
+        .from('sedex_disktenha')
+        .update({ status: novoStatus })
+        .in('id', ids);
+      if (error) throw error;
+      toast.success(`${ids.length} entregas alteradas para "${novoStatus}"!`, { id: toastId });
+      setSelectedSedexIds(new Set());
+      setSelectionModeSedex(false);
+      queryClient.invalidateQueries({ queryKey: ['sedex-disktenha-planilha'] });
+    } catch (error) {
+      console.error('Erro ao alterar status em lote:', error);
+      toast.error('Erro ao alterar status em lote', { id: toastId });
     }
   };
 
@@ -963,10 +996,81 @@ export default function PlanilhaDiaria() {
               </div>
             </div>
 
+            {/* Barra de Seleção em Lote - Sedex/Disktenha */}
+            {selectionModeSedex && (
+              <div className="rounded-lg border-2 p-3 md:p-4 flex flex-wrap items-center justify-between gap-3 print-hide" style={{ borderColor: '#890d5d', backgroundColor: '#fdf4ff' }}>
+                <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+                  <span className="text-xs md:text-sm font-bold" style={{ color: '#890d5d' }}>
+                    {selectedSedexIds.size > 0
+                      ? `${selectedSedexIds.size} selecionada${selectedSedexIds.size > 1 ? 's' : ''}`
+                      : 'Clique para selecionar'}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const allSelected = sedexDisktenha.length > 0 && sedexDisktenha.every(e => selectedSedexIds.has(e.id));
+                      if (allSelected) {
+                        setSelectedSedexIds(new Set());
+                      } else {
+                        setSelectedSedexIds(new Set(sedexDisktenha.map(e => e.id)));
+                      }
+                    }}
+                    className="text-xs md:text-sm font-semibold underline"
+                    style={{ color: '#890d5d' }}
+                  >
+                    {sedexDisktenha.length > 0 && sedexDisktenha.every(e => selectedSedexIds.has(e.id))
+                      ? 'Desmarcar'
+                      : 'Todas'}
+                  </button>
+                  {selectedSedexIds.size > 0 && (
+                    <button
+                      onClick={() => setSelectedSedexIds(new Set())}
+                      className="text-xs md:text-sm text-slate-500 hover:text-slate-700 underline"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                    <span className="text-xs md:text-sm text-slate-600 font-medium">Status:</span>
+                    {[
+                      { status: 'Pendente', bg: '#fef3c7', color: '#92400e' },
+                      { status: 'Em Trânsito', label: 'Trânsito', bg: '#dbeafe', color: '#1e40af' },
+                      { status: 'Entregue', bg: '#dcfce7', color: '#166534' },
+                      { status: 'Devolvido', bg: '#fee2e2', color: '#dc2626' },
+                    ].map(item => (
+                      <button
+                        key={item.status}
+                        onClick={() => handleBulkSedexStatusChange(item.status)}
+                        className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all hover:opacity-80"
+                        style={{ backgroundColor: item.bg, color: item.color }}
+                      >
+                        {item.label || item.status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tabela Sedex/Disktenha */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-              <div className="px-3 md:px-4 py-2 md:py-3" style={{ backgroundColor: '#890d5d' }}>
+              <div className="px-3 md:px-4 py-2 md:py-3 flex items-center justify-between" style={{ backgroundColor: '#890d5d' }}>
                 <h2 className="text-white font-bold text-sm md:text-lg">SEDEX / DISKTENHA</h2>
+                <button
+                  onClick={() => {
+                    setSelectionModeSedex(!selectionModeSedex);
+                    if (selectionModeSedex) setSelectedSedexIds(new Set());
+                  }}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all print-hide ${
+                    selectionModeSedex
+                      ? 'bg-white text-[#890d5d]'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  <MousePointerClick className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">{selectionModeSedex ? 'Cancelar' : 'Selecionar'}</span>
+                </button>
               </div>
 
               <div className="overflow-x-auto">
@@ -1001,7 +1105,9 @@ export default function PlanilhaDiaria() {
                       sedexDisktenha.map((entrega) => (
                         <tr
                           key={entrega.id}
-                          className="border-b border-blue-200 hover:bg-blue-100/50"
+                          onClick={() => selectionModeSedex && toggleSedexSelection(entrega.id)}
+                          className={`border-b border-blue-200 ${selectionModeSedex ? 'cursor-pointer hover:opacity-80' : 'hover:bg-blue-100/50'}`}
+                          style={selectionModeSedex && selectedSedexIds.has(entrega.id) ? { backgroundColor: '#f5d0fe' } : {}}
                         >
                           <td className="px-2 py-1.5 border-r border-blue-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
@@ -1042,7 +1148,7 @@ export default function PlanilhaDiaria() {
                               ]}
                               value={entrega.status || 'Pendente'}
                               onChange={(val) => handleQuickStatusUpdate(entrega.id, val, 'sedex')}
-                              disabled={updateSedexMutation.isPending}
+                              disabled={updateSedexMutation.isPending || selectionModeSedex}
                               className="text-[10px]"
                             />
                           </td>
