@@ -511,26 +511,26 @@ export default function PainelMotoboys() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
-      {/* Header */}
-      <div className="py-8 shadow-sm" style={{
+      {/* Header - Compacto para mobile */}
+      <div className="py-4 sm:py-6 shadow-sm" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {!isMotoboy && (
                 <button
                   onClick={() => navigate(-1)}
-                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                  className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
                 >
-                  <ChevronLeft className="w-6 h-6 text-white" />
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </button>
               )}
               <div>
-                <h1 className="text-4xl font-bold text-white">
+                <h1 className="text-xl sm:text-3xl font-bold text-white">
                   {isMotoboy ? 'Minhas Entregas' : 'Painel do Motoboy'}
                 </h1>
-                <p className="text-base text-white opacity-90 mt-1">
+                <p className="text-xs sm:text-sm text-white opacity-90">
                   Olá, {nomeMotoboyUsuario || user?.nome || 'Motoboy'}
                 </p>
               </div>
@@ -539,14 +539,14 @@ export default function PainelMotoboys() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Coluna Esquerda */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Seletor de Motoboy */}
             {!isMotoboy && (
-              <div className="rounded-xl p-4" style={{ backgroundColor: '#890d5d' }}>
-                <label className="block text-sm font-semibold text-white mb-2">
+              <div className="rounded-xl p-3 sm:p-4" style={{ backgroundColor: '#890d5d' }}>
+                <label className="block text-xs sm:text-sm font-semibold text-white mb-1.5 sm:mb-2">
                   Selecione o Motoboy
                 </label>
                 <CustomDropdown
@@ -558,17 +558,17 @@ export default function PainelMotoboys() {
               </div>
             )}
 
-            {/* Calendário */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
+            {/* Calendário - Compacto */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
               {/* Navegação do mês */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-2 sm:mb-4">
                 <button
                   onClick={() => setMesAtual(subMonths(mesAtual, 1))}
                   className="p-1 hover:bg-slate-100 rounded"
                 >
                   <ChevronLeft className="w-4 h-4 text-slate-600" />
                 </button>
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-xs sm:text-sm font-medium text-slate-700 capitalize">
                   {format(mesAtual, 'MMMM yyyy', { locale: ptBR })}
                 </span>
                 <button
@@ -580,16 +580,16 @@ export default function PainelMotoboys() {
               </div>
 
               {/* Dias da semana */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map(dia => (
-                  <div key={dia} className="text-center text-xs font-medium text-slate-500 py-1">
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
+                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((dia, i) => (
+                  <div key={i} className="text-center text-[10px] sm:text-xs font-medium text-slate-500 py-0.5 sm:py-1">
                     {dia}
                   </div>
                 ))}
               </div>
 
               {/* Dias do mês */}
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                 {Array.from({ length: primeiroDiaDoMes }).map((_, i) => (
                   <div key={`empty-${i}`} className="aspect-square" />
                 ))}
@@ -604,7 +604,7 @@ export default function PainelMotoboys() {
                     <button
                       key={dataStr}
                       onClick={() => setDataSelecionada(dia)}
-                      className={`aspect-square flex items-center justify-center text-sm rounded-lg transition-all relative
+                      className={`aspect-square flex items-center justify-center text-xs sm:text-sm rounded-md sm:rounded-lg transition-all relative
                         ${isSelected
                           ? 'text-white font-bold'
                           : isHoje
@@ -637,110 +637,110 @@ export default function PainelMotoboys() {
               </div>
 
               {/* Data selecionada */}
-              <div className="mt-4 pt-4 border-t border-slate-200 text-center">
-                <p className="text-sm font-semibold text-slate-700">
+              <div className="mt-2 sm:mt-4 pt-2 sm:pt-4 border-t border-slate-200 text-center">
+                <p className="text-xs sm:text-sm font-semibold text-slate-700">
                   {format(dataSelecionada, "d 'de' MMMM", { locale: ptBR })}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-[10px] sm:text-xs text-slate-500">
                   {entregasDoDia.length} entrega{entregasDoDia.length !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
 
-            {/* Resumo do Dia */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-700 mb-3">Resumo do Dia - {format(dataSelecionada, "dd/MM/yyyy")}</h3>
+            {/* Resumo do Dia - Compacto */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
+              <h3 className="font-semibold text-slate-700 text-xs sm:text-sm mb-2 sm:mb-3">Resumo - {format(dataSelecionada, "dd/MM")}</h3>
 
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-2 pb-2 border-b border-slate-100">
+              <div className="flex items-center justify-between text-[10px] sm:text-xs text-slate-500 mb-1.5 sm:mb-2 pb-1.5 sm:pb-2 border-b border-slate-100">
                 <span>Local</span>
-                <div className="flex items-center gap-4">
-                  <span className="w-8 text-center">Qtd</span>
-                  <span className="w-20 text-right">Valor</span>
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <span className="w-6 sm:w-8 text-center">Qtd</span>
+                  <span className="w-14 sm:w-20 text-right">Valor</span>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1 sm:space-y-2">
                 {resumoDia.map(item => (
-                  <div key={item.cidade} className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">{item.cidade}</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-slate-500 w-8 text-center">{item.quantidade}x</span>
-                      <span className="font-medium w-20 text-right" style={{ color: theme.colors.primary }}>R$ {item.valor.toFixed(2)}</span>
+                  <div key={item.cidade} className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="text-slate-600 truncate max-w-[100px] sm:max-w-none">{item.cidade}</span>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <span className="text-slate-500 w-6 sm:w-8 text-center">{item.quantidade}x</span>
+                      <span className="font-medium w-14 sm:w-20 text-right text-xs sm:text-sm" style={{ color: theme.colors.primary }}>R$ {item.valor.toFixed(2)}</span>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-slate-200">
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-700">TOTAL ENTREGAS</span>
-                  <span className="font-bold text-lg" style={{ color: theme.colors.primary }}>R$ {totalValorDia.toFixed(2)}</span>
+                  <span className="font-bold text-slate-700 text-xs sm:text-sm">TOTAL</span>
+                  <span className="font-bold text-sm sm:text-lg" style={{ color: theme.colors.primary }}>R$ {totalValorDia.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
-            {/* Semana */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-slate-700">Semana</h3>
-                <span className="text-xs text-slate-500">
+            {/* Semana - Compacto */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <h3 className="font-semibold text-slate-700 text-xs sm:text-sm">Semana</h3>
+                <span className="text-[10px] sm:text-xs text-slate-500">
                   {format(semanaTrabalho[0]?.data || new Date(), 'dd/MM')} - {format(semanaTrabalho[semanaTrabalho.length - 1]?.data || new Date(), 'dd/MM')}
                 </span>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5 sm:space-y-1">
                 {semanaTrabalho.map(dia => (
                   <div
                     key={dia.dataStr}
-                    className="flex items-center justify-between text-xs py-1 px-2 rounded"
+                    onClick={() => setDataSelecionada(dia.data)}
+                    className="flex items-center justify-between text-[10px] sm:text-xs py-1 px-1.5 sm:px-2 rounded cursor-pointer hover:bg-slate-50"
                     style={{
                       backgroundColor: isSameDay(dia.data, dataSelecionada) ? '#e8f0f8' : 'transparent'
                     }}
                   >
-                    <span className="text-slate-600 capitalize w-20">{dia.nome.slice(0, 3)}</span>
-                    <span className="text-slate-500">{format(dia.data, 'dd/MM')}</span>
-                    <span className="text-slate-500">{dia.quantidade}x</span>
-                    <span className={`font-semibold ${dia.valor > 0 ? 'text-green-600' : 'text-slate-400'}`}>
-                      R$ {dia.valor.toFixed(2)}
+                    <span className="text-slate-600 capitalize w-8 sm:w-12">{dia.nome.slice(0, 3)}</span>
+                    <span className="text-slate-500 w-10 sm:w-auto">{format(dia.data, 'dd/MM')}</span>
+                    <span className="text-slate-500 w-5 sm:w-auto">{dia.quantidade}x</span>
+                    <span className={`font-semibold w-14 sm:w-auto text-right ${dia.valor > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                      R$ {dia.valor.toFixed(0)}
                     </span>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
-                <span className="font-bold text-slate-700">TOTAL</span>
-                <span className="font-bold text-green-600">R$ {totalSemana.toFixed(2)}</span>
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200 flex items-center justify-between">
+                <span className="font-bold text-slate-700 text-xs sm:text-sm">TOTAL</span>
+                <span className="font-bold text-green-600 text-sm sm:text-base">R$ {totalSemana.toFixed(2)}</span>
               </div>
 
               {/* Status de Pagamento da Semana */}
-              <div className="mt-3 pt-3 border-t border-slate-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-slate-700">Pagamento da Semana</span>
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200">
+                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-700">Pagamento</span>
                 </div>
 
                 {isAdmin ? (
-                  // Admin: mostra botões para alternar
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 sm:gap-2">
                     <button
                       onClick={() => {
                         setStatusPagamentoSemana('Aguardando');
                         salvarPagamentoSemanaMutation.mutate('Aguardando');
                       }}
-                      className="flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all"
+                      className="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all"
                       style={{
                         backgroundColor: statusPagamentoSemana === 'Aguardando' ? '#f59e0b' : '#fef3c7',
                         color: statusPagamentoSemana === 'Aguardando' ? 'white' : '#92400e',
                         border: statusPagamentoSemana === 'Aguardando' ? '2px solid #f59e0b' : '2px solid #fcd34d'
                       }}
                     >
-                      Aguardando
+                      Aguard.
                     </button>
                     <button
                       onClick={() => {
                         setStatusPagamentoSemana('Pago');
                         salvarPagamentoSemanaMutation.mutate('Pago');
                       }}
-                      className="flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all"
+                      className="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all"
                       style={{
                         backgroundColor: statusPagamentoSemana === 'Pago' ? '#15803d' : '#dcfce7',
                         color: statusPagamentoSemana === 'Pago' ? 'white' : '#166534',
@@ -751,9 +751,8 @@ export default function PainelMotoboys() {
                     </button>
                   </div>
                 ) : (
-                  // Motoboy: mostra apenas o status selecionado
                   <div
-                    className="py-2 px-4 rounded-lg text-sm font-bold text-center"
+                    className="py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-bold text-center"
                     style={{
                       backgroundColor: statusPagamentoSemana === 'Pago' ? '#dcfce7' : '#fef3c7',
                       color: statusPagamentoSemana === 'Pago' ? '#166534' : '#92400e',
@@ -768,25 +767,25 @@ export default function PainelMotoboys() {
           </div>
 
           {/* Coluna Direita - Entregas */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Cards de Filtro por Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+            {/* Cards de Filtro por Status - Compactos para mobile */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
               {/* Card Todas */}
               <div
                 onClick={() => setFiltroStatus('todos')}
-                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                className="bg-white rounded-lg sm:rounded-xl shadow-sm p-2 sm:p-4 cursor-pointer transition-all hover:shadow-md"
                 style={{
                   border: filtroStatus === 'todos' ? `2px solid ${theme.colors.primary}` : '2px solid transparent'
                 }}
               >
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                    <Package className="w-6 h-6" style={{ color: theme.colors.primary }} />
+                <div className="flex flex-col items-center gap-1 sm:gap-2">
+                  <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <Package className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: theme.colors.primary }} />
                   </div>
-                  <span className="text-sm font-bold text-slate-700">Todas</span>
-                </div>
-                <div className="text-4xl font-bold text-center" style={{ color: theme.colors.primary }}>
-                  {entregasDoDia.length}
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-700">Todas</span>
+                  <span className="text-xl sm:text-2xl font-bold" style={{ color: theme.colors.primary }}>
+                    {entregasDoDia.length}
+                  </span>
                 </div>
               </div>
 
@@ -798,45 +797,42 @@ export default function PainelMotoboys() {
                   <div
                     key={status.value}
                     onClick={() => setFiltroStatus(isActive ? 'todos' : status.value)}
-                    className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                    className="bg-white rounded-lg sm:rounded-xl shadow-sm p-2 sm:p-4 cursor-pointer transition-all hover:shadow-md"
                     style={{
                       border: isActive ? `2px solid ${status.color}` : '2px solid transparent'
                     }}
                   >
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <div className="p-2 rounded-lg" style={{ backgroundColor: bgColor }}>
-                        <Icon className="w-6 h-6" style={{ color: status.color }} />
+                    <div className="flex flex-col items-center gap-1 sm:gap-2">
+                      <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: bgColor }}>
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: status.color }} />
                       </div>
-                      <span className="text-sm font-bold text-slate-700">{status.label}</span>
-                    </div>
-                    <div className="text-4xl font-bold text-center" style={{ color: status.color }}>
-                      {status.quantidade}
+                      <span className="text-[10px] sm:text-xs font-bold text-slate-700 truncate w-full text-center">{status.label}</span>
+                      <span className="text-xl sm:text-2xl font-bold" style={{ color: status.color }}>
+                        {status.quantidade}
+                      </span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Filtros */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-700 mb-3">Filtros</h3>
-
+            {/* Filtros - Compacto */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
               {/* Campo de Busca */}
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-slate-500 mb-1">Buscar</label>
+              <div className="mb-3 sm:mb-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Nome, endereço, requisição..."
+                    placeholder="Buscar cliente, endereço..."
                     value={termoBusca}
                     onChange={(e) => setTermoBusca(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-slate-300 rounded-lg pl-8 sm:pl-10 pr-8 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {termoBusca && (
                     <button
                       onClick={() => setTermoBusca('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -844,41 +840,41 @@ export default function PainelMotoboys() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <CustomDropdown
                   label="Local"
                   options={[
-                    { value: 'todos', label: 'Todos os Locais' },
+                    { value: 'todos', label: 'Todos' },
                     ...cidadesDisponiveis.map(cidade => ({ value: cidade, label: cidade }))
                   ]}
                   value={filtroLocal}
                   onChange={setFiltroLocal}
-                  placeholder="Selecione o local"
+                  placeholder="Local"
                 />
                 <CustomDropdown
                   label="Período"
                   options={[
-                    { value: 'todos', label: 'Todos os Períodos' },
+                    { value: 'todos', label: 'Todos' },
                     { value: 'Manhã', label: 'Manhã' },
                     { value: 'Tarde', label: 'Tarde' }
                   ]}
                   value={filtroPeriodo}
                   onChange={setFiltroPeriodo}
-                  placeholder="Selecione o período"
+                  placeholder="Período"
                 />
               </div>
 
               {/* Botão Ver Mapa */}
               <button
                 onClick={() => setMostrarMapa(!mostrarMapa)}
-                className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-sm transition-all"
+                className="mt-3 sm:mt-4 w-full flex items-center justify-center gap-2 py-2 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm transition-all"
                 style={{
                   backgroundColor: mostrarMapa ? '#890d5d' : '#E8F0F8',
                   color: mostrarMapa ? 'white' : '#890d5d'
                 }}
               >
-                <Map className="w-5 h-5" />
-                {mostrarMapa ? 'Ocultar Mapa da Rota' : 'Ver Mapa da Rota'}
+                <Map className="w-4 h-4 sm:w-5 sm:h-5" />
+                {mostrarMapa ? 'Ocultar Mapa' : 'Ver Mapa da Rota'}
               </button>
             </div>
 
@@ -972,11 +968,11 @@ export default function PainelMotoboys() {
               </div>
             )}
 
-            {/* Dica de setas */}
-            <div className="flex items-center gap-2 text-sm text-slate-500 px-2">
-              <ChevronUp className="w-4 h-4" />
-              <ChevronDown className="w-4 h-4" />
-              <span>Use as setas para reorganizar a ordem das entregas</span>
+            {/* Dica de setas - Oculta no mobile */}
+            <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm text-slate-500 px-2">
+              <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4" />
+              <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>Use as setas para reorganizar</span>
             </div>
 
             {/* Lista de Entregas */}
@@ -989,18 +985,18 @@ export default function PainelMotoboys() {
                   const entregasOrdenadas = ordenarEntregas(entregasManha);
 
                   return (
-                    <div className="mb-6">
-                      <div className="mb-4">
-                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                          <Sunrise className="w-8 h-8" style={{ color: '#eab308' }} />
-                          Entregas da Manhã
-                          <span className="text-lg font-semibold px-4 py-1 rounded-full bg-slate-100 text-slate-700">
+                    <div className="mb-4 sm:mb-6">
+                      <div className="mb-2 sm:mb-4">
+                        <h2 className="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                          <Sunrise className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#eab308' }} />
+                          Manhã
+                          <span className="text-sm font-semibold px-2 sm:px-3 py-0.5 rounded-full bg-slate-100 text-slate-700">
                             {entregasManha.length}
                           </span>
                         </h2>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-2 sm:space-y-3">
                         {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
@@ -1028,18 +1024,18 @@ export default function PainelMotoboys() {
                   const entregasOrdenadas = ordenarEntregas(entregasTarde);
 
                   return (
-                    <div className="mb-6">
-                      <div className="mb-4">
-                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                          <Sun className="w-8 h-8" style={{ color: '#f97316' }} />
-                          Entregas da Tarde
-                          <span className="text-lg font-semibold px-4 py-1 rounded-full bg-slate-100 text-slate-700">
+                    <div className="mb-4 sm:mb-6">
+                      <div className="mb-2 sm:mb-4">
+                        <h2 className="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                          <Sun className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#f97316' }} />
+                          Tarde
+                          <span className="text-sm font-semibold px-2 sm:px-3 py-0.5 rounded-full bg-slate-100 text-slate-700">
                             {entregasTarde.length}
                           </span>
                         </h2>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-2 sm:space-y-3">
                         {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
@@ -1067,18 +1063,18 @@ export default function PainelMotoboys() {
                   const entregasOrdenadas = ordenarEntregas(entregasSemPeriodo);
 
                   return (
-                    <div className="mb-6">
-                      <div className="mb-4">
-                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                          <Clock className="w-8 h-8" style={{ color: '#64748b' }} />
-                          Sem Período Definido
-                          <span className="text-lg font-semibold px-4 py-1 rounded-full bg-slate-100 text-slate-700">
+                    <div className="mb-4 sm:mb-6">
+                      <div className="mb-2 sm:mb-4">
+                        <h2 className="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                          <Clock className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#64748b' }} />
+                          Outros
+                          <span className="text-sm font-semibold px-2 sm:px-3 py-0.5 rounded-full bg-slate-100 text-slate-700">
                             {entregasSemPeriodo.length}
                           </span>
                         </h2>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-2 sm:space-y-3">
                         {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
@@ -1149,42 +1145,41 @@ function EntregaCard({
   const temTroco = entrega.precisa_troco && entrega.valor_troco > 0;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden transition-all hover:shadow-md">
-      {/* Card Principal */}
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          {/* Setas de Ordenação */}
-          <div className="flex flex-col items-center gap-1 pt-1">
+    <div className="bg-white rounded-lg sm:rounded-xl border border-slate-200 overflow-hidden transition-all hover:shadow-md">
+      {/* Card Principal - Compacto */}
+      <div className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          {/* Número da ordem - Compacto */}
+          <div className="flex flex-col items-center gap-0.5 pt-0.5">
             <button
               onClick={() => onMoverEntrega(entrega.id, 'up')}
               disabled={index === 1}
-              className={`p-1 rounded transition-colors ${index === 1 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+              className={`p-0.5 rounded ${index === 1 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
             >
-              <ChevronUp className="w-5 h-5" />
+              <ChevronUp className="w-4 h-4" />
             </button>
-            <span className="text-sm font-bold text-slate-500">#{index}</span>
+            <span className="text-xs font-bold text-slate-500">#{index}</span>
             <button
               onClick={() => onMoverEntrega(entrega.id, 'down')}
               disabled={index === totalEntregas}
-              className={`p-1 rounded transition-colors ${index === totalEntregas ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+              className={`p-0.5 rounded ${index === totalEntregas ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
             >
-              <ChevronDown className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4" />
             </button>
           </div>
 
           {/* Conteúdo Principal */}
-          <div className="flex-1">
-            {/* Linha 1: Requisição + Nome do Cliente + Status */}
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+          <div className="flex-1 min-w-0">
+            {/* Linha 1: Nome + Status */}
+            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+              <span className="text-xs font-semibold" style={{ color: '#376295' }}>
                 #{entrega.requisicao || '0000'}
               </span>
-              <span className="text-slate-400">•</span>
-              <span className="text-lg font-bold text-slate-900">
+              <span className="text-sm sm:text-base font-bold text-slate-900 truncate">
                 {entrega.cliente?.nome || 'Cliente'}
               </span>
               <span
-                className="px-3 py-1 rounded text-xs font-medium"
+                className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium whitespace-nowrap"
                 style={{
                   backgroundColor: statusBadge.color + '20',
                   color: statusBadge.color
@@ -1194,131 +1189,108 @@ function EntregaCard({
               </span>
             </div>
 
-            {/* Linha 2: Atendente */}
-            {entrega.atendente && (
-              <div className="text-sm text-slate-500 mb-2 flex items-center gap-1">
-                <User className="w-3.5 h-3.5" />
-                {entrega.atendente}
-              </div>
-            )}
-
-            {/* Linha 3: Endereço */}
-            <div className="mb-3 text-sm text-slate-600">
-              <span>
+            {/* Endereço - Compacto */}
+            <div className="text-xs sm:text-sm text-slate-600 mb-1.5">
+              <span className="line-clamp-2">
                 {entrega.endereco
-                  ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
+                  ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro}`
                   : 'Endereço não informado'}
               </span>
               {entrega.endereco?.complemento && (
-                <span className="text-slate-500"> (A/C: {entrega.endereco.complemento})</span>
-              )}
-              {entrega.endereco?.referencia && (
-                <p className="text-xs mt-1" style={{ color: '#890d5d' }}>Ref: {entrega.endereco.referencia}</p>
+                <span className="text-slate-500 text-xs"> ({entrega.endereco.complemento})</span>
               )}
             </div>
 
-            {/* Linha 4: Informações com ícones */}
-            <div className="flex flex-wrap gap-3 text-sm text-slate-900 mb-2">
-              {entrega.cliente?.telefone && (
-                <a
-                  href={`tel:${entrega.cliente.telefone}`}
-                  className="flex items-center gap-1.5 hover:text-blue-600"
-                >
-                  <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
-                  <span>{entrega.cliente.telefone}</span>
-                </a>
-              )}
-              {entrega.forma_pagamento && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
-                  <span>{entrega.forma_pagamento}</span>
-                </div>
-              )}
-            </div>
+            {/* Telefone - Destaque para ligar */}
+            {entrega.cliente?.telefone && (
+              <a
+                href={`tel:${entrega.cliente.telefone}`}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium mb-2"
+                style={{ backgroundColor: '#E8F0F8', color: '#376295' }}
+              >
+                <Phone className="w-3 h-3" />
+                {entrega.cliente.telefone}
+              </a>
+            )}
 
-            {/* Destaque para Cobrança (Receber Dinheiro / Receber Máquina) */}
+            {/* Badges inline - Compactos */}
+            {(entrega.item_geladeira || entrega.buscar_receita || entrega.reter_receita) && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {entrega.item_geladeira && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                    <Snowflake className="w-3 h-3" />
+                    Gelad.
+                  </span>
+                )}
+                {(entrega.buscar_receita || entrega.reter_receita) && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                    <FileText className="w-3 h-3" />
+                    Receita
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Cobrança - Compacta mas destacada */}
             {temCobranca && valorCobrar > 0 && (
-              <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: '#e8f5e9', border: '2px solid #4caf50' }}>
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign className="w-5 h-5" style={{ color: '#1b5e20' }} />
-                  <span className="font-bold text-sm" style={{ color: '#1b5e20' }}>COBRAR NA ENTREGA:</span>
-                </div>
-                <div className="text-2xl font-bold" style={{ color: '#1b5e20' }}>
-                  R$ {valorCobrar.toFixed(2)}
+              <div className="p-2 rounded-lg mb-2" style={{ backgroundColor: '#e8f5e9', border: '2px solid #4caf50' }}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs" style={{ color: '#1b5e20' }}>COBRAR:</span>
+                  <span className="text-lg font-bold" style={{ color: '#1b5e20' }}>
+                    R$ {valorCobrar.toFixed(2)}
+                  </span>
                 </div>
                 {temTroco && (
-                  <div className="mt-2 flex items-center gap-2 p-2 rounded" style={{ backgroundColor: '#fff3e0', border: '1px solid #ff9800' }}>
-                    <AlertTriangle className="w-4 h-4" style={{ color: '#e65100' }} />
-                    <span className="font-bold text-sm" style={{ color: '#e65100' }}>
-                      LEVAR TROCO: R$ {parseFloat(entrega.valor_troco).toFixed(2)}
-                    </span>
+                  <div className="mt-1 flex items-center gap-1 text-xs font-bold" style={{ color: '#e65100' }}>
+                    <AlertTriangle className="w-3 h-3" />
+                    Troco: R$ {parseFloat(entrega.valor_troco).toFixed(2)}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Observações */}
+            {/* Observações - Compacta */}
             {(entrega.observacao || entrega.observacoes) && (
-              <div className="mt-3 text-sm text-slate-600 italic bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div className="text-[10px] sm:text-xs text-slate-600 italic bg-slate-50 p-1.5 sm:p-2 rounded border border-slate-200 line-clamp-2">
                 <span className="font-semibold not-italic">Obs:</span> {entrega.observacao || entrega.observacoes}
               </div>
             )}
           </div>
 
-          {/* Lado Direito - Badges + Valor + Região */}
-          <div className="flex flex-col items-end gap-3">
-            {/* Badges Geladeira e Reter Receita */}
-            {(entrega.item_geladeira || entrega.buscar_receita || entrega.reter_receita) && (
-              <div className="flex flex-col gap-2">
-                {entrega.item_geladeira && (
-                  <span className="px-3 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e', border: '2px solid #06b6d4' }}>
-                    <Snowflake className="w-5 h-5" />
-                    Geladeira
-                  </span>
-                )}
-                {(entrega.buscar_receita || entrega.reter_receita) && (
-                  <span className="px-3 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '2px solid #f59e0b' }}>
-                    <FileText className="w-5 h-5" />
-                    Reter Receita
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Valor e Região */}
-            <div className="text-right">
-              <div className="text-xl font-bold" style={{ color: '#376295' }}>
-                R$ {(parseFloat(entrega.valor) || 0).toFixed(2)}
-              </div>
-              <div className="text-sm font-medium" style={{ color: '#376295' }}>
-                {entrega.regiao || entrega.endereco?.cidade}
-              </div>
+          {/* Valor - Lado direito */}
+          <div className="text-right flex-shrink-0">
+            <div className="text-sm sm:text-lg font-bold" style={{ color: '#376295' }}>
+              R$ {(parseFloat(entrega.valor) || 0).toFixed(0)}
+            </div>
+            <div className="text-[10px] sm:text-xs font-medium text-slate-500">
+              {entrega.regiao || entrega.endereco?.cidade}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Botões de Ação */}
-      <div className="px-5 py-3 bg-slate-50 border-t border-slate-200">
-        <div className="flex items-center gap-3 mb-3">
+      {/* Botões de Ação - Compactos */}
+      <div className="px-3 sm:px-4 py-2 sm:py-3 bg-slate-50 border-t border-slate-200">
+        {/* Ações principais */}
+        <div className="flex items-center gap-2 mb-2">
           <button
             onClick={() => onAbrirMapa(entrega.endereco)}
-            className="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-white transition-colors"
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-medium text-slate-700 hover:bg-white transition-colors"
           >
-            <Navigation className="w-4 h-4" />
-            Abrir no Mapa
+            <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Abrir no </span>Mapa
           </button>
           <button
             onClick={() => onVerDetalhes(entrega)}
-            className="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-white transition-colors"
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-medium text-slate-700 hover:bg-white transition-colors"
           >
-            <ExternalLink className="w-4 h-4" />
-            Ver Romaneio
+            <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            Detalhes
           </button>
         </div>
 
-        {/* Botões de Status */}
-        <div className="grid grid-cols-5 gap-2">
+        {/* Botões de Status - Compactos */}
+        <div className="grid grid-cols-5 gap-1 sm:gap-2">
           {statusOptions?.map((status) => {
             const Icon = status.icon;
             const isCurrentStatus = statusNormalizado === status.value;
@@ -1327,9 +1299,9 @@ function EntregaCard({
                 key={status.value}
                 onClick={() => !isCurrentStatus && onStatusChange(entrega.id, status.value)}
                 disabled={isUpdating}
-                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all text-xs font-semibold ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-1.5 sm:py-2 px-0.5 rounded-md sm:rounded-lg transition-all text-[9px] sm:text-xs font-semibold ${
                   isCurrentStatus
-                    ? 'ring-4 ring-offset-2 shadow-lg scale-105'
+                    ? 'ring-2 sm:ring-4 ring-offset-1 sm:ring-offset-2 shadow-md scale-105'
                     : 'hover:scale-105 hover:shadow-md'
                 }`}
                 style={{
@@ -1339,8 +1311,8 @@ function EntregaCard({
                   opacity: isUpdating ? 0.5 : isCurrentStatus ? 1 : 0.5,
                 }}
               >
-                <Icon className="w-4 h-4" />
-                <span className="truncate w-full text-center">{status.label}</span>
+                <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="truncate w-full text-center leading-tight">{status.label}</span>
               </button>
             );
           })}
