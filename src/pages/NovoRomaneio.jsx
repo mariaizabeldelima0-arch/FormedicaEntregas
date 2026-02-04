@@ -1220,30 +1220,30 @@ export default function NovoRomaneio() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header Customizado */}
-      <div className="py-8 shadow-sm" style={{
+      <div className="py-4 sm:py-8 shadow-sm" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
-              <ChevronLeft className="w-6 h-6 text-white" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
             <div>
-              <h1 className="text-4xl font-bold text-white">Novo Romaneio</h1>
-              <p className="text-base text-white opacity-90 mt-1">Crie uma nova ordem de entrega</p>
+              <h1 className="text-2xl sm:text-4xl font-bold text-white">Novo Romaneio</h1>
+              <p className="text-sm sm:text-base text-white opacity-90 mt-0.5 sm:mt-1">Crie uma nova ordem de entrega</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <form onSubmit={handleSubmit}>
         {/* Informações do Romaneio */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-4 sm:mb-6">
             Informações do Romaneio
           </h3>
 
@@ -1466,8 +1466,8 @@ export default function NovoRomaneio() {
                           Cadastrar Novo Endereço
                         </h5>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                          <div style={{ gridColumn: '1 / -1' }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                          <div className="sm:col-span-2">
                             <input
                               type="text"
                               placeholder="Rua *"
@@ -1627,8 +1627,8 @@ export default function NovoRomaneio() {
                                 Editando Endereço
                               </h5>
 
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div style={{ gridColumn: '1 / -1' }}>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                <div className="sm:col-span-2">
                                   <input
                                     type="text"
                                     placeholder="Rua *"
@@ -1893,7 +1893,7 @@ export default function NovoRomaneio() {
           </div>
 
           {/* Grid: Região e Data */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
             <CustomDropdown
               label="Cidade/Região *"
               options={REGIOES.map(regiao => ({ value: regiao, label: regiao }))}
@@ -1940,7 +1940,7 @@ export default function NovoRomaneio() {
           )}
 
           {/* Grid: Período e Forma de Pagamento */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
             <CustomDropdown
               label="Período de Entrega *"
               options={[
@@ -2185,7 +2185,7 @@ export default function NovoRomaneio() {
           )}
 
           {/* Grid: Motoboy e Valor */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
             <div>
               <CustomDropdown
                 label="Motoboy *"
@@ -2256,7 +2256,7 @@ export default function NovoRomaneio() {
           </div>
 
           {/* Grid: Item de Geladeira e Buscar Receita */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
             {/* Item de Geladeira */}
             <div>
               <label style={{
@@ -2385,10 +2385,11 @@ export default function NovoRomaneio() {
         </div>
 
         {/* Botões */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 sm:justify-end">
           <button
             type="button"
             onClick={() => navigate('/')}
+            className="w-full sm:w-auto"
             style={{
               padding: '0.75rem 1.5rem',
               background: 'white',
@@ -2405,6 +2406,7 @@ export default function NovoRomaneio() {
           <button
             type="submit"
             disabled={loading}
+            className="w-full sm:w-auto"
             style={{
               padding: '0.75rem 1.5rem',
               background: loading ? theme.colors.textLight : theme.colors.primary,

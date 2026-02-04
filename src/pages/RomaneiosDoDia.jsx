@@ -371,31 +371,33 @@ export default function RomaneiosDoDia() {
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Header */}
-        <div className="no-print py-8 shadow-sm" style={{
+        <div className="no-print py-4 sm:py-8 shadow-sm" style={{
           background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
         }}>
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <button
                   onClick={() => navigate(-1)}
-                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                  className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
                 >
-                  <ChevronLeft className="w-6 h-6 text-white" />
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </button>
                 <div>
-                  <h1 className="text-3xl font-bold text-white">Romaneios do Dia</h1>
-                  <p className="text-white/80 text-sm mt-1">{formatarDataExibicao(selectedDate)}</p>
+                  <h1 className="text-xl sm:text-3xl font-bold text-white">Romaneios do Dia</h1>
+                  <p className="text-white/80 text-xs sm:text-sm mt-0.5 sm:mt-1">{formatarDataExibicao(selectedDate)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 pl-8 sm:pl-0">
                 <button
                   onClick={handlePrintAll}
-                  className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white rounded-lg font-semibold text-xs sm:text-sm hover:bg-gray-100 transition-colors"
                   style={{ color: '#890d5d' }}
                 >
-                  <Printer size={18} />
-                  Imprimir Todos ({romaneiosFiltrados.length})
+                  <Printer size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">Imprimir Todos</span>
+                  <span className="sm:hidden">Imprimir</span>
+                  <span>({romaneiosFiltrados.length})</span>
                 </button>
               </div>
             </div>
@@ -403,9 +405,9 @@ export default function RomaneiosDoDia() {
         </div>
 
         {/* Filtros */}
-        <div className="no-print max-w-7xl mx-auto px-6 py-4">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center gap-4 flex-wrap">
+        <div className="no-print max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               {/* Seletor de Data */}
               <div className="flex items-center gap-2">
                 <CustomDatePicker
@@ -422,38 +424,40 @@ export default function RomaneiosDoDia() {
                   type="text"
                   value={filtros.busca}
                   onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })}
-                  placeholder="Buscar por cliente, requisição, endereço, motoboy..."
+                  placeholder="Buscar cliente, requisição..."
                   className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              {/* Botão Filtros */}
-              <button
-                onClick={() => setShowFiltros(!showFiltros)}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition-colors"
-              >
-                <Filter size={18} />
-                Filtros
-                {(filtros.motoboy || filtros.periodo || filtros.status) && (
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                )}
-              </button>
-
-              {/* Limpar Filtros */}
-              {(filtros.busca || filtros.motoboy || filtros.periodo || filtros.status) && (
+              <div className="flex items-center gap-2">
+                {/* Botão Filtros */}
                 <button
-                  onClick={() => setFiltros({ busca: '', motoboy: '', periodo: '', status: '' })}
-                  className="flex items-center gap-1 px-3 py-2 text-sm text-slate-600 hover:text-slate-900"
+                  onClick={() => setShowFiltros(!showFiltros)}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition-colors"
                 >
-                  <X size={16} />
-                  Limpar
+                  <Filter size={18} />
+                  <span className="hidden sm:inline">Filtros</span>
+                  {(filtros.motoboy || filtros.periodo || filtros.status) && (
+                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  )}
                 </button>
-              )}
+
+                {/* Limpar Filtros */}
+                {(filtros.busca || filtros.motoboy || filtros.periodo || filtros.status) && (
+                  <button
+                    onClick={() => setFiltros({ busca: '', motoboy: '', periodo: '', status: '' })}
+                    className="flex items-center gap-1 px-3 py-2 text-sm text-slate-600 hover:text-slate-900"
+                  >
+                    <X size={16} />
+                    <span className="hidden sm:inline">Limpar</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Filtros Expandidos */}
             {showFiltros && (
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4 pt-4 border-t border-slate-200">
                 <CustomDropdown
                   options={[
                     { value: '', label: 'Todos Motoboys' },
@@ -492,7 +496,7 @@ export default function RomaneiosDoDia() {
         </div>
 
         {/* Conteúdo */}
-        <div className="print-container max-w-7xl mx-auto px-6 pb-8">
+        <div className="print-container max-w-7xl mx-auto px-4 sm:px-6 pb-6 sm:pb-8">
           {loading ? (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
               <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>

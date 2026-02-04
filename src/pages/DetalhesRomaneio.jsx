@@ -400,37 +400,37 @@ export default function DetalhesRomaneio() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-6 sm:pb-8">
         {/* Header Customizado */}
-        <div className="py-8 shadow-sm mb-6" style={{
+        <div className="py-4 sm:py-8 shadow-sm mb-4 sm:mb-6" style={{
           background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
         }}>
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
               >
-                <ChevronLeft className="w-6 h-6 text-white" />
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
               <div>
-                <h1 className="text-4xl font-bold text-white">Detalhes do Romaneio</h1>
-                <p className="text-base text-white opacity-90 mt-1">Visualização completa da entrega</p>
+                <h1 className="text-2xl sm:text-4xl font-bold text-white">Detalhes do Romaneio</h1>
+                <p className="text-sm sm:text-base text-white opacity-90 mt-0.5 sm:mt-1">Visualização completa da entrega</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
           {/* Cabeçalho */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
                   Romaneio #{numeroRequisicao}
                 </h1>
-                <p className="text-sm text-slate-600 mt-1">
+                <p className="text-xs sm:text-sm text-slate-600 mt-1">
                   Criado em {romaneio.data_criacao ? new Date(romaneio.data_criacao).toLocaleDateString('pt-BR') : '-'} às {romaneio.data_criacao ? new Date(romaneio.data_criacao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-'}
                 </p>
               </div>
@@ -439,32 +439,32 @@ export default function DetalhesRomaneio() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => navigate(`/editar-romaneio?id=${romaneioId}`)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all"
                     style={{ backgroundColor: '#376295', color: 'white' }}
                     title="Editar"
                   >
-                    <Edit size={16} />
-                    Editar
+                    <Edit size={14} className="sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Editar</span>
                   </button>
 
                   <button
                     onClick={() => window.print()}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all"
                     style={{ backgroundColor: '#890d5d', color: 'white' }}
                     title="Imprimir"
                   >
-                    <Printer size={16} />
-                    Imprimir
+                    <Printer size={14} className="sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Imprimir</span>
                   </button>
 
                   <button
                     onClick={handleDelete}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all"
                     style={{ backgroundColor: '#ef4444', color: 'white' }}
                     title="Excluir"
                   >
-                    <Trash2 size={16} />
-                    Excluir
+                    <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Excluir</span>
                   </button>
                 </div>
               )}
@@ -472,19 +472,19 @@ export default function DetalhesRomaneio() {
           </div>
 
           {/* Conteúdo Principal */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-4 sm:gap-6">
 
             {/* Coluna Esquerda */}
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4 sm:gap-6">
 
               {/* Informações do Romaneio */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <div className="flex items-center gap-2 mb-4" style={{ color: '#376295' }}>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4" style={{ color: '#376295' }}>
                   <FileText size={18} />
-                  <h2 className="text-lg font-bold">Informações do Romaneio</h2>
+                  <h2 className="text-base sm:text-lg font-bold">Informações do Romaneio</h2>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                   <div>
                     <div className="text-xs text-slate-500 mb-2">
                       Número da Requisição
@@ -529,17 +529,17 @@ export default function DetalhesRomaneio() {
               </div>
 
               {/* Cliente */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <div className="flex items-center gap-2 mb-4" style={{ color: '#376295' }}>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4" style={{ color: '#376295' }}>
                   <User size={18} />
-                  <h2 className="text-lg font-bold">Cliente</h2>
+                  <h2 className="text-base sm:text-lg font-bold">Cliente</h2>
                 </div>
 
                 <div>
-                  <div className="text-lg font-bold text-slate-900 mb-2">
+                  <div className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                     {nomesClientes}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
                     <Phone size={14} />
                     {telefonesClientes}
                   </div>
@@ -547,13 +547,13 @@ export default function DetalhesRomaneio() {
               </div>
 
               {/* Endereço de Entrega */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <div className="flex items-center gap-2 mb-4" style={{ color: '#376295' }}>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4" style={{ color: '#376295' }}>
                   <MapPin size={18} />
-                  <h2 className="text-lg font-bold">Endereço de Entrega</h2>
+                  <h2 className="text-base sm:text-lg font-bold">Endereço de Entrega</h2>
                 </div>
 
-                <div className="text-sm text-slate-600">
+                <div className="text-xs sm:text-sm text-slate-600">
                   <div className="font-bold text-slate-900 mb-1">
                     {romaneio.endereco?.logradouro}, {romaneio.endereco?.numero}
                   </div>
@@ -561,7 +561,7 @@ export default function DetalhesRomaneio() {
                     {romaneio.endereco?.bairro} - {romaneio.endereco?.cidade}
                   </div>
                   {romaneio.endereco?.complemento && (
-                    <div className="text-sm text-slate-600">
+                    <div className="text-xs sm:text-sm text-slate-600">
                       Complemento: {romaneio.endereco.complemento}
                     </div>
                   )}
@@ -569,18 +569,18 @@ export default function DetalhesRomaneio() {
               </div>
 
               {/* Observações */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <div className="flex items-center gap-2 mb-4" style={{ color: '#376295' }}>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4" style={{ color: '#376295' }}>
                   <FileText size={18} />
-                  <h2 className="text-lg font-bold">Observações</h2>
+                  <h2 className="text-base sm:text-lg font-bold">Observações</h2>
                 </div>
-                <div className="text-sm text-slate-600">
+                <div className="text-xs sm:text-sm text-slate-600">
                   {romaneio.observacoes || 'Nenhuma observação'}
                 </div>
               </div>
 
               {/* Imagens Anexadas */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2" style={{ color: '#376295' }}>
                     <ImageIcon size={18} />
