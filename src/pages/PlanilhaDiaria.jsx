@@ -167,13 +167,43 @@ export default function PlanilhaDiaria() {
   console.log('Visualizar todas:', visualizarTodas);
   console.log('Filtro motoboy:', filtroMotoboy);
 
-  // Ordenar por cidade e período
+  // Ordenar por motoboy, período, cidade e status
+  const statusOrder = {
+    'Produzindo no Laboratório': 1,
+    'Em Rota': 2,
+    'A Caminho': 2,
+    'Voltou p/ Farmácia': 3,
+    'Entregue': 4,
+    'Cancelado': 5,
+  };
+
+  const periodoOrder = {
+    'Manhã': 1,
+    'Tarde': 2,
+  };
+
   const romaneiosOrdenados = [...romaneiosFiltrados].sort((a, b) => {
+    // 1. Ordenar por motoboy
+    const motoboyA = a.motoboy?.nome || 'zzz';
+    const motoboyB = b.motoboy?.nome || 'zzz';
+    const motoboyCompare = motoboyA.localeCompare(motoboyB);
+    if (motoboyCompare !== 0) return motoboyCompare;
+
+    // 2. Ordenar por período
+    const periodoA = periodoOrder[a.periodo] || 99;
+    const periodoB = periodoOrder[b.periodo] || 99;
+    if (periodoA !== periodoB) return periodoA - periodoB;
+
+    // 3. Ordenar por cidade
     const cidadeA = a.endereco?.cidade || '';
     const cidadeB = b.endereco?.cidade || '';
     const cidadeCompare = cidadeA.localeCompare(cidadeB);
     if (cidadeCompare !== 0) return cidadeCompare;
-    return a.periodo === "Manhã" ? -1 : 1;
+
+    // 4. Ordenar por status
+    const statusA = statusOrder[a.status] || 99;
+    const statusB = statusOrder[b.status] || 99;
+    return statusA - statusB;
   });
 
   // Motoboys únicos
