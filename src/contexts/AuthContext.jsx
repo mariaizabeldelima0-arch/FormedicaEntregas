@@ -110,17 +110,15 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Erro ao verificar dispositivo' };
       }
 
-      // 3. Se não existe registro para este dispositivo, criar
+      // 3. Se não existe registro para este dispositivo, criar como Pendente
       if (!dispositivo) {
-        const isAdmin = usuarioData.tipo_usuario === 'admin';
-
         const { error: erroCriar } = await supabase
           .from('dispositivos')
           .insert({
             usuario_id: usuarioData.id,
             nome: nomeDispositivo,
             impressao_digital: fingerprint,
-            status: isAdmin ? 'Autorizado' : 'Pendente',
+            status: 'Pendente',
             ultimo_acesso: new Date().toISOString()
           });
 
@@ -129,13 +127,10 @@ export const AuthProvider = ({ children }) => {
           return { success: false, error: 'Erro ao registrar dispositivo' };
         }
 
-        if (!isAdmin) {
-          return {
-            success: false,
-            error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.'
-          };
-        }
-        // Admin auto-autorizado, continua para login
+        return {
+          success: false,
+          error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.'
+        };
       } else {
         // 4. Dispositivo existe, verificar status
         if (dispositivo.status === 'Pendente') {
