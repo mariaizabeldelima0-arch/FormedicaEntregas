@@ -783,7 +783,7 @@ export default function PainelMotoboys() {
                 disabled={entregasFiltradas.length === 0}
                 className="mt-3 sm:mt-4 w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: '#4285F4',
+                  backgroundColor: '#890d5d',
                   color: 'white'
                 }}
               >
