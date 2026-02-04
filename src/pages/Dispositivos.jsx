@@ -188,86 +188,86 @@ export default function Dispositivos() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        {/* Cards de Estatísticas - Responsivo */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 mb-6">
           {/* Card Gerenciar Usuários */}
           <div
             onClick={() => navigate(createPageUrl("Usuarios"))}
-            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md hover:scale-105"
+            className="rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md hover:scale-105"
             style={{ backgroundColor: '#890d5d' }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-white/20">
-                <Users className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg bg-white/20">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <span className="text-sm font-bold text-white">Usuários</span>
+              <span className="text-xs sm:text-sm font-bold text-white">Usuários</span>
             </div>
             <div className="text-center">
-              <span className="text-white font-semibold text-sm">Gerenciar</span>
+              <span className="text-white font-semibold text-xs sm:text-sm">Gerenciar</span>
             </div>
           </div>
           <div
             onClick={() => setFiltroStatus('todos')}
-            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
             style={{
               border: filtroStatus === 'todos' ? '2px solid #376295' : '2px solid transparent'
             }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                <Monitor className="w-6 h-6" style={{ color: '#376295' }} />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                <Monitor className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#376295' }} />
               </div>
-              <span className="text-sm font-bold text-slate-700">Total</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700">Total</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>{stats.total}</div>
+            <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#376295' }}>{stats.total}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('autorizados')}
-            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
             style={{
               border: filtroStatus === 'autorizados' ? '2px solid #3dac38' : '2px solid transparent'
             }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                <CheckCircle className="w-6 h-6" style={{ color: '#3dac38' }} />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#3dac38' }} />
               </div>
-              <span className="text-sm font-bold text-slate-700">Autorizados</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700">Autorizados</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>{stats.autorizados}</div>
+            <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#3dac38' }}>{stats.autorizados}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('pendentes')}
-            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
             style={{
               border: filtroStatus === 'pendentes' ? '2px solid #f97316' : '2px solid transparent'
             }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                <Clock className="w-6 h-6" style={{ color: '#f97316' }} />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#f97316' }} />
               </div>
-              <span className="text-sm font-bold text-slate-700">Pendentes</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700">Pendentes</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>{stats.pendentes}</div>
+            <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#f97316' }}>{stats.pendentes}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('bloqueados')}
-            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md col-span-2 sm:col-span-1"
             style={{
               border: filtroStatus === 'bloqueados' ? '2px solid #ef4444' : '2px solid transparent'
             }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#fef2f2' }}>
-                <XCircle className="w-6 h-6" style={{ color: '#ef4444' }} />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg" style={{ backgroundColor: '#fef2f2' }}>
+                <XCircle className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#ef4444' }} />
               </div>
-              <span className="text-sm font-bold text-slate-700">Bloqueados</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700">Bloqueados</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#ef4444' }}>{stats.bloqueados}</div>
+            <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#ef4444' }}>{stats.bloqueados}</div>
           </div>
         </div>
 
@@ -424,26 +424,27 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRe
   const usuario = dispositivo.usuarios;
 
   return (
-    <div className="p-6 hover:bg-slate-50 transition-colors">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4 flex-1">
-          <div className="mt-1">{getDeviceIcon(dispositivo.nome)}</div>
+    <div className="p-4 sm:p-6 hover:bg-slate-50 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+          <div className="mt-1 flex-shrink-0">{getDeviceIcon(dispositivo.nome)}</div>
 
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
+          <div className="flex-1 min-w-0">
+            {/* Nome e Status */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
               {editando ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <input
                     type="text"
                     value={novoNome}
                     onChange={(e) => setNovoNome(e.target.value)}
                     onKeyDown={handleKeyDown}
                     autoFocus
-                    className="font-bold text-slate-900 border border-slate-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#376295] focus:border-[#376295]"
+                    className="font-bold text-slate-900 border border-slate-300 rounded-lg px-2 sm:px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#376295] focus:border-[#376295] flex-1 min-w-0"
                   />
                   <button
                     onClick={handleSalvarNome}
-                    className="p-1.5 text-white rounded-lg hover:opacity-90 transition-opacity"
+                    className="p-1.5 text-white rounded-lg hover:opacity-90 transition-opacity flex-shrink-0"
                     style={{ backgroundColor: '#3dac38' }}
                     title="Salvar"
                   >
@@ -451,7 +452,7 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRe
                   </button>
                   <button
                     onClick={handleCancelar}
-                    className="p-1.5 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors"
+                    className="p-1.5 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors flex-shrink-0"
                     title="Cancelar"
                   >
                     <X className="w-4 h-4" />
@@ -459,10 +460,10 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRe
                 </div>
               ) : (
                 <>
-                  <h3 className="font-bold text-slate-900">{dispositivo.nome || 'Dispositivo Desconhecido'}</h3>
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base break-words">{dispositivo.nome || 'Dispositivo Desconhecido'}</h3>
                   <button
                     onClick={() => setEditando(true)}
-                    className="p-1 text-slate-400 hover:text-[#376295] hover:bg-slate-100 rounded transition-colors"
+                    className="p-1 text-slate-400 hover:text-[#376295] hover:bg-slate-100 rounded transition-colors flex-shrink-0"
                     title="Renomear dispositivo"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -472,20 +473,20 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRe
               {getStatusBadge(dispositivo.status)}
             </div>
 
-            <div className="space-y-1 text-sm">
+            {/* Informações do dispositivo */}
+            <div className="space-y-1 text-xs sm:text-sm">
               {usuario && (
-                <div className="text-slate-600 flex items-center gap-2">
-                  <User className="w-3.5 h-3.5" />
-                  <span className="font-medium">Usuário:</span>{' '}
+                <div className="text-slate-600 flex flex-wrap items-center gap-1 sm:gap-2">
+                  <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                  <span className="font-medium">Usuário:</span>
                   <span className="text-slate-900">{usuario.usuario}</span>
-                  {' '}
                   {getTipoBadge(usuario.tipo_usuario)}
                 </div>
               )}
               <div className="text-slate-600">
-                <span className="font-medium">Impressão digital:</span>{' '}
-                <span className="font-mono text-xs text-slate-700">
-                  {dispositivo.impressao_digital || '-'}
+                <span className="font-medium">ID:</span>{' '}
+                <span className="font-mono text-xs text-slate-700 break-all">
+                  {dispositivo.impressao_digital?.slice(0, 20) || '-'}...
                 </span>
               </div>
               <div className="text-slate-600">
@@ -496,27 +497,27 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRe
           </div>
         </div>
 
-        {/* Botões de Ação */}
-        <div className="flex items-center gap-2 ml-4">
+        {/* Botões de Ação - Responsivo */}
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 sm:ml-4">
           {dispositivo.status === 'Pendente' && (
             <>
               <button
                 onClick={() => onAutorizar(dispositivo.id)}
                 disabled={isUpdating}
-                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="flex items-center gap-1.5 sm:gap-2 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: '#3dac38' }}
               >
-                <CheckCircle className="w-4 h-4" />
-                Autorizar
+                <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Autorizar</span>
               </button>
               <button
                 onClick={() => onBloquear(dispositivo.id)}
                 disabled={isUpdating}
-                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="flex items-center gap-1.5 sm:gap-2 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: '#ef4444' }}
               >
-                <XCircle className="w-4 h-4" />
-                Bloquear
+                <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Bloquear</span>
               </button>
             </>
           )}
@@ -525,11 +526,11 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRe
             <button
               onClick={() => onBloquear(dispositivo.id)}
               disabled={isUpdating}
-              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: '#ef4444' }}
             >
-              <XCircle className="w-4 h-4" />
-              Bloquear
+              <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Bloquear</span>
             </button>
           )}
 
@@ -537,20 +538,20 @@ function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRe
             <button
               onClick={() => onAutorizar(dispositivo.id)}
               disabled={isUpdating}
-              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: '#3dac38' }}
             >
-              <CheckCircle className="w-4 h-4" />
-              Autorizar
+              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Autorizar</span>
             </button>
           )}
 
           <button
             onClick={() => onDeletar(dispositivo.id)}
             disabled={isUpdating}
-            className="p-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+            className="p-1.5 sm:p-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>
