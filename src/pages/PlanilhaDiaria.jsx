@@ -705,7 +705,8 @@ export default function PlanilhaDiaria() {
                   <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
                     <span className="text-xs md:text-sm text-slate-600 font-medium">Status:</span>
                     {[
-                      { status: 'Em Rota', label: 'Rota', bg: '#dbeafe', color: '#1e40af' },
+                      { status: 'Produzindo no Laboratório', label: 'Iniciar', bg: '#dbeafe', color: '#2563eb' },
+                      { status: 'Em Rota', label: 'Rota', bg: '#dcfce7', color: '#166534' },
                       { status: 'Entregue', bg: '#F5E8F5', color: '#890d5d' },
                       { status: 'Voltou p/ Farmácia', label: 'Voltou', bg: '#fef9c3', color: '#92400e' },
                       { status: 'Cancelado', label: 'Canc.', bg: '#fee2e2', color: '#dc2626' },
