@@ -1,82 +1,40 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, endOfWeek, addDays, subDays } from 'date-fns';
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { CustomDropdown } from '@/components/CustomDropdown';
 import {
   Package,
-  CheckCircle,
   Clock,
-  MapPin,
   Phone,
   DollarSign,
-  TrendingUp,
   User,
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
   ChevronDown,
-  Printer,
   Navigation,
-  Wallet,
-  AlertCircle,
   AlertTriangle,
   Check,
   X,
   Sun,
   Sunrise,
-  Sunset,
   Search,
   Play,
   Truck,
   RotateCcw,
   Pause,
-  Map,
   Snowflake,
   FileText,
   Banknote,
   ExternalLink
 } from 'lucide-react';
 
-// Função para criar ícone personalizado do marcador
-const createCustomIcon = (numero, cor) => {
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `
-      <div style="
-        background-color: ${cor};
-        color: white;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 12px;
-        border: 2px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      ">
-        ${numero}
-      </div>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14]
-  });
-};
-
-// Cache de geocoding para evitar requisições repetidas
-const geocodeCache = {};
 
 export default function PainelMotoboys() {
   const navigate = useNavigate();
@@ -90,9 +48,6 @@ export default function PainelMotoboys() {
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [termoBusca, setTermoBusca] = useState('');
   const [ordemEntregas, setOrdemEntregas] = useState({});
-  const [mostrarMapa, setMostrarMapa] = useState(false);
-  const [coordenadas, setCoordenadas] = useState({});
-  const [carregandoMapa, setCarregandoMapa] = useState(false);
   const [statusPagamentoSemana, setStatusPagamentoSemana] = useState('Aguardando');
 
   // Definição dos status disponíveis (Em Rota é o padrão)
@@ -372,89 +327,47 @@ export default function PainelMotoboys() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
   };
 
+  // Função para abrir rota completa no Google Maps
+  const abrirRotaGoogleMaps = () => {
+    const entregasOrdenadas = ordenarEntregas(entregasFiltradas);
+
+    if (entregasOrdenadas.length === 0) {
+      toast.error('Nenhuma entrega para criar rota');
+      return;
+    }
+
+    // Google Maps suporta até 10 waypoints na URL
+    const entregas = entregasOrdenadas.slice(0, 10);
+
+    // Criar waypoints (endereços)
+    const waypoints = entregas.map(e => {
+      if (!e.endereco) return '';
+      return `${e.endereco.logradouro}, ${e.endereco.numero}, ${e.endereco.bairro}, ${e.endereco.cidade}`;
+    }).filter(Boolean);
+
+    if (waypoints.length === 0) {
+      toast.error('Nenhum endereço válido encontrado');
+      return;
+    }
+
+    // Construir URL do Google Maps
+    // Formato: /dir/origem/destino1/destino2/.../destinoFinal
+    const baseUrl = 'https://www.google.com/maps/dir/';
+    const waypointsEncoded = waypoints.map(w => encodeURIComponent(w)).join('/');
+    const url = baseUrl + waypointsEncoded;
+
+    window.open(url, '_blank');
+
+    if (entregasOrdenadas.length > 10) {
+      toast.info(`Rota criada com as primeiras 10 entregas. Total: ${entregasOrdenadas.length}`);
+    }
+  };
+
   const abrirRomaneio = (entrega) => {
     navigate(`/detalhes-romaneio?id=${entrega.id}`);
   };
 
   const motoboyAtual = motoboys.find(m => m.id === motoboyId);
-
-  // Função para geocodificar um endereço
-  const geocodificarEndereco = async (endereco) => {
-    const query = `${endereco.logradouro}, ${endereco.numero}, ${endereco.bairro}, ${endereco.cidade}, Brasil`;
-
-    if (geocodeCache[query]) {
-      return geocodeCache[query];
-    }
-
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
-      );
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        const coords = {
-          lat: parseFloat(data[0].lat),
-          lng: parseFloat(data[0].lon)
-        };
-        geocodeCache[query] = coords;
-        return coords;
-      }
-    } catch (error) {
-      console.error('Erro ao geocodificar:', error);
-    }
-    return null;
-  };
-
-  // Carregar coordenadas quando mostrar o mapa
-  useEffect(() => {
-    const carregarCoordenadas = async () => {
-      if (!mostrarMapa || entregasFiltradas.length === 0) return;
-
-      setCarregandoMapa(true);
-      const novasCoordenadas = { ...coordenadas };
-
-      for (const entrega of entregasFiltradas) {
-        if (!entrega.endereco || novasCoordenadas[entrega.id]) continue;
-
-        const coords = await geocodificarEndereco(entrega.endereco);
-        if (coords) {
-          novasCoordenadas[entrega.id] = coords;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-
-      setCoordenadas(novasCoordenadas);
-      setCarregandoMapa(false);
-    };
-
-    carregarCoordenadas();
-  }, [mostrarMapa, entregasFiltradas.length]);
-
-  // Calcular centro do mapa baseado nas coordenadas
-  const centroMapa = useMemo(() => {
-    const coords = Object.values(coordenadas);
-    if (coords.length === 0) {
-      return [-23.5505, -46.6333];
-    }
-
-    const latMedia = coords.reduce((sum, c) => sum + c.lat, 0) / coords.length;
-    const lngMedia = coords.reduce((sum, c) => sum + c.lng, 0) / coords.length;
-    return [latMedia, lngMedia];
-  }, [coordenadas]);
-
-  // Entregas ordenadas para o mapa
-  const entregasOrdenadas = useMemo(() => {
-    return ordenarEntregas(entregasFiltradas);
-  }, [entregasFiltradas, ordemEntregas]);
-
-  // Coordenadas para a polyline (rota)
-  const rotaCoordenadas = useMemo(() => {
-    return entregasOrdenadas
-      .filter(e => coordenadas[e.id])
-      .map(e => [coordenadas[e.id].lat, coordenadas[e.id].lng]);
-  }, [entregasOrdenadas, coordenadas]);
 
   // Primeiro dia do mês (para posicionar corretamente no calendário)
   const primeiroDiaDoMes = getDay(startOfMonth(mesAtual));
@@ -864,109 +777,20 @@ export default function PainelMotoboys() {
                 />
               </div>
 
-              {/* Botão Ver Mapa */}
+              {/* Botão Abrir Rota no Google Maps */}
               <button
-                onClick={() => setMostrarMapa(!mostrarMapa)}
-                className="mt-3 sm:mt-4 w-full flex items-center justify-center gap-2 py-2 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm transition-all"
+                onClick={abrirRotaGoogleMaps}
+                disabled={entregasFiltradas.length === 0}
+                className="mt-3 sm:mt-4 w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: mostrarMapa ? '#890d5d' : '#E8F0F8',
-                  color: mostrarMapa ? 'white' : '#890d5d'
+                  backgroundColor: '#4285F4',
+                  color: 'white'
                 }}
               >
-                <Map className="w-4 h-4 sm:w-5 sm:h-5" />
-                {mostrarMapa ? 'Ocultar Mapa' : 'Ver Mapa da Rota'}
+                <Navigation className="w-4 h-4 sm:w-5 sm:h-5" />
+                Abrir Rota no Maps ({entregasFiltradas.length})
               </button>
             </div>
-
-            {/* Mapa da Rota */}
-            {mostrarMapa && (
-              <div className="bg-white rounded-xl border border-slate-200 p-4">
-                <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                  <Map className="w-5 h-5" style={{ color: '#890d5d' }} />
-                  Mapa da Rota - {entregasFiltradas.length} entregas
-                </h3>
-
-                {carregandoMapa && (
-                  <div className="flex items-center justify-center py-4 text-slate-500 text-sm">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-700 mr-2"></div>
-                    Carregando localizações...
-                  </div>
-                )}
-
-                <div className="rounded-lg overflow-hidden border border-slate-200" style={{ height: '400px' }}>
-                  <MapContainer
-                    center={centroMapa}
-                    zoom={12}
-                    style={{ height: '100%', width: '100%' }}
-                    key={centroMapa.join(',')}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-
-                    {rotaCoordenadas.length > 1 && (
-                      <Polyline
-                        positions={rotaCoordenadas}
-                        color="#890d5d"
-                        weight={3}
-                        opacity={0.7}
-                        dashArray="10, 10"
-                      />
-                    )}
-
-                    {entregasOrdenadas.map((entrega, index) => {
-                      const coords = coordenadas[entrega.id];
-                      if (!coords) return null;
-
-                      const statusInfo = statusOptions.find(s => s.value === normalizarStatus(entrega.status));
-                      const cor = statusInfo?.color || '#890d5d';
-
-                      return (
-                        <Marker
-                          key={entrega.id}
-                          position={[coords.lat, coords.lng]}
-                          icon={createCustomIcon(index + 1, cor)}
-                        >
-                          <Popup>
-                            <div className="text-sm">
-                              <div className="font-bold text-slate-800 mb-1">
-                                #{index + 1} - {entrega.cliente?.nome || 'Cliente'}
-                              </div>
-                              <div className="text-slate-600 text-xs mb-1">
-                                REQ #{entrega.requisicao || '0000'}
-                              </div>
-                              <div className="text-slate-500 text-xs">
-                                {entrega.endereco?.logradouro}, {entrega.endereco?.numero}
-                              </div>
-                              <div className="text-slate-500 text-xs">
-                                {entrega.endereco?.bairro} - {entrega.endereco?.cidade}
-                              </div>
-                              <div className="mt-2 text-xs font-medium" style={{ color: cor }}>
-                                {statusInfo?.label || 'Em Rota'}
-                              </div>
-                            </div>
-                          </Popup>
-                        </Marker>
-                      );
-                    })}
-                  </MapContainer>
-                </div>
-
-                {/* Legenda */}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {statusOptions.map(status => (
-                    <div key={status.value} className="flex items-center gap-1 text-xs">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: status.color }}
-                      />
-                      <span className="text-slate-600">{status.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Dica de setas - Oculta no mobile */}
             <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm text-slate-500 px-2">
