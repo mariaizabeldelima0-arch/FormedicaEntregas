@@ -135,9 +135,29 @@ export default function PainelMotoboys() {
     return isSameDay(entregaDate, dataSelecionada);
   });
 
+  // Função para normalizar nome da cidade (remover acentos, lowercase)
+  const normalizarCidade = (cidade) => {
+    if (!cidade) return '';
+    return cidade
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  };
+
+  // Função para capitalizar nome da cidade corretamente
+  const capitalizarCidade = (cidade) => {
+    if (!cidade) return '';
+    return cidade
+      .toLowerCase()
+      .split(' ')
+      .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+      .join(' ');
+  };
+
   // Aplicar filtros
   const entregasFiltradas = entregasDoDia.filter(entrega => {
-    if (filtroLocal !== 'todos' && entrega.endereco?.cidade !== filtroLocal) return false;
+    if (filtroLocal !== 'todos' && normalizarCidade(entrega.endereco?.cidade) !== filtroLocal) return false;
     if (filtroPeriodo !== 'todos' && entrega.periodo !== filtroPeriodo) return false;
     if (filtroStatus !== 'todos') {
       const statusEntrega = normalizarStatus(entrega.status);
@@ -175,8 +195,18 @@ export default function PainelMotoboys() {
     return true;
   });
 
-  // Lista de cidades disponíveis
-  const cidadesDisponiveis = [...new Set(entregasDoDia.map(e => e.endereco?.cidade).filter(Boolean))];
+  // Lista de cidades disponíveis (normalizadas para evitar duplicatas)
+  const cidadesMap = new Map();
+  entregasDoDia.forEach(e => {
+    const cidadeOriginal = e.endereco?.cidade;
+    if (cidadeOriginal) {
+      const cidadeNormalizada = normalizarCidade(cidadeOriginal);
+      if (!cidadesMap.has(cidadeNormalizada)) {
+        cidadesMap.set(cidadeNormalizada, capitalizarCidade(cidadeOriginal));
+      }
+    }
+  });
+  const cidadesDisponiveis = [...cidadesMap.keys()];
 
   // Contagem de entregas por status
   const contagemPorStatus = statusOptions.map(status => ({
@@ -184,11 +214,11 @@ export default function PainelMotoboys() {
     quantidade: entregasDoDia.filter(e => normalizarStatus(e.status) === status.value).length
   }));
 
-  // Resumo do dia por cidade
-  const resumoDia = cidadesDisponiveis.map(cidade => {
-    const entregasCidade = entregasDoDia.filter(e => e.endereco?.cidade === cidade);
+  // Resumo do dia por cidade (agrupado por cidade normalizada)
+  const resumoDia = cidadesDisponiveis.map(cidadeNormalizada => {
+    const entregasCidade = entregasDoDia.filter(e => normalizarCidade(e.endereco?.cidade) === cidadeNormalizada);
     return {
-      cidade,
+      cidade: cidadesMap.get(cidadeNormalizada),
       quantidade: entregasCidade.length,
       valor: entregasCidade.reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
       taxa: entregasCidade.reduce((sum, e) => sum + (parseFloat(e.taxa) || 0), 0)
@@ -758,7 +788,7 @@ export default function PainelMotoboys() {
                   label="Local"
                   options={[
                     { value: 'todos', label: 'Todos' },
-                    ...cidadesDisponiveis.map(cidade => ({ value: cidade, label: cidade }))
+                    ...cidadesDisponiveis.map(cidadeNorm => ({ value: cidadeNorm, label: cidadesMap.get(cidadeNorm) }))
                   ]}
                   value={filtroLocal}
                   onChange={setFiltroLocal}
