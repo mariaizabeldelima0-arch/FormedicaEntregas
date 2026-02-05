@@ -83,7 +83,7 @@ function RomaneioCard({ romaneio }) {
         </div>
 
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE</div>
+          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
           <div style={{ fontSize: '9px', marginBottom: '3px' }}>
             <span>Nome: </span>
             <span>{romaneio.cliente?.nome || '-'}</span>
@@ -92,6 +92,18 @@ function RomaneioCard({ romaneio }) {
             <span>Telefone: </span>
             <span>{romaneio.cliente?.telefone || '-'}</span>
           </div>
+          {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
+            <div key={idx} style={{ marginTop: '5px', paddingTop: '5px', borderTop: '1px dashed #ccc' }}>
+              <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+                <span>Nome: </span>
+                <span>{cliente.nome}</span>
+              </div>
+              <div style={{ fontSize: '9px' }}>
+                <span>Telefone: </span>
+                <span>{cliente.telefone || '-'}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -268,10 +280,21 @@ export default function RomaneiosDoDia() {
             }
           }
 
+          // Buscar clientes adicionais
+          let clientesAdicionais = [];
+          if (entrega.clientes_adicionais && entrega.clientes_adicionais.length > 0) {
+            const { data: clientesData } = await supabase
+              .from('clientes')
+              .select('id, nome, telefone')
+              .in('id', entrega.clientes_adicionais);
+            clientesAdicionais = clientesData || [];
+          }
+
           return {
             ...entrega,
             endereco: enderecoDisplay,
-            atendente_nome: atendenteNome
+            atendente_nome: atendenteNome,
+            clientesAdicionais
           };
         })
       );

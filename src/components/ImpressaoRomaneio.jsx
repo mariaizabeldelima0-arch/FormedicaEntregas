@@ -329,7 +329,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           </div>
 
           <div className="print-grid-col">
-            <div className="print-section-title">CLIENTE</div>
+            <div className="print-section-title">CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
             <div className="print-section-row">
               <span className="print-section-label">Nome:</span>
               <span className="print-section-value">{romaneio.cliente?.nome || '-'}</span>
@@ -338,6 +338,18 @@ export default function ImpressaoRomaneio({ romaneio }) {
               <span className="print-section-label">Telefone:</span>
               <span className="print-section-value">{romaneio.cliente?.telefone || '-'}</span>
             </div>
+            {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
+              <div key={idx} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #ccc' }}>
+                <div className="print-section-row">
+                  <span className="print-section-label">Nome:</span>
+                  <span className="print-section-value">{cliente.nome}</span>
+                </div>
+                <div className="print-section-row">
+                  <span className="print-section-label">Telefone:</span>
+                  <span className="print-section-value">{cliente.telefone || '-'}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -363,7 +375,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
             )}
             {romaneio.cliente?.nome && (
               <div className="print-endereco-ac">
-                A/C: {romaneio.cliente.nome}
+                A/C: {romaneio.cliente.nome}{romaneio.clientesAdicionais?.length > 0 && `, ${romaneio.clientesAdicionais.map(c => c.nome).join(', ')}`}
               </div>
             )}
           </div>
