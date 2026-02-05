@@ -291,11 +291,10 @@ export default function ImpressaoRomaneio({ romaneio }) {
       `}</style>
 
       <div className="print-page">
-        {/* Carimbo PAGO - aparece quando pagamento recebido ou forma de pagamento começa com Pago ou é Só Entregar */}
-        {(romaneio.pagamento_recebido || (romaneio.forma_pagamento && (
-          romaneio.forma_pagamento.startsWith('Pago') ||
-          romaneio.forma_pagamento === 'Só Entregar'
-        ))) && (
+        {/* Carimbo PAGO - aparece quando pagamento recebido ou forma de pagamento começa com Pago */}
+        {(romaneio.pagamento_recebido || (romaneio.forma_pagamento &&
+          romaneio.forma_pagamento.startsWith('Pago')
+        )) && (
           <div className="print-carimbo-pago">PAGO</div>
         )}
 
