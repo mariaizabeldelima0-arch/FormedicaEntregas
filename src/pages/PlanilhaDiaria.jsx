@@ -228,6 +228,21 @@ export default function PlanilhaDiaria() {
     }
   };
 
+  // Função para obter cor da linha baseado no status - Sedex/Disktenha
+  const getSedexRowColor = (status) => {
+    switch (status) {
+      case 'Em Trânsito':
+        return { backgroundColor: '#dbeafe' }; // azul claro
+      case 'Entregue':
+        return { backgroundColor: '#F5E8F5' }; // roxo claro
+      case 'Devolvido':
+        return { backgroundColor: '#fee2e2' }; // vermelho
+      case 'Pendente':
+      default:
+        return {};
+    }
+  };
+
   // Função para atualizar status rapidamente
   const handleQuickStatusUpdate = (id, newStatus, type = 'romaneio') => {
     if (type === 'romaneio') {
@@ -1088,7 +1103,7 @@ export default function PlanilhaDiaria() {
                       <th className="px-2 py-2 text-left font-semibold text-slate-700">Observações</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-blue-50/30">
+                  <tbody>
                     {isLoadingSedex ? (
                       <tr>
                         <td colSpan="9" className="p-8 text-center text-slate-500">
@@ -1106,8 +1121,13 @@ export default function PlanilhaDiaria() {
                         <tr
                           key={entrega.id}
                           onClick={() => selectionModeSedex && toggleSedexSelection(entrega.id)}
-                          className={`border-b border-blue-200 ${selectionModeSedex ? 'cursor-pointer hover:opacity-80' : 'hover:bg-blue-100/50'}`}
-                          style={selectionModeSedex && selectedSedexIds.has(entrega.id) ? { backgroundColor: '#f5d0fe' } : {}}
+                          className={`border-b border-blue-200 ${selectionModeSedex ? 'cursor-pointer hover:opacity-80' : ''}`}
+                          style={{
+                            ...getSedexRowColor(entrega.status),
+                            ...(selectionModeSedex && selectedSedexIds.has(entrega.id)
+                              ? { outline: '2px solid #890d5d', outlineOffset: '-2px', backgroundColor: '#f5d0fe' }
+                              : {})
+                          }}
                         >
                           <td className="px-2 py-1.5 border-r border-blue-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
