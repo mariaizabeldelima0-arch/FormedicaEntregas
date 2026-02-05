@@ -133,6 +133,8 @@ export default function EntregasMoto() {
   const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [entregaSelecionada, setEntregaSelecionada] = useState(null);
 
+  // Estado para lista de usuários (atendentes/admins)
+  const [usuarios, setUsuarios] = useState([]);
 
   // Query client para invalidar cache
   const queryClient = useQueryClient();
@@ -510,8 +512,25 @@ export default function EntregasMoto() {
     }
   };
 
+  // Carregar usuários (atendentes e admins)
+  const loadUsuarios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('id, usuario, tipo_usuario')
+        .in('tipo_usuario', ['admin', 'atendente'])
+        .order('usuario');
+
+      if (error) throw error;
+      setUsuarios(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+    }
+  };
+
   useEffect(() => {
     loadEntregas();
+    loadUsuarios();
   }, []);
 
   // Função para ordenar entregas
@@ -1197,10 +1216,7 @@ export default function EntregasMoto() {
                 <CustomDropdown
                   options={[
                     { value: '', label: 'Atendentes' },
-                    { value: 'Maria Isabel', label: 'Maria Isabel' },
-                    { value: 'João Silva', label: 'João Silva' },
-                    { value: 'Ana Paula', label: 'Ana Paula' },
-                    { value: 'Carlos Santos', label: 'Carlos Santos' }
+                    ...usuarios.map(u => ({ value: u.usuario, label: u.usuario }))
                   ]}
                   value={filtros.atendente}
                   onChange={(value) => setFiltros({ ...filtros, atendente: value })}
