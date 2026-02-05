@@ -24,10 +24,11 @@ function RomaneioCard({ romaneio }) {
     return d.toLocaleDateString('pt-BR');
   };
 
-  const isPago = romaneio.pagamento_recebido || (romaneio.forma_pagamento && (
-    romaneio.forma_pagamento.startsWith('Pago') ||
-    romaneio.forma_pagamento === 'Só Entregar'
-  ));
+  const isPago = romaneio.forma_pagamento !== 'Só Entregar' && (
+    romaneio.pagamento_recebido || (romaneio.forma_pagamento &&
+      romaneio.forma_pagamento.startsWith('Pago')
+    )
+  );
 
   return (
     <div className="romaneio-card" style={{ position: 'relative' }}>
