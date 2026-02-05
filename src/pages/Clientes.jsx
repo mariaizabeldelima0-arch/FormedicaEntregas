@@ -1134,7 +1134,7 @@ export default function Clientes() {
                                   {entrega.data_entrega && (
                                     <div className="flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
-                                      {new Date(entrega.data_entrega).toLocaleDateString('pt-BR')}
+                                      {new Date(entrega.data_entrega + 'T12:00:00').toLocaleDateString('pt-BR')}
                                     </div>
                                   )}
                                   {entrega.valor && (
