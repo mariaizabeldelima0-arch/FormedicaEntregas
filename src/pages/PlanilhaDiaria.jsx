@@ -61,8 +61,26 @@ export default function PlanilhaDiaria() {
 
         if (error) throw error;
 
-        console.log('Entregas carregadas:', data);
-        return data || [];
+        // Buscar clientes adicionais para cada entrega
+        const entregasComClientesAdicionais = await Promise.all(
+          (data || []).map(async (entrega) => {
+            let clientesAdicionais = [];
+            if (entrega.clientes_adicionais && entrega.clientes_adicionais.length > 0) {
+              const { data: clientesData } = await supabase
+                .from('clientes')
+                .select('id, nome, telefone')
+                .in('id', entrega.clientes_adicionais);
+              clientesAdicionais = clientesData || [];
+            }
+            return {
+              ...entrega,
+              clientesAdicionais
+            };
+          })
+        );
+
+        console.log('Entregas carregadas:', entregasComClientesAdicionais);
+        return entregasComClientesAdicionais || [];
       } catch (error) {
         console.error('Erro ao carregar entregas:', error);
         toast.error('Erro ao carregar entregas');
@@ -898,7 +916,7 @@ export default function PlanilhaDiaria() {
                             {rom.requisicao || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 font-medium text-slate-800">
-                            {rom.cliente?.nome || '-'}
+                            {rom.cliente?.nome || '-'}{rom.clientesAdicionais?.length > 0 && `, ${rom.clientesAdicionais.map(c => c.nome).join(', ')}`}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                             {rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '-'}
