@@ -662,6 +662,7 @@ export default function Clientes() {
       if (errorPrincipal) throw errorPrincipal;
 
       // Buscar entregas onde o cliente está nos clientes_adicionais
+      // Usar filtro com sintaxe PostgREST para arrays
       const { data: entregasAdicional, error: errorAdicional } = await supabase
         .from('entregas')
         .select(`
@@ -670,16 +671,21 @@ export default function Clientes() {
           endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
           motoboy:motoboys(id, nome)
         `)
-        .contains('clientes_adicionais', [clienteId])
+        .not('clientes_adicionais', 'is', null)
         .order('data_entrega', { ascending: false });
 
       if (errorAdicional) throw errorAdicional;
+
+      // Filtrar entregas que contêm o cliente no array clientes_adicionais
+      const entregasComClienteAdicional = (entregasAdicional || []).filter(entrega =>
+        entrega.clientes_adicionais && entrega.clientes_adicionais.includes(clienteId)
+      );
 
       // Combinar e remover duplicatas
       const todasEntregas = [...(entregasPrincipal || [])];
       const idsExistentes = new Set(todasEntregas.map(e => e.id));
 
-      (entregasAdicional || []).forEach(entrega => {
+      entregasComClienteAdicional.forEach(entrega => {
         if (!idsExistentes.has(entrega.id)) {
           todasEntregas.push(entrega);
         }
@@ -746,15 +752,18 @@ export default function Clientes() {
       }
 
       // Verificar se cliente está em entregas como cliente adicional
-      const { data: entregasAdicional, error: entregasAdicionalError } = await supabase
+      const { data: entregasComAdicionais, error: entregasAdicionalError } = await supabase
         .from('entregas')
-        .select('id')
-        .contains('clientes_adicionais', [clienteToDelete.id])
-        .limit(1);
+        .select('id, clientes_adicionais')
+        .not('clientes_adicionais', 'is', null);
 
       if (entregasAdicionalError) throw entregasAdicionalError;
 
-      if (entregasAdicional && entregasAdicional.length > 0) {
+      const temEntregaAdicional = (entregasComAdicionais || []).some(entrega =>
+        entrega.clientes_adicionais && entrega.clientes_adicionais.includes(clienteToDelete.id)
+      );
+
+      if (temEntregaAdicional) {
         toast.error('Não é possível excluir cliente vinculado a entregas', { id: toastId });
         setDeleteDialogOpen(false);
         setClienteToDelete(null);
