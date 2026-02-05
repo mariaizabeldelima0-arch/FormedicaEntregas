@@ -643,11 +643,12 @@ export default function Clientes() {
     await loadEntregasCliente(cliente.id);
   };
 
-  // Carregar entregas do cliente
+  // Carregar entregas do cliente (incluindo entregas onde é cliente adicional)
   const loadEntregasCliente = async (clienteId) => {
     setLoadingEntregas(true);
     try {
-      const { data, error } = await supabase
+      // Buscar entregas onde o cliente é o principal
+      const { data: entregasPrincipal, error: errorPrincipal } = await supabase
         .from('entregas')
         .select(`
           *,
@@ -658,10 +659,41 @@ export default function Clientes() {
         .eq('cliente_id', clienteId)
         .order('data_entrega', { ascending: false });
 
-      if (error) throw error;
+      if (errorPrincipal) throw errorPrincipal;
+
+      // Buscar entregas onde o cliente está nos clientes_adicionais
+      const { data: entregasAdicional, error: errorAdicional } = await supabase
+        .from('entregas')
+        .select(`
+          *,
+          cliente:clientes(id, nome, telefone),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
+          motoboy:motoboys(id, nome)
+        `)
+        .contains('clientes_adicionais', [clienteId])
+        .order('data_entrega', { ascending: false });
+
+      if (errorAdicional) throw errorAdicional;
+
+      // Combinar e remover duplicatas
+      const todasEntregas = [...(entregasPrincipal || [])];
+      const idsExistentes = new Set(todasEntregas.map(e => e.id));
+
+      (entregasAdicional || []).forEach(entrega => {
+        if (!idsExistentes.has(entrega.id)) {
+          todasEntregas.push(entrega);
+        }
+      });
+
+      // Ordenar por data de entrega (mais recente primeiro)
+      todasEntregas.sort((a, b) => {
+        const dataA = new Date(a.data_entrega || '1900-01-01');
+        const dataB = new Date(b.data_entrega || '1900-01-01');
+        return dataB - dataA;
+      });
 
       // Processar snapshot de endereço
-      const entregasComSnapshot = (data || []).map(entrega => {
+      const entregasComSnapshot = todasEntregas.map(entrega => {
         // Priorizar dados do snapshot de endereço
         const enderecoDisplay = entrega.endereco_logradouro
           ? {
@@ -697,17 +729,33 @@ export default function Clientes() {
     const toastId = toast.loading('Excluindo cliente...');
 
     try {
-      // Verificar se cliente tem entregas
-      const { data: entregas, error: entregasError } = await supabase
+      // Verificar se cliente tem entregas como cliente principal
+      const { data: entregasPrincipal, error: entregasPrincipalError } = await supabase
         .from('entregas')
         .select('id')
         .eq('cliente_id', clienteToDelete.id)
         .limit(1);
 
-      if (entregasError) throw entregasError;
+      if (entregasPrincipalError) throw entregasPrincipalError;
 
-      if (entregas && entregas.length > 0) {
+      if (entregasPrincipal && entregasPrincipal.length > 0) {
         toast.error('Não é possível excluir cliente com entregas cadastradas', { id: toastId });
+        setDeleteDialogOpen(false);
+        setClienteToDelete(null);
+        return;
+      }
+
+      // Verificar se cliente está em entregas como cliente adicional
+      const { data: entregasAdicional, error: entregasAdicionalError } = await supabase
+        .from('entregas')
+        .select('id')
+        .contains('clientes_adicionais', [clienteToDelete.id])
+        .limit(1);
+
+      if (entregasAdicionalError) throw entregasAdicionalError;
+
+      if (entregasAdicional && entregasAdicional.length > 0) {
+        toast.error('Não é possível excluir cliente vinculado a entregas', { id: toastId });
         setDeleteDialogOpen(false);
         setClienteToDelete(null);
         return;
