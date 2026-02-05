@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
@@ -268,8 +268,13 @@ const detectarRegiao = (cidade, bairro) => {
 
 export default function NovoRomaneio() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  // Ler data da URL (se vier de Entregas Moto com data selecionada)
+  const urlParams = new URLSearchParams(location.search);
+  const dataUrl = urlParams.get('data');
   const [loading, setLoading] = useState(false);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
@@ -341,7 +346,7 @@ export default function NovoRomaneio() {
     numero_requisicao: '',
     regiao: '',
     outra_cidade: '',
-    data_entrega: new Date().toISOString().split('T')[0],
+    data_entrega: dataUrl || new Date().toISOString().split('T')[0],
     periodo: 'Tarde',
     forma_pagamento: '',
     motoboy: '',

@@ -196,8 +196,8 @@ export default function EntregasMoto() {
         .from('entregas')
         .select(`
           *,
-          cliente:clientes(id, nome, telefone),
-          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
+          cliente:clientes(id, nome, telefone, cpf),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep),
           motoboy:motoboys(id, nome),
           anexos(id, tipo)
         `)
@@ -597,6 +597,7 @@ export default function EntregasMoto() {
     // Filtro de busca
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
+      const searchClean = searchTerm.replace(/\D/g, ''); // Apenas números para CPF/CEP
 
       // Buscar em todos os clientes (principal + adicionais)
       const todosClientes = getTodosClientes(entrega);
@@ -607,7 +608,15 @@ export default function EntregasMoto() {
       const matchRequisicao = entrega.requisicao?.toLowerCase().includes(searchLower);
       const matchTelefone = entrega.cliente?.telefone?.includes(searchTerm);
 
-      if (!matchCliente && !matchRequisicao && !matchTelefone) {
+      // Busca por CPF do cliente (remove formatação para comparar)
+      const cpfCliente = entrega.cliente?.cpf?.replace(/\D/g, '') || '';
+      const matchCpf = searchClean.length >= 3 && cpfCliente.includes(searchClean);
+
+      // Busca por CEP do endereço (snapshot ou relação)
+      const cepEndereco = (entrega.endereco_cep || entrega.endereco?.cep || '').replace(/\D/g, '');
+      const matchCep = searchClean.length >= 3 && cepEndereco.includes(searchClean);
+
+      if (!matchCliente && !matchRequisicao && !matchTelefone && !matchCpf && !matchCep) {
         return false;
       }
     }
@@ -946,7 +955,10 @@ export default function EntregasMoto() {
 
               {/* Card Novo Romaneio */}
               <div
-                onClick={() => navigate('/novo-romaneio')}
+                onClick={() => {
+                  const dataFormatada = selectedDate.toISOString().split('T')[0];
+                  navigate(`/novo-romaneio?data=${dataFormatada}`);
+                }}
                 className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center text-center col-span-2 sm:col-span-1"
                 style={{
                   background: 'linear-gradient(135deg, #890d5d 0%, #6E0A4A 100%)'
@@ -1158,7 +1170,7 @@ export default function EntregasMoto() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por cliente, requisição, atendente ou telefone..."
+                  placeholder="Buscar por cliente, requisição, telefone, CPF ou CEP..."
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                 />
               </div>
