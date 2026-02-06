@@ -1,16 +1,10 @@
 import React from "react";
+import ReactDOM from "react-dom";
 
 export default function ImpressaoRomaneio({ romaneio }) {
   if (!romaneio) return null;
 
   const agora = new Date();
-  const dataHoraHeader = agora.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
   const dataImpressao = agora.toLocaleString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -26,7 +20,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
     return d.toLocaleDateString('pt-BR');
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div className="print-only">
       <style>{`
         /* Esconder na tela */
@@ -44,20 +38,14 @@ export default function ImpressaoRomaneio({ romaneio }) {
           html, body {
             height: auto !important;
             overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          body * {
-            visibility: hidden;
-          }
-          .print-only, .print-only * {
-            visibility: visible !important;
+          #root {
+            display: none !important;
           }
           .print-only {
             display: block !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            background: white !important;
           }
           .no-print {
             display: none !important;
@@ -254,9 +242,9 @@ export default function ImpressaoRomaneio({ romaneio }) {
           font-size: 14px;
           font-weight: bold;
           text-transform: uppercase;
-          border: 2px solid #4caf50;
-          background-color: #e8f5e9;
-          color: #2e7d32;
+          border: 2px solid #000;
+          background-color: #fff;
+          color: #000;
         }
 
         .print-coleta-icon {
@@ -489,6 +477,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           <div>Impressao em: {dataImpressao}</div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

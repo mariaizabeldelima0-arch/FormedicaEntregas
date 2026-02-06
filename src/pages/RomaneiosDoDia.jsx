@@ -192,9 +192,8 @@ function RomaneioCard({ romaneio }) {
               fontSize: '11px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              border: '2px solid #4caf50',
-              background: '#e8f5e9',
-              color: '#2e7d32'
+              border: '2px solid #000',
+              background: '#fff'
             }}>
               <Package size={14} />
               <span>COLETA</span>
