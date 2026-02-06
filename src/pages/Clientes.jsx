@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { buscarCep, formatarCep } from "@/utils/buscarCep";
 
 // Mapeamento de regiões
 const REGIOES = [
@@ -305,6 +306,35 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
     setFormData({ ...formData, enderecos: newEnderecos });
   };
 
+  const handleCepChange = async (index, value) => {
+    const cepFormatado = formatarCep(value);
+    updateEndereco(index, 'cep', cepFormatado);
+
+    const cepLimpo = value.replace(/\D/g, '');
+    if (cepLimpo.length === 8) {
+      const enderecoCep = await buscarCep(cepLimpo);
+      if (enderecoCep) {
+        setFormData(prev => {
+          const newEnderecos = [...prev.enderecos];
+          newEnderecos[index] = {
+            ...newEnderecos[index],
+            cep: cepFormatado,
+            logradouro: enderecoCep.logradouro || newEnderecos[index].logradouro,
+            bairro: enderecoCep.bairro || newEnderecos[index].bairro,
+            cidade: enderecoCep.cidade || newEnderecos[index].cidade,
+
+          };
+          const regiaoDetectada = detectarRegiao(newEnderecos[index].bairro, newEnderecos[index].cidade);
+          if (regiaoDetectada) {
+            newEnderecos[index].regiao = regiaoDetectada;
+          }
+          return { ...prev, enderecos: newEnderecos };
+        });
+        toast.success('Endereço preenchido pelo CEP');
+      }
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Informações Básicas */}
@@ -406,8 +436,9 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
                   <input
                     type="text"
                     value={endereco.cep || ""}
-                    onChange={(e) => updateEndereco(index, 'cep', e.target.value)}
+                    onChange={(e) => handleCepChange(index, e.target.value)}
                     placeholder="00000-000"
+                    maxLength={9}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>

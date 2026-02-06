@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, ChevronLeft } from 'lucide-react';
 import { CustomDropdown, CustomDatePicker } from '@/components';
+import { buscarCep, formatarCep } from '@/utils/buscarCep';
 import {
   Dialog,
   DialogContent,
@@ -986,6 +987,32 @@ export default function NovoRomaneio() {
     setNovoCliente({ ...novoCliente, enderecos: newEnderecos });
   };
 
+  const handleCepNovoCliente = async (index, value) => {
+    const cepFormatado = formatarCep(value);
+    updateEnderecoNovoCliente(index, 'cep', cepFormatado);
+    const cepLimpo = value.replace(/\D/g, '');
+    if (cepLimpo.length === 8) {
+      const enderecoCep = await buscarCep(cepLimpo);
+      if (enderecoCep) {
+        setNovoCliente(prev => {
+          const newEnderecos = [...prev.enderecos];
+          newEnderecos[index] = {
+            ...newEnderecos[index],
+            cep: cepFormatado,
+            logradouro: enderecoCep.logradouro || newEnderecos[index].logradouro,
+            bairro: enderecoCep.bairro || newEnderecos[index].bairro,
+            cidade: enderecoCep.cidade || newEnderecos[index].cidade,
+
+          };
+          const regiaoDetectada = detectarRegiao(newEnderecos[index].cidade, newEnderecos[index].bairro);
+          if (regiaoDetectada) newEnderecos[index].regiao = regiaoDetectada;
+          return { ...prev, enderecos: newEnderecos };
+        });
+        toast.success('Endereço preenchido pelo CEP');
+      }
+    }
+  };
+
   // Cadastrar novo cliente
   const handleCadastrarCliente = async () => {
     if (!novoCliente.nome || !novoCliente.telefone) {
@@ -1472,6 +1499,58 @@ export default function NovoRomaneio() {
                         </h5>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="CEP"
+                              value={novoEndereco.cep}
+                              maxLength={9}
+                              onChange={async (e) => {
+                                const cepFormatado = formatarCep(e.target.value);
+                                setNovoEndereco(prev => ({ ...prev, cep: cepFormatado }));
+                                const cepLimpo = e.target.value.replace(/\D/g, '');
+                                if (cepLimpo.length === 8) {
+                                  const enderecoCep = await buscarCep(cepLimpo);
+                                  if (enderecoCep) {
+                                    setNovoEndereco(prev => ({
+                                      ...prev,
+                                      cep: cepFormatado,
+                                      logradouro: enderecoCep.logradouro || prev.logradouro,
+                                      bairro: enderecoCep.bairro || prev.bairro,
+                                      cidade: enderecoCep.cidade || prev.cidade,
+
+                                    }));
+                                    toast.success('Endereço preenchido pelo CEP');
+                                  }
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '0.5rem',
+                                border: `1px solid ${theme.colors.border}`,
+                                borderRadius: '0.5rem',
+                                fontSize: '0.75rem'
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Região (auto-detectada)"
+                              value={novoEndereco.regiao}
+                              readOnly
+                              style={{
+                                width: '100%',
+                                padding: '0.5rem',
+                                border: `1px solid ${theme.colors.border}`,
+                                borderRadius: '0.5rem',
+                                fontSize: '0.75rem',
+                                background: '#f1f5f9'
+                              }}
+                            />
+                          </div>
+
                           <div className="sm:col-span-2">
                             <input
                               type="text"
@@ -1551,39 +1630,6 @@ export default function NovoRomaneio() {
                               }}
                             />
                           </div>
-
-                          <div>
-                            <input
-                              type="text"
-                              placeholder="CEP"
-                              value={novoEndereco.cep}
-                              onChange={(e) => setNovoEndereco({ ...novoEndereco, cep: e.target.value })}
-                              style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.75rem'
-                              }}
-                            />
-                          </div>
-
-                          <div>
-                            <input
-                              type="text"
-                              placeholder="Região (auto-detectada)"
-                              value={novoEndereco.regiao}
-                              readOnly
-                              style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.75rem',
-                                background: '#f1f5f9'
-                              }}
-                            />
-                          </div>
                         </div>
 
                         <button
@@ -1633,6 +1679,58 @@ export default function NovoRomaneio() {
                               </h5>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                <div>
+                                  <input
+                                    type="text"
+                                    placeholder="CEP"
+                                    value={dadosEdicao.cep}
+                                    maxLength={9}
+                                    onChange={async (e) => {
+                                      const cepFormatado = formatarCep(e.target.value);
+                                      setDadosEdicao(prev => ({ ...prev, cep: cepFormatado }));
+                                      const cepLimpo = e.target.value.replace(/\D/g, '');
+                                      if (cepLimpo.length === 8) {
+                                        const enderecoCep = await buscarCep(cepLimpo);
+                                        if (enderecoCep) {
+                                          setDadosEdicao(prev => ({
+                                            ...prev,
+                                            cep: cepFormatado,
+                                            logradouro: enderecoCep.logradouro || prev.logradouro,
+                                            bairro: enderecoCep.bairro || prev.bairro,
+                                            cidade: enderecoCep.cidade || prev.cidade,
+      
+                                          }));
+                                          toast.success('Endereço preenchido pelo CEP');
+                                        }
+                                      }
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.5rem',
+                                      border: `1px solid ${theme.colors.border}`,
+                                      borderRadius: '0.5rem',
+                                      fontSize: '0.75rem'
+                                    }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <input
+                                    type="text"
+                                    placeholder="Região (auto-detectada)"
+                                    value={dadosEdicao.regiao}
+                                    readOnly
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.5rem',
+                                      border: `1px solid ${theme.colors.border}`,
+                                      borderRadius: '0.5rem',
+                                      fontSize: '0.75rem',
+                                      background: '#f1f5f9'
+                                    }}
+                                  />
+                                </div>
+
                                 <div className="sm:col-span-2">
                                   <input
                                     type="text"
@@ -1709,39 +1807,6 @@ export default function NovoRomaneio() {
                                       border: `1px solid ${theme.colors.border}`,
                                       borderRadius: '0.5rem',
                                       fontSize: '0.75rem'
-                                    }}
-                                  />
-                                </div>
-
-                                <div>
-                                  <input
-                                    type="text"
-                                    placeholder="CEP"
-                                    value={dadosEdicao.cep}
-                                    onChange={(e) => setDadosEdicao({ ...dadosEdicao, cep: e.target.value })}
-                                    style={{
-                                      width: '100%',
-                                      padding: '0.5rem',
-                                      border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.5rem',
-                                      fontSize: '0.75rem'
-                                    }}
-                                  />
-                                </div>
-
-                                <div>
-                                  <input
-                                    type="text"
-                                    placeholder="Região (auto-detectada)"
-                                    value={dadosEdicao.regiao}
-                                    readOnly
-                                    style={{
-                                      width: '100%',
-                                      padding: '0.5rem',
-                                      border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.5rem',
-                                      fontSize: '0.75rem',
-                                      background: '#f1f5f9'
                                     }}
                                   />
                                 </div>
@@ -2532,8 +2597,9 @@ export default function NovoRomaneio() {
                       <input
                         type="text"
                         value={endereco.cep || ""}
-                        onChange={(e) => updateEnderecoNovoCliente(index, 'cep', e.target.value)}
+                        onChange={(e) => handleCepNovoCliente(index, e.target.value)}
                         placeholder="00000-000"
+                        maxLength={9}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>

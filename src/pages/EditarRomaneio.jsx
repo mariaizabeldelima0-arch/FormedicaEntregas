@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
 import { CustomDropdown } from '@/components/CustomDropdown';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
+import { buscarCep, formatarCep } from '@/utils/buscarCep';
 import {
   Dialog,
   DialogContent,
@@ -427,6 +428,32 @@ export default function EditarRomaneio() {
     const novosEnderecos = [...novoCliente.enderecos];
     novosEnderecos[index] = { ...novosEnderecos[index], [field]: value };
     setNovoCliente({ ...novoCliente, enderecos: novosEnderecos });
+  };
+
+  const handleCepNovoCliente = async (index, value) => {
+    const cepFormatado = formatarCep(value);
+    updateEnderecoNovoCliente(index, 'cep', cepFormatado);
+    const cepLimpo = value.replace(/\D/g, '');
+    if (cepLimpo.length === 8) {
+      const enderecoCep = await buscarCep(cepLimpo);
+      if (enderecoCep) {
+        setNovoCliente(prev => {
+          const novosEnderecos = [...prev.enderecos];
+          novosEnderecos[index] = {
+            ...novosEnderecos[index],
+            cep: cepFormatado,
+            logradouro: enderecoCep.logradouro || novosEnderecos[index].logradouro,
+            bairro: enderecoCep.bairro || novosEnderecos[index].bairro,
+            cidade: enderecoCep.cidade || novosEnderecos[index].cidade,
+
+          };
+          const regiaoDetectada = detectarRegiao(novosEnderecos[index].cidade, novosEnderecos[index].bairro);
+          if (regiaoDetectada) novosEnderecos[index].regiao = regiaoDetectada;
+          return { ...prev, enderecos: novosEnderecos };
+        });
+        toast.success('Endereço preenchido pelo CEP');
+      }
+    }
   };
 
   // Detectar região automaticamente quando cidade ou bairro do novo endereço mudam
@@ -1478,6 +1505,39 @@ export default function EditarRomaneio() {
                         <h5 style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.75rem' }}>
                           Cadastrar Novo Endereço
                         </h5>
+                        <input
+                          type="text"
+                          value={novoEndereco.cep}
+                          maxLength={9}
+                          onChange={async (e) => {
+                            const cepFormatado = formatarCep(e.target.value);
+                            setNovoEndereco(prev => ({ ...prev, cep: cepFormatado }));
+                            const cepLimpo = e.target.value.replace(/\D/g, '');
+                            if (cepLimpo.length === 8) {
+                              const enderecoCep = await buscarCep(cepLimpo);
+                              if (enderecoCep) {
+                                setNovoEndereco(prev => ({
+                                  ...prev,
+                                  cep: cepFormatado,
+                                  logradouro: enderecoCep.logradouro || prev.logradouro,
+                                  bairro: enderecoCep.bairro || prev.bairro,
+                                  cidade: enderecoCep.cidade || prev.cidade,
+
+                                }));
+                                toast.success('Endereço preenchido pelo CEP');
+                              }
+                            }
+                          }}
+                          placeholder="CEP"
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: '0.5rem',
+                            fontSize: '0.875rem',
+                            marginBottom: '0.5rem'
+                          }}
+                        />
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                           <input
                             type="text"
@@ -1549,20 +1609,6 @@ export default function EditarRomaneio() {
                             }}
                           />
                         </div>
-                        <input
-                          type="text"
-                          value={novoEndereco.cep}
-                          onChange={(e) => setNovoEndereco({ ...novoEndereco, cep: e.target.value })}
-                          placeholder="CEP"
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: `1px solid ${theme.colors.border}`,
-                            borderRadius: '0.5rem',
-                            fontSize: '0.875rem',
-                            marginBottom: '0.5rem'
-                          }}
-                        />
                         <textarea
                           value={novoEndereco.observacoes}
                           onChange={(e) => setNovoEndereco({ ...novoEndereco, observacoes: e.target.value })}
@@ -1661,6 +1707,39 @@ export default function EditarRomaneio() {
                               <h5 style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.75rem' }}>
                                 Editando Endereço
                               </h5>
+                              <input
+                                type="text"
+                                value={enderecoEditando.cep}
+                                maxLength={9}
+                                onChange={async (e) => {
+                                  const cepFormatado = formatarCep(e.target.value);
+                                  setEnderecoEditando(prev => ({ ...prev, cep: cepFormatado }));
+                                  const cepLimpo = e.target.value.replace(/\D/g, '');
+                                  if (cepLimpo.length === 8) {
+                                    const enderecoCep = await buscarCep(cepLimpo);
+                                    if (enderecoCep) {
+                                      setEnderecoEditando(prev => ({
+                                        ...prev,
+                                        cep: cepFormatado,
+                                        logradouro: enderecoCep.logradouro || prev.logradouro,
+                                        bairro: enderecoCep.bairro || prev.bairro,
+                                        cidade: enderecoCep.cidade || prev.cidade,
+      
+                                      }));
+                                      toast.success('Endereço preenchido pelo CEP');
+                                    }
+                                  }
+                                }}
+                                placeholder="CEP"
+                                style={{
+                                  width: '100%',
+                                  padding: '0.5rem',
+                                  border: `1px solid ${theme.colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  fontSize: '0.875rem',
+                                  marginBottom: '0.5rem'
+                                }}
+                              />
                               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                 <input
                                   type="text"
@@ -1732,20 +1811,6 @@ export default function EditarRomaneio() {
                                   }}
                                 />
                               </div>
-                              <input
-                                type="text"
-                                value={enderecoEditando.cep}
-                                onChange={(e) => setEnderecoEditando({...enderecoEditando, cep: e.target.value})}
-                                placeholder="CEP"
-                                style={{
-                                  width: '100%',
-                                  padding: '0.5rem',
-                                  border: `1px solid ${theme.colors.border}`,
-                                  borderRadius: '0.5rem',
-                                  fontSize: '0.875rem',
-                                  marginBottom: '0.75rem'
-                                }}
-                              />
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button
                                   type="button"
@@ -2518,8 +2583,9 @@ export default function EditarRomaneio() {
                       <input
                         type="text"
                         value={endereco.cep}
-                        onChange={(e) => updateEnderecoNovoCliente(index, 'cep', e.target.value)}
+                        onChange={(e) => handleCepNovoCliente(index, e.target.value)}
                         placeholder="00000-000"
+                        maxLength={9}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
