@@ -1341,7 +1341,10 @@ export default function NovoRomaneio() {
             {buscarCliente.length >= 2 && clientesSugestoes.length === 0 && (
               <button
                 type="button"
-                onClick={() => setShowCadastroCliente(true)}
+                onClick={() => {
+                  setNovoCliente(prev => ({ ...prev, nome: buscarCliente }));
+                  setShowCadastroCliente(true);
+                }}
                 style={{
                   marginTop: '0.5rem',
                   padding: '0.5rem 1rem',

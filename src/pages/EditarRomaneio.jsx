@@ -1391,7 +1391,10 @@ export default function EditarRomaneio() {
             {buscarCliente.length >= 2 && clientesSugestoes.length === 0 && (
               <button
                 type="button"
-                onClick={() => setShowCadastroCliente(true)}
+                onClick={() => {
+                  setNovoCliente(prev => ({ ...prev, nome: buscarCliente }));
+                  setShowCadastroCliente(true);
+                }}
                 className="mt-2 px-4 py-2 rounded-lg font-semibold text-sm"
                 style={{ backgroundColor: '#376295', color: 'white' }}
               >
