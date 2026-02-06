@@ -214,9 +214,9 @@ export default function PlanilhaDiaria() {
     const periodoB = periodoOrder[b.periodo] || 99;
     if (periodoA !== periodoB) return periodoA - periodoB;
 
-    // 3. Ordenar por cidade
-    const cidadeA = a.endereco?.cidade || '';
-    const cidadeB = b.endereco?.cidade || '';
+    // 3. Ordenar por região/cidade
+    const cidadeA = a.regiao || a.endereco?.cidade || '';
+    const cidadeB = b.regiao || b.endereco?.cidade || '';
     const cidadeCompare = cidadeA.localeCompare(cidadeB);
     if (cidadeCompare !== 0) return cidadeCompare;
 
@@ -925,7 +925,7 @@ export default function PlanilhaDiaria() {
                             {rom.observacoes || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.endereco?.cidade || '-'}
+                            {rom.regiao || rom.endereco?.cidade || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${

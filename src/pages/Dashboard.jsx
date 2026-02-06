@@ -725,6 +725,12 @@ export default function Dashboard() {
                                         Reter Receita
                                       </Badge>
                                     )}
+                                    {romaneio.coleta && (
+                                      <Badge className="border" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', borderColor: '#4caf50' }}>
+                                        <Package className="w-3 h-3 mr-1" />
+                                        Coleta
+                                      </Badge>
+                                    )}
                                     {romaneio.status === 'Entregue' && romaneio.buscar_receita && !romaneio.receita_recebida && (
                                       <Badge className="bg-red-100 text-red-700 border-red-400 border-2 font-bold animate-pulse">
                                         <AlertCircle className="w-3 h-3 mr-1" />

@@ -11,7 +11,8 @@ import {
   Calendar,
   Filter,
   X,
-  FileText
+  FileText,
+  Package
 } from 'lucide-react';
 
 // Componente de impressão individual do romaneio (versão para tela)
@@ -139,8 +140,8 @@ function RomaneioCard({ romaneio }) {
         </div>
       )}
 
-      {/* Item Geladeira e Reter Receita */}
-      {(romaneio.item_geladeira || romaneio.buscar_receita) && (
+      {/* Item Geladeira, Reter Receita e Coleta */}
+      {(romaneio.item_geladeira || romaneio.buscar_receita || romaneio.coleta) && (
         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
           {romaneio.item_geladeira && (
             <div style={{
@@ -178,6 +179,26 @@ function RomaneioCard({ romaneio }) {
               <FileText size={14} />
               <span>RETER RECEITA</span>
               <FileText size={14} />
+            </div>
+          )}
+          {romaneio.coleta && (
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '8px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              border: '2px solid #4caf50',
+              background: '#e8f5e9',
+              color: '#2e7d32'
+            }}>
+              <Package size={14} />
+              <span>COLETA</span>
+              <Package size={14} />
             </div>
           )}
         </div>

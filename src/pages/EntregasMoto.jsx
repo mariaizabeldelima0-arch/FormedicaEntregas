@@ -1441,8 +1441,8 @@ export default function EntregasMoto() {
 
                           {/* Lado Direito - Badges + Valor + Região + Ações */}
                           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                            {/* Badges Geladeira e Reter Receita */}
-                            {(entrega.item_geladeira || entrega.buscar_receita) && (
+                            {/* Badges Geladeira, Reter Receita e Coleta */}
+                            {(entrega.item_geladeira || entrega.buscar_receita || entrega.coleta) && (
                               <div className="flex items-center gap-1.5 sm:gap-2">
                                 {entrega.item_geladeira && (
                                   <span className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
@@ -1468,6 +1468,12 @@ export default function EntregasMoto() {
                                     {entrega.receita_recebida ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <FileText className="w-4 h-4 sm:w-5 sm:h-5" />}
                                     <span className="hidden sm:inline">{entrega.receita_recebida ? 'Receita OK' : 'Reter Receita'}</span>
                                   </button>
+                                )}
+                                {entrega.coleta && (
+                                  <span className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', border: '2px solid #4caf50' }}>
+                                    <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <span className="hidden sm:inline">Coleta</span>
+                                  </span>
                                 )}
                               </div>
                             )}
@@ -1640,8 +1646,8 @@ export default function EntregasMoto() {
 
                           {/* Lado Direito - Badges + Valor + Região + Ações */}
                           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                            {/* Badges Geladeira e Reter Receita */}
-                            {(entrega.item_geladeira || entrega.buscar_receita) && (
+                            {/* Badges Geladeira, Reter Receita e Coleta */}
+                            {(entrega.item_geladeira || entrega.buscar_receita || entrega.coleta) && (
                               <div className="flex items-center gap-1.5 sm:gap-2">
                                 {entrega.item_geladeira && (
                                   <span className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
@@ -1667,6 +1673,12 @@ export default function EntregasMoto() {
                                     {entrega.receita_recebida ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <FileText className="w-4 h-4 sm:w-5 sm:h-5" />}
                                     <span className="hidden sm:inline">{entrega.receita_recebida ? 'Receita OK' : 'Reter Receita'}</span>
                                   </button>
+                                )}
+                                {entrega.coleta && (
+                                  <span className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', border: '2px solid #4caf50' }}>
+                                    <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <span className="hidden sm:inline">Coleta</span>
+                                  </span>
                                 )}
                               </div>
                             )}

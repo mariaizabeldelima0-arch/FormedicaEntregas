@@ -135,29 +135,32 @@ export default function PainelMotoboys() {
     return isSameDay(entregaDate, dataSelecionada);
   });
 
-  // Função para normalizar nome da cidade (remover acentos, lowercase)
-  const normalizarCidade = (cidade) => {
-    if (!cidade) return '';
-    return cidade
+  // Função para normalizar nome da região/cidade (remover acentos, lowercase)
+  const normalizarCidade = (texto) => {
+    if (!texto) return '';
+    return texto
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .trim();
   };
 
-  // Função para capitalizar nome da cidade corretamente
-  const capitalizarCidade = (cidade) => {
-    if (!cidade) return '';
-    return cidade
+  // Função para capitalizar nome corretamente
+  const capitalizarCidade = (texto) => {
+    if (!texto) return '';
+    return texto
       .toLowerCase()
       .split(' ')
       .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
       .join(' ');
   };
 
+  // Obter o local de agrupamento: região (prioridade) ou cidade
+  const obterLocal = (entrega) => entrega.regiao || entrega.endereco?.cidade || '';
+
   // Aplicar filtros
   const entregasFiltradas = entregasDoDia.filter(entrega => {
-    if (filtroLocal !== 'todos' && normalizarCidade(entrega.endereco?.cidade) !== filtroLocal) return false;
+    if (filtroLocal !== 'todos' && normalizarCidade(obterLocal(entrega)) !== filtroLocal) return false;
     if (filtroPeriodo !== 'todos' && entrega.periodo !== filtroPeriodo) return false;
     if (filtroStatus !== 'todos') {
       const statusEntrega = normalizarStatus(entrega.status);
@@ -195,14 +198,14 @@ export default function PainelMotoboys() {
     return true;
   });
 
-  // Lista de cidades disponíveis (normalizadas para evitar duplicatas)
+  // Lista de locais disponíveis (região ou cidade, normalizados para evitar duplicatas)
   const cidadesMap = new Map();
   entregasDoDia.forEach(e => {
-    const cidadeOriginal = e.endereco?.cidade;
-    if (cidadeOriginal) {
-      const cidadeNormalizada = normalizarCidade(cidadeOriginal);
-      if (!cidadesMap.has(cidadeNormalizada)) {
-        cidadesMap.set(cidadeNormalizada, capitalizarCidade(cidadeOriginal));
+    const local = obterLocal(e);
+    if (local) {
+      const localNormalizado = normalizarCidade(local);
+      if (!cidadesMap.has(localNormalizado)) {
+        cidadesMap.set(localNormalizado, capitalizarCidade(local));
       }
     }
   });
@@ -214,9 +217,9 @@ export default function PainelMotoboys() {
     quantidade: entregasDoDia.filter(e => normalizarStatus(e.status) === status.value).length
   }));
 
-  // Resumo do dia por cidade (agrupado por cidade normalizada)
+  // Resumo do dia por local (agrupado por região ou cidade)
   const resumoDia = cidadesDisponiveis.map(cidadeNormalizada => {
-    const entregasCidade = entregasDoDia.filter(e => normalizarCidade(e.endereco?.cidade) === cidadeNormalizada);
+    const entregasCidade = entregasDoDia.filter(e => normalizarCidade(obterLocal(e)) === cidadeNormalizada);
     return {
       cidade: cidadesMap.get(cidadeNormalizada),
       quantidade: entregasCidade.length,
@@ -1068,7 +1071,7 @@ function EntregaCard({
             )}
 
             {/* Badges inline - Compactos */}
-            {(entrega.item_geladeira || entrega.buscar_receita || entrega.reter_receita) && (
+            {(entrega.item_geladeira || entrega.buscar_receita || entrega.reter_receita || entrega.coleta) && (
               <div className="flex flex-wrap gap-1 mb-2">
                 {entrega.item_geladeira && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
@@ -1080,6 +1083,12 @@ function EntregaCard({
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
                     <FileText className="w-3 h-3" />
                     Receita
+                  </span>
+                )}
+                {entrega.coleta && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }}>
+                    <Package className="w-3 h-3" />
+                    Coleta
                   </span>
                 )}
               </div>

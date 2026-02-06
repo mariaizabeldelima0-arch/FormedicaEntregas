@@ -19,7 +19,8 @@ import {
   Upload,
   CheckCircle,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Package
 } from "lucide-react";
 import {
   Dialog,
@@ -844,6 +845,28 @@ export default function DetalhesRomaneio() {
                           </>
                         )}
                       </button>
+                    </div>
+                  )}
+
+                  {/* Coleta */}
+                  {romaneio.coleta && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      padding: '12px 15px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      border: '2px solid #4caf50',
+                      backgroundColor: '#e8f5e9',
+                      color: '#2e7d32',
+                      borderRadius: '8px'
+                    }}>
+                      <Package size={20} />
+                      <span>COLETA</span>
+                      <Package size={20} />
                     </div>
                   )}
 

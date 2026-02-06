@@ -135,6 +135,7 @@ const FORMAS_PAGAMENTO = [
   'Pix Aguardando',
   'Receber Dinheiro',
   'Receber Máquina',
+  'Coleta',
   'Só Entregar',
   'Via na Pasta'
 ];
@@ -183,9 +184,13 @@ const MAPEAMENTO_REGIOES = {
     'default': 'BC'
   },
   'camboriú': {
+    'monte alegre': 'MONTE ALEGRE',
+    'tabuleiro': 'TABULEIRO',
     'default': 'CAMBORIÚ'
   },
   'camboriu': {
+    'monte alegre': 'MONTE ALEGRE',
+    'tabuleiro': 'TABULEIRO',
     'default': 'CAMBORIÚ'
   },
   'itajaí': {
@@ -237,33 +242,27 @@ const normalizarCidade = (cidade) => {
 
 // Função para detectar região automaticamente
 const detectarRegiao = (cidade, bairro) => {
-  const cidadeLower = cidade?.toLowerCase().trim() || '';
-  const bairroLower = bairro?.toLowerCase().trim() || '';
+  const cidadeLower = cidade?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') || '';
+  const bairroLower = bairro?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') || '';
 
-  console.log('🔍 Detectando região:', { cidade: cidadeLower, bairro: bairroLower });
+  // Tentar encontrar a cidade no mapeamento (com e sem acento)
+  const mapa = MAPEAMENTO_REGIOES[cidadeLower] ||
+    MAPEAMENTO_REGIOES[cidade?.toLowerCase().trim() || ''];
 
-  // Buscar por cidade
-  if (MAPEAMENTO_REGIOES[cidadeLower]) {
-    const mapa = MAPEAMENTO_REGIOES[cidadeLower];
-
-    // Se o bairro for "centro", sempre usar região padrão da cidade
-    if (bairroLower === 'centro') {
-      console.log('✅ Bairro Centro - usando região padrão da cidade:', mapa.default);
-      return mapa.default;
-    }
-
-    // Se o bairro estiver mapeado E for diferente do default, usar a região do bairro
-    if (bairroLower && mapa[bairroLower] && mapa[bairroLower] !== mapa.default) {
-      console.log('✅ Região detectada por bairro cadastrado:', mapa[bairroLower]);
+  if (mapa) {
+    // Se o bairro estiver mapeado, usar a região do bairro
+    if (bairroLower && mapa[bairroLower]) {
       return mapa[bairroLower];
     }
-
-    // Usar região padrão da cidade (bairro não cadastrado ou sem bairro)
-    console.log('✅ Região detectada por cidade (default):', mapa.default);
+    // Tentar também com acento original
+    const bairroOriginal = bairro?.toLowerCase().trim() || '';
+    if (bairroOriginal && mapa[bairroOriginal]) {
+      return mapa[bairroOriginal];
+    }
+    // Usar região padrão da cidade
     return mapa.default;
   }
 
-  console.log('❌ Nenhuma região detectada');
   return '';
 };
 
@@ -331,6 +330,7 @@ export default function EditarRomaneio() {
     valor_entrega: 0,
     item_geladeira: false,
     buscar_receita: false,
+    coleta: false,
     observacoes: '',
     valor_venda: 0
   });
@@ -530,6 +530,7 @@ export default function EditarRomaneio() {
           valor_entrega: entrega.valor || 0,
           item_geladeira: entrega.item_geladeira || false,
           buscar_receita: entrega.buscar_receita || false,
+          coleta: entrega.coleta || false,
           observacoes: entrega.observacoes || '',
           valor_venda: entrega.valor_venda || 0
         });
@@ -1228,6 +1229,7 @@ export default function EditarRomaneio() {
           valor: formData.valor_entrega,
           item_geladeira: formData.item_geladeira,
           buscar_receita: formData.buscar_receita,
+          coleta: formData.coleta,
           observacoes: formData.observacoes,
           clientes_adicionais: clientesAdicionais,
           valor_venda: formasPagamentoComValorVenda.includes(formData.forma_pagamento) ? formData.valor_venda : 0,
@@ -2328,8 +2330,8 @@ export default function EditarRomaneio() {
             </div>
           </div>
 
-          {/* Grid: Item de Geladeira e Buscar Receita */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          {/* Grid: Item de Geladeira, Buscar Receita e Coleta */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             {/* Item de Geladeira */}
             <div>
               <label style={{
@@ -2418,6 +2420,55 @@ export default function EditarRomaneio() {
                     background: !formData.buscar_receita ? '#f1f5f9' : 'white',
                     color: !formData.buscar_receita ? '#1e293b' : '#64748b',
                     fontWeight: !formData.buscar_receita ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Não
+                </button>
+              </div>
+            </div>
+
+            {/* Coleta */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Coleta? *
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, coleta: true}))}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: formData.coleta ? '2px solid #4caf50' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: formData.coleta ? '#e8f5e9' : 'white',
+                    color: formData.coleta ? '#2e7d32' : '#64748b',
+                    fontWeight: formData.coleta ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, coleta: false}))}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: !formData.coleta ? '2px solid #64748b' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: !formData.coleta ? '#f1f5f9' : 'white',
+                    color: !formData.coleta ? '#1e293b' : '#64748b',
+                    fontWeight: !formData.coleta ? '600' : '400',
                     fontSize: '0.875rem',
                     cursor: 'pointer',
                     transition: 'all 0.15s'

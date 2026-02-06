@@ -457,6 +457,12 @@ export default function MinhasEntregas() {
                       RETER RECEITA
                     </Badge>
                   )}
+                  {romaneio.coleta && (
+                    <Badge className="border" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', borderColor: '#4caf50' }}>
+                      <Package className="w-3 h-3 mr-1" />
+                      COLETA
+                    </Badge>
+                  )}
                   {deveSerCobrado && (
                     <Badge className="bg-orange-100 text-orange-700 border-orange-400 border-2 font-bold">
                       <DollarSign className="w-4 h-4 mr-1" />

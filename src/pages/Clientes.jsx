@@ -63,6 +63,8 @@ const REGIOES = [
   { value: "BC", label: "Balneário Camboriú (BC)" },
   { value: "NOVA ESPERANÇA", label: "Nova Esperança" },
   { value: "CAMBORIÚ", label: "Camboriú" },
+  { value: "TABULEIRO", label: "Tabuleiro" },
+  { value: "MONTE ALEGRE", label: "Monte Alegre" },
   { value: "BARRA", label: "Barra" },
   { value: "ESTALEIRO", label: "Estaleiro" },
   { value: "TAQUARAS", label: "Taquaras" },
@@ -70,6 +72,7 @@ const REGIOES = [
   { value: "PRAIA DOS AMORES", label: "Praia dos Amores" },
   { value: "PRAIA BRAVA", label: "Praia Brava" },
   { value: "ITAJAI", label: "Itajaí" },
+  { value: "ESPINHEIROS", label: "Espinheiros" },
   { value: "ITAPEMA", label: "Itapema" },
   { value: "NAVEGANTES", label: "Navegantes" },
   { value: "PENHA", label: "Penha" },
@@ -77,6 +80,7 @@ const REGIOES = [
   { value: "TIJUCAS", label: "Tijucas" },
   { value: "PIÇARRAS", label: "Piçarras" },
   { value: "BOMBINHAS", label: "Bombinhas" },
+  { value: "CLINICA", label: "Clínica" },
   { value: "OUTRO", label: "Outro" }
 ];
 
