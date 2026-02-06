@@ -63,22 +63,33 @@ export default function DetalheSedexDisktenha() {
 
   const updateMutation = useMutation({
     mutationFn: async (data) => {
-      const { error } = await supabase
+      console.log('📦 Dados enviados para update:', data);
+      const { data: result, error } = await supabase
         .from('sedex_disktenha')
         .update(data)
-        .eq('id', entregaId);
+        .eq('id', entregaId)
+        .select();
 
+      console.log('📦 Resultado do update:', { result, error });
       if (error) throw error;
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sedex-detalhe', entregaId] });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ['sedex-detalhe', entregaId] });
       queryClient.invalidateQueries({ queryKey: ['sedex-disktenha'] });
+      queryClient.invalidateQueries({ queryKey: ['sedex-disktenha-planilha'] });
       toast.success('Entrega atualizada com sucesso!');
       setShowEditDialog(false);
     },
     onError: (error) => {
-      console.error('Erro ao atualizar:', error);
-      toast.error('Erro ao atualizar entrega');
+      console.error('❌ Erro ao atualizar:', JSON.stringify(error, null, 2));
+      const code = error?.code;
+      const msg = error?.message || error?.details || '';
+      if (code === '23505' || msg.includes('duplicate') || msg.includes('unique')) {
+        toast.error('Código de rastreio já existe em outra entrega');
+      } else {
+        toast.error('Erro ao atualizar: ' + (msg || JSON.stringify(error)));
+      }
     }
   });
 
@@ -118,15 +129,22 @@ export default function DetalheSedexDisktenha() {
   };
 
   const handleSaveEdit = () => {
-    if (!editData.cliente || !editData.numero_requisicao) {
+    if (!editData.cliente) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
 
     updateMutation.mutate({
-      ...editData,
+      tipo: editData.tipo,
+      cliente: editData.cliente,
+      remetente: editData.remetente,
+      numero_requisicao: editData.numero_requisicao,
       codigo_rastreio: editData.codigo_rastreio || `PENDING-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       valor: parseFloat(editData.valor) || 0,
+      forma_pagamento: editData.forma_pagamento,
+      observacoes: editData.observacoes,
+      data_saida: editData.data_saida,
+      status: editData.status,
     });
   };
 
