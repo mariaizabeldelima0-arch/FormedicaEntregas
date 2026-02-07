@@ -32,7 +32,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         @media print {
           @page {
-            margin: 5mm;
+            margin: 0;
             size: auto;
           }
           html, body {
@@ -54,7 +54,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-page {
           font-family: Arial, sans-serif;
-          font-size: 12px;
+          font-size: 16px;
           color: #000;
           padding: 20px;
           max-width: 800px;
@@ -65,7 +65,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
         .print-header-top {
           display: flex;
           justify-content: space-between;
-          font-size: 11px;
+          font-size: 15px;
           color: #000;
           padding-bottom: 10px;
           border-bottom: 1px solid #000;
@@ -89,7 +89,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
         }
 
         .print-title h1 {
-          font-size: 18px;
+          font-size: 22px;
           font-weight: bold;
           margin: 0;
           color: #000;
@@ -114,7 +114,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-label {
           color: #000;
-          font-size: 11px;
+          font-size: 15px;
         }
 
         .print-value {
@@ -140,7 +140,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-section-title {
           font-weight: bold;
-          font-size: 11px;
+          font-size: 16px;
           margin-bottom: 10px;
           padding-bottom: 6px;
           border-bottom: 1px solid #000;
@@ -151,7 +151,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           display: flex;
           justify-content: space-between;
           margin-bottom: 6px;
-          font-size: 11px;
+          font-size: 15px;
           color: #000;
         }
 
@@ -170,26 +170,26 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-endereco-main {
           font-weight: bold;
-          font-size: 12px;
+          font-size: 16px;
           margin-bottom: 3px;
           color: #000;
         }
 
         .print-endereco-line {
-          font-size: 11px;
+          font-size: 15px;
           margin-bottom: 2px;
           color: #000;
         }
 
         .print-endereco-ref {
-          font-size: 11px;
+          font-size: 15px;
           color: #000;
           font-style: italic;
           margin-top: 3px;
         }
 
         .print-endereco-ac {
-          font-size: 11px;
+          font-size: 15px;
           margin-top: 3px;
           color: #000;
         }
@@ -201,7 +201,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           gap: 12px;
           padding: 12px 15px;
           margin-bottom: 10px;
-          font-size: 14px;
+          font-size: 18px;
           font-weight: bold;
           text-transform: uppercase;
           border: 2px solid #000;
@@ -220,7 +220,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           gap: 12px;
           padding: 12px 15px;
           margin-bottom: 10px;
-          font-size: 14px;
+          font-size: 18px;
           font-weight: bold;
           text-transform: uppercase;
           border: 2px solid #000;
@@ -239,7 +239,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           gap: 12px;
           padding: 12px 15px;
           margin-bottom: 10px;
-          font-size: 14px;
+          font-size: 18px;
           font-weight: bold;
           text-transform: uppercase;
           border: 2px solid #000;
@@ -257,7 +257,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           padding: 10px;
           margin-bottom: 10px;
           text-align: center;
-          font-size: 14px;
+          font-size: 18px;
           font-weight: bold;
           color: #000;
         }
@@ -268,7 +268,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-footer {
           text-align: center;
-          font-size: 9px;
+          font-size: 12px;
           color: #000;
           padding-top: 8px;
           border-top: 1px solid #000;

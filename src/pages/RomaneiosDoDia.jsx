@@ -58,48 +58,48 @@ function RomaneioCard({ romaneio }) {
       {/* Logo e Titulo */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
         <img src={`${import.meta.env.BASE_URL}logo-formedica.png`} alt="Formédica" style={{ width: '100px', height: 'auto', marginBottom: '5px' }} />
-        <h2 style={{ fontSize: '14px', fontWeight: 'bold', margin: 0 }}>ROMANEIO DE ENTREGA</h2>
+        <h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0 }}>ROMANEIO DE ENTREGA</h2>
       </div>
 
       {/* Info Principal e Cliente */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>DADOS DA ENTREGA</div>
-          <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>DADOS DA ENTREGA</div>
+          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>N. Requisição: </span>
             <span style={{ fontWeight: 'bold' }}>#{romaneio.requisicao || '0000'}</span>
           </div>
-          <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>Data: </span>
             <span>{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
           </div>
-          <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>Motoboy: </span>
             <span>{romaneio.motoboy?.nome || '-'}</span>
           </div>
-          <div style={{ fontSize: '9px' }}>
+          <div style={{ fontSize: '15px' }}>
             <span>Atendente: </span>
             <span>{romaneio.atendente_nome || '-'}</span>
           </div>
         </div>
 
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
-          <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
+          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>Nome: </span>
             <span>{romaneio.cliente?.nome || '-'}</span>
           </div>
-          <div style={{ fontSize: '9px' }}>
+          <div style={{ fontSize: '15px' }}>
             <span>Telefone: </span>
             <span>{romaneio.cliente?.telefone || '-'}</span>
           </div>
           {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
             <div key={idx} style={{ marginTop: '5px', paddingTop: '5px', borderTop: '1px dashed #ccc' }}>
-              <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+              <div style={{ fontSize: '15px', marginBottom: '3px' }}>
                 <span>Nome: </span>
                 <span>{cliente.nome}</span>
               </div>
-              <div style={{ fontSize: '9px' }}>
+              <div style={{ fontSize: '15px' }}>
                 <span>Telefone: </span>
                 <span>{cliente.telefone || '-'}</span>
               </div>
@@ -111,21 +111,21 @@ function RomaneioCard({ romaneio }) {
       {/* Endereco e Pagamento */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>ENDERECO DE ENTREGA</div>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '2px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>ENDERECO DE ENTREGA</div>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '2px' }}>
             {romaneio.endereco?.logradouro || '-'}, {romaneio.endereco?.numero || 'S/N'}
           </div>
-          <div style={{ fontSize: '9px', marginBottom: '2px' }}>
+          <div style={{ fontSize: '15px', marginBottom: '2px' }}>
             {romaneio.endereco?.bairro || '-'} - {romaneio.endereco?.cidade || romaneio.regiao || '-'}
           </div>
           {romaneio.endereco?.complemento && (
-            <div style={{ fontSize: '9px' }}>Compl.: {romaneio.endereco.complemento}</div>
+            <div style={{ fontSize: '15px' }}>Compl.: {romaneio.endereco.complemento}</div>
           )}
         </div>
 
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>PAGAMENTO</div>
-          <div style={{ fontSize: '9px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>PAGAMENTO</div>
+          <div style={{ fontSize: '15px' }}>
             <span>Forma de Pagamento: </span>
             <span>{romaneio.forma_pagamento || '-'}</span>
           </div>
@@ -135,8 +135,8 @@ function RomaneioCard({ romaneio }) {
       {/* Observações */}
       {romaneio.observacoes && (
         <div style={{ border: '1px solid #000', padding: '8px', marginBottom: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>OBSERVAÇÕES</div>
-          <div style={{ fontSize: '9px' }}>{romaneio.observacoes}</div>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>OBSERVAÇÕES</div>
+          <div style={{ fontSize: '15px' }}>{romaneio.observacoes}</div>
         </div>
       )}
 
@@ -151,7 +151,7 @@ function RomaneioCard({ romaneio }) {
               justifyContent: 'center',
               gap: '8px',
               padding: '8px',
-              fontSize: '11px',
+              fontSize: '18px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               border: '2px solid #000',
@@ -170,15 +170,15 @@ function RomaneioCard({ romaneio }) {
               justifyContent: 'center',
               gap: '8px',
               padding: '8px',
-              fontSize: '11px',
+              fontSize: '18px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               border: '2px solid #000',
               background: '#fff'
             }}>
-              <FileText size={14} />
+              <FileText size={20} />
               <span>RETER RECEITA</span>
-              <FileText size={14} />
+              <FileText size={20} />
             </div>
           )}
           {romaneio.coleta && (
@@ -189,15 +189,15 @@ function RomaneioCard({ romaneio }) {
               justifyContent: 'center',
               gap: '8px',
               padding: '8px',
-              fontSize: '11px',
+              fontSize: '18px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               border: '2px solid #000',
               background: '#fff'
             }}>
-              <Package size={14} />
+              <Package size={20} />
               <span>COLETA</span>
-              <Package size={14} />
+              <Package size={20} />
             </div>
           )}
         </div>
@@ -213,7 +213,7 @@ function RomaneioCard({ romaneio }) {
               border: '2px solid #000',
               padding: '8px',
               textAlign: 'center',
-              fontSize: '12px',
+              fontSize: '18px',
               fontWeight: 'bold'
             }}>
               $ COBRAR NA ENTREGA: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
@@ -226,7 +226,7 @@ function RomaneioCard({ romaneio }) {
               border: '2px solid #000',
               padding: '8px',
               textAlign: 'center',
-              fontSize: '12px',
+              fontSize: '18px',
               fontWeight: 'bold'
             }}>
               TROCO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
@@ -385,6 +385,9 @@ export default function RomaneiosDoDia() {
       {/* Estilos para impressão */}
       <style>{`
         @media print {
+          @page {
+            margin: 0;
+          }
           .no-print {
             display: none !important;
           }
@@ -396,6 +399,11 @@ export default function RomaneiosDoDia() {
             border: 1px solid #000 !important;
             margin-bottom: 10px !important;
             padding: 10px !important;
+            margin-left: 15px !important;
+            margin-right: 15px !important;
+          }
+          .romaneio-card:first-child {
+            margin-top: 15px !important;
           }
           .romaneios-grid {
             display: block !important;
