@@ -332,7 +332,9 @@ export default function EditarRomaneio() {
     buscar_receita: false,
     coleta: false,
     observacoes: '',
-    valor_venda: 0
+    valor_venda: 0,
+    precisa_troco: false,
+    valor_troco: 0
   });
 
   // Formas de pagamento que precisam informar valor da venda
@@ -532,7 +534,9 @@ export default function EditarRomaneio() {
           buscar_receita: entrega.buscar_receita || false,
           coleta: entrega.coleta || false,
           observacoes: entrega.observacoes || '',
-          valor_venda: entrega.valor_venda || 0
+          valor_venda: entrega.valor_venda || 0,
+          precisa_troco: entrega.precisa_troco || false,
+          valor_troco: entrega.valor_troco || 0
         });
 
         // Inicializar campo de busca de forma de pagamento
@@ -985,6 +989,13 @@ export default function EditarRomaneio() {
       }
     }
 
+    // Validar troco quando forma de pagamento é "Receber Dinheiro"
+    if (formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco) {
+      if (!formData.valor_troco || formData.valor_troco <= 0) {
+        novosErros.valor_troco = 'Informe o valor do troco';
+      }
+    }
+
     setErrors(novosErros);
     return Object.keys(novosErros).length === 0;
   };
@@ -1233,6 +1244,8 @@ export default function EditarRomaneio() {
           observacoes: formData.observacoes,
           clientes_adicionais: clientesAdicionais,
           valor_venda: formasPagamentoComValorVenda.includes(formData.forma_pagamento) ? formData.valor_venda : 0,
+          precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,
+          valor_troco: formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco ? formData.valor_troco : 0,
           // Atualizar snapshot com dados atuais do endereço
           ...enderecoSnapshot
         })
@@ -2279,6 +2292,104 @@ export default function EditarRomaneio() {
                 }}>
                   Informe o valor a ser cobrado nesta entrega.
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Precisa de troco? - apenas para Receber Dinheiro */}
+          {formData.forma_pagamento === 'Receber Dinheiro' && (
+            <div style={{
+              marginBottom: '1rem',
+              padding: '1rem',
+              background: '#fff9e6',
+              border: '2px solid #ffc107',
+              borderRadius: '0.5rem'
+            }}>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: '#f57c00',
+                  marginBottom: '0.5rem'
+                }}>
+                  Precisa de troco?
+                </label>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}>
+                    <input
+                      type="radio"
+                      name="precisa_troco"
+                      checked={formData.precisa_troco === true}
+                      onChange={() => setFormData({...formData, precisa_troco: true})}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    Sim
+                  </label>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}>
+                    <input
+                      type="radio"
+                      name="precisa_troco"
+                      checked={formData.precisa_troco === false}
+                      onChange={() => setFormData({...formData, precisa_troco: false, valor_troco: 0})}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    Não
+                  </label>
+                </div>
+              </div>
+
+              {formData.precisa_troco && (
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: '#f57c00',
+                    marginBottom: '0.5rem'
+                  }}>
+                    Valor do Troco (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.valor_troco || ''}
+                    onChange={(e) => setFormData({...formData, valor_troco: parseFloat(e.target.value) || 0})}
+                    placeholder="Ex: 50.00"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `2px solid ${errors.valor_troco ? theme.colors.danger : '#ffc107'}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      background: 'white'
+                    }}
+                  />
+                  {errors.valor_troco && (
+                    <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                      {errors.valor_troco}
+                    </p>
+                  )}
+                  <p style={{
+                    fontSize: '0.75rem',
+                    color: '#f57c00',
+                    marginTop: '0.25rem',
+                    fontWeight: '500'
+                  }}>
+                    Cliente pagará com quanto? Informe o valor para calcular o troco.
+                  </p>
+                </div>
               )}
             </div>
           )}
