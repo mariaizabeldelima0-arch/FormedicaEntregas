@@ -107,7 +107,7 @@ const MOTOBOY_POR_REGIAO = {
   'PRAIA DOS AMORES': 'Bruno',
   'PRAIA BRAVA': 'Bruno',
   'ITAPEMA': 'Bruno',
-  'NAVEGANTES': 'Bruno',
+  'NAVEGANTES': 'Marcio',
   'PENHA': 'Bruno',
   'PORTO BELO': 'Bruno',
   'TIJUCAS': 'Bruno',
@@ -197,12 +197,14 @@ const MAPEAMENTO_REGIOES = {
     'centro': 'ITAJAI',
     'vila real': 'ITAJAI',
     'espinheiros': 'ESPINHEIROS',
+    'praia brava': 'PRAIA BRAVA',
     'default': 'ITAJAI'
   },
   'itajai': {
     'centro': 'ITAJAI',
     'vila real': 'ITAJAI',
     'espinheiros': 'ESPINHEIROS',
+    'praia brava': 'PRAIA BRAVA',
     'default': 'ITAJAI'
   },
   'itapema': {

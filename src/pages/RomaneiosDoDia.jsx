@@ -12,11 +12,14 @@ import {
   Filter,
   X,
   FileText,
-  Package
+  Package,
+  CheckSquare,
+  Square,
+  CheckCircle
 } from 'lucide-react';
 
 // Componente de impressão individual do romaneio (versão para tela)
-function RomaneioCard({ romaneio }) {
+function RomaneioCard({ romaneio, extraClass = '' }) {
   if (!romaneio) return null;
 
   const formatarData = (data) => {
@@ -32,7 +35,7 @@ function RomaneioCard({ romaneio }) {
   );
 
   return (
-    <div className="romaneio-card" style={{ position: 'relative' }}>
+    <div className={`romaneio-card${extraClass}`} style={{ position: 'relative' }}>
       {/* Carimbo PAGO */}
       {isPago && (
         <div className="carimbo-pago" style={{
@@ -253,6 +256,12 @@ export default function RomaneiosDoDia() {
     status: ''
   });
   const [showFiltros, setShowFiltros] = useState(false);
+  const [selecionados, setSelecionados] = useState(new Set());
+  const [impressos, setImpressos] = useState(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('romaneios_impressos') || '[]'));
+    } catch { return new Set(); }
+  });
 
   // Carregar romaneios do dia
   const loadRomaneios = async () => {
@@ -340,10 +349,14 @@ export default function RomaneiosDoDia() {
       const matchCliente = romaneio.cliente?.nome?.toLowerCase().includes(busca);
       const matchRequisicao = romaneio.requisicao?.toLowerCase().includes(busca);
       const matchEndereco = romaneio.endereco?.logradouro?.toLowerCase().includes(busca) ||
-                           romaneio.endereco?.bairro?.toLowerCase().includes(busca);
+                           romaneio.endereco?.bairro?.toLowerCase().includes(busca) ||
+                           romaneio.endereco?.cidade?.toLowerCase().includes(busca) ||
+                           romaneio.endereco?.complemento?.toLowerCase().includes(busca);
       const matchMotoboy = romaneio.motoboy?.nome?.toLowerCase().includes(busca);
+      const matchAtendente = romaneio.atendente_nome?.toLowerCase().includes(busca);
+      const matchTelefone = romaneio.cliente?.telefone?.toLowerCase().includes(busca);
 
-      if (!matchCliente && !matchRequisicao && !matchEndereco && !matchMotoboy) {
+      if (!matchCliente && !matchRequisicao && !matchEndereco && !matchMotoboy && !matchAtendente && !matchTelefone) {
         return false;
       }
     }
@@ -369,8 +382,48 @@ export default function RomaneiosDoDia() {
   // Obter lista única de motoboys
   const motoboys = [...new Set(romaneios.map(r => r.motoboy?.nome).filter(Boolean))];
 
-  // Imprimir todos
-  const handlePrintAll = () => {
+  // Seleção de romaneios
+  const toggleSelecionado = (id) => {
+    setSelecionados(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selecionarTodos = () => {
+    setSelecionados(new Set(romaneiosFiltrados.map(r => r.id)));
+  };
+
+  const deselecionarTodos = () => {
+    setSelecionados(new Set());
+  };
+
+  // Imprimir selecionados (ou todos se nenhum selecionado)
+  const handlePrint = () => {
+    const idsParaImprimir = selecionados.size > 0
+      ? [...selecionados]
+      : romaneiosFiltrados.map(r => r.id);
+
+    const marcarComoImpressos = () => {
+      const novosImpressos = new Set(impressos);
+      idsParaImprimir.forEach(id => novosImpressos.add(id));
+      setImpressos(novosImpressos);
+      localStorage.setItem('romaneios_impressos', JSON.stringify([...novosImpressos]));
+    };
+
+    const onAfterPrint = () => {
+      window.removeEventListener('afterprint', onAfterPrint);
+      setTimeout(() => {
+        if (window.confirm('A impressão foi realizada com sucesso?')) {
+          marcarComoImpressos();
+          toast.success(`${idsParaImprimir.length} romaneio(s) marcado(s) como impresso(s)`);
+        }
+      }, 300);
+    };
+
+    window.addEventListener('afterprint', onAfterPrint);
     window.print();
   };
 
@@ -394,6 +447,12 @@ export default function RomaneiosDoDia() {
           .print-container {
             padding: 0 !important;
           }
+          .romaneio-wrapper {
+            break-inside: avoid;
+          }
+          .romaneio-wrapper.hide-print {
+            display: none !important;
+          }
           .romaneio-card {
             page-break-inside: avoid;
             border: 1px solid #000 !important;
@@ -411,6 +470,9 @@ export default function RomaneiosDoDia() {
           .romaneios-grid > div {
             break-inside: avoid;
           }
+          .checkbox-overlay {
+            display: none !important;
+          }
         }
 
         @media screen {
@@ -420,6 +482,14 @@ export default function RomaneiosDoDia() {
             padding: 15px;
             background: white;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          }
+          .romaneio-card.impresso {
+            border: 3px solid #457bba !important;
+            box-shadow: 0 0 0 1px #457bba, 0 1px 3px rgba(0,0,0,0.1);
+          }
+          .romaneio-card.selecionado {
+            outline: 3px solid #22c55e;
+            outline-offset: 2px;
           }
         }
       `}</style>
@@ -443,16 +513,18 @@ export default function RomaneiosDoDia() {
                   <p className="text-white/80 text-xs sm:text-sm mt-0.5 sm:mt-1">{formatarDataExibicao(selectedDate)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 pl-8 sm:pl-0">
+              <div className="flex items-center gap-2 pl-8 sm:pl-0">
                 <button
-                  onClick={handlePrintAll}
+                  onClick={handlePrint}
                   className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white rounded-lg font-semibold text-xs sm:text-sm hover:bg-gray-100 transition-colors"
                   style={{ color: '#890d5d' }}
                 >
                   <Printer size={16} className="sm:w-[18px] sm:h-[18px]" />
-                  <span className="hidden sm:inline">Imprimir Todos</span>
+                  <span className="hidden sm:inline">
+                    {selecionados.size > 0 ? `Imprimir Selecionados` : 'Imprimir Todos'}
+                  </span>
                   <span className="sm:hidden">Imprimir</span>
-                  <span>({romaneiosFiltrados.length})</span>
+                  <span>({selecionados.size > 0 ? selecionados.size : romaneiosFiltrados.length})</span>
                 </button>
               </div>
             </div>
@@ -479,7 +551,7 @@ export default function RomaneiosDoDia() {
                   type="text"
                   value={filtros.busca}
                   onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })}
-                  placeholder="Buscar cliente, requisição..."
+                  placeholder="Buscar requisição, atendente, telefone, cliente, endereço..."
                   className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
@@ -569,9 +641,62 @@ export default function RomaneiosDoDia() {
             </div>
           ) : (
             <>
-              {/* Contador */}
-              <div className="no-print mb-4 text-sm text-slate-600">
-                Mostrando {romaneiosFiltrados.length} romaneio(s)
+              {/* Filtro rápido por Motoboy */}
+              <div className="no-print mb-3 flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-slate-600 mr-1">Motoboy:</span>
+                <button
+                  onClick={() => setFiltros({ ...filtros, motoboy: '' })}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    !filtros.motoboy
+                      ? 'bg-[#457bba] text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Todos
+                </button>
+                {motoboys.map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setFiltros({ ...filtros, motoboy: filtros.motoboy === m ? '' : m })}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                      filtros.motoboy === m
+                        ? 'bg-[#457bba] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+
+              {/* Controles de seleção e contador */}
+              <div className="no-print mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="text-sm text-slate-600">
+                  Mostrando {romaneiosFiltrados.length} romaneio(s)
+                  {selecionados.size > 0 && (
+                    <span className="ml-2 text-green-600 font-medium">
+                      • {selecionados.size} selecionado(s)
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={selecionarTodos}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-slate-700"
+                  >
+                    <CheckSquare size={14} />
+                    Selecionar Todos
+                  </button>
+                  {selecionados.size > 0 && (
+                    <button
+                      onClick={deselecionarTodos}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-slate-700"
+                    >
+                      <Square size={14} />
+                      Limpar Seleção
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Grid de Romaneios - 2 por linha */}
@@ -580,9 +705,66 @@ export default function RomaneiosDoDia() {
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: '16px'
               }}>
-                {romaneiosFiltrados.map((romaneio) => (
-                  <RomaneioCard key={romaneio.id} romaneio={romaneio} />
-                ))}
+                {romaneiosFiltrados.map((romaneio) => {
+                  const isSelecionado = selecionados.has(romaneio.id);
+                  const isImpresso = impressos.has(romaneio.id);
+                  const hideOnPrint = selecionados.size > 0 && !isSelecionado;
+
+                  return (
+                    <div
+                      key={romaneio.id}
+                      className={`romaneio-wrapper${hideOnPrint ? ' hide-print' : ''}`}
+                      style={{ position: 'relative', cursor: 'pointer' }}
+                      onClick={() => toggleSelecionado(romaneio.id)}
+                    >
+                      {/* Checkbox overlay */}
+                      <div className="checkbox-overlay no-print" style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        zIndex: 20,
+                        background: 'white',
+                        borderRadius: '4px',
+                        padding: '2px'
+                      }}>
+                        {isSelecionado ? (
+                          <CheckSquare size={24} className="text-green-500" />
+                        ) : (
+                          <Square size={24} className="text-slate-300" />
+                        )}
+                      </div>
+
+                      {/* Badge impresso */}
+                      {isImpresso && (
+                        <div className="no-print" style={{
+                          position: 'absolute',
+                          top: '8px',
+                          left: '8px',
+                          zIndex: 20,
+                          background: '#457bba',
+                          color: 'white',
+                          borderRadius: '4px',
+                          padding: '2px 8px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <CheckCircle size={12} />
+                          Impresso
+                        </div>
+                      )}
+
+                      <div className={`romaneio-card-inner`}>
+                        <RomaneioCard
+                          romaneio={romaneio}
+                          extraClass={`${isSelecionado ? ' selecionado' : ''}${isImpresso ? ' impresso' : ''}`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
