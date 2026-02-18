@@ -1071,10 +1071,10 @@ function EntregaCard({
             )}
 
             {/* Horário de entrega - Destaque */}
-            {entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
+            {(entrega.horario_entrega || entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
               <div className="mb-2">
                 <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }}>
-                  ⏰ {entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                  ⏰ {entrega.horario_entrega || entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                 </span>
               </div>
             )}

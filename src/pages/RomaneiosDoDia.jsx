@@ -76,9 +76,9 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
             <span>Data: </span>
             <span>{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
           </div>
-          {romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
+          {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
             <div style={{ fontSize: '15px', marginBottom: '3px', fontWeight: 'bold', border: '2px solid #000', padding: '3px 8px', display: 'inline-block' }}>
-              HORÁRIO: {romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1].toUpperCase()}
+              HORÁRIO: {(romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]).toUpperCase()}
             </div>
           )}
           <div style={{ fontSize: '15px', marginBottom: '3px' }}>

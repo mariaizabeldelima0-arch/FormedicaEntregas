@@ -1384,9 +1384,9 @@ export default function EntregasMoto() {
                                   <span>{entrega.periodo}</span>
                                 </div>
                               )}
-                              {entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
+                              {(entrega.horario_entrega || entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
                                 <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '0.7rem' }}>
-                                  {entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                                  {entrega.horario_entrega || entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                                 </span>
                               )}
                               {entrega.forma_pagamento && (
@@ -1594,9 +1594,9 @@ export default function EntregasMoto() {
                                   <span>{entrega.periodo}</span>
                                 </div>
                               )}
-                              {entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
+                              {(entrega.horario_entrega || entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
                                 <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '0.7rem' }}>
-                                  {entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                                  {entrega.horario_entrega || entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                                 </span>
                               )}
                               {entrega.forma_pagamento && (

@@ -747,9 +747,9 @@ export default function DetalhesRomaneio() {
                       <div className="text-base font-semibold text-slate-900">
                         {romaneio.periodo}
                       </div>
-                      {romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
+                      {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
                         <div style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '4px', fontWeight: '700', fontSize: '0.8rem', display: 'inline-block', marginTop: '4px' }}>
-                          {romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                          {romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                         </div>
                       )}
                     </div>

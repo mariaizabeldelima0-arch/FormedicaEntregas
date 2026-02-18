@@ -976,9 +976,9 @@ export default function PlanilhaDiaria() {
                             </span>
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
-                            {rom.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1] ? (
+                            {(rom.horario_entrega || rom.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) ? (
                               <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 5px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                                {rom.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                                {rom.horario_entrega || rom.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                               </span>
                             ) : '-'}
                           </td>
