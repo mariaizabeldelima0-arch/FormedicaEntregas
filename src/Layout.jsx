@@ -39,7 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import DeviceGuard from "@/components/DeviceGuard";
+
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -146,7 +146,6 @@ export default function Layout({ children, currentPageName }) {
   };
 
   return (
-    <DeviceGuard>
     <SidebarProvider>
       <style>{`
         :root {
@@ -296,6 +295,5 @@ export default function Layout({ children, currentPageName }) {
         </main>
       </div>
     </SidebarProvider>
-    </DeviceGuard>
   );
 }

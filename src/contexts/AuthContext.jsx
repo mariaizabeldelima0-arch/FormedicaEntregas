@@ -4,17 +4,19 @@ import { supabase } from '@/api/supabaseClient';
 const AuthContext = createContext();
 
 // Gerar fingerprint único do dispositivo/navegador
+// Persiste no localStorage para não mudar quando o navegador atualiza
 const gerarFingerprint = () => {
+  const salvo = localStorage.getItem('formedica_device_fingerprint');
+  if (salvo) return salvo;
+
   const navegador = navigator.userAgent;
   const plataforma = navigator.platform;
   const idioma = navigator.language;
   const tela = `${screen.width}x${screen.height}x${screen.colorDepth}`;
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  // Criar uma string única combinando as informações
   const dados = `${navegador}|${plataforma}|${idioma}|${tela}|${timezone}`;
 
-  // Gerar um hash simples da string
   let hash = 0;
   for (let i = 0; i < dados.length; i++) {
     const char = dados.charCodeAt(i);
@@ -22,7 +24,9 @@ const gerarFingerprint = () => {
     hash = hash & hash;
   }
 
-  return Math.abs(hash).toString(16).toUpperCase();
+  const fingerprint = Math.abs(hash).toString(16).toUpperCase();
+  localStorage.setItem('formedica_device_fingerprint', fingerprint);
+  return fingerprint;
 };
 
 // Obter nome do dispositivo/navegador
