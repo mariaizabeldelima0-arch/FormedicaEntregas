@@ -747,6 +747,11 @@ export default function DetalhesRomaneio() {
                       <div className="text-base font-semibold text-slate-900">
                         {romaneio.periodo}
                       </div>
+                      {romaneio.horario_entrega && (
+                        <div style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '4px', fontWeight: '700', fontSize: '0.8rem', display: 'inline-block', marginTop: '4px' }}>
+                          {romaneio.horario_entrega}
+                        </div>
+                      )}
                     </div>
                   </div>
 

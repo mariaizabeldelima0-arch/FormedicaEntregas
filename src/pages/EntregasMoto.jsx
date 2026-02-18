@@ -1384,6 +1384,11 @@ export default function EntregasMoto() {
                                   <span>{entrega.periodo}</span>
                                 </div>
                               )}
+                              {entrega.horario_entrega && (
+                                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '0.7rem' }}>
+                                  {entrega.horario_entrega}
+                                </span>
+                              )}
                               {entrega.forma_pagamento && (
                                 <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                                   <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
@@ -1588,6 +1593,11 @@ export default function EntregasMoto() {
                                   <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.periodo}</span>
                                 </div>
+                              )}
+                              {entrega.horario_entrega && (
+                                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '0.7rem' }}>
+                                  {entrega.horario_entrega}
+                                </span>
                               )}
                               {entrega.forma_pagamento && (
                                 <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">

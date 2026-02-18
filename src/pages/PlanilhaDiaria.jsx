@@ -866,6 +866,7 @@ export default function PlanilhaDiaria() {
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Valor a Cobrar</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Troco</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Período</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Horário</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Status</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Receita</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Moto</th>
@@ -876,13 +877,13 @@ export default function PlanilhaDiaria() {
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 16 : 15} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 17 : 16} className="p-8 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : romaneiosOrdenados.length === 0 ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 16 : 15} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 17 : 16} className="p-8 text-center text-slate-500">
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
@@ -973,6 +974,13 @@ export default function PlanilhaDiaria() {
                             }}>
                               {rom.periodo || '-'}
                             </span>
+                          </td>
+                          <td className="px-2 py-1.5 border-r border-slate-200">
+                            {rom.horario_entrega ? (
+                              <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 5px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                                {rom.horario_entrega}
+                              </span>
+                            ) : '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <CustomDropdown

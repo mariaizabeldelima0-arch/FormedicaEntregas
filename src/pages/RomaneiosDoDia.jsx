@@ -76,6 +76,11 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
             <span>Data: </span>
             <span>{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
           </div>
+          {romaneio.horario_entrega && (
+            <div style={{ fontSize: '15px', marginBottom: '3px', fontWeight: 'bold', border: '2px solid #000', padding: '3px 8px', display: 'inline-block' }}>
+              HORÁRIO: {romaneio.horario_entrega.toUpperCase()}
+            </div>
+          )}
           <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>Motoboy: </span>
             <span>{romaneio.motoboy?.nome || '-'}</span>

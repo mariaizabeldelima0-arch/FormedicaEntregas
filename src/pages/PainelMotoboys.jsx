@@ -1070,6 +1070,15 @@ function EntregaCard({
               </a>
             )}
 
+            {/* Horário de entrega - Destaque */}
+            {entrega.horario_entrega && (
+              <div className="mb-2">
+                <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }}>
+                  ⏰ {entrega.horario_entrega}
+                </span>
+              </div>
+            )}
+
             {/* Badges inline - Compactos */}
             {(entrega.item_geladeira || entrega.buscar_receita || entrega.reter_receita || entrega.coleta) && (
               <div className="flex flex-wrap gap-1 mb-2">

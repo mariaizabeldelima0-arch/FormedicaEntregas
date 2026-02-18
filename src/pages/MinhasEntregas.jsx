@@ -481,6 +481,11 @@ export default function MinhasEntregas() {
             <Badge variant="outline" className="text-xs">
               {romaneio.periodo_entrega}
             </Badge>
+            {romaneio.horario_entrega && (
+              <Badge style={{ backgroundColor: '#dbeafe', color: '#1e40af', fontWeight: '700', fontSize: '0.65rem' }}>
+                {romaneio.horario_entrega}
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

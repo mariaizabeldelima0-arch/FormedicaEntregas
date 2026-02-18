@@ -176,7 +176,8 @@ export default function Dashboard() {
         item_geladeira: entrega.item_geladeira,
         buscar_receita: entrega.buscar_receita,
         observacoes: entrega.observacoes,
-        endereco: entrega.endereco_destino
+        endereco: entrega.endereco_destino,
+        horario_entrega: entrega.horario_entrega
       }));
     },
     enabled: !!user,
@@ -740,6 +741,11 @@ export default function Dashboard() {
                                     <Badge variant="outline" className="text-xs">
                                       {romaneio.periodo_entrega}
                                     </Badge>
+                                    {romaneio.horario_entrega && (
+                                      <Badge style={{ backgroundColor: '#dbeafe', color: '#1e40af', fontWeight: '700' }}>
+                                        {romaneio.horario_entrega}
+                                      </Badge>
+                                    )}
                                     {romaneio.valor_entrega && (
                                       <Badge className="bg-purple-100 text-purple-700 border-purple-300 border">
                                         Taxa: R$ {romaneio.valor_entrega.toFixed(2)}
@@ -792,6 +798,11 @@ export default function Dashboard() {
                                   <div className="text-xs text-slate-400 mt-1">
                                     {romaneio.periodo_entrega}
                                   </div>
+                                  {romaneio.horario_entrega && (
+                                    <div style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '1px 5px', borderRadius: '4px', fontWeight: '700', fontSize: '0.65rem', marginTop: '2px', display: 'inline-block' }}>
+                                      {romaneio.horario_entrega}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </Link>

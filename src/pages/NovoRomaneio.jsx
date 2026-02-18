@@ -365,7 +365,10 @@ export default function NovoRomaneio() {
     observacoes: '',
     precisa_troco: false,
     valor_troco: 0,
-    valor_venda: 0
+    valor_venda: 0,
+    tipo_horario: '',
+    hora1: '',
+    hora2: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -1172,6 +1175,12 @@ export default function NovoRomaneio() {
         item_geladeira: formData.item_geladeira,
         buscar_receita: formData.buscar_receita,
         coleta: formData.coleta,
+        horario_entrega: formData.tipo_horario ? (
+          formData.tipo_horario === 'de_ate' ? `de ${formData.hora1}H até ${formData.hora2}H` :
+          formData.tipo_horario === 'ate' ? `até ${formData.hora1}H` :
+          formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}H` :
+          formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}H` : null
+        ) : null,
         observacoes: formData.observacoes,
         atendente: user?.usuario || '',
         atendente_id: user?.id || null,
@@ -2335,6 +2344,76 @@ export default function NovoRomaneio() {
                 }}
               />
             </div>
+          </div>
+
+          {/* Horário de Entrega */}
+          <div className="mb-3 sm:mb-4" style={{ padding: '0.75rem', border: formData.tipo_horario ? '2px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '0.5rem', backgroundColor: formData.tipo_horario ? '#eff6ff' : 'white' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
+              Horário de Entrega (opcional)
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: formData.tipo_horario ? '0.75rem' : 0 }}>
+              {[
+                { value: 'de_ate', label: 'de H até H' },
+                { value: 'ate', label: 'até H' },
+                { value: 'antes', label: 'antes das H' },
+                { value: 'depois', label: 'depois das H' }
+              ].map(opt => (
+                <button key={opt.value} type="button"
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    tipo_horario: prev.tipo_horario === opt.value ? '' : opt.value,
+                    hora1: prev.tipo_horario === opt.value ? '' : (prev.hora1 || '8'),
+                    hora2: prev.tipo_horario === opt.value ? '' : (prev.hora2 || '12')
+                  }))}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    border: formData.tipo_horario === opt.value ? '2px solid #2563eb' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: formData.tipo_horario === opt.value ? '#dbeafe' : 'white',
+                    color: formData.tipo_horario === opt.value ? '#1e40af' : '#64748b',
+                    fontWeight: formData.tipo_horario === opt.value ? '600' : '400',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              {formData.tipo_horario && (
+                <button type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, tipo_horario: '', hora1: '', hora2: '' }))}
+                  style={{ padding: '0.4rem 0.75rem', border: '2px solid #fca5a5', borderRadius: '0.5rem', background: '#fef2f2', color: '#dc2626', fontWeight: '500', fontSize: '0.8rem', cursor: 'pointer' }}
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+            {formData.tipo_horario && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {formData.tipo_horario === 'de_ate' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>de</span>}
+                {formData.tipo_horario === 'ate' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>até</span>}
+                {formData.tipo_horario === 'antes' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>antes das</span>}
+                {formData.tipo_horario === 'depois' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>depois das</span>}
+                <select value={formData.hora1} onChange={e => setFormData(prev => ({ ...prev, hora1: e.target.value }))}
+                  style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white' }}>
+                  {Array.from({ length: 13 }, (_, i) => i + 7).map(h => (
+                    <option key={h} value={String(h)}>{h}H</option>
+                  ))}
+                </select>
+                {formData.tipo_horario === 'de_ate' && (
+                  <>
+                    <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>até</span>
+                    <select value={formData.hora2} onChange={e => setFormData(prev => ({ ...prev, hora2: e.target.value }))}
+                      style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white' }}>
+                      {Array.from({ length: 13 }, (_, i) => i + 7).map(h => (
+                        <option key={h} value={String(h)}>{h}H</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Grid: Item de Geladeira, Buscar Receita e Coleta */}
