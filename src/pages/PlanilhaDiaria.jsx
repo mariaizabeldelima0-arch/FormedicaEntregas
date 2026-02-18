@@ -1111,6 +1111,8 @@ export default function PlanilhaDiaria() {
                   <thead>
                     <tr className="bg-blue-50 border-b border-blue-200">
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Tipo</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Atendente</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Requisição</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Cliente</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Remetente</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Código Rastreio</th>
@@ -1118,19 +1120,20 @@ export default function PlanilhaDiaria() {
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Forma de Pgto</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Data Saída</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Status</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700">Observações</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-blue-200">Observações</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 print-hide">Ver</th>
                     </tr>
                   </thead>
                   <tbody>
                     {isLoadingSedex ? (
                       <tr>
-                        <td colSpan="9" className="p-8 text-center text-slate-500">
+                        <td colSpan="12" className="p-8 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : sedexDisktenha.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="p-8 text-center text-slate-500">
+                        <td colSpan="12" className="p-8 text-center text-slate-500">
                           Nenhuma entrega Sedex/Disktenha encontrada
                         </td>
                       </tr>
@@ -1155,6 +1158,12 @@ export default function PlanilhaDiaria() {
                             }`}>
                               {entrega.tipo}
                             </span>
+                          </td>
+                          <td className="px-2 py-1.5 border-r border-blue-200 text-slate-600">
+                            {entrega.atendente || '-'}
+                          </td>
+                          <td className="px-2 py-1.5 border-r border-blue-200 text-slate-700">
+                            {entrega.numero_requisicao || '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-blue-200 font-medium text-slate-800">
                             {entrega.cliente}
@@ -1190,8 +1199,17 @@ export default function PlanilhaDiaria() {
                               className="text-[10px]"
                             />
                           </td>
-                          <td className="px-2 py-1.5 text-slate-600 max-w-[200px] truncate">
+                          <td className="px-2 py-1.5 border-r border-blue-200 text-slate-600 max-w-[200px] truncate">
                             {entrega.observacoes || '-'}
+                          </td>
+                          <td className="px-2 py-1.5 print-hide">
+                            <Link
+                              to={`/sedex-detalhes?id=${entrega.id}`}
+                              className="hover:opacity-80 transition-opacity"
+                              style={{ color: '#890d5d' }}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
                           </td>
                         </tr>
                       ))
