@@ -648,7 +648,7 @@ export default function PainelMotoboys() {
                     <span className="text-slate-500 w-10 sm:w-auto">{format(dia.data, 'dd/MM')}</span>
                     <span className="text-slate-500 w-5 sm:w-auto">{dia.quantidade}x</span>
                     <span className={`font-semibold w-14 sm:w-auto text-right ${dia.valor > 0 ? 'text-green-600' : 'text-slate-400'}`}>
-                      R$ {dia.valor.toFixed(0)}
+                      R$ {dia.valor.toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -1123,7 +1123,7 @@ function EntregaCard({
           {/* Valor - Lado direito */}
           <div className="text-right flex-shrink-0">
             <div className="text-sm sm:text-lg font-bold" style={{ color: '#376295' }}>
-              R$ {(parseFloat(entrega.valor) || 0).toFixed(0)}
+              R$ {(parseFloat(entrega.valor) || 0).toFixed(2)}
             </div>
             <div className="text-[10px] sm:text-xs font-medium text-slate-500">
               {entrega.regiao || entrega.endereco?.cidade}

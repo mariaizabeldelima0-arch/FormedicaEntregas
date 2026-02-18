@@ -261,6 +261,12 @@ const detectarRegiao = (cidade, bairro) => {
     if (bairroOriginal && mapa[bairroOriginal]) {
       return mapa[bairroOriginal];
     }
+    // Busca parcial: "praia brava de itajaí" contém "praia brava"
+    for (const [chave, regiao] of Object.entries(mapa)) {
+      if (chave !== 'default' && bairroLower.includes(chave)) {
+        return regiao;
+      }
+    }
     // Usar região padrão da cidade
     return mapa.default;
   }

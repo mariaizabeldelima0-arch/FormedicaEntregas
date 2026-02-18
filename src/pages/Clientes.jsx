@@ -266,7 +266,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
     };
 
     for (const [chave, regiao] of Object.entries(mapaBairro)) {
-      if (bairroNorm === chave && regiao) return regiao;
+      if ((bairroNorm === chave || bairroNorm.includes(chave)) && regiao) return regiao;
     }
 
     // Verificar cidade

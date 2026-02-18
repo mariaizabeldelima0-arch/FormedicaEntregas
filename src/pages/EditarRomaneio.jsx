@@ -261,6 +261,12 @@ const detectarRegiao = (cidade, bairro) => {
     if (bairroOriginal && mapa[bairroOriginal]) {
       return mapa[bairroOriginal];
     }
+    // Busca parcial: "praia brava de itajaí" contém "praia brava"
+    for (const [chave, regiao] of Object.entries(mapa)) {
+      if (chave !== 'default' && bairroLower.includes(chave)) {
+        return regiao;
+      }
+    }
     // Usar região padrão da cidade
     return mapa.default;
   }
@@ -926,8 +932,9 @@ export default function EditarRomaneio() {
     }
   }, [formData.motoboy, formData.data_entrega, formData.periodo]);
 
-  // Recalcular valor quando isEntregaUnica mudar
+  // Recalcular valor quando isEntregaUnica mudar (apenas se não for carregamento inicial)
   useEffect(() => {
+    if (carregamentoInicialRef.current) return;
     if (formData.motoboy === 'Bruno' && formData.regiao && formData.regiao !== 'OUTRO') {
       const novoValor = calcularValor(formData.regiao, formData.motoboy, isEntregaUnica);
       setFormData(prev => ({
