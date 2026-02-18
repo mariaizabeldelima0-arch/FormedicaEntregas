@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
+import BannerAtualizacao from '@/components/BannerAtualizacao';
 
 // Ícones SVG simples
 const Icons = {
@@ -466,6 +467,7 @@ export default function Layout({ children }) {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {children}
       </div>
+      <BannerAtualizacao />
     </div>
   );
 }
