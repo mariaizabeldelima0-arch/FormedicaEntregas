@@ -1384,9 +1384,9 @@ export default function EntregasMoto() {
                                   <span>{entrega.periodo}</span>
                                 </div>
                               )}
-                              {entrega.horario_entrega && (
+                              {entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
                                 <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '0.7rem' }}>
-                                  {entrega.horario_entrega}
+                                  {entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                                 </span>
                               )}
                               {entrega.forma_pagamento && (
@@ -1437,9 +1437,9 @@ export default function EntregasMoto() {
                             </div>
 
                             {/* Linha 5: Observações */}
-                            {entrega.observacoes && (
+                            {entrega.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
                               <div className="mt-2 text-xs sm:text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
-                                <span className="font-medium">Obs:</span> {entrega.observacoes}
+                                <span className="font-medium">Obs:</span> {entrega.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}
                               </div>
                             )}
                           </div>
@@ -1594,9 +1594,9 @@ export default function EntregasMoto() {
                                   <span>{entrega.periodo}</span>
                                 </div>
                               )}
-                              {entrega.horario_entrega && (
+                              {entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
                                 <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '0.7rem' }}>
-                                  {entrega.horario_entrega}
+                                  {entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                                 </span>
                               )}
                               {entrega.forma_pagamento && (
@@ -1647,9 +1647,9 @@ export default function EntregasMoto() {
                             </div>
 
                             {/* Linha 5: Observações */}
-                            {entrega.observacoes && (
+                            {entrega.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
                               <div className="mt-2 text-xs sm:text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
-                                <span className="font-medium">Obs:</span> {entrega.observacoes}
+                                <span className="font-medium">Obs:</span> {entrega.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}
                               </div>
                             )}
                           </div>

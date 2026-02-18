@@ -481,9 +481,9 @@ export default function MinhasEntregas() {
             <Badge variant="outline" className="text-xs">
               {romaneio.periodo_entrega}
             </Badge>
-            {romaneio.horario_entrega && (
+            {romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
               <Badge style={{ backgroundColor: '#dbeafe', color: '#1e40af', fontWeight: '700', fontSize: '0.65rem' }}>
-                {romaneio.horario_entrega}
+                {romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
               </Badge>
             )}
           </div>
@@ -553,10 +553,10 @@ export default function MinhasEntregas() {
           )}
 
           {/* Observações */}
-          {romaneio.observacoes && (
+          {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <p className="text-xs font-semibold text-yellow-800 mb-1">OBSERVAÇÕES:</p>
-              <p className="text-sm text-yellow-900">{romaneio.observacoes}</p>
+              <p className="text-sm text-yellow-900">{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</p>
             </div>
           )}
 

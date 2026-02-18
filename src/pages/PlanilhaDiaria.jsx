@@ -923,7 +923,7 @@ export default function PlanilhaDiaria() {
                             {rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate obs-cell-pdf">
-                            {rom.observacoes || '-'}
+                            {(rom.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') || '-')}
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                             {rom.regiao || rom.endereco?.cidade || '-'}
@@ -976,9 +976,9 @@ export default function PlanilhaDiaria() {
                             </span>
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
-                            {rom.horario_entrega ? (
+                            {rom.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1] ? (
                               <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 5px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                                {rom.horario_entrega}
+                                {rom.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                               </span>
                             ) : '-'}
                           </td>

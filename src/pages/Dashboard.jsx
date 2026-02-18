@@ -177,7 +177,7 @@ export default function Dashboard() {
         buscar_receita: entrega.buscar_receita,
         observacoes: entrega.observacoes,
         endereco: entrega.endereco_destino,
-        horario_entrega: entrega.horario_entrega
+        horario_entrega: entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1] || null
       }));
     },
     enabled: !!user,

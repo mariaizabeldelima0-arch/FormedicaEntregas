@@ -1071,10 +1071,10 @@ function EntregaCard({
             )}
 
             {/* Horário de entrega - Destaque */}
-            {entrega.horario_entrega && (
+            {entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
               <div className="mb-2">
                 <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }}>
-                  ⏰ {entrega.horario_entrega}
+                  ⏰ {entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                 </span>
               </div>
             )}
@@ -1122,9 +1122,9 @@ function EntregaCard({
             )}
 
             {/* Observações - Compacta */}
-            {(entrega.observacao || entrega.observacoes) && (
+            {((entrega.observacao || entrega.observacoes)?.replace(/^\|\|H:.*?\|\|\s*/, '')) && (
               <div className="text-[10px] sm:text-xs text-slate-600 italic bg-slate-50 p-1.5 sm:p-2 rounded border border-slate-200 line-clamp-2">
-                <span className="font-semibold not-italic">Obs:</span> {entrega.observacao || entrega.observacoes}
+                <span className="font-semibold not-italic">Obs:</span> {(entrega.observacao || entrega.observacoes)?.replace(/^\|\|H:.*?\|\|\s*/, '')}
               </div>
             )}
           </div>

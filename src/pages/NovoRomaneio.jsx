@@ -1175,13 +1175,16 @@ export default function NovoRomaneio() {
         item_geladeira: formData.item_geladeira,
         buscar_receita: formData.buscar_receita,
         coleta: formData.coleta,
-        horario_entrega: formData.tipo_horario ? (
-          formData.tipo_horario === 'de_ate' ? `de ${formData.hora1}H até ${formData.hora2}H` :
-          formData.tipo_horario === 'ate' ? `até ${formData.hora1}H` :
-          formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}H` :
-          formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}H` : null
-        ) : null,
-        observacoes: formData.observacoes,
+        observacoes: (() => {
+          const h = formData.tipo_horario ? (
+            formData.tipo_horario === 'de_ate' ? `de ${formData.hora1}H até ${formData.hora2}H` :
+            formData.tipo_horario === 'ate' ? `até ${formData.hora1}H` :
+            formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}H` :
+            formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}H` : ''
+          ) : '';
+          const obs = formData.observacoes || '';
+          return h ? `||H:${h}|| ${obs}`.trim() : obs;
+        })(),
         atendente: user?.usuario || '',
         atendente_id: user?.id || null,
         clientes_adicionais: clientesAdicionais,

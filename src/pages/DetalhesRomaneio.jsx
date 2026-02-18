@@ -576,7 +576,7 @@ export default function DetalhesRomaneio() {
                   <h2 className="text-base sm:text-lg font-bold">Observações</h2>
                 </div>
                 <div className="text-xs sm:text-sm text-slate-600">
-                  {romaneio.observacoes || 'Nenhuma observação'}
+                  {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') || 'Nenhuma observação'}
                 </div>
               </div>
 
@@ -747,9 +747,9 @@ export default function DetalhesRomaneio() {
                       <div className="text-base font-semibold text-slate-900">
                         {romaneio.periodo}
                       </div>
-                      {romaneio.horario_entrega && (
+                      {romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
                         <div style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '4px', fontWeight: '700', fontSize: '0.8rem', display: 'inline-block', marginTop: '4px' }}>
-                          {romaneio.horario_entrega}
+                          {romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                         </div>
                       )}
                     </div>

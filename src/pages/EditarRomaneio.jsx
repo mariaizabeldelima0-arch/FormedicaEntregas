@@ -544,26 +544,31 @@ export default function EditarRomaneio() {
           item_geladeira: entrega.item_geladeira || false,
           buscar_receita: entrega.buscar_receita || false,
           coleta: entrega.coleta || false,
-          observacoes: entrega.observacoes || '',
           valor_venda: entrega.valor_venda || 0,
           precisa_troco: entrega.precisa_troco || false,
           valor_troco: entrega.valor_troco || 0,
           ...(() => {
-            const h = entrega.horario_entrega || '';
+            const obs = entrega.observacoes || '';
+            const hMatch = obs.match(/^\|\|H:(.*?)\|\|\s*/);
+            const h = hMatch ? hMatch[1] : '';
+            const obsLimpa = hMatch ? obs.replace(/^\|\|H:.*?\|\|\s*/, '') : obs;
+            let parsed = { tipo_horario: '', hora1: '', hora2: '', observacoes: obsLimpa };
             if (h.startsWith('de ')) {
               const match = h.match(/de (\d+)H até (\d+)H/);
-              return match ? { tipo_horario: 'de_ate', hora1: match[1], hora2: match[2] } : { tipo_horario: '', hora1: '', hora2: '' };
+              if (match) parsed = { ...parsed, tipo_horario: 'de_ate', hora1: match[1], hora2: match[2] };
             } else if (h.startsWith('até ')) {
               const match = h.match(/até (\d+)H/);
-              return match ? { tipo_horario: 'ate', hora1: match[1], hora2: '' } : { tipo_horario: '', hora1: '', hora2: '' };
+              if (match) parsed = { ...parsed, tipo_horario: 'ate', hora1: match[1] };
             } else if (h.startsWith('antes')) {
               const match = h.match(/antes das (\d+)H/);
-              return match ? { tipo_horario: 'antes', hora1: match[1], hora2: '' } : { tipo_horario: '', hora1: '', hora2: '' };
+              if (match) parsed = { ...parsed, tipo_horario: 'antes', hora1: match[1] };
             } else if (h.startsWith('depois')) {
               const match = h.match(/depois das (\d+)H/);
-              return match ? { tipo_horario: 'depois', hora1: match[1], hora2: '' } : { tipo_horario: '', hora1: '', hora2: '' };
+              if (match) parsed = { ...parsed, tipo_horario: 'depois', hora1: match[1] };
+            } else {
+              parsed.observacoes = obs;
             }
-            return { tipo_horario: '', hora1: '', hora2: '' };
+            return parsed;
           })()
         });
 
@@ -1270,13 +1275,16 @@ export default function EditarRomaneio() {
           item_geladeira: formData.item_geladeira,
           buscar_receita: formData.buscar_receita,
           coleta: formData.coleta,
-          horario_entrega: formData.tipo_horario ? (
-            formData.tipo_horario === 'de_ate' ? `de ${formData.hora1}H até ${formData.hora2}H` :
-            formData.tipo_horario === 'ate' ? `até ${formData.hora1}H` :
-            formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}H` :
-            formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}H` : null
-          ) : null,
-          observacoes: formData.observacoes,
+          observacoes: (() => {
+            const h = formData.tipo_horario ? (
+              formData.tipo_horario === 'de_ate' ? `de ${formData.hora1}H até ${formData.hora2}H` :
+              formData.tipo_horario === 'ate' ? `até ${formData.hora1}H` :
+              formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}H` :
+              formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}H` : ''
+            ) : '';
+            const obs = formData.observacoes || '';
+            return h ? `||H:${h}|| ${obs}`.trim() : obs;
+          })(),
           clientes_adicionais: clientesAdicionais,
           valor_venda: formasPagamentoComValorVenda.includes(formData.forma_pagamento) ? formData.valor_venda : 0,
           precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,

@@ -76,9 +76,9 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
             <span>Data: </span>
             <span>{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
           </div>
-          {romaneio.horario_entrega && (
+          {romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/) && (
             <div style={{ fontSize: '15px', marginBottom: '3px', fontWeight: 'bold', border: '2px solid #000', padding: '3px 8px', display: 'inline-block' }}>
-              HORÁRIO: {romaneio.horario_entrega.toUpperCase()}
+              HORÁRIO: {romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1].toUpperCase()}
             </div>
           )}
           <div style={{ fontSize: '15px', marginBottom: '3px' }}>
@@ -141,10 +141,10 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
       </div>
 
       {/* Observações */}
-      {romaneio.observacoes && (
+      {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
         <div style={{ border: '1px solid #000', padding: '8px', marginBottom: '8px' }}>
           <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>OBSERVAÇÕES</div>
-          <div style={{ fontSize: '15px' }}>{romaneio.observacoes}</div>
+          <div style={{ fontSize: '15px' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</div>
         </div>
       )}
 
