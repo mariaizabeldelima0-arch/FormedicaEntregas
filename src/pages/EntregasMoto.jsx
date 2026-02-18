@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,8 @@ import {
   AlertTriangle,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Paperclip
 } from 'lucide-react';
 import { PageHeader, LoadingState, EmptyState } from '@/components';
 
@@ -74,21 +76,29 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
 
       {isOpen && (
         <div
-          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-lg overflow-hidden"
-          style={{ border: '1px solid #376295' }}
+          className="absolute z-50 w-full mt-1 bg-white shadow-lg overflow-hidden"
+          style={{
+            border: '1px solid #e2e8f0',
+            borderRadius: '0.5rem',
+            maxHeight: '200px',
+            overflowY: 'auto'
+          }}
         >
-          {options.map((option) => (
+          {options.map((option, index) => (
             <div
               key={option.value}
               onClick={() => {
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className="px-4 py-3 cursor-pointer transition-colors text-sm text-slate-700 hover:bg-blue-50"
+              className="px-3 py-3 cursor-pointer transition-colors text-sm text-slate-700"
               style={{
-                backgroundColor: value === option.value ? '#E8F0F8' : 'white',
-                fontWeight: value === option.value ? '600' : 'normal'
+                backgroundColor: value === option.value ? '#e3f2fd' : 'white',
+                fontWeight: value === option.value ? '500' : 'normal',
+                borderBottom: index < options.length - 1 ? '1px solid #e2e8f0' : 'none'
               }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e3f2fd'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = value === option.value ? '#e3f2fd' : 'white'}
             >
               {option.label}
             </div>
@@ -122,6 +132,33 @@ export default function EntregasMoto() {
   // Estados para modals
   const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [entregaSelecionada, setEntregaSelecionada] = useState(null);
+
+  // Estado para lista de usuários (atendentes/admins)
+  const [usuarios, setUsuarios] = useState([]);
+
+  // Query client para invalidar cache
+  const queryClient = useQueryClient();
+
+  // Mutation para atualizar receita recebida
+  const updateReceitaMutation = useMutation({
+    mutationFn: async ({ entregaId, recebida }) => {
+      const { error } = await supabase
+        .from('entregas')
+        .update({ receita_recebida: recebida })
+        .eq('id', entregaId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { recebida }) => {
+      // Recarregar entregas
+      fetchEntregas();
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      toast.success(recebida ? 'Receita marcada como recebida!' : 'Receita marcada como pendente!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar receita: ' + error.message);
+    },
+  });
 
   // Função para gerar dias do mês
   const getDaysInMonth = (date) => {
@@ -161,9 +198,10 @@ export default function EntregasMoto() {
         .from('entregas')
         .select(`
           *,
-          cliente:clientes(id, nome, telefone),
-          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
-          motoboy:motoboys(id, nome)
+          cliente:clientes(id, nome, telefone, cpf),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep),
+          motoboy:motoboys(id, nome),
+          anexos(id, tipo)
         `)
         .eq('tipo', 'moto')
         .order('data_entrega', { ascending: true });
@@ -474,8 +512,25 @@ export default function EntregasMoto() {
     }
   };
 
+  // Carregar usuários (atendentes e admins)
+  const loadUsuarios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('id, usuario, tipo_usuario')
+        .in('tipo_usuario', ['admin', 'atendente'])
+        .order('usuario');
+
+      if (error) throw error;
+      setUsuarios(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+    }
+  };
+
   useEffect(() => {
     loadEntregas();
+    loadUsuarios();
   }, []);
 
   // Função para ordenar entregas
@@ -561,6 +616,7 @@ export default function EntregasMoto() {
     // Filtro de busca
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
+      const searchClean = searchTerm.replace(/\D/g, ''); // Apenas números para CPF/CEP
 
       // Buscar em todos os clientes (principal + adicionais)
       const todosClientes = getTodosClientes(entrega);
@@ -571,7 +627,15 @@ export default function EntregasMoto() {
       const matchRequisicao = entrega.requisicao?.toLowerCase().includes(searchLower);
       const matchTelefone = entrega.cliente?.telefone?.includes(searchTerm);
 
-      if (!matchCliente && !matchRequisicao && !matchTelefone) {
+      // Busca por CPF do cliente (remove formatação para comparar)
+      const cpfCliente = entrega.cliente?.cpf?.replace(/\D/g, '') || '';
+      const matchCpf = searchClean.length >= 3 && cpfCliente.includes(searchClean);
+
+      // Busca por CEP do endereço (snapshot ou relação)
+      const cepEndereco = (entrega.endereco_cep || entrega.endereco?.cep || '').replace(/\D/g, '');
+      const matchCep = searchClean.length >= 3 && cepEndereco.includes(searchClean);
+
+      if (!matchCliente && !matchRequisicao && !matchTelefone && !matchCpf && !matchCep) {
         return false;
       }
     }
@@ -627,6 +691,8 @@ export default function EntregasMoto() {
     iniciar: entregasPorData.filter(e => e.status === 'Iniciar').length,
     pendente: entregasPorData.filter(e => e.status === 'Pendente').length,
     voltou: entregasPorData.filter(e => e.status === 'Voltou p/ Farmácia').length,
+    receitasPendentes: entregasPorData.filter(e => e.buscar_receita && !e.receita_recebida).length,
+    receitasRecebidas: entregasPorData.filter(e => e.buscar_receita && e.receita_recebida).length,
   };
 
   // Formatação de data
@@ -687,7 +753,7 @@ export default function EntregasMoto() {
             </button>
             <div>
               <h1 className="text-4xl font-bold text-white">Entregas Moto</h1>
-              <p className="text-base text-white opacity-90 mt-1">Olá, {user?.nome || user?.usuario || 'Usuário'}</p>
+              <p className="text-base text-white opacity-90 mt-1">Olá, {user?.usuario || 'Usuário'}</p>
             </div>
           </div>
         </div>
@@ -809,25 +875,13 @@ export default function EntregasMoto() {
               </div>
             </div>
 
-            {/* Botão Relatório do Dia */}
-            <button
-              onClick={() => {
-                const dataFormatada = selectedDate.toISOString().split('T')[0];
-                navigate(`/relatorios?data=${dataFormatada}`);
-              }}
-              className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              <ClipboardList className="w-4 h-4 text-slate-600" />
-              <span className="text-sm font-medium text-slate-700">Relatório do Dia</span>
-            </button>
-
             {/* Botão Romaneios do Dia */}
             <button
               onClick={() => {
                 const dataFormatada = selectedDate.toISOString().split('T')[0];
                 navigate(`/romaneios-do-dia?data=${dataFormatada}`);
               }}
-              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
               style={{ borderColor: '#890d5d' }}
             >
               <FileText className="w-4 h-4" style={{ color: '#890d5d' }} />
@@ -839,151 +893,152 @@ export default function EntregasMoto() {
         {/* Conteúdo Principal */}
         <div className="flex-1">
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-5 gap-4 mb-6">
-            {/* Coluna dos 4 cards principais + cards menores */}
-            <div className="col-span-4 space-y-3">
-              {/* Linha 1: Cards principais */}
-              <div className="grid grid-cols-4 gap-4">
-                {/* Card Total */}
-                <div
-                  onClick={() => { setFiltroStatus(''); setCardSelecionado('total'); }}
-                  className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                  style={{
-                    border: cardSelecionado === 'total' ? '2px solid #376295' : '2px solid transparent'
-                  }}
-                >
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                      <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
-                    </div>
-                    <span className="text-sm font-bold text-slate-700">Total</span>
+          <div className="space-y-3 mb-6">
+            {/* Linha 1: Cards principais - Responsivo */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+              {/* Card Total */}
+              <div
+                onClick={() => { setFiltroStatus(''); setCardSelecionado('total'); }}
+                className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{
+                  border: cardSelecionado === 'total' ? '2px solid #376295' : '2px solid transparent'
+                }}
+              >
+                <div className="flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                  <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#376295' }} />
                   </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
-                    {stats.total}
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-slate-700">Total</span>
                 </div>
-
-                {/* Card Produção */}
-                <div
-                  onClick={() => { setFiltroStatus('Produzindo no Laboratório'); setCardSelecionado('producao'); }}
-                  className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                  style={{
-                    border: cardSelecionado === 'producao' ? '2px solid #890d5d' : '2px solid transparent'
-                  }}
-                >
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                      <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
-                    </div>
-                    <span className="text-sm font-bold text-slate-700">Produção</span>
-                  </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
-                    {stats.producao}
-                  </div>
-                </div>
-
-                {/* Card A Caminho */}
-                <div
-                  onClick={() => { setFiltroStatus('A Caminho'); setCardSelecionado('caminho'); }}
-                  className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                  style={{
-                    border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
-                  }}
-                >
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                      <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
-                    </div>
-                    <span className="text-sm font-bold text-slate-700">A Caminho</span>
-                  </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
-                    {stats.caminho}
-                  </div>
-                </div>
-
-                {/* Card Entregues */}
-                <div
-                  onClick={() => { setFiltroStatus('Entregue'); setCardSelecionado('entregues'); }}
-                  className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                  style={{
-                    border: cardSelecionado === 'entregues' ? '2px solid #3dac38' : '2px solid transparent'
-                  }}
-                >
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                      <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
-                    </div>
-                    <span className="text-sm font-bold text-slate-700">Entregues</span>
-                  </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
-                    {stats.entregues}
-                  </div>
+                <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                  {stats.total}
                 </div>
               </div>
 
-              {/* Linha 2: Cards menores - Filtros Motoboy */}
-              <div className="grid grid-cols-4 gap-4">
-                {/* Card Filtros Motoboy - Informativo */}
-                <div
-                  className="bg-slate-100 rounded-lg shadow-sm px-4 py-3 flex items-center justify-center gap-2"
-                >
-                  <Truck className="w-5 h-5 text-slate-500" />
-                  <span className="text-sm font-semibold text-slate-600">Filtros Motoboy</span>
+              {/* Card Produção */}
+              <div
+                onClick={() => { setFiltroStatus('Produzindo no Laboratório'); setCardSelecionado('producao'); }}
+                className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{
+                  border: cardSelecionado === 'producao' ? '2px solid #890d5d' : '2px solid transparent'
+                }}
+              >
+                <div className="flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                  <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                    <Package className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#890d5d' }} />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-slate-700">Produção</span>
                 </div>
+                <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
+                  {stats.producao}
+                </div>
+              </div>
 
-                {/* Card Iniciar */}
-                <div
-                  onClick={() => { setFiltroStatus('Iniciar'); setCardSelecionado('iniciar'); }}
-                  className="bg-white rounded-lg shadow-sm px-4 py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-2"
-                  style={{
-                    border: cardSelecionado === 'iniciar' ? '2px solid #ca8a04' : '2px solid transparent'
-                  }}
-                >
-                  <Play className="w-5 h-5" style={{ color: '#ca8a04' }} />
-                  <span className="text-sm font-semibold text-slate-700">Iniciar</span>
-                  <span className="text-lg font-bold" style={{ color: '#ca8a04' }}>{stats.iniciar}</span>
+              {/* Card A Caminho */}
+              <div
+                onClick={() => { setFiltroStatus('A Caminho'); setCardSelecionado('caminho'); }}
+                className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{
+                  border: cardSelecionado === 'caminho' ? '2px solid #f97316' : '2px solid transparent'
+                }}
+              >
+                <div className="flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                  <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                    <Truck className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#f97316' }} />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-slate-700">A Caminho</span>
                 </div>
+                <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+                  {stats.caminho}
+                </div>
+              </div>
 
-                {/* Card Pendente */}
-                <div
-                  onClick={() => { setFiltroStatus('Pendente'); setCardSelecionado('pendente'); }}
-                  className="bg-white rounded-lg shadow-sm px-4 py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-2"
-                  style={{
-                    border: cardSelecionado === 'pendente' ? '2px solid #c2410c' : '2px solid transparent'
-                  }}
-                >
-                  <Pause className="w-5 h-5" style={{ color: '#c2410c' }} />
-                  <span className="text-sm font-semibold text-slate-700">Pendente</span>
-                  <span className="text-lg font-bold" style={{ color: '#c2410c' }}>{stats.pendente}</span>
+              {/* Card Entregues */}
+              <div
+                onClick={() => { setFiltroStatus('Entregue'); setCardSelecionado('entregues'); }}
+                className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{
+                  border: cardSelecionado === 'entregues' ? '2px solid #3dac38' : '2px solid transparent'
+                }}
+              >
+                <div className="flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+                  <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                    <Check className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#3dac38' }} />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-slate-700">Entregues</span>
                 </div>
+                <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
+                  {stats.entregues}
+                </div>
+              </div>
 
-                {/* Card Voltou */}
-                <div
-                  onClick={() => { setFiltroStatus('Voltou p/ Farmácia'); setCardSelecionado('voltou'); }}
-                  className="bg-white rounded-lg shadow-sm px-4 py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-2"
-                  style={{
-                    border: cardSelecionado === 'voltou' ? '2px solid #b91c1c' : '2px solid transparent'
-                  }}
-                >
-                  <RotateCcw className="w-5 h-5" style={{ color: '#b91c1c' }} />
-                  <span className="text-sm font-semibold text-slate-700">Voltou</span>
-                  <span className="text-lg font-bold" style={{ color: '#b91c1c' }}>{stats.voltou}</span>
+              {/* Card Novo Romaneio */}
+              <div
+                onClick={() => {
+                  const dataFormatada = selectedDate.toISOString().split('T')[0];
+                  navigate(`/novo-romaneio?data=${dataFormatada}`);
+                }}
+                className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center text-center col-span-2 sm:col-span-1"
+                style={{
+                  background: 'linear-gradient(135deg, #890d5d 0%, #6E0A4A 100%)'
+                }}
+              >
+                <div className="mb-1">
+                  <span className="text-xs sm:text-sm font-bold text-white uppercase">Novo Romaneio</span>
                 </div>
+                <div className="text-3xl sm:text-5xl font-bold text-white">+</div>
               </div>
             </div>
 
-            {/* Card Novo Romaneio - Ocupa as duas linhas */}
-            <div
-              onClick={() => navigate('/novo-romaneio')}
-              className="bg-white rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md flex flex-col items-center justify-center text-center"
-              style={{
-                background: 'linear-gradient(135deg, #890d5d 0%, #6E0A4A 100%)'
-              }}
-            >
-              <div className="mb-1">
-                <span className="text-sm font-bold text-white uppercase">Novo Romaneio</span>
+            {/* Linha 2: Cards menores - Filtros Motoboy - Responsivo */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+              {/* Card Filtros Motoboy - Informativo */}
+              <div
+                className="rounded-lg shadow-sm px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-center gap-1 sm:gap-2 col-span-2 sm:col-span-1"
+                style={{ backgroundColor: '#e2e8f0' }}
+              >
+                <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600" />
+                <span className="text-xs sm:text-sm font-semibold text-slate-600">Filtros Motoboy</span>
               </div>
-              <div className="text-5xl font-bold text-white">+</div>
+
+              {/* Card Iniciar */}
+              <div
+                onClick={() => { setFiltroStatus('Iniciar'); setCardSelecionado('iniciar'); }}
+                className="bg-white rounded-lg shadow-sm px-2 py-2 sm:px-4 sm:py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-1 sm:gap-2"
+                style={{
+                  border: cardSelecionado === 'iniciar' ? '2px solid #ca8a04' : '2px solid transparent'
+                }}
+              >
+                <Play className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ca8a04' }} />
+                <span className="text-xs sm:text-sm font-semibold text-slate-700">Iniciar</span>
+                <span className="text-base sm:text-lg font-bold" style={{ color: '#ca8a04' }}>{stats.iniciar}</span>
+              </div>
+
+              {/* Card Pendente */}
+              <div
+                onClick={() => { setFiltroStatus('Pendente'); setCardSelecionado('pendente'); }}
+                className="bg-white rounded-lg shadow-sm px-2 py-2 sm:px-4 sm:py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-1 sm:gap-2"
+                style={{
+                  border: cardSelecionado === 'pendente' ? '2px solid #c2410c' : '2px solid transparent'
+                }}
+              >
+                <Pause className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#c2410c' }} />
+                <span className="text-xs sm:text-sm font-semibold text-slate-700">Pendente</span>
+                <span className="text-base sm:text-lg font-bold" style={{ color: '#c2410c' }}>{stats.pendente}</span>
+              </div>
+
+              {/* Card Voltou */}
+              <div
+                onClick={() => { setFiltroStatus('Voltou p/ Farmácia'); setCardSelecionado('voltou'); }}
+                className="bg-white rounded-lg shadow-sm px-2 py-2 sm:px-4 sm:py-3 cursor-pointer transition-all hover:shadow-md flex items-center justify-center gap-1 sm:gap-2"
+                style={{
+                  border: cardSelecionado === 'voltou' ? '2px solid #b91c1c' : '2px solid transparent'
+                }}
+              >
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#b91c1c' }} />
+                <span className="text-xs sm:text-sm font-semibold text-slate-700">Voltou</span>
+                <span className="text-base sm:text-lg font-bold" style={{ color: '#b91c1c' }}>{stats.voltou}</span>
+              </div>
             </div>
           </div>
 
@@ -1134,22 +1189,24 @@ export default function EntregasMoto() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por cliente, requisição, atendente ou telefone..."
+                  placeholder="Buscar por cliente, requisição, telefone, CPF ou CEP..."
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                 />
               </div>
 
-              {/* Filtros em Linha */}
-              <div className="grid grid-cols-5 gap-4">
+              {/* Filtros em Linha - Responsivo */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
                 <CustomDropdown
                   options={[
                     { value: '', label: 'Status' },
-                    { value: 'Produzindo no Laboratório', label: 'Produção' },
-                    { value: 'A Caminho', label: 'A Caminho' },
-                    { value: 'Entregue', label: 'Entregue' },
                     { value: 'Iniciar', label: 'Iniciar' },
                     { value: 'Pendente', label: 'Pendente' },
-                    { value: 'Voltou p/ Farmácia', label: 'Voltou' }
+                    { value: 'Produzindo no Laboratório', label: 'Produção' },
+                    { value: 'Preparando no Setor de Entregas', label: 'Preparando' },
+                    { value: 'Em Rota', label: 'Em Rota' },
+                    { value: 'Entregue', label: 'Entregue' },
+                    { value: 'Voltou p/ Farmácia', label: 'Voltou' },
+                    { value: 'Cancelado', label: 'Cancelado' }
                   ]}
                   value={filtroStatus}
                   onChange={(value) => { setFiltroStatus(value); setCardSelecionado(''); }}
@@ -1158,19 +1215,14 @@ export default function EntregasMoto() {
 
                 <CustomDropdown
                   options={(() => {
-                    const todos = [
-                      { value: 'Maria Isabel', label: 'Maria Isabel' },
-                      { value: 'João Silva', label: 'João Silva' },
-                      { value: 'Ana Paula', label: 'Ana Paula' },
-                      { value: 'Carlos Santos', label: 'Carlos Santos' }
-                    ];
-                    const nomeAtual = user?.nome_atendente || user?.nome;
+                    const nomeAtual = user?.usuario;
+                    const lista = usuarios.map(u => ({ value: u.usuario, label: u.usuario }));
                     const ordenados = nomeAtual
                       ? [
                           { value: nomeAtual, label: nomeAtual },
-                          ...todos.filter(a => a.value !== nomeAtual)
+                          ...lista.filter(u => u.value !== nomeAtual)
                         ]
-                      : todos;
+                      : lista;
                     return [{ value: '', label: 'Atendentes' }, ...ordenados];
                   })()}
                   value={filtros.atendente}
@@ -1263,27 +1315,26 @@ export default function EntregasMoto() {
                       <div
                         key={entrega.id}
                         onClick={() => visualizarDetalhes(entrega)}
-                        className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
+                        className="p-3 sm:p-5 mb-3 sm:mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
                       >
-                        <div className="flex items-center justify-between gap-6">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-6">
                           {/* Lado Esquerdo - Informações */}
-                          <div className="flex-1">
-                            {/* Linha 1: Requisição + Atendente + Status */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                          <div className="flex-1 min-w-0">
+                            {/* Linha 1: Requisição + Nome do Cliente + Status */}
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                              <span className="text-sm sm:text-base font-semibold" style={{ color: '#376295' }}>
                                 #{entrega.requisicao}
                               </span>
-                              {entrega.atendente && (
-                                <>
-                                  <span className="text-slate-400">•</span>
-                                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5" />
-                                    {entrega.atendente}
-                                  </span>
-                                </>
-                              )}
+                              <span className="text-slate-400 hidden sm:inline">•</span>
+                              <span className="text-base sm:text-lg font-bold text-slate-900 break-words">
+                                {formatarNomesClientes(entrega)}
+                              </span>
+                            </div>
+
+                            {/* Status e Anexos em linha separada no mobile */}
+                            <div className="flex flex-wrap items-center gap-1.5 mb-2">
                               <span
-                                className="px-3 py-1 rounded text-xs font-medium"
+                                className="px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs font-medium"
                                 style={{
                                   backgroundColor:
                                     entrega.status === 'Entregue'
@@ -1301,16 +1352,25 @@ export default function EntregasMoto() {
                               >
                                 {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                               </span>
+                              {entrega.anexos?.length > 0 && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
+                                  <Paperclip className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  {entrega.anexos.length}
+                                </span>
+                              )}
                             </div>
 
-                            {/* Linha 2: Nome do Cliente */}
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">
-                              {formatarNomesClientes(entrega)}
-                            </h3>
+                            {/* Linha 2: Atendente */}
+                            {entrega.atendente && (
+                              <div className="text-xs sm:text-sm text-slate-500 mb-2 flex items-center gap-1.5">
+                                <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                {entrega.atendente}
+                              </div>
+                            )}
 
                             {/* Linha 3: Endereço */}
-                            <div className="mb-3 text-sm text-slate-600">
-                              <span>
+                            <div className="mb-2 sm:mb-3 text-xs sm:text-sm text-slate-600">
+                              <span className="break-words">
                                 {entrega.endereco
                                   ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
                                   : entrega.endereco_destino || 'Endereço não informado'}
@@ -1318,91 +1378,113 @@ export default function EntregasMoto() {
                             </div>
 
                             {/* Linha 4: Informações com ícones */}
-                            <div className="flex flex-wrap gap-4 text-sm text-slate-900">
+                            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-slate-900">
                               {entrega.motoboy && (
-                                <div className="flex items-center gap-1.5">
-                                  <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.motoboy.nome}</span>
                                 </div>
                               )}
                               {entrega.periodo && (
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.periodo}</span>
                                 </div>
                               )}
+                              {(entrega.horario_entrega || entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+                                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '0.7rem' }}>
+                                  {entrega.horario_entrega || entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                                </span>
+                              )}
                               {entrega.forma_pagamento && (
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                  <span>{entrega.forma_pagamento}</span>
+                                <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                                  <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
+                                  <span style={entrega.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{entrega.forma_pagamento}</span>
                                   {entrega.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(entrega.forma_pagamento) && (
                                     <span style={{
                                       backgroundColor: '#e8f5e9',
                                       color: '#1b5e20',
-                                      padding: '2px 8px',
+                                      padding: '2px 6px',
                                       borderRadius: '4px',
-                                      fontSize: '0.75rem',
+                                      fontSize: '0.65rem',
                                       fontWeight: 'bold',
-                                      marginLeft: '4px',
                                       border: '1px solid #4caf50',
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: '4px'
+                                      gap: '2px'
                                     }}>
-                                      COBRAR: R$ {entrega.valor_venda.toFixed(2)}
+                                      R$ {entrega.valor_venda.toFixed(2)}
                                     </span>
                                   )}
                                   {entrega.precisa_troco && entrega.valor_troco > 0 && (
                                     <span style={{
                                       backgroundColor: '#fff3e0',
                                       color: '#e65100',
-                                      padding: '2px 8px',
+                                      padding: '2px 6px',
                                       borderRadius: '4px',
-                                      fontSize: '0.75rem',
+                                      fontSize: '0.65rem',
                                       fontWeight: 'bold',
-                                      marginLeft: '4px',
                                       border: '1px solid #ff9800',
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: '4px'
+                                      gap: '2px'
                                     }}>
-                                      <AlertTriangle className="w-3 h-3" />
-                                      TROCO: R$ {entrega.valor_troco.toFixed(2)}
+                                      <AlertTriangle className="w-2.5 h-2.5" />
+                                      R$ {entrega.valor_troco.toFixed(2)}
                                     </span>
                                   )}
                                 </div>
                               )}
                               {entrega.cliente?.telefone && (
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                  <span>{entrega.cliente.telefone}</span>
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
+                                  <span className="text-xs">{entrega.cliente.telefone}</span>
                                 </div>
                               )}
                             </div>
 
                             {/* Linha 5: Observações */}
-                            {entrega.observacoes && (
-                              <div className="mt-2 text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
-                                <span className="font-medium">Obs:</span> {entrega.observacoes}
+                            {entrega.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
+                              <div className="mt-2 text-xs sm:text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
+                                <span className="font-medium">Obs:</span> {entrega.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}
                               </div>
                             )}
                           </div>
 
                           {/* Lado Direito - Badges + Valor + Região + Ações */}
-                          <div className="flex flex-col items-center gap-3">
-                            {/* Badges Geladeira e Reter Receita */}
-                            {(entrega.item_geladeira || entrega.buscar_receita) && (
-                              <div className="flex items-center gap-2">
+                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                            {/* Badges Geladeira, Reter Receita e Coleta */}
+                            {(entrega.item_geladeira || entrega.buscar_receita || entrega.coleta) && (
+                              <div className="flex items-center gap-1.5 sm:gap-2">
                                 {entrega.item_geladeira && (
-                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
-                                    <Snowflake className="w-5 h-5" />
-                                    Geladeira
+                                  <span className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                                    <Snowflake className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <span className="hidden sm:inline">Geladeira</span>
                                   </span>
                                 )}
                                 {entrega.buscar_receita && (
-                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                                    <FileText className="w-5 h-5" />
-                                    Reter Receita
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateReceitaMutation.mutate({ entregaId: entrega.id, recebida: !entrega.receita_recebida });
+                                    }}
+                                    disabled={updateReceitaMutation.isPending}
+                                    className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 transition-all hover:opacity-80"
+                                    style={{
+                                      backgroundColor: entrega.receita_recebida ? '#dcfce7' : '#fef3c7',
+                                      color: entrega.receita_recebida ? '#166534' : '#92400e',
+                                      border: entrega.receita_recebida ? '2px solid #22c55e' : '2px solid #f59e0b',
+                                      cursor: updateReceitaMutation.isPending ? 'not-allowed' : 'pointer'
+                                    }}
+                                  >
+                                    {entrega.receita_recebida ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <FileText className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                    <span className="hidden sm:inline">{entrega.receita_recebida ? 'Receita OK' : 'Reter Receita'}</span>
+                                  </button>
+                                )}
+                                {entrega.coleta && (
+                                  <span className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', border: '2px solid #4caf50' }}>
+                                    <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <span className="hidden sm:inline">Coleta</span>
                                   </span>
                                 )}
                               </div>
@@ -1410,13 +1492,13 @@ export default function EntregasMoto() {
 
                             {/* Valor e Região */}
                             <div className="text-right">
-                              <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                              <div className="text-lg sm:text-2xl font-bold" style={{ color: '#376295' }}>
                                 R$ {entrega.valor?.toFixed(2) || '0.00'}
                               </div>
-                              <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                              <div className="text-xs sm:text-sm font-medium" style={{ color: '#376295' }}>
                                 {entrega.regiao}
                               </div>
-                              <div className="text-sm text-slate-500 mt-1">
+                              <div className="text-xs sm:text-sm text-slate-500">
                                 {entrega.data_entrega ? new Date(entrega.data_entrega + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
                               </div>
                             </div>
@@ -1443,27 +1525,26 @@ export default function EntregasMoto() {
                       <div
                         key={entrega.id}
                         onClick={() => visualizarDetalhes(entrega)}
-                        className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
+                        className="p-3 sm:p-5 mb-3 sm:mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
                       >
-                        <div className="flex items-center justify-between gap-6">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-6">
                           {/* Lado Esquerdo - Informações */}
-                          <div className="flex-1">
-                            {/* Linha 1: Requisição + Atendente + Status */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                          <div className="flex-1 min-w-0">
+                            {/* Linha 1: Requisição + Nome do Cliente + Status */}
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                              <span className="text-sm sm:text-base font-semibold" style={{ color: '#376295' }}>
                                 #{entrega.requisicao}
                               </span>
-                              {entrega.atendente && (
-                                <>
-                                  <span className="text-slate-400">•</span>
-                                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5" />
-                                    {entrega.atendente}
-                                  </span>
-                                </>
-                              )}
+                              <span className="text-slate-400 hidden sm:inline">•</span>
+                              <span className="text-base sm:text-lg font-bold text-slate-900 break-words">
+                                {formatarNomesClientes(entrega)}
+                              </span>
+                            </div>
+
+                            {/* Status e Anexos em linha separada no mobile */}
+                            <div className="flex flex-wrap items-center gap-1.5 mb-2">
                               <span
-                                className="px-3 py-1 rounded text-xs font-medium"
+                                className="px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs font-medium"
                                 style={{
                                   backgroundColor:
                                     entrega.status === 'Entregue'
@@ -1481,16 +1562,25 @@ export default function EntregasMoto() {
                               >
                                 {entrega.status === 'Produzindo no Laboratório' ? 'Produção' : entrega.status}
                               </span>
+                              {entrega.anexos?.length > 0 && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
+                                  <Paperclip className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  {entrega.anexos.length}
+                                </span>
+                              )}
                             </div>
 
-                            {/* Linha 2: Nome do Cliente */}
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">
-                              {formatarNomesClientes(entrega)}
-                            </h3>
+                            {/* Linha 2: Atendente */}
+                            {entrega.atendente && (
+                              <div className="text-xs sm:text-sm text-slate-500 mb-2 flex items-center gap-1.5">
+                                <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                {entrega.atendente}
+                              </div>
+                            )}
 
                             {/* Linha 3: Endereço */}
-                            <div className="mb-3 text-sm text-slate-600">
-                              <span>
+                            <div className="mb-2 sm:mb-3 text-xs sm:text-sm text-slate-600">
+                              <span className="break-words">
                                 {entrega.endereco
                                   ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro} - ${entrega.endereco.cidade}`
                                   : entrega.endereco_destino || 'Endereço não informado'}
@@ -1498,91 +1588,113 @@ export default function EntregasMoto() {
                             </div>
 
                             {/* Linha 4: Informações com ícones */}
-                            <div className="flex flex-wrap gap-4 text-sm text-slate-900">
+                            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-slate-900">
                               {entrega.motoboy && (
-                                <div className="flex items-center gap-1.5">
-                                  <Truck className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.motoboy.nome}</span>
                                 </div>
                               )}
                               {entrega.periodo && (
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.periodo}</span>
                                 </div>
                               )}
+                              {(entrega.horario_entrega || entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+                                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '0.7rem' }}>
+                                  {entrega.horario_entrega || entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                                </span>
+                              )}
                               {entrega.forma_pagamento && (
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <Banknote className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                  <span>{entrega.forma_pagamento}</span>
+                                <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                                  <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
+                                  <span style={entrega.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{entrega.forma_pagamento}</span>
                                   {entrega.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(entrega.forma_pagamento) && (
                                     <span style={{
                                       backgroundColor: '#e8f5e9',
                                       color: '#1b5e20',
-                                      padding: '2px 8px',
+                                      padding: '2px 6px',
                                       borderRadius: '4px',
-                                      fontSize: '0.75rem',
+                                      fontSize: '0.65rem',
                                       fontWeight: 'bold',
-                                      marginLeft: '4px',
                                       border: '1px solid #4caf50',
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: '4px'
+                                      gap: '2px'
                                     }}>
-                                      COBRAR: R$ {entrega.valor_venda.toFixed(2)}
+                                      R$ {entrega.valor_venda.toFixed(2)}
                                     </span>
                                   )}
                                   {entrega.precisa_troco && entrega.valor_troco > 0 && (
                                     <span style={{
                                       backgroundColor: '#fff3e0',
                                       color: '#e65100',
-                                      padding: '2px 8px',
+                                      padding: '2px 6px',
                                       borderRadius: '4px',
-                                      fontSize: '0.75rem',
+                                      fontSize: '0.65rem',
                                       fontWeight: 'bold',
-                                      marginLeft: '4px',
                                       border: '1px solid #ff9800',
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: '4px'
+                                      gap: '2px'
                                     }}>
-                                      <AlertTriangle className="w-3 h-3" />
-                                      TROCO: R$ {entrega.valor_troco.toFixed(2)}
+                                      <AlertTriangle className="w-2.5 h-2.5" />
+                                      R$ {entrega.valor_troco.toFixed(2)}
                                     </span>
                                   )}
                                 </div>
                               )}
                               {entrega.cliente?.telefone && (
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                  <span>{entrega.cliente.telefone}</span>
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
+                                  <span className="text-xs">{entrega.cliente.telefone}</span>
                                 </div>
                               )}
                             </div>
 
                             {/* Linha 5: Observações */}
-                            {entrega.observacoes && (
-                              <div className="mt-2 text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
-                                <span className="font-medium">Obs:</span> {entrega.observacoes}
+                            {entrega.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
+                              <div className="mt-2 text-xs sm:text-sm text-slate-600 italic bg-slate-50 p-2 rounded">
+                                <span className="font-medium">Obs:</span> {entrega.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}
                               </div>
                             )}
                           </div>
 
                           {/* Lado Direito - Badges + Valor + Região + Ações */}
-                          <div className="flex flex-col items-center gap-3">
-                            {/* Badges Geladeira e Reter Receita */}
-                            {(entrega.item_geladeira || entrega.buscar_receita) && (
-                              <div className="flex items-center gap-2">
+                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                            {/* Badges Geladeira, Reter Receita e Coleta */}
+                            {(entrega.item_geladeira || entrega.buscar_receita || entrega.coleta) && (
+                              <div className="flex items-center gap-1.5 sm:gap-2">
                                 {entrega.item_geladeira && (
-                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
-                                    <Snowflake className="w-5 h-5" />
-                                    Geladeira
+                                  <span className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                                    <Snowflake className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <span className="hidden sm:inline">Geladeira</span>
                                   </span>
                                 )}
                                 {entrega.buscar_receita && (
-                                  <span className="px-4 py-2 rounded text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                                    <FileText className="w-5 h-5" />
-                                    Reter Receita
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateReceitaMutation.mutate({ entregaId: entrega.id, recebida: !entrega.receita_recebida });
+                                    }}
+                                    disabled={updateReceitaMutation.isPending}
+                                    className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 transition-all hover:opacity-80"
+                                    style={{
+                                      backgroundColor: entrega.receita_recebida ? '#dcfce7' : '#fef3c7',
+                                      color: entrega.receita_recebida ? '#166534' : '#92400e',
+                                      border: entrega.receita_recebida ? '2px solid #22c55e' : '2px solid #f59e0b',
+                                      cursor: updateReceitaMutation.isPending ? 'not-allowed' : 'pointer'
+                                    }}
+                                  >
+                                    {entrega.receita_recebida ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <FileText className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                    <span className="hidden sm:inline">{entrega.receita_recebida ? 'Receita OK' : 'Reter Receita'}</span>
+                                  </button>
+                                )}
+                                {entrega.coleta && (
+                                  <span className="px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', border: '2px solid #4caf50' }}>
+                                    <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <span className="hidden sm:inline">Coleta</span>
                                   </span>
                                 )}
                               </div>
@@ -1590,13 +1702,13 @@ export default function EntregasMoto() {
 
                             {/* Valor e Região */}
                             <div className="text-right">
-                              <div className="text-2xl font-bold" style={{ color: '#376295' }}>
+                              <div className="text-lg sm:text-2xl font-bold" style={{ color: '#376295' }}>
                                 R$ {entrega.valor?.toFixed(2) || '0.00'}
                               </div>
-                              <div className="text-sm font-medium" style={{ color: '#376295' }}>
+                              <div className="text-xs sm:text-sm font-medium" style={{ color: '#376295' }}>
                                 {entrega.regiao}
                               </div>
-                              <div className="text-sm text-slate-500 mt-1">
+                              <div className="text-xs sm:text-sm text-slate-500">
                                 {entrega.data_entrega ? new Date(entrega.data_entrega + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
                               </div>
                             </div>
@@ -1710,6 +1822,7 @@ export default function EntregasMoto() {
           )}
         </DialogContent>
       </Dialog>
+
 
     </div>
   );

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
+import { supabase } from '@/api/supabaseClient';
+import BannerAtualizacao from '@/components/BannerAtualizacao';
 
 // Ícones SVG simples
 const Icons = {
@@ -89,6 +91,92 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuExpanded, setIsMenuExpanded] = useState(false);
+  const jaCorrigiuEntregas = useRef(false);
+
+  // Corrigir automaticamente entregas do Bruno que têm valor de entrega única mas não deveriam
+  useEffect(() => {
+    if (jaCorrigiuEntregas.current) return;
+    jaCorrigiuEntregas.current = true;
+
+    const VALORES_UNICA = {
+      'BC': 12, 'NOVA ESPERANÇA': 15, 'CAMBORIÚ': 20, 'TABULEIRO': 15,
+      'MONTE ALEGRE': 15, 'BARRA': 15, 'ESTALEIRO': 25, 'TAQUARAS': 25,
+      'LARANJEIRAS': 25, 'ITAJAI': 25, 'ESPINHEIROS': 35, 'PRAIA DOS AMORES': 15,
+      'PRAIA BRAVA': 15, 'ITAPEMA': 35, 'NAVEGANTES': 50, 'PENHA': 75,
+      'PORTO BELO': 60, 'TIJUCAS': 87, 'PIÇARRAS': 80, 'BOMBINHAS': 90, 'CLINICA': 12
+    };
+
+    const VALORES_NORMAIS = {
+      'BC': 7, 'NOVA ESPERANÇA': 9, 'CAMBORIÚ': 14, 'TABULEIRO': 9,
+      'MONTE ALEGRE': 9, 'BARRA': 9, 'ESTALEIRO': 14, 'TAQUARAS': 14,
+      'LARANJEIRAS': 14, 'ITAJAI': 17, 'ESPINHEIROS': 21, 'PRAIA DOS AMORES': 11.50,
+      'PRAIA BRAVA': 11.50, 'ITAPEMA': 25, 'NAVEGANTES': 40, 'PENHA': 50,
+      'PORTO BELO': 30, 'TIJUCAS': 50, 'PIÇARRAS': 50, 'BOMBINHAS': 50, 'CLINICA': 7
+    };
+
+    (async () => {
+      try {
+        const { data: bruno } = await supabase
+          .from('motoboys')
+          .select('id')
+          .eq('nome', 'Bruno')
+          .single();
+
+        if (!bruno) return;
+
+        const { data: entregas } = await supabase
+          .from('entregas')
+          .select('id, data_entrega, periodo, regiao, valor')
+          .eq('motoboy_id', bruno.id);
+
+        if (!entregas || entregas.length === 0) return;
+
+        // Agrupar por data
+        const porData = {};
+        entregas.forEach(e => {
+          if (!porData[e.data_entrega]) porData[e.data_entrega] = { manha: [], tarde: [] };
+          if (e.periodo === 'Manhã') porData[e.data_entrega].manha.push(e);
+          else if (e.periodo === 'Tarde') porData[e.data_entrega].tarde.push(e);
+        });
+
+        // Corrigir entregas em ambas as direções
+        for (const [data, periodos] of Object.entries(porData)) {
+          const todasDoDia = [...periodos.manha, ...periodos.tarde];
+          const ehUnica = periodos.manha.length <= 1 && periodos.tarde.length <= 1;
+
+          if (ehUnica) {
+            // Se é entrega única, atualizar para valor de entrega única
+            for (const entrega of todasDoDia) {
+              const valorUnico = VALORES_UNICA[entrega.regiao];
+              const valorNormal = VALORES_NORMAIS[entrega.regiao];
+              if (valorUnico && valorNormal && entrega.valor === valorNormal) {
+                await supabase
+                  .from('entregas')
+                  .update({ valor: valorUnico })
+                  .eq('id', entrega.id);
+                console.log(`Entrega ${entrega.id} promovida: R$${valorNormal} → R$${valorUnico} (${data} ${entrega.periodo} - ${entrega.regiao})`);
+              }
+            }
+          } else {
+            // Se não é única, atualizar para valor normal
+            for (const entrega of todasDoDia) {
+              const valorUnico = VALORES_UNICA[entrega.regiao];
+              const valorNormal = VALORES_NORMAIS[entrega.regiao];
+              if (valorUnico && valorNormal && entrega.valor === valorUnico) {
+                await supabase
+                  .from('entregas')
+                  .update({ valor: valorNormal })
+                  .eq('id', entrega.id);
+                console.log(`Entrega ${entrega.id} corrigida: R$${valorUnico} → R$${valorNormal} (${data} ${entrega.periodo} - ${entrega.regiao})`);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao corrigir entregas únicas do Bruno:', err);
+      }
+    })();
+  }, []);
 
   const menuItems = {
     admin: [
@@ -96,7 +184,6 @@ export default function Layout({ children }) {
       { icon: 'aviao', label: 'Sedex/Disktenha', path: '/sedex' },
       { icon: 'adicionar', label: 'Novo Romaneio', path: '/novo-romaneio' },
       { icon: 'usuarios', label: 'Clientes', path: '/clientes' },
-      { icon: 'grafico', label: 'Relatórios', path: '/relatorios' },
       { icon: 'documento', label: 'Receitas', path: '/receitas' },
       { icon: 'dinheiro', label: 'Pagamentos', path: '/pagamentos' },
       { icon: 'calendario', label: 'Planilha Diária', path: '/planilha-diaria' },
@@ -108,8 +195,9 @@ export default function Layout({ children }) {
       { icon: 'aviao', label: 'Sedex/Disktenha', path: '/sedex' },
       { icon: 'adicionar', label: 'Novo Romaneio', path: '/novo-romaneio' },
       { icon: 'usuarios', label: 'Clientes', path: '/clientes' },
-      { icon: 'grafico', label: 'Relatórios', path: '/relatorios' },
+      { icon: 'documento', label: 'Receitas', path: '/receitas' },
       { icon: 'dinheiro', label: 'Pagamentos', path: '/pagamentos' },
+      { icon: 'calendario', label: 'Planilha Diária', path: '/planilha-diaria' },
     ],
     motoboy: [
       { icon: 'moto', label: 'Minhas Entregas', path: '/painel-motoboys' },
@@ -153,21 +241,12 @@ export default function Layout({ children }) {
           height: '132px',
           boxSizing: 'border-box'
         }}>
-          <div style={{
+          <img src={`${import.meta.env.BASE_URL}logo-f.png`} alt="Formédica" style={{
             width: '36px',
             height: '36px',
-            background: theme.colors.primary,
             borderRadius: '0.375rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '1.125rem',
             flexShrink: 0
-          }}>
-            F
-          </div>
+          }} />
           {isMenuExpanded && (
             <div style={{
               overflow: 'hidden',
@@ -388,6 +467,7 @@ export default function Layout({ children }) {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {children}
       </div>
+      <BannerAtualizacao />
     </div>
   );
 }

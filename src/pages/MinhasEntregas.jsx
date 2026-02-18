@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -217,7 +218,8 @@ export default function MinhasEntregas() {
   const weekStart = currentWeekStart;
   const weekEnd = addDays(currentWeekStart, 6); // 6 days from Tuesday = Monday
 
-  const daysOfWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  // Terça a Segunda, sem Domingo
+  const daysOfWeek = eachDayOfInterval({ start: weekStart, end: weekEnd }).filter(day => day.getDay() !== 0);
 
   const weekStats = daysOfWeek.map(day => {
     const romaneiosDoDiaParaEstatistica = romaneios.filter(r => {
@@ -238,13 +240,27 @@ export default function MinhasEntregas() {
 
   const totalDaSemana = weekStats.reduce((sum, stat) => sum + stat.valor, 0);
 
-  // Status de pagamento da semana (apenas o primeiro dia com romaneios, ou padrão)
-  const primeiroRomaneioDaSemana = romaneios.find(r => {
-    if (!r.data_entrega_prevista) return false;
-    const dataEntrega = parseISO(r.data_entrega_prevista);
-    return dataEntrega >= weekStart && dataEntrega <= weekEnd;
-  });
-  const statusPagamentoSemana = primeiroRomaneioDaSemana?.status_pagamento_motoboy || "Aguardando";
+  // Status de pagamento da semana (buscar do motoboy)
+  const [statusPagamentoSemana, setStatusPagamentoSemana] = useState("Aguardando");
+  const inicioSemanaPagamento = format(startOfWeek(selectedDate, { weekStartsOn: 2 }), 'yyyy-MM-dd');
+
+  useEffect(() => {
+    const carregarStatusPagamento = async () => {
+      if (!user?.full_name) return;
+      const { data: motoboyData } = await supabase
+        .from('motoboys')
+        .select('pagamentos_semanais')
+        .eq('nome', user.full_name)
+        .single();
+
+      if (motoboyData?.pagamentos_semanais?.[inicioSemanaPagamento]) {
+        setStatusPagamentoSemana(motoboyData.pagamentos_semanais[inicioSemanaPagamento]);
+      } else {
+        setStatusPagamentoSemana('Aguardando');
+      }
+    };
+    carregarStatusPagamento();
+  }, [user?.full_name, inicioSemanaPagamento]);
 
 
   // Locais únicos para o filtro
@@ -441,6 +457,12 @@ export default function MinhasEntregas() {
                       RETER RECEITA
                     </Badge>
                   )}
+                  {romaneio.coleta && (
+                    <Badge className="border" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', borderColor: '#4caf50' }}>
+                      <Package className="w-3 h-3 mr-1" />
+                      COLETA
+                    </Badge>
+                  )}
                   {deveSerCobrado && (
                     <Badge className="bg-orange-100 text-orange-700 border-orange-400 border-2 font-bold">
                       <DollarSign className="w-4 h-4 mr-1" />
@@ -459,6 +481,11 @@ export default function MinhasEntregas() {
             <Badge variant="outline" className="text-xs">
               {romaneio.periodo_entrega}
             </Badge>
+            {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+              <Badge style={{ backgroundColor: '#dbeafe', color: '#1e40af', fontWeight: '700', fontSize: '0.65rem' }}>
+                {romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -511,7 +538,7 @@ export default function MinhasEntregas() {
           {/* Informações de Pagamento */}
           <div className="flex items-center gap-2 text-sm">
             <CreditCard className="w-4 h-4 text-slate-500" />
-            <span className="font-medium">{romaneio.forma_pagamento}</span>
+            <span className="font-medium" style={romaneio.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{romaneio.forma_pagamento}</span>
           </div>
 
           {/* Telefone */}
@@ -526,10 +553,10 @@ export default function MinhasEntregas() {
           )}
 
           {/* Observações */}
-          {romaneio.observacoes && (
+          {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <p className="text-xs font-semibold text-yellow-800 mb-1">OBSERVAÇÕES:</p>
-              <p className="text-sm text-yellow-900">{romaneio.observacoes}</p>
+              <p className="text-sm text-yellow-900">{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</p>
             </div>
           )}
 

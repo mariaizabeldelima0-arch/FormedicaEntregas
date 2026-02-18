@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CustomDatePicker } from "@/components/CustomDatePicker";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -347,11 +348,11 @@ export default function DetalhesSedex() {
                       </div>
                     )}
                     <div>
-                      <Label>Data de Postagem *</Label>
-                      <Input
-                        type="date"
+                      <CustomDatePicker
+                        label="Data de Postagem *"
                         value={editData.data_postagem}
-                        onChange={(e) => setEditData({ ...editData, data_postagem: e.target.value })}
+                        onChange={(value) => setEditData({ ...editData, data_postagem: value })}
+                        placeholder="Selecione a data"
                       />
                     </div>
                     <div>

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   Dialog,
   DialogContent,
@@ -61,22 +63,33 @@ export default function DetalheSedexDisktenha() {
 
   const updateMutation = useMutation({
     mutationFn: async (data) => {
-      const { error } = await supabase
+      console.log('📦 Dados enviados para update:', data);
+      const { data: result, error } = await supabase
         .from('sedex_disktenha')
         .update(data)
-        .eq('id', entregaId);
+        .eq('id', entregaId)
+        .select();
 
+      console.log('📦 Resultado do update:', { result, error });
       if (error) throw error;
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sedex-detalhe', entregaId] });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ['sedex-detalhe', entregaId] });
       queryClient.invalidateQueries({ queryKey: ['sedex-disktenha'] });
+      queryClient.invalidateQueries({ queryKey: ['sedex-disktenha-planilha'] });
       toast.success('Entrega atualizada com sucesso!');
       setShowEditDialog(false);
     },
     onError: (error) => {
-      console.error('Erro ao atualizar:', error);
-      toast.error('Erro ao atualizar entrega');
+      console.error('❌ Erro ao atualizar:', JSON.stringify(error, null, 2));
+      const code = error?.code;
+      const msg = error?.message || error?.details || '';
+      if (code === '23505' || msg.includes('duplicate') || msg.includes('unique')) {
+        toast.error('Código de rastreio já existe em outra entrega');
+      } else {
+        toast.error('Erro ao atualizar: ' + (msg || JSON.stringify(error)));
+      }
     }
   });
 
@@ -105,7 +118,7 @@ export default function DetalheSedexDisktenha() {
       cliente: entrega.cliente,
       remetente: entrega.remetente || '',
       numero_requisicao: entrega.numero_requisicao || '',
-      codigo_rastreio: entrega.codigo_rastreio || '',
+      codigo_rastreio: (entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-')) ? entrega.codigo_rastreio : '',
       valor: entrega.valor,
       forma_pagamento: entrega.forma_pagamento,
       observacoes: entrega.observacoes || '',
@@ -116,14 +129,22 @@ export default function DetalheSedexDisktenha() {
   };
 
   const handleSaveEdit = () => {
-    if (!editData.cliente || !editData.numero_requisicao) {
+    if (!editData.cliente) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
 
     updateMutation.mutate({
-      ...editData,
+      tipo: editData.tipo,
+      cliente: editData.cliente,
+      remetente: editData.remetente,
+      numero_requisicao: editData.numero_requisicao,
+      codigo_rastreio: editData.codigo_rastreio || `PENDING-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       valor: parseFloat(editData.valor) || 0,
+      forma_pagamento: editData.forma_pagamento,
+      observacoes: editData.observacoes,
+      data_saida: editData.data_saida,
+      status: editData.status,
     });
   };
 
@@ -169,7 +190,10 @@ export default function DetalheSedexDisktenha() {
   };
 
   const tipoColor = tipoColors[entrega.tipo] || tipoColors.SEDEX;
-  const isPago = entrega.forma_pagamento === 'Pago' || entrega.forma_pagamento === 'Pix';
+  const isPago = entrega.forma_pagamento && (
+    entrega.forma_pagamento.startsWith('Pago') ||
+    entrega.forma_pagamento === 'Pix'
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -199,7 +223,7 @@ export default function DetalheSedexDisktenha() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
-                {entrega.tipo} #{entrega.numero_requisicao || entrega.codigo_rastreio}
+                {entrega.tipo} #{entrega.numero_requisicao || (entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-') ? entrega.codigo_rastreio : '-')}
               </h1>
               <p className="text-sm text-slate-600 mt-1">
                 Criado em {format(parseISO(entrega.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -307,7 +331,7 @@ export default function DetalheSedexDisktenha() {
                 )}
 
                 {/* Código de Rastreio */}
-                {entrega.codigo_rastreio && (
+                {entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-') && (
                   <div>
                     <p className="text-sm text-slate-500 mb-1">Código de Rastreio</p>
                     <p className="text-lg font-medium text-slate-900">{entrega.codigo_rastreio}</p>
@@ -364,30 +388,28 @@ export default function DetalheSedexDisktenha() {
           {editData && (
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Tipo *</Label>
-                  <select
-                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={editData.tipo}
-                    onChange={(e) => setEditData({ ...editData, tipo: e.target.value })}
-                  >
-                    <option value="SEDEX">SEDEX</option>
-                    <option value="PAC">PAC</option>
-                    <option value="DISKTENHA">DISKTENHA</option>
-                  </select>
-                </div>
-                <div>
-                  <Label>Status *</Label>
-                  <select
-                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={editData.status}
-                    onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                  >
-                    <option value="Pendente">Pendente</option>
-                    <option value="Saiu">Saiu</option>
-                    <option value="Entregue">Entregue</option>
-                  </select>
-                </div>
+                <CustomDropdown
+                  label="Tipo *"
+                  options={[
+                    { value: 'SEDEX', label: 'SEDEX' },
+                    { value: 'PAC', label: 'PAC' },
+                    { value: 'DISKTENHA', label: 'DISKTENHA' }
+                  ]}
+                  value={editData.tipo}
+                  onChange={(value) => setEditData({ ...editData, tipo: value })}
+                  placeholder="Selecione o tipo"
+                />
+                <CustomDropdown
+                  label="Status *"
+                  options={[
+                    { value: 'Pendente', label: 'Pendente' },
+                    { value: 'Saiu', label: 'Saiu' },
+                    { value: 'Entregue', label: 'Entregue' }
+                  ]}
+                  value={editData.status}
+                  onChange={(value) => setEditData({ ...editData, status: value })}
+                  placeholder="Selecione o status"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -438,25 +460,24 @@ export default function DetalheSedexDisktenha() {
                     />
                   </div>
                 )}
-                <div>
-                  <Label>Status do Pagamento</Label>
-                  <select
-                    className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={editData.forma_pagamento}
-                    onChange={(e) => setEditData({ ...editData, forma_pagamento: e.target.value })}
-                  >
-                    <option value="Aguardando">Aguardando</option>
-                    <option value="Pago">Pago</option>
-                  </select>
-                </div>
+                <CustomDropdown
+                  label="Status do Pagamento"
+                  options={[
+                    { value: 'Aguardando', label: 'Aguardando' },
+                    { value: 'Pago', label: 'Pago' }
+                  ]}
+                  value={editData.forma_pagamento}
+                  onChange={(value) => setEditData({ ...editData, forma_pagamento: value })}
+                  placeholder="Selecione..."
+                />
               </div>
 
               <div>
-                <Label>Data de Saída</Label>
-                <Input
-                  type="date"
+                <CustomDatePicker
+                  label="Data de Saída"
                   value={editData.data_saida}
-                  onChange={(e) => setEditData({ ...editData, data_saida: e.target.value })}
+                  onChange={(value) => setEditData({ ...editData, data_saida: value })}
+                  placeholder="Selecione a data"
                 />
               </div>
 

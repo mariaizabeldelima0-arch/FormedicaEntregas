@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, ChevronLeft } from 'lucide-react';
+import { CustomDropdown, CustomDatePicker } from '@/components';
+import { buscarCep, formatarCep } from '@/utils/buscarCep';
 import {
   Dialog,
   DialogContent,
@@ -104,7 +107,7 @@ const MOTOBOY_POR_REGIAO = {
   'PRAIA DOS AMORES': 'Bruno',
   'PRAIA BRAVA': 'Bruno',
   'ITAPEMA': 'Bruno',
-  'NAVEGANTES': 'Bruno',
+  'NAVEGANTES': 'Marcio',
   'PENHA': 'Bruno',
   'PORTO BELO': 'Bruno',
   'TIJUCAS': 'Bruno',
@@ -132,6 +135,7 @@ const FORMAS_PAGAMENTO = [
   'Pix Aguardando',
   'Receber Dinheiro',
   'Receber Máquina',
+  'Coleta',
   'Só Entregar',
   'Via na Pasta'
 ];
@@ -180,21 +184,27 @@ const MAPEAMENTO_REGIOES = {
     'default': 'BC'
   },
   'camboriú': {
+    'monte alegre': 'MONTE ALEGRE',
+    'tabuleiro': 'TABULEIRO',
     'default': 'CAMBORIÚ'
   },
   'camboriu': {
+    'monte alegre': 'MONTE ALEGRE',
+    'tabuleiro': 'TABULEIRO',
     'default': 'CAMBORIÚ'
   },
   'itajaí': {
     'centro': 'ITAJAI',
     'vila real': 'ITAJAI',
     'espinheiros': 'ESPINHEIROS',
+    'praia brava': 'PRAIA BRAVA',
     'default': 'ITAJAI'
   },
   'itajai': {
     'centro': 'ITAJAI',
     'vila real': 'ITAJAI',
     'espinheiros': 'ESPINHEIROS',
+    'praia brava': 'PRAIA BRAVA',
     'default': 'ITAJAI'
   },
   'itapema': {
@@ -234,39 +244,45 @@ const normalizarCidade = (cidade) => {
 
 // Função para detectar região automaticamente
 const detectarRegiao = (cidade, bairro) => {
-  const cidadeLower = cidade?.toLowerCase().trim() || '';
-  const bairroLower = bairro?.toLowerCase().trim() || '';
+  const cidadeLower = cidade?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') || '';
+  const bairroLower = bairro?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') || '';
 
-  console.log('🔍 Detectando região:', { cidade: cidadeLower, bairro: bairroLower });
+  // Tentar encontrar a cidade no mapeamento (com e sem acento)
+  const mapa = MAPEAMENTO_REGIOES[cidadeLower] ||
+    MAPEAMENTO_REGIOES[cidade?.toLowerCase().trim() || ''];
 
-  // Buscar por cidade
-  if (MAPEAMENTO_REGIOES[cidadeLower]) {
-    const mapa = MAPEAMENTO_REGIOES[cidadeLower];
-
-    // Se o bairro for "centro", sempre usar região padrão da cidade
-    if (bairroLower === 'centro') {
-      console.log('✅ Bairro Centro - usando região padrão da cidade:', mapa.default);
-      return mapa.default;
-    }
-
-    // Se o bairro estiver mapeado E for diferente do default, usar a região do bairro
-    if (bairroLower && mapa[bairroLower] && mapa[bairroLower] !== mapa.default) {
-      console.log('✅ Região detectada por bairro cadastrado:', mapa[bairroLower]);
+  if (mapa) {
+    // Se o bairro estiver mapeado, usar a região do bairro
+    if (bairroLower && mapa[bairroLower]) {
       return mapa[bairroLower];
     }
-
-    // Usar região padrão da cidade (bairro não cadastrado ou sem bairro)
-    console.log('✅ Região detectada por cidade (default):', mapa.default);
+    // Tentar também com acento original
+    const bairroOriginal = bairro?.toLowerCase().trim() || '';
+    if (bairroOriginal && mapa[bairroOriginal]) {
+      return mapa[bairroOriginal];
+    }
+    // Busca parcial: "praia brava de itajaí" contém "praia brava"
+    for (const [chave, regiao] of Object.entries(mapa)) {
+      if (chave !== 'default' && bairroLower.includes(chave)) {
+        return regiao;
+      }
+    }
+    // Usar região padrão da cidade
     return mapa.default;
   }
 
-  console.log('❌ Nenhuma região detectada');
   return '';
 };
 
 export default function NovoRomaneio() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  // Ler data da URL (se vier de Entregas Moto com data selecionada)
+  const urlParams = new URLSearchParams(location.search);
+  const dataUrl = urlParams.get('data');
   const [loading, setLoading] = useState(false);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
@@ -283,6 +299,7 @@ export default function NovoRomaneio() {
       bairro: '',
       cidade: '',
       cep: '',
+      regiao: '',
       is_principal: true
     }]
   });
@@ -337,17 +354,21 @@ export default function NovoRomaneio() {
     numero_requisicao: '',
     regiao: '',
     outra_cidade: '',
-    data_entrega: new Date().toISOString().split('T')[0],
+    data_entrega: dataUrl || new Date().toISOString().split('T')[0],
     periodo: 'Tarde',
     forma_pagamento: '',
     motoboy: '',
     valor_entrega: 0,
     item_geladeira: false,
     buscar_receita: false,
+    coleta: false,
     observacoes: '',
     precisa_troco: false,
     valor_troco: 0,
-    valor_venda: 0
+    valor_venda: 0,
+    tipo_horario: '',
+    hora1: '',
+    hora2: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -474,9 +495,12 @@ export default function NovoRomaneio() {
 
           // Se é o primeiro endereço adicionado, seleciona automaticamente
           if (prev.length === 0 && enderecosComCliente.length > 0) {
-            setEnderecoSelecionado(enderecosComCliente[0]);
-            if (enderecosComCliente[0].regiao) {
-              handleRegiaoChange(enderecosComCliente[0].regiao);
+            const primeiroEndereco = enderecosComCliente[0];
+            setEnderecoSelecionado(primeiroEndereco);
+            // Detectar região do endereço (salva ou por cidade/bairro)
+            const regiao = primeiroEndereco.regiao || detectarRegiao(primeiroEndereco.cidade, primeiroEndereco.bairro);
+            if (regiao) {
+              handleRegiaoChange(regiao);
             }
           }
 
@@ -788,7 +812,7 @@ export default function NovoRomaneio() {
     }
   }, [formData.forma_pagamento]);
 
-  // Verificar se Bruno tem entrega única em AMBOS os períodos (manhã E tarde)
+  // Verificar se Bruno terá entrega única no período (Manhã ou Tarde)
   const verificarEntregaUnicaBruno = async (data, periodo, motoboy) => {
     if (motoboy !== 'Bruno') {
       setIsEntregaUnica(false);
@@ -809,32 +833,16 @@ export default function NovoRomaneio() {
         return false;
       }
 
-      // Contar entregas do Bruno na data para MANHÃ
-      const { count: countManha } = await supabase
+      // Contar entregas do Bruno na data para o MESMO período
+      const { count: countPeriodo } = await supabase
         .from('entregas')
         .select('*', { count: 'exact', head: true })
         .eq('motoboy_id', motoboyData.id)
         .eq('data_entrega', data)
-        .eq('periodo', 'Manhã');
+        .eq('periodo', periodo);
 
-      // Contar entregas do Bruno na data para TARDE
-      const { count: countTarde } = await supabase
-        .from('entregas')
-        .select('*', { count: 'exact', head: true })
-        .eq('motoboy_id', motoboyData.id)
-        .eq('data_entrega', data)
-        .eq('periodo', 'Tarde');
-
-      // Determinar se o período atual será entrega única
-      const seriaUnicaNoPeriodoAtual = periodo === 'Manhã' ? countManha === 0 : countTarde === 0;
-
-      // Verificar se o outro período tem no máximo 1 entrega (ou seja, é única também)
-      const outroPeriodoTemUnica = periodo === 'Manhã'
-        ? (countTarde === 0 || countTarde === 1)
-        : (countManha === 0 || countManha === 1);
-
-      // Só é entrega única se AMBOS os períodos têm entregas únicas
-      const isUnica = seriaUnicaNoPeriodoAtual && outroPeriodoTemUnica;
+      // Só é entrega única se não existe nenhuma entrega no período (a nova será a única)
+      const isUnica = (countPeriodo || 0) === 0;
       setIsEntregaUnica(isUnica);
       return isUnica;
     } catch (error) {
@@ -957,6 +965,7 @@ export default function NovoRomaneio() {
           bairro: '',
           cidade: '',
           cep: '',
+          regiao: '',
           is_principal: false
         }
       ]
@@ -977,7 +986,42 @@ export default function NovoRomaneio() {
   const updateEnderecoNovoCliente = (index, field, value) => {
     const newEnderecos = [...novoCliente.enderecos];
     newEnderecos[index] = { ...newEnderecos[index], [field]: value };
+
+    // Auto-detectar região quando cidade ou bairro mudam
+    if (field === 'cidade' || field === 'bairro') {
+      const cidade = field === 'cidade' ? value : newEnderecos[index].cidade;
+      const bairro = field === 'bairro' ? value : newEnderecos[index].bairro;
+      const regiaoDetectada = detectarRegiao(cidade, bairro);
+      newEnderecos[index].regiao = regiaoDetectada || '';
+    }
+
     setNovoCliente({ ...novoCliente, enderecos: newEnderecos });
+  };
+
+  const handleCepNovoCliente = async (index, value) => {
+    const cepFormatado = formatarCep(value);
+    updateEnderecoNovoCliente(index, 'cep', cepFormatado);
+    const cepLimpo = value.replace(/\D/g, '');
+    if (cepLimpo.length === 8) {
+      const enderecoCep = await buscarCep(cepLimpo);
+      if (enderecoCep) {
+        setNovoCliente(prev => {
+          const newEnderecos = [...prev.enderecos];
+          newEnderecos[index] = {
+            ...newEnderecos[index],
+            cep: cepFormatado,
+            logradouro: enderecoCep.logradouro || newEnderecos[index].logradouro,
+            bairro: enderecoCep.bairro || newEnderecos[index].bairro,
+            cidade: enderecoCep.cidade || newEnderecos[index].cidade,
+
+          };
+          const regiaoDetectada = detectarRegiao(newEnderecos[index].cidade, newEnderecos[index].bairro);
+          if (regiaoDetectada) newEnderecos[index].regiao = regiaoDetectada;
+          return { ...prev, enderecos: newEnderecos };
+        });
+        toast.success('Endereço preenchido pelo CEP');
+      }
+    }
   };
 
   // Cadastrar novo cliente
@@ -1024,17 +1068,20 @@ export default function NovoRomaneio() {
       // 2. Criar endereços
       const enderecosParaInserir = novoCliente.enderecos
         .filter(end => end.logradouro && end.numero && end.cidade)
-        .map((end, index) => ({
-          cliente_id: clienteData.id,
-          logradouro: end.logradouro,
-          numero: end.numero,
-          complemento: end.complemento || null,
-          bairro: end.bairro || null,
-          cidade: end.cidade,
-          cep: end.cep || null,
-          regiao: end.regiao || null,
-          is_principal: index === 0
-        }));
+        .map((end, index) => {
+          const regiaoDetectada = detectarRegiao(end.cidade, end.bairro);
+          return {
+            cliente_id: clienteData.id,
+            logradouro: end.logradouro,
+            numero: end.numero,
+            complemento: end.complemento || null,
+            bairro: end.bairro || null,
+            cidade: end.cidade,
+            cep: end.cep || null,
+            regiao: regiaoDetectada || end.regiao || null,
+            is_principal: index === 0
+          };
+        });
 
       if (enderecosParaInserir.length > 0) {
         const { error: enderecoError } = await supabase
@@ -1062,6 +1109,7 @@ export default function NovoRomaneio() {
           bairro: '',
           cidade: '',
           cep: '',
+          regiao: '',
           is_principal: true
         }]
       });
@@ -1126,7 +1174,16 @@ export default function NovoRomaneio() {
         valor: formData.valor_entrega,
         item_geladeira: formData.item_geladeira,
         buscar_receita: formData.buscar_receita,
+        coleta: formData.coleta,
+        horario_entrega: formData.tipo_horario ? (
+          formData.tipo_horario === 'de_ate' ? `de ${formData.hora1}H até ${formData.hora2}H` :
+          formData.tipo_horario === 'ate' ? `até ${formData.hora1}H` :
+          formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}H` :
+          formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}H` : null
+        ) : null,
         observacoes: formData.observacoes,
+        atendente: user?.usuario || '',
+        atendente_id: user?.id || null,
         clientes_adicionais: clientesAdicionais,
         precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,
         valor_troco: formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco ? formData.valor_troco : 0,
@@ -1149,6 +1206,50 @@ export default function NovoRomaneio() {
 
       console.log('Entregas criadas:', entregasCriadas);
 
+      // Atualizar valores de entregas do Bruno que não são mais entrega única
+      if (formData.motoboy === 'Bruno' && motoboyId) {
+        try {
+          // Contar entregas do Bruno no mesmo período
+          const { count: countPeriodo } = await supabase
+            .from('entregas')
+            .select('*', { count: 'exact', head: true })
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', dataEntregaCorrigida)
+            .eq('periodo', formData.periodo);
+
+          // Se tem mais de 1 entrega no período, nenhuma desse período é "única"
+          const naoEhMaisUnica = (countPeriodo || 0) > 1;
+
+          if (naoEhMaisUnica) {
+            // Buscar entregas do Bruno no mesmo período que têm valor de entrega única
+            const { data: entregasParaAtualizar } = await supabase
+              .from('entregas')
+              .select('id, regiao, valor')
+              .eq('motoboy_id', motoboyId)
+              .eq('data_entrega', dataEntregaCorrigida)
+              .eq('periodo', formData.periodo)
+              .neq('id', entregasCriadas[0].id);
+
+            if (entregasParaAtualizar && entregasParaAtualizar.length > 0) {
+              for (const entrega of entregasParaAtualizar) {
+                const valorUnico = VALORES_ENTREGA_UNICA_BRUNO[entrega.regiao];
+                const valorNormal = VALORES_ENTREGA['Bruno']?.[entrega.regiao];
+                // Só atualizar se o valor atual é o de entrega única
+                if (valorUnico && valorNormal && entrega.valor === valorUnico) {
+                  await supabase
+                    .from('entregas')
+                    .update({ valor: valorNormal })
+                    .eq('id', entrega.id);
+                  console.log(`Entrega ${entrega.id} atualizada de R$${valorUnico} para R$${valorNormal} (não é mais entrega única)`);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao atualizar entregas únicas do Bruno:', err);
+        }
+      }
+
       // Invalidar queries relevantes
       await queryClient.invalidateQueries({ queryKey: ['entregas'] });
       await queryClient.invalidateQueries({ queryKey: ['receitas'] });
@@ -1169,30 +1270,30 @@ export default function NovoRomaneio() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header Customizado */}
-      <div className="py-8 shadow-sm" style={{
+      <div className="py-4 sm:py-8 shadow-sm" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
-              <ChevronLeft className="w-6 h-6 text-white" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
             <div>
-              <h1 className="text-4xl font-bold text-white">Novo Romaneio</h1>
-              <p className="text-base text-white opacity-90 mt-1">Crie uma nova ordem de entrega</p>
+              <h1 className="text-2xl sm:text-4xl font-bold text-white">Novo Romaneio</h1>
+              <p className="text-sm sm:text-base text-white opacity-90 mt-0.5 sm:mt-1">Crie uma nova ordem de entrega</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <form onSubmit={handleSubmit}>
         {/* Informações do Romaneio */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-4 sm:mb-6">
             Informações do Romaneio
           </h3>
 
@@ -1242,7 +1343,7 @@ export default function NovoRomaneio() {
                     style={{
                       padding: '0.75rem',
                       cursor: 'pointer',
-                      borderBottom: `1px solid ${theme.colors.border}`,
+                      borderBottom: index < clientesSugestoes.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
                       background: index === indiceSelecionado ? '#e3f2fd' : 'white',
                       transition: 'background 0.15s'
                     }}
@@ -1258,7 +1359,10 @@ export default function NovoRomaneio() {
             {buscarCliente.length >= 2 && clientesSugestoes.length === 0 && (
               <button
                 type="button"
-                onClick={() => setShowCadastroCliente(true)}
+                onClick={() => {
+                  setNovoCliente(prev => ({ ...prev, nome: buscarCliente }));
+                  setShowCadastroCliente(true);
+                }}
                 style={{
                   marginTop: '0.5rem',
                   padding: '0.5rem 1rem',
@@ -1415,8 +1519,60 @@ export default function NovoRomaneio() {
                           Cadastrar Novo Endereço
                         </h5>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                          <div style={{ gridColumn: '1 / -1' }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="CEP"
+                              value={novoEndereco.cep}
+                              maxLength={9}
+                              onChange={async (e) => {
+                                const cepFormatado = formatarCep(e.target.value);
+                                setNovoEndereco(prev => ({ ...prev, cep: cepFormatado }));
+                                const cepLimpo = e.target.value.replace(/\D/g, '');
+                                if (cepLimpo.length === 8) {
+                                  const enderecoCep = await buscarCep(cepLimpo);
+                                  if (enderecoCep) {
+                                    setNovoEndereco(prev => ({
+                                      ...prev,
+                                      cep: cepFormatado,
+                                      logradouro: enderecoCep.logradouro || prev.logradouro,
+                                      bairro: enderecoCep.bairro || prev.bairro,
+                                      cidade: enderecoCep.cidade || prev.cidade,
+
+                                    }));
+                                    toast.success('Endereço preenchido pelo CEP');
+                                  }
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '0.5rem',
+                                border: `1px solid ${theme.colors.border}`,
+                                borderRadius: '0.5rem',
+                                fontSize: '0.75rem'
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Região (auto-detectada)"
+                              value={novoEndereco.regiao}
+                              readOnly
+                              style={{
+                                width: '100%',
+                                padding: '0.5rem',
+                                border: `1px solid ${theme.colors.border}`,
+                                borderRadius: '0.5rem',
+                                fontSize: '0.75rem',
+                                background: '#f1f5f9'
+                              }}
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2">
                             <input
                               type="text"
                               placeholder="Rua *"
@@ -1495,39 +1651,6 @@ export default function NovoRomaneio() {
                               }}
                             />
                           </div>
-
-                          <div>
-                            <input
-                              type="text"
-                              placeholder="CEP"
-                              value={novoEndereco.cep}
-                              onChange={(e) => setNovoEndereco({ ...novoEndereco, cep: e.target.value })}
-                              style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.75rem'
-                              }}
-                            />
-                          </div>
-
-                          <div>
-                            <input
-                              type="text"
-                              placeholder="Região (auto-detectada)"
-                              value={novoEndereco.regiao}
-                              readOnly
-                              style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.75rem',
-                                background: '#f1f5f9'
-                              }}
-                            />
-                          </div>
                         </div>
 
                         <button
@@ -1576,8 +1699,60 @@ export default function NovoRomaneio() {
                                 Editando Endereço
                               </h5>
 
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div style={{ gridColumn: '1 / -1' }}>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                <div>
+                                  <input
+                                    type="text"
+                                    placeholder="CEP"
+                                    value={dadosEdicao.cep}
+                                    maxLength={9}
+                                    onChange={async (e) => {
+                                      const cepFormatado = formatarCep(e.target.value);
+                                      setDadosEdicao(prev => ({ ...prev, cep: cepFormatado }));
+                                      const cepLimpo = e.target.value.replace(/\D/g, '');
+                                      if (cepLimpo.length === 8) {
+                                        const enderecoCep = await buscarCep(cepLimpo);
+                                        if (enderecoCep) {
+                                          setDadosEdicao(prev => ({
+                                            ...prev,
+                                            cep: cepFormatado,
+                                            logradouro: enderecoCep.logradouro || prev.logradouro,
+                                            bairro: enderecoCep.bairro || prev.bairro,
+                                            cidade: enderecoCep.cidade || prev.cidade,
+      
+                                          }));
+                                          toast.success('Endereço preenchido pelo CEP');
+                                        }
+                                      }
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.5rem',
+                                      border: `1px solid ${theme.colors.border}`,
+                                      borderRadius: '0.5rem',
+                                      fontSize: '0.75rem'
+                                    }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <input
+                                    type="text"
+                                    placeholder="Região (auto-detectada)"
+                                    value={dadosEdicao.regiao}
+                                    readOnly
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.5rem',
+                                      border: `1px solid ${theme.colors.border}`,
+                                      borderRadius: '0.5rem',
+                                      fontSize: '0.75rem',
+                                      background: '#f1f5f9'
+                                    }}
+                                  />
+                                </div>
+
+                                <div className="sm:col-span-2">
                                   <input
                                     type="text"
                                     placeholder="Rua *"
@@ -1653,39 +1828,6 @@ export default function NovoRomaneio() {
                                       border: `1px solid ${theme.colors.border}`,
                                       borderRadius: '0.5rem',
                                       fontSize: '0.75rem'
-                                    }}
-                                  />
-                                </div>
-
-                                <div>
-                                  <input
-                                    type="text"
-                                    placeholder="CEP"
-                                    value={dadosEdicao.cep}
-                                    onChange={(e) => setDadosEdicao({ ...dadosEdicao, cep: e.target.value })}
-                                    style={{
-                                      width: '100%',
-                                      padding: '0.5rem',
-                                      border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.5rem',
-                                      fontSize: '0.75rem'
-                                    }}
-                                  />
-                                </div>
-
-                                <div>
-                                  <input
-                                    type="text"
-                                    placeholder="Região (auto-detectada)"
-                                    value={dadosEdicao.regiao}
-                                    readOnly
-                                    style={{
-                                      width: '100%',
-                                      padding: '0.5rem',
-                                      border: `1px solid ${theme.colors.border}`,
-                                      borderRadius: '0.5rem',
-                                      fontSize: '0.75rem',
-                                      background: '#f1f5f9'
                                     }}
                                   />
                                 </div>
@@ -1842,58 +1984,22 @@ export default function NovoRomaneio() {
           </div>
 
           {/* Grid: Região e Data */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Cidade/Região *
-              </label>
-              <select
-                value={formData.regiao}
-                onChange={(e) => handleRegiaoChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="">Selecione a cidade</option>
-                {REGIOES.map(regiao => (
-                  <option key={regiao} value={regiao}>{regiao}</option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+            <CustomDropdown
+              label="Cidade/Região *"
+              options={REGIOES.map(regiao => ({ value: regiao, label: regiao }))}
+              value={formData.regiao}
+              onChange={handleRegiaoChange}
+              placeholder="Selecione a cidade"
+              error={errors.regiao}
+            />
 
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Data de Entrega *
-              </label>
-              <input
-                type="date"
-                value={formData.data_entrega}
-                onChange={(e) => setFormData({...formData, data_entrega: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              />
-            </div>
+            <CustomDatePicker
+              label="Data de Entrega *"
+              value={formData.data_entrega}
+              onChange={(date) => setFormData({...formData, data_entrega: date})}
+              placeholder="Selecione a data"
+            />
           </div>
 
           {/* Outra Cidade (se OUTRO) */}
@@ -1925,32 +2031,17 @@ export default function NovoRomaneio() {
           )}
 
           {/* Grid: Período e Forma de Pagamento */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Período de Entrega *
-              </label>
-              <select
-                value={formData.periodo}
-                onChange={(e) => setFormData({...formData, periodo: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="Manhã">Manhã</option>
-                <option value="Tarde">Tarde</option>
-              </select>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+            <CustomDropdown
+              label="Período de Entrega *"
+              options={[
+                { value: 'Manhã', label: 'Manhã' },
+                { value: 'Tarde', label: 'Tarde' }
+              ]}
+              value={formData.periodo}
+              onChange={(value) => setFormData({...formData, periodo: value})}
+              placeholder="Selecione o período"
+            />
 
             <div style={{ position: 'relative' }}>
               <label style={{
@@ -2185,32 +2276,19 @@ export default function NovoRomaneio() {
           )}
 
           {/* Grid: Motoboy e Valor */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
             <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Motoboy *
-              </label>
-              <select
+              <CustomDropdown
+                label="Motoboy *"
+                options={[
+                  { value: 'Marcio', label: 'Marcio' },
+                  { value: 'Bruno', label: 'Bruno' }
+                ]}
                 value={formData.motoboy}
-                onChange={(e) => handleMotoboyChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="">Selecione o motoboy</option>
-                <option value="Marcio">Marcio</option>
-                <option value="Bruno">Bruno</option>
-              </select>
+                onChange={handleMotoboyChange}
+                placeholder="Selecione o motoboy"
+                error={errors.motoboy}
+              />
               <p style={{ fontSize: '0.75rem', color: theme.colors.textLight, marginTop: '0.25rem' }}>
                 Valor calculado automaticamente
               </p>
@@ -2268,8 +2346,78 @@ export default function NovoRomaneio() {
             </div>
           </div>
 
-          {/* Grid: Item de Geladeira e Buscar Receita */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          {/* Horário de Entrega */}
+          <div className="mb-3 sm:mb-4" style={{ padding: '0.75rem', border: formData.tipo_horario ? '2px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '0.5rem', backgroundColor: formData.tipo_horario ? '#eff6ff' : 'white' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
+              Horário de Entrega (opcional)
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: formData.tipo_horario ? '0.75rem' : 0 }}>
+              {[
+                { value: 'de_ate', label: 'de H até H' },
+                { value: 'ate', label: 'até H' },
+                { value: 'antes', label: 'antes das H' },
+                { value: 'depois', label: 'depois das H' }
+              ].map(opt => (
+                <button key={opt.value} type="button"
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    tipo_horario: prev.tipo_horario === opt.value ? '' : opt.value,
+                    hora1: prev.tipo_horario === opt.value ? '' : (prev.hora1 || '8'),
+                    hora2: prev.tipo_horario === opt.value ? '' : (prev.hora2 || '12')
+                  }))}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    border: formData.tipo_horario === opt.value ? '2px solid #2563eb' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: formData.tipo_horario === opt.value ? '#dbeafe' : 'white',
+                    color: formData.tipo_horario === opt.value ? '#1e40af' : '#64748b',
+                    fontWeight: formData.tipo_horario === opt.value ? '600' : '400',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              {formData.tipo_horario && (
+                <button type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, tipo_horario: '', hora1: '', hora2: '' }))}
+                  style={{ padding: '0.4rem 0.75rem', border: '2px solid #fca5a5', borderRadius: '0.5rem', background: '#fef2f2', color: '#dc2626', fontWeight: '500', fontSize: '0.8rem', cursor: 'pointer' }}
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+            {formData.tipo_horario && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {formData.tipo_horario === 'de_ate' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>de</span>}
+                {formData.tipo_horario === 'ate' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>até</span>}
+                {formData.tipo_horario === 'antes' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>antes das</span>}
+                {formData.tipo_horario === 'depois' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>depois das</span>}
+                <select value={formData.hora1} onChange={e => setFormData(prev => ({ ...prev, hora1: e.target.value }))}
+                  style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white' }}>
+                  {Array.from({ length: 13 }, (_, i) => i + 7).map(h => (
+                    <option key={h} value={String(h)}>{h}H</option>
+                  ))}
+                </select>
+                {formData.tipo_horario === 'de_ate' && (
+                  <>
+                    <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>até</span>
+                    <select value={formData.hora2} onChange={e => setFormData(prev => ({ ...prev, hora2: e.target.value }))}
+                      style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white' }}>
+                      {Array.from({ length: 13 }, (_, i) => i + 7).map(h => (
+                        <option key={h} value={String(h)}>{h}H</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Grid: Item de Geladeira, Buscar Receita e Coleta */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
             {/* Item de Geladeira */}
             <div>
               <label style={{
@@ -2367,6 +2515,55 @@ export default function NovoRomaneio() {
                 </button>
               </div>
             </div>
+
+            {/* Coleta */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Coleta? *
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, coleta: true})}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: formData.coleta ? '2px solid #4caf50' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: formData.coleta ? '#e8f5e9' : 'white',
+                    color: formData.coleta ? '#2e7d32' : '#64748b',
+                    fontWeight: formData.coleta ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, coleta: false})}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: !formData.coleta ? '2px solid #64748b' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: !formData.coleta ? '#f1f5f9' : 'white',
+                    color: !formData.coleta ? '#1e293b' : '#64748b',
+                    fontWeight: !formData.coleta ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Não
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Observações */}
@@ -2398,10 +2595,11 @@ export default function NovoRomaneio() {
         </div>
 
         {/* Botões */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+        <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 sm:justify-end">
           <button
             type="button"
             onClick={() => navigate('/')}
+            className="w-full sm:w-auto"
             style={{
               padding: '0.75rem 1.5rem',
               background: 'white',
@@ -2418,6 +2616,7 @@ export default function NovoRomaneio() {
           <button
             type="submit"
             disabled={loading}
+            className="w-full sm:w-auto"
             style={{
               padding: '0.75rem 1.5rem',
               background: loading ? theme.colors.textLight : theme.colors.primary,
@@ -2538,8 +2737,9 @@ export default function NovoRomaneio() {
                       <input
                         type="text"
                         value={endereco.cep || ""}
-                        onChange={(e) => updateEnderecoNovoCliente(index, 'cep', e.target.value)}
+                        onChange={(e) => handleCepNovoCliente(index, e.target.value)}
                         placeholder="00000-000"
+                        maxLength={9}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
@@ -2610,6 +2810,19 @@ export default function NovoRomaneio() {
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Região (auto-detectada)
+                      </label>
+                      <input
+                        type="text"
+                        value={endereco.regiao || ''}
+                        readOnly
+                        placeholder="Preencha cidade e bairro"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-600"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2633,6 +2846,7 @@ export default function NovoRomaneio() {
                       bairro: '',
                       cidade: '',
                       cep: '',
+                      regiao: '',
                       is_principal: true
                     }]
                   });

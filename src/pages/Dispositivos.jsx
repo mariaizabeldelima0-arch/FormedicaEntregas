@@ -12,19 +12,12 @@ import {
   XCircle,
   Trash2,
   Clock,
-  Plus,
-  UserPlus,
-  Users
+  Users,
+  User,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createPageUrl } from '@/utils';
 
 export default function Dispositivos() {
@@ -33,26 +26,13 @@ export default function Dispositivos() {
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [busca, setBusca] = useState('');
 
-  // Buscar motoboys para seleção
-  const { data: motoboys = [] } = useQuery({
-    queryKey: ['motoboys-lista'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('motoboys')
-        .select('*')
-        .order('nome');
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Buscar dispositivos
+  // Buscar dispositivos com dados do usuário vinculado
   const { data: dispositivos = [], isLoading } = useQuery({
     queryKey: ['dispositivos'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dispositivos')
-        .select('*')
+        .select('*, usuarios(id, usuario, tipo_usuario)')
         .order('ultimo_acesso', { ascending: false });
 
       if (error) throw error;
@@ -77,7 +57,8 @@ export default function Dispositivos() {
     const buscaLower = busca.toLowerCase();
     return (
       dispositivo.nome?.toLowerCase().includes(buscaLower) ||
-      dispositivo.usuario?.toLowerCase().includes(buscaLower) ||
+      dispositivo.usuarios?.nome?.toLowerCase().includes(buscaLower) ||
+      dispositivo.usuarios?.usuario?.toLowerCase().includes(buscaLower) ||
       dispositivo.impressao_digital?.toLowerCase().includes(buscaLower)
     );
   });
@@ -147,28 +128,28 @@ export default function Dispositivos() {
     }
   });
 
-  // Mutation para atualizar tipo de usuário do dispositivo
-  const atualizarTipoMutation = useMutation({
-    mutationFn: async ({ dispositivoId, tipoUsuario, nomeMotoboy }) => {
+  // Mutation para renomear
+  const renomearMutation = useMutation({
+    mutationFn: async ({ id, nome }) => {
       const { error } = await supabase
         .from('dispositivos')
-        .update({
-          tipo_usuario: tipoUsuario,
-          nome_motoboy: nomeMotoboy || null
-        })
-        .eq('id', dispositivoId);
+        .update({ nome })
+        .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
-      toast.success('Tipo de usuário atualizado!');
+      toast.success('Dispositivo renomeado!');
     },
-    onError: (error) => {
-      console.error('Erro:', error);
-      toast.error('Erro ao atualizar tipo de usuário');
+    onError: () => {
+      toast.error('Erro ao renomear dispositivo');
     }
   });
+
+  const handleRenomear = (id, nome) => {
+    renomearMutation.mutate({ id, nome });
+  };
 
   const handleAutorizar = (id) => {
     autorizarMutation.mutate(id);
@@ -182,10 +163,6 @@ export default function Dispositivos() {
     if (window.confirm('Tem certeza que deseja remover este dispositivo?')) {
       deletarMutation.mutate(id);
     }
-  };
-
-  const handleAtualizarTipo = (dispositivoId, tipoUsuario, nomeMotoboy) => {
-    atualizarTipoMutation.mutate({ dispositivoId, tipoUsuario, nomeMotoboy });
   };
 
   return (
@@ -203,7 +180,7 @@ export default function Dispositivos() {
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
             <div>
-              <h1 className="text-4xl font-bold text-white">Gerenciar Usuários/Dispositivos</h1>
+              <h1 className="text-4xl font-bold text-white">Gerenciar Dispositivos</h1>
               <p className="text-base text-white opacity-90 mt-1">Autorizar ou bloquear dispositivos de acesso</p>
             </div>
           </div>
@@ -211,86 +188,86 @@ export default function Dispositivos() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        {/* Cards de Estatísticas - Responsivo */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 mb-6">
           {/* Card Gerenciar Usuários */}
           <div
             onClick={() => navigate(createPageUrl("Usuarios"))}
-            className="rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md hover:scale-105"
+            className="rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md hover:scale-105"
             style={{ backgroundColor: '#890d5d' }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-white/20">
-                <Users className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg bg-white/20">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <span className="text-sm font-bold text-white">Usuários</span>
+              <span className="text-xs sm:text-sm font-bold text-white">Usuários</span>
             </div>
             <div className="text-center">
-              <span className="text-white font-semibold text-sm">Gerenciar</span>
+              <span className="text-white font-semibold text-xs sm:text-sm">Gerenciar</span>
             </div>
           </div>
           <div
             onClick={() => setFiltroStatus('todos')}
-            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
             style={{
               border: filtroStatus === 'todos' ? '2px solid #376295' : '2px solid transparent'
             }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                <Monitor className="w-6 h-6" style={{ color: '#376295' }} />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                <Monitor className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#376295' }} />
               </div>
-              <span className="text-sm font-bold text-slate-700">Total</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700">Total</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>{stats.total}</div>
+            <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#376295' }}>{stats.total}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('autorizados')}
-            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
             style={{
               border: filtroStatus === 'autorizados' ? '2px solid #3dac38' : '2px solid transparent'
             }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                <CheckCircle className="w-6 h-6" style={{ color: '#3dac38' }} />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#3dac38' }} />
               </div>
-              <span className="text-sm font-bold text-slate-700">Autorizados</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700">Autorizados</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>{stats.autorizados}</div>
+            <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#3dac38' }}>{stats.autorizados}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('pendentes')}
-            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md"
             style={{
               border: filtroStatus === 'pendentes' ? '2px solid #f97316' : '2px solid transparent'
             }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                <Clock className="w-6 h-6" style={{ color: '#f97316' }} />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#f97316' }} />
               </div>
-              <span className="text-sm font-bold text-slate-700">Pendentes</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700">Pendentes</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>{stats.pendentes}</div>
+            <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#f97316' }}>{stats.pendentes}</div>
           </div>
 
           <div
             onClick={() => setFiltroStatus('bloqueados')}
-            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+            className="bg-white rounded-xl shadow-sm p-3 sm:p-5 cursor-pointer transition-all hover:shadow-md col-span-2 sm:col-span-1"
             style={{
               border: filtroStatus === 'bloqueados' ? '2px solid #ef4444' : '2px solid transparent'
             }}
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#fef2f2' }}>
-                <XCircle className="w-6 h-6" style={{ color: '#ef4444' }} />
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+              <div className="p-1 sm:p-1.5 rounded-lg" style={{ backgroundColor: '#fef2f2' }}>
+                <XCircle className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#ef4444' }} />
               </div>
-              <span className="text-sm font-bold text-slate-700">Bloqueados</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-700">Bloqueados</span>
             </div>
-            <div className="text-4xl font-bold text-center" style={{ color: '#ef4444' }}>{stats.bloqueados}</div>
+            <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#ef4444' }}>{stats.bloqueados}</div>
           </div>
         </div>
 
@@ -302,7 +279,7 @@ export default function Dispositivos() {
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por e-mail, dispositivo ou impressão digital..."
+              placeholder="Buscar por nome do usuário, dispositivo ou impressão digital..."
               className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 transition-all"
               style={{
                 '--tw-ring-color': '#376295'
@@ -340,16 +317,15 @@ export default function Dispositivos() {
                 <DispositivoCard
                   key={dispositivo.id}
                   dispositivo={dispositivo}
-                  motoboys={motoboys}
                   onAutorizar={handleAutorizar}
                   onBloquear={handleBloquear}
                   onDeletar={handleDeletar}
-                  onAtualizarTipo={handleAtualizarTipo}
+                  onRenomear={handleRenomear}
                   isUpdating={
                     autorizarMutation.isPending ||
                     bloquearMutation.isPending ||
                     deletarMutation.isPending ||
-                    atualizarTipoMutation.isPending
+                    renomearMutation.isPending
                   }
                 />
               ))
@@ -362,25 +338,31 @@ export default function Dispositivos() {
 }
 
 // Componente de Card de Dispositivo
-function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDeletar, onAtualizarTipo, isUpdating }) {
-  const [tipoUsuario, setTipoUsuario] = React.useState(dispositivo.tipo_usuario || '');
-  const [nomeMotoboy, setNomeMotoboy] = React.useState(dispositivo.nome_motoboy || '');
+function DispositivoCard({ dispositivo, onAutorizar, onBloquear, onDeletar, onRenomear, isUpdating }) {
+  const [editando, setEditando] = useState(false);
+  const [novoNome, setNovoNome] = useState(dispositivo.nome || '');
 
-  const handleTipoChange = (novoTipo) => {
-    setTipoUsuario(novoTipo);
-    if (novoTipo !== 'motoboy') {
-      setNomeMotoboy('');
-      onAtualizarTipo(dispositivo.id, novoTipo, null);
+  const handleSalvarNome = () => {
+    const nomeTrimmed = novoNome.trim();
+    if (!nomeTrimmed) {
+      toast.error('O nome não pode ficar vazio');
+      return;
     }
+    if (nomeTrimmed !== dispositivo.nome) {
+      onRenomear(dispositivo.id, nomeTrimmed);
+    }
+    setEditando(false);
   };
 
-  const handleMotoboyChange = (nome) => {
-    setNomeMotoboy(nome);
-    if (nome) {
-      onAtualizarTipo(dispositivo.id, 'motoboy', nome);
-    }
+  const handleCancelar = () => {
+    setNovoNome(dispositivo.nome || '');
+    setEditando(false);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSalvarNome();
+    if (e.key === 'Escape') handleCancelar();
+  };
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Autorizado':
@@ -416,6 +398,17 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
     return <Smartphone className="w-5 h-5 text-slate-600" />;
   };
 
+  const getTipoBadge = (tipo) => {
+    if (!tipo) return null;
+    const config = {
+      admin: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Admin' },
+      atendente: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Atendente' },
+      motoboy: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Motoboy' },
+    };
+    const c = config[tipo] || { bg: 'bg-slate-100', text: 'text-slate-700', label: tipo };
+    return <span className={`px-2 py-0.5 rounded text-xs font-bold ${c.bg} ${c.text}`}>{c.label}</span>;
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -428,27 +421,72 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
     });
   };
 
-  return (
-    <div className="p-6 hover:bg-slate-50 transition-colors">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4 flex-1">
-          <div className="mt-1">{getDeviceIcon(dispositivo.nome)}</div>
+  const usuario = dispositivo.usuarios;
 
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="font-bold text-slate-900">{dispositivo.nome || 'Dispositivo Desconhecido'}</h3>
+  return (
+    <div className="p-4 sm:p-6 hover:bg-slate-50 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+          <div className="mt-1 flex-shrink-0">{getDeviceIcon(dispositivo.nome)}</div>
+
+          <div className="flex-1 min-w-0">
+            {/* Nome e Status */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+              {editando ? (
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    value={novoNome}
+                    onChange={(e) => setNovoNome(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                    className="font-bold text-slate-900 border border-slate-300 rounded-lg px-2 sm:px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#376295] focus:border-[#376295] flex-1 min-w-0"
+                  />
+                  <button
+                    onClick={handleSalvarNome}
+                    className="p-1.5 text-white rounded-lg hover:opacity-90 transition-opacity flex-shrink-0"
+                    style={{ backgroundColor: '#3dac38' }}
+                    title="Salvar"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleCancelar}
+                    className="p-1.5 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors flex-shrink-0"
+                    title="Cancelar"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base break-words">{dispositivo.nome || 'Dispositivo Desconhecido'}</h3>
+                  <button
+                    onClick={() => setEditando(true)}
+                    className="p-1 text-slate-400 hover:text-[#376295] hover:bg-slate-100 rounded transition-colors flex-shrink-0"
+                    title="Renomear dispositivo"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
               {getStatusBadge(dispositivo.status)}
             </div>
 
-            <div className="space-y-1 text-sm">
+            {/* Informações do dispositivo */}
+            <div className="space-y-1 text-xs sm:text-sm">
+              {usuario && (
+                <div className="text-slate-600 flex flex-wrap items-center gap-1 sm:gap-2">
+                  <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                  <span className="font-medium">Usuário:</span>
+                  <span className="text-slate-900">{usuario.usuario}</span>
+                  {getTipoBadge(usuario.tipo_usuario)}
+                </div>
+              )}
               <div className="text-slate-600">
-                <span className="font-medium">Usuário:</span>{' '}
-                <span className="text-slate-900">{dispositivo.usuario || '-'}</span>
-              </div>
-              <div className="text-slate-600">
-                <span className="font-medium">Impressão digital:</span>{' '}
-                <span className="font-mono text-xs text-slate-700">
-                  {dispositivo.impressao_digital || '-'}
+                <span className="font-medium">ID:</span>{' '}
+                <span className="font-mono text-xs text-slate-700 break-all">
+                  {dispositivo.impressao_digital?.slice(0, 20) || '-'}...
                 </span>
               </div>
               <div className="text-slate-600">
@@ -456,79 +494,30 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
                 <span className="text-slate-900">{formatDate(dispositivo.ultimo_acesso)}</span>
               </div>
             </div>
-
-            {/* Tipo de Usuário */}
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-600">Tipo:</span>
-                  <select
-                    value={tipoUsuario}
-                    onChange={(e) => handleTipoChange(e.target.value)}
-                    disabled={isUpdating}
-                    className="min-w-[160px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="admin">Administrador</option>
-                    <option value="atendente">Atendente</option>
-                    <option value="motoboy">Motoboy</option>
-                  </select>
-                </div>
-
-                {tipoUsuario === 'motoboy' && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-600">Motoboy:</span>
-                    <select
-                      value={nomeMotoboy}
-                      onChange={(e) => handleMotoboyChange(e.target.value)}
-                      disabled={isUpdating}
-                      className="min-w-[150px] h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 cursor-pointer"
-                    >
-                      <option value="">Selecione...</option>
-                      {motoboys?.map(m => (
-                        <option key={m.id} value={m.nome}>{m.nome}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {tipoUsuario && (
-                  <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-                    tipoUsuario === 'admin' ? 'bg-purple-100 text-purple-700' :
-                    tipoUsuario === 'motoboy' ? 'bg-orange-100 text-orange-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {tipoUsuario === 'admin' ? 'Administrador' :
-                     tipoUsuario === 'motoboy' ? `Motoboy${nomeMotoboy ? `: ${nomeMotoboy}` : ''}` :
-                     'Atendente'}
-                  </span>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Botões de Ação */}
-        <div className="flex items-center gap-2 ml-4">
+        {/* Botões de Ação - Responsivo */}
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 sm:ml-4">
           {dispositivo.status === 'Pendente' && (
             <>
               <button
                 onClick={() => onAutorizar(dispositivo.id)}
                 disabled={isUpdating}
-                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="flex items-center gap-1.5 sm:gap-2 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: '#3dac38' }}
               >
-                <CheckCircle className="w-4 h-4" />
-                Autorizar
+                <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Autorizar</span>
               </button>
               <button
                 onClick={() => onBloquear(dispositivo.id)}
                 disabled={isUpdating}
-                className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="flex items-center gap-1.5 sm:gap-2 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: '#ef4444' }}
               >
-                <XCircle className="w-4 h-4" />
-                Bloquear
+                <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Bloquear</span>
               </button>
             </>
           )}
@@ -537,11 +526,11 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
             <button
               onClick={() => onBloquear(dispositivo.id)}
               disabled={isUpdating}
-              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: '#ef4444' }}
             >
-              <XCircle className="w-4 h-4" />
-              Bloquear
+              <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Bloquear</span>
             </button>
           )}
 
@@ -549,20 +538,20 @@ function DispositivoCard({ dispositivo, motoboys, onAutorizar, onBloquear, onDel
             <button
               onClick={() => onAutorizar(dispositivo.id)}
               disabled={isUpdating}
-              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: '#3dac38' }}
             >
-              <CheckCircle className="w-4 h-4" />
-              Autorizar
+              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Autorizar</span>
             </button>
           )}
 
           <button
             onClick={() => onDeletar(dispositivo.id)}
             disabled={isUpdating}
-            className="p-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+            className="p-1.5 sm:p-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>

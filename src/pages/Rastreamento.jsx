@@ -187,6 +187,12 @@ export default function Rastreamento() {
                           Geladeira
                         </Badge>
                       )}
+                      {romaneio.coleta && (
+                        <Badge className="bg-white/20 text-white border-white/30">
+                          <Package className="w-4 h-4 mr-1" />
+                          Coleta
+                        </Badge>
+                      )}
                     </div>
                     <StatusTimeline status={romaneio.status} />
                   </div>

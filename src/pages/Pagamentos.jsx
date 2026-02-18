@@ -22,6 +22,7 @@ import {
   ClipboardList,
   AlertCircle,
   Check,
+  Paperclip,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -34,16 +35,30 @@ const FORMAS_PAGAMENTO = [
   'Link - Aguardando', 'Boleto', 'Pagar MP'
 ];
 
+// Verifica se a forma de pagamento indica que já foi recebido
+// Apenas formas que começam com "Pago" indicam pagamento já realizado
+// "Dinheiro", "Máquina", "Receber" etc. indicam que ainda precisa cobrar
+const verificarSeJaRecebido = (forma) => {
+  if (!forma) return false;
+  // Normalizar removendo acentos e convertendo para minúsculo
+  const formaLower = forma.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  // Apenas "Pago..." indica que já foi recebido
+  return formaLower.startsWith('pago');
+};
+
 export default function Pagamentos() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   // Estados
   const [mesAtual, setMesAtual] = useState(new Date());
-  const [dataSelecionada, setDataSelecionada] = useState(null);
-  const [verTodos, setVerTodos] = useState(true); // Iniciar com "ver todos"
+  const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [verTodos, setVerTodos] = useState(false); // Iniciar filtrando por dia
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("todos"); // "todos", "pendentes", "recebidos", "dinheiro", "cartao"
 
   // Estados para o modal de edição
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -61,7 +76,8 @@ export default function Pagamentos() {
           *,
           cliente:clientes(nome, telefone, cpf),
           endereco:enderecos(cidade, regiao),
-          motoboy:motoboys(nome)
+          motoboy:motoboys(nome),
+          anexos(id, tipo)
         `)
         .order('data_entrega', { ascending: false });
 
@@ -119,10 +135,13 @@ export default function Pagamentos() {
       return;
     }
 
+    // Se a forma de pagamento indica que já foi pago, marcar automaticamente como recebido
+    const deveMarcarRecebido = verificarSeJaRecebido(formaPagamentoEdit);
+
     updatePagamentoMutation.mutate({
       entregaId: entregaEditando.id,
       formaPagamento: formaPagamentoEdit,
-      pagamentoRecebido: pagamentoRecebidoEdit,
+      pagamentoRecebido: deveMarcarRecebido ? true : pagamentoRecebidoEdit,
     });
   };
 
@@ -130,6 +149,76 @@ export default function Pagamentos() {
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
   }, [queryClient]);
+
+  // Mutation silenciosa para corrigir pagamentos (sem toast individual)
+  const corrigirPagamentoMutation = useMutation({
+    mutationFn: async (entregaId) => {
+      console.log('Tentando corrigir entrega:', entregaId);
+      const { data, error } = await supabase
+        .from('entregas')
+        .update({ pagamento_recebido: true })
+        .eq('id', entregaId)
+        .select();
+
+      console.log('Resultado:', { data, error });
+      if (error) {
+        console.error('Erro detalhado:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+      return data;
+    },
+  });
+
+  // Corrigir automaticamente entregas que têm forma de pagamento "Pago" mas não estão marcadas como recebidas
+  const [jaCorrigiu, setJaCorrigiu] = useState(false);
+  useEffect(() => {
+    const corrigirPagamentosExistentes = async () => {
+      if (jaCorrigiu) return;
+      if (isLoading) return;
+      if (!entregas || entregas.length === 0) return;
+
+      const entregasParaCorrigir = entregas.filter(e => {
+        const deveReceber = verificarSeJaRecebido(e.forma_pagamento);
+        const aindaNaoRecebido = !e.pagamento_recebido;
+        return deveReceber && aindaNaoRecebido;
+      });
+
+      if (entregasParaCorrigir.length === 0) {
+        setJaCorrigiu(true);
+        return;
+      }
+
+      setJaCorrigiu(true);
+
+      let corrigidos = 0;
+      let erros = 0;
+
+      // Corrigir uma por uma
+      for (const entrega of entregasParaCorrigir) {
+        try {
+          await corrigirPagamentoMutation.mutateAsync(entrega.id);
+          corrigidos++;
+        } catch (err) {
+          console.error('Erro ao corrigir entrega:', entrega.id, err);
+          erros++;
+        }
+      }
+
+      // Recarregar dados
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['entregas'] });
+      queryClient.invalidateQueries({ queryKey: ['receitas'] });
+
+      if (corrigidos > 0) {
+        toast.success(`${corrigidos} pagamento(s) corrigido(s) automaticamente`);
+      }
+      if (erros > 0) {
+        toast.error(`${erros} pagamento(s) não puderam ser corrigidos`);
+      }
+    };
+
+    corrigirPagamentosExistentes();
+  }, [entregas, isLoading, jaCorrigiu, queryClient]);
 
   // Mostrar erro se houver
   useEffect(() => {
@@ -168,8 +257,8 @@ export default function Pagamentos() {
     );
   }
 
-  // Filtrar entregas
-  const entregasFiltradas = entregas.filter(e => {
+  // Filtrar entregas (sem filtro de status para estatísticas)
+  const entregasBase = entregas.filter(e => {
     // Filtro de data
     if (!verTodos && dataSelecionada && e.data_entrega) {
       if (!isSameDay(parseISO(e.data_entrega), dataSelecionada)) return false;
@@ -191,16 +280,41 @@ export default function Pagamentos() {
     return true;
   });
 
-  // Calcular estatísticas
+  // Funções para verificar forma de pagamento
+  const ehDinheiro = (forma) => {
+    if (!forma) return false;
+    const f = forma.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // "Dinheiro", "Receber Dinheiro", "Receber" (sozinho = dinheiro por padrão)
+    return f.includes('dinheiro') || (f.includes('receber') && !f.includes('maquina') && !f.includes('cartao'));
+  };
+
+  const ehCartao = (forma) => {
+    if (!forma) return false;
+    const f = forma.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // "Máquina", "Maquina", "Cartão", "Receber Máquina", "Receber Cartão"
+    return f.includes('maquina') || f.includes('cartao');
+  };
+
+  // Aplicar filtro de status de pagamento
+  const entregasFiltradas = entregasBase.filter(e => {
+    if (filtroStatus === "pendentes" && e.pagamento_recebido) return false;
+    if (filtroStatus === "recebidos" && !e.pagamento_recebido) return false;
+    // Filtros de dinheiro e cartão mostram todas as entregas com essa forma, independente do status
+    if (filtroStatus === "dinheiro" && !ehDinheiro(e.forma_pagamento)) return false;
+    if (filtroStatus === "cartao" && !ehCartao(e.forma_pagamento)) return false;
+    return true;
+  });
+
+  // Calcular estatísticas (baseado nas entregas sem filtro de status)
   const stats = {
-    pendentes: entregasFiltradas.filter(e => !e.pagamento_recebido && e.status === 'Entregue').length,
-    recebidos: entregasFiltradas.filter(e => e.pagamento_recebido).length,
-    dinheiro: entregasFiltradas
-      .filter(e => e.pagamento_recebido && (e.forma_pagamento === 'Dinheiro' || e.forma_pagamento === 'dinheiro'))
-      .reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
-    cartao: entregasFiltradas
-      .filter(e => e.pagamento_recebido && (e.forma_pagamento === 'Cartão' || e.forma_pagamento === 'cartao' || e.forma_pagamento === 'Cartao'))
-      .reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
+    pendentes: entregasBase.filter(e => !e.pagamento_recebido).length,
+    recebidos: entregasBase.filter(e => e.pagamento_recebido).length,
+    dinheiro: entregasBase
+      .filter(e => ehDinheiro(e.forma_pagamento) && !e.pagamento_recebido)
+      .reduce((sum, e) => sum + (parseFloat(e.valor_venda) || 0), 0),
+    cartao: entregasBase
+      .filter(e => ehCartao(e.forma_pagamento) && !e.pagamento_recebido)
+      .reduce((sum, e) => sum + (parseFloat(e.valor_venda) || 0), 0),
   };
 
   // Motoboys únicos para o filtro
@@ -409,7 +523,11 @@ export default function Pagamentos() {
             {/* Cards de estatísticas */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Pendentes */}
-              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'pendentes' ? 'todos' : 'pendentes')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'pendentes' ? '2px solid #f97316' : '2px solid transparent' }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
                     <AlertCircle className="w-6 h-6" style={{ color: '#f97316' }} />
@@ -422,7 +540,11 @@ export default function Pagamentos() {
               </div>
 
               {/* Recebidos */}
-              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'recebidos' ? 'todos' : 'recebidos')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'recebidos' ? '2px solid #3dac38' : '2px solid transparent' }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
                     <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
@@ -435,7 +557,11 @@ export default function Pagamentos() {
               </div>
 
               {/* Dinheiro */}
-              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'dinheiro' ? 'todos' : 'dinheiro')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'dinheiro' ? '2px solid #376295' : '2px solid transparent' }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
                     <Banknote className="w-6 h-6" style={{ color: '#376295' }} />
@@ -448,7 +574,11 @@ export default function Pagamentos() {
               </div>
 
               {/* Cartão */}
-              <div className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md">
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'cartao' ? 'todos' : 'cartao')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'cartao' ? '2px solid #890d5d' : '2px solid transparent' }}
+              >
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
                     <CreditCard className="w-6 h-6" style={{ color: '#890d5d' }} />
@@ -499,6 +629,12 @@ export default function Pagamentos() {
                               >
                                 {entrega.pagamento_recebido ? "Recebido" : "Pendente"}
                               </Badge>
+                              {entrega.anexos?.length > 0 && (
+                                <span className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
+                                  <Paperclip className="w-3.5 h-3.5" />
+                                  {entrega.anexos.length} Anexo{entrega.anexos.length > 1 ? 's' : ''}
+                                </span>
+                              )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-600 mb-3">
                               <div>
@@ -513,16 +649,18 @@ export default function Pagamentos() {
                               </div>
                               {entrega.forma_pagamento && (
                                 <div>
-                                  <span className="font-medium">Forma:</span> {entrega.forma_pagamento}
+                                  <span className="font-medium">Forma:</span> <span style={entrega.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{entrega.forma_pagamento}</span>
                                 </div>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            {entrega.valor && (
-                              <div className="text-right mr-3">
-                                <div className="font-bold text-xl" style={{ color: '#376295' }}>
-                                  R$ {parseFloat(entrega.valor).toFixed(2)}
+                          <div className="flex items-center gap-3 ml-4">
+                            {/* Valor a receber - apenas para formas que requerem cobrança */}
+                            {(ehDinheiro(entrega.forma_pagamento) || ehCartao(entrega.forma_pagamento)) && entrega.valor_venda > 0 && (
+                              <div className="text-right">
+                                <div className="text-xs text-slate-500">A Receber</div>
+                                <div className="font-bold text-lg" style={{ color: entrega.pagamento_recebido ? '#3dac38' : '#1b5e20' }}>
+                                  R$ {parseFloat(entrega.valor_venda).toFixed(2)}
                                 </div>
                               </div>
                             )}

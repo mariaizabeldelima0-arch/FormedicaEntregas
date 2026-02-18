@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
 import { toast } from 'sonner';
+import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   ChevronLeft,
   Printer,
@@ -9,11 +11,15 @@ import {
   Calendar,
   Filter,
   X,
-  FileText
+  FileText,
+  Package,
+  CheckSquare,
+  Square,
+  CheckCircle
 } from 'lucide-react';
 
 // Componente de impressão individual do romaneio (versão para tela)
-function RomaneioCard({ romaneio }) {
+function RomaneioCard({ romaneio, extraClass = '' }) {
   if (!romaneio) return null;
 
   const formatarData = (data) => {
@@ -22,10 +28,14 @@ function RomaneioCard({ romaneio }) {
     return d.toLocaleDateString('pt-BR');
   };
 
-  const isPago = romaneio.forma_pagamento && ['Pago', 'Só Entregar'].includes(romaneio.forma_pagamento);
+  const isPago = romaneio.forma_pagamento !== 'Só Entregar' && (
+    romaneio.pagamento_recebido || (romaneio.forma_pagamento &&
+      romaneio.forma_pagamento.startsWith('Pago')
+    )
+  );
 
   return (
-    <div className="romaneio-card" style={{ position: 'relative' }}>
+    <div className={`romaneio-card${extraClass}`} style={{ position: 'relative' }}>
       {/* Carimbo PAGO */}
       {isPago && (
         <div className="carimbo-pago" style={{
@@ -50,63 +60,80 @@ function RomaneioCard({ romaneio }) {
 
       {/* Logo e Titulo */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
-        <img src="/logo-formedica.png" alt="Formédica" style={{ width: '100px', height: 'auto', marginBottom: '5px' }} />
-        <h2 style={{ fontSize: '14px', fontWeight: 'bold', margin: 0 }}>ROMANEIO DE ENTREGA</h2>
+        <img src={`${import.meta.env.BASE_URL}logo-formedica.png`} alt="Formédica" style={{ width: '100px', height: 'auto', marginBottom: '5px' }} />
+        <h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0 }}>ROMANEIO DE ENTREGA</h2>
       </div>
 
       {/* Info Principal e Cliente */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>DADOS DA ENTREGA</div>
-          <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>DADOS DA ENTREGA</div>
+          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>N. Requisição: </span>
             <span style={{ fontWeight: 'bold' }}>#{romaneio.requisicao || '0000'}</span>
           </div>
-          <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>Data: </span>
             <span>{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
           </div>
-          <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+          {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+            <div style={{ fontSize: '15px', marginBottom: '3px', fontWeight: 'bold', border: '2px solid #000', padding: '3px 8px', display: 'inline-block' }}>
+              HORÁRIO: {(romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]).toUpperCase()}
+            </div>
+          )}
+          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>Motoboy: </span>
             <span>{romaneio.motoboy?.nome || '-'}</span>
           </div>
-          <div style={{ fontSize: '9px' }}>
+          <div style={{ fontSize: '15px' }}>
             <span>Atendente: </span>
-            <span>{romaneio.atendente?.nome || romaneio.atendente?.email || '-'}</span>
+            <span>{romaneio.atendente_nome || '-'}</span>
           </div>
         </div>
 
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE</div>
-          <div style={{ fontSize: '9px', marginBottom: '3px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
+          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
             <span>Nome: </span>
             <span>{romaneio.cliente?.nome || '-'}</span>
           </div>
-          <div style={{ fontSize: '9px' }}>
+          <div style={{ fontSize: '15px' }}>
             <span>Telefone: </span>
             <span>{romaneio.cliente?.telefone || '-'}</span>
           </div>
+          {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
+            <div key={idx} style={{ marginTop: '5px', paddingTop: '5px', borderTop: '1px dashed #ccc' }}>
+              <div style={{ fontSize: '15px', marginBottom: '3px' }}>
+                <span>Nome: </span>
+                <span>{cliente.nome}</span>
+              </div>
+              <div style={{ fontSize: '15px' }}>
+                <span>Telefone: </span>
+                <span>{cliente.telefone || '-'}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Endereco e Pagamento */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>ENDERECO DE ENTREGA</div>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '2px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>ENDERECO DE ENTREGA</div>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '2px' }}>
             {romaneio.endereco?.logradouro || '-'}, {romaneio.endereco?.numero || 'S/N'}
           </div>
-          <div style={{ fontSize: '9px', marginBottom: '2px' }}>
+          <div style={{ fontSize: '15px', marginBottom: '2px' }}>
             {romaneio.endereco?.bairro || '-'} - {romaneio.endereco?.cidade || romaneio.regiao || '-'}
           </div>
           {romaneio.endereco?.complemento && (
-            <div style={{ fontSize: '9px' }}>Compl.: {romaneio.endereco.complemento}</div>
+            <div style={{ fontSize: '15px' }}>Compl.: {romaneio.endereco.complemento}</div>
           )}
         </div>
 
         <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>PAGAMENTO</div>
-          <div style={{ fontSize: '9px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>PAGAMENTO</div>
+          <div style={{ fontSize: '15px' }}>
             <span>Forma de Pagamento: </span>
             <span>{romaneio.forma_pagamento || '-'}</span>
           </div>
@@ -114,15 +141,15 @@ function RomaneioCard({ romaneio }) {
       </div>
 
       {/* Observações */}
-      {romaneio.observacoes && (
+      {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
         <div style={{ border: '1px solid #000', padding: '8px', marginBottom: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>OBSERVAÇÕES</div>
-          <div style={{ fontSize: '9px' }}>{romaneio.observacoes}</div>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>OBSERVAÇÕES</div>
+          <div style={{ fontSize: '15px' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</div>
         </div>
       )}
 
-      {/* Item Geladeira e Reter Receita */}
-      {(romaneio.item_geladeira || romaneio.buscar_receita) && (
+      {/* Item Geladeira, Reter Receita e Coleta */}
+      {(romaneio.item_geladeira || romaneio.buscar_receita || romaneio.coleta) && (
         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
           {romaneio.item_geladeira && (
             <div style={{
@@ -132,7 +159,7 @@ function RomaneioCard({ romaneio }) {
               justifyContent: 'center',
               gap: '8px',
               padding: '8px',
-              fontSize: '11px',
+              fontSize: '18px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               border: '2px solid #000',
@@ -151,15 +178,34 @@ function RomaneioCard({ romaneio }) {
               justifyContent: 'center',
               gap: '8px',
               padding: '8px',
-              fontSize: '11px',
+              fontSize: '18px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
               border: '2px solid #000',
               background: '#fff'
             }}>
-              <FileText size={14} />
+              <FileText size={20} />
               <span>RETER RECEITA</span>
-              <FileText size={14} />
+              <FileText size={20} />
+            </div>
+          )}
+          {romaneio.coleta && (
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '8px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              border: '2px solid #000',
+              background: '#fff'
+            }}>
+              <Package size={20} />
+              <span>COLETA</span>
+              <Package size={20} />
             </div>
           )}
         </div>
@@ -175,7 +221,7 @@ function RomaneioCard({ romaneio }) {
               border: '2px solid #000',
               padding: '8px',
               textAlign: 'center',
-              fontSize: '12px',
+              fontSize: '18px',
               fontWeight: 'bold'
             }}>
               $ COBRAR NA ENTREGA: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
@@ -188,7 +234,7 @@ function RomaneioCard({ romaneio }) {
               border: '2px solid #000',
               padding: '8px',
               textAlign: 'center',
-              fontSize: '12px',
+              fontSize: '18px',
               fontWeight: 'bold'
             }}>
               TROCO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
@@ -215,6 +261,12 @@ export default function RomaneiosDoDia() {
     status: ''
   });
   const [showFiltros, setShowFiltros] = useState(false);
+  const [selecionados, setSelecionados] = useState(new Set());
+  const [impressos, setImpressos] = useState(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('romaneios_impressos') || '[]'));
+    } catch { return new Set(); }
+  });
 
   // Carregar romaneios do dia
   const loadRomaneios = async () => {
@@ -250,20 +302,33 @@ export default function RomaneiosDoDia() {
             : entrega.endereco;
 
           // Buscar atendente
-          let atendente = null;
+          let atendenteNome = entrega.atendente || null;
           if (entrega.atendente_id) {
             const { data: atendenteData } = await supabase
               .from('usuarios')
-              .select('id, nome, email')
+              .select('id, usuario')
               .eq('id', entrega.atendente_id)
               .single();
-            atendente = atendenteData;
+            if (atendenteData) {
+              atendenteNome = atendenteData.usuario;
+            }
+          }
+
+          // Buscar clientes adicionais
+          let clientesAdicionais = [];
+          if (entrega.clientes_adicionais && entrega.clientes_adicionais.length > 0) {
+            const { data: clientesData } = await supabase
+              .from('clientes')
+              .select('id, nome, telefone')
+              .in('id', entrega.clientes_adicionais);
+            clientesAdicionais = clientesData || [];
           }
 
           return {
             ...entrega,
             endereco: enderecoDisplay,
-            atendente
+            atendente_nome: atendenteNome,
+            clientesAdicionais
           };
         })
       );
@@ -289,10 +354,14 @@ export default function RomaneiosDoDia() {
       const matchCliente = romaneio.cliente?.nome?.toLowerCase().includes(busca);
       const matchRequisicao = romaneio.requisicao?.toLowerCase().includes(busca);
       const matchEndereco = romaneio.endereco?.logradouro?.toLowerCase().includes(busca) ||
-                           romaneio.endereco?.bairro?.toLowerCase().includes(busca);
+                           romaneio.endereco?.bairro?.toLowerCase().includes(busca) ||
+                           romaneio.endereco?.cidade?.toLowerCase().includes(busca) ||
+                           romaneio.endereco?.complemento?.toLowerCase().includes(busca);
       const matchMotoboy = romaneio.motoboy?.nome?.toLowerCase().includes(busca);
+      const matchAtendente = romaneio.atendente_nome?.toLowerCase().includes(busca);
+      const matchTelefone = romaneio.cliente?.telefone?.toLowerCase().includes(busca);
 
-      if (!matchCliente && !matchRequisicao && !matchEndereco && !matchMotoboy) {
+      if (!matchCliente && !matchRequisicao && !matchEndereco && !matchMotoboy && !matchAtendente && !matchTelefone) {
         return false;
       }
     }
@@ -318,8 +387,48 @@ export default function RomaneiosDoDia() {
   // Obter lista única de motoboys
   const motoboys = [...new Set(romaneios.map(r => r.motoboy?.nome).filter(Boolean))];
 
-  // Imprimir todos
-  const handlePrintAll = () => {
+  // Seleção de romaneios
+  const toggleSelecionado = (id) => {
+    setSelecionados(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selecionarTodos = () => {
+    setSelecionados(new Set(romaneiosFiltrados.map(r => r.id)));
+  };
+
+  const deselecionarTodos = () => {
+    setSelecionados(new Set());
+  };
+
+  // Imprimir selecionados (ou todos se nenhum selecionado)
+  const handlePrint = () => {
+    const idsParaImprimir = selecionados.size > 0
+      ? [...selecionados]
+      : romaneiosFiltrados.map(r => r.id);
+
+    const marcarComoImpressos = () => {
+      const novosImpressos = new Set(impressos);
+      idsParaImprimir.forEach(id => novosImpressos.add(id));
+      setImpressos(novosImpressos);
+      localStorage.setItem('romaneios_impressos', JSON.stringify([...novosImpressos]));
+    };
+
+    const onAfterPrint = () => {
+      window.removeEventListener('afterprint', onAfterPrint);
+      setTimeout(() => {
+        if (window.confirm('A impressão foi realizada com sucesso?')) {
+          marcarComoImpressos();
+          toast.success(`${idsParaImprimir.length} romaneio(s) marcado(s) como impresso(s)`);
+        }
+      }, 300);
+    };
+
+    window.addEventListener('afterprint', onAfterPrint);
     window.print();
   };
 
@@ -334,23 +443,40 @@ export default function RomaneiosDoDia() {
       {/* Estilos para impressão */}
       <style>{`
         @media print {
+          @page {
+            margin: 0;
+          }
           .no-print {
             display: none !important;
           }
           .print-container {
             padding: 0 !important;
           }
+          .romaneio-wrapper {
+            break-inside: avoid;
+          }
+          .romaneio-wrapper.hide-print {
+            display: none !important;
+          }
           .romaneio-card {
             page-break-inside: avoid;
             border: 1px solid #000 !important;
             margin-bottom: 10px !important;
             padding: 10px !important;
+            margin-left: 15px !important;
+            margin-right: 15px !important;
+          }
+          .romaneio-card:first-child {
+            margin-top: 15px !important;
           }
           .romaneios-grid {
             display: block !important;
           }
           .romaneios-grid > div {
             break-inside: avoid;
+          }
+          .checkbox-overlay {
+            display: none !important;
           }
         }
 
@@ -362,36 +488,48 @@ export default function RomaneiosDoDia() {
             background: white;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
           }
+          .romaneio-card.impresso {
+            border: 3px solid #457bba !important;
+            box-shadow: 0 0 0 1px #457bba, 0 1px 3px rgba(0,0,0,0.1);
+          }
+          .romaneio-card.selecionado {
+            outline: 3px solid #22c55e;
+            outline-offset: 2px;
+          }
         }
       `}</style>
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Header */}
-        <div className="no-print py-8 shadow-sm" style={{
+        <div className="no-print py-4 sm:py-8 shadow-sm" style={{
           background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
         }}>
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <button
                   onClick={() => navigate(-1)}
-                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                  className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
                 >
-                  <ChevronLeft className="w-6 h-6 text-white" />
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </button>
                 <div>
-                  <h1 className="text-3xl font-bold text-white">Romaneios do Dia</h1>
-                  <p className="text-white/80 text-sm mt-1">{formatarDataExibicao(selectedDate)}</p>
+                  <h1 className="text-xl sm:text-3xl font-bold text-white">Romaneios do Dia</h1>
+                  <p className="text-white/80 text-xs sm:text-sm mt-0.5 sm:mt-1">{formatarDataExibicao(selectedDate)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 pl-8 sm:pl-0">
                 <button
-                  onClick={handlePrintAll}
-                  className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white rounded-lg font-semibold text-xs sm:text-sm hover:bg-gray-100 transition-colors"
                   style={{ color: '#890d5d' }}
                 >
-                  <Printer size={18} />
-                  Imprimir Todos ({romaneiosFiltrados.length})
+                  <Printer size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">
+                    {selecionados.size > 0 ? `Imprimir Selecionados` : 'Imprimir Todos'}
+                  </span>
+                  <span className="sm:hidden">Imprimir</span>
+                  <span>({selecionados.size > 0 ? selecionados.size : romaneiosFiltrados.length})</span>
                 </button>
               </div>
             </div>
@@ -399,17 +537,15 @@ export default function RomaneiosDoDia() {
         </div>
 
         {/* Filtros */}
-        <div className="no-print max-w-7xl mx-auto px-6 py-4">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center gap-4 flex-wrap">
+        <div className="no-print max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               {/* Seletor de Data */}
               <div className="flex items-center gap-2">
-                <Calendar size={18} className="text-slate-500" />
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                  onChange={setSelectedDate}
+                  placeholder="Selecione a data"
                 />
               </div>
 
@@ -420,76 +556,79 @@ export default function RomaneiosDoDia() {
                   type="text"
                   value={filtros.busca}
                   onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })}
-                  placeholder="Buscar por cliente, requisição, endereço, motoboy..."
+                  placeholder="Buscar requisição, atendente, telefone, cliente, endereço..."
                   className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              {/* Botão Filtros */}
-              <button
-                onClick={() => setShowFiltros(!showFiltros)}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition-colors"
-              >
-                <Filter size={18} />
-                Filtros
-                {(filtros.motoboy || filtros.periodo || filtros.status) && (
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                )}
-              </button>
-
-              {/* Limpar Filtros */}
-              {(filtros.busca || filtros.motoboy || filtros.periodo || filtros.status) && (
+              <div className="flex items-center gap-2">
+                {/* Botão Filtros */}
                 <button
-                  onClick={() => setFiltros({ busca: '', motoboy: '', periodo: '', status: '' })}
-                  className="flex items-center gap-1 px-3 py-2 text-sm text-slate-600 hover:text-slate-900"
+                  onClick={() => setShowFiltros(!showFiltros)}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 transition-colors"
                 >
-                  <X size={16} />
-                  Limpar
+                  <Filter size={18} />
+                  <span className="hidden sm:inline">Filtros</span>
+                  {(filtros.motoboy || filtros.periodo || filtros.status) && (
+                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  )}
                 </button>
-              )}
+
+                {/* Limpar Filtros */}
+                {(filtros.busca || filtros.motoboy || filtros.periodo || filtros.status) && (
+                  <button
+                    onClick={() => setFiltros({ busca: '', motoboy: '', periodo: '', status: '' })}
+                    className="flex items-center gap-1 px-3 py-2 text-sm text-slate-600 hover:text-slate-900"
+                  >
+                    <X size={16} />
+                    <span className="hidden sm:inline">Limpar</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Filtros Expandidos */}
             {showFiltros && (
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-200">
-                <select
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4 pt-4 border-t border-slate-200">
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Todos Motoboys' },
+                    ...motoboys.map(m => ({ value: m, label: m }))
+                  ]}
                   value={filtros.motoboy}
-                  onChange={(e) => setFiltros({ ...filtros, motoboy: e.target.value })}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Todos Motoboys</option>
-                  {motoboys.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFiltros({ ...filtros, motoboy: value })}
+                  placeholder="Todos Motoboys"
+                />
 
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Todos Períodos' },
+                    { value: 'Manhã', label: 'Manhã' },
+                    { value: 'Tarde', label: 'Tarde' }
+                  ]}
                   value={filtros.periodo}
-                  onChange={(e) => setFiltros({ ...filtros, periodo: e.target.value })}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Todos Períodos</option>
-                  <option value="Manhã">Manhã</option>
-                  <option value="Tarde">Tarde</option>
-                </select>
+                  onChange={(value) => setFiltros({ ...filtros, periodo: value })}
+                  placeholder="Todos Períodos"
+                />
 
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: '', label: 'Todos Status' },
+                    { value: 'Produzindo no Laboratório', label: 'Produção' },
+                    { value: 'A Caminho', label: 'A Caminho' },
+                    { value: 'Entregue', label: 'Entregue' }
+                  ]}
                   value={filtros.status}
-                  onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Todos Status</option>
-                  <option value="Produzindo no Laboratório">Produção</option>
-                  <option value="A Caminho">A Caminho</option>
-                  <option value="Entregue">Entregue</option>
-                </select>
+                  onChange={(value) => setFiltros({ ...filtros, status: value })}
+                  placeholder="Todos Status"
+                />
               </div>
             )}
           </div>
         </div>
 
         {/* Conteúdo */}
-        <div className="print-container max-w-7xl mx-auto px-6 pb-8">
+        <div className="print-container max-w-7xl mx-auto px-4 sm:px-6 pb-6 sm:pb-8">
           {loading ? (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
               <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
@@ -507,9 +646,62 @@ export default function RomaneiosDoDia() {
             </div>
           ) : (
             <>
-              {/* Contador */}
-              <div className="no-print mb-4 text-sm text-slate-600">
-                Mostrando {romaneiosFiltrados.length} romaneio(s)
+              {/* Filtro rápido por Motoboy */}
+              <div className="no-print mb-3 flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-slate-600 mr-1">Motoboy:</span>
+                <button
+                  onClick={() => setFiltros({ ...filtros, motoboy: '' })}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    !filtros.motoboy
+                      ? 'bg-[#457bba] text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Todos
+                </button>
+                {motoboys.map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setFiltros({ ...filtros, motoboy: filtros.motoboy === m ? '' : m })}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                      filtros.motoboy === m
+                        ? 'bg-[#457bba] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+
+              {/* Controles de seleção e contador */}
+              <div className="no-print mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="text-sm text-slate-600">
+                  Mostrando {romaneiosFiltrados.length} romaneio(s)
+                  {selecionados.size > 0 && (
+                    <span className="ml-2 text-green-600 font-medium">
+                      • {selecionados.size} selecionado(s)
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={selecionarTodos}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-slate-700"
+                  >
+                    <CheckSquare size={14} />
+                    Selecionar Todos
+                  </button>
+                  {selecionados.size > 0 && (
+                    <button
+                      onClick={deselecionarTodos}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-slate-700"
+                    >
+                      <Square size={14} />
+                      Limpar Seleção
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Grid de Romaneios - 2 por linha */}
@@ -518,9 +710,66 @@ export default function RomaneiosDoDia() {
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: '16px'
               }}>
-                {romaneiosFiltrados.map((romaneio) => (
-                  <RomaneioCard key={romaneio.id} romaneio={romaneio} />
-                ))}
+                {romaneiosFiltrados.map((romaneio) => {
+                  const isSelecionado = selecionados.has(romaneio.id);
+                  const isImpresso = impressos.has(romaneio.id);
+                  const hideOnPrint = selecionados.size > 0 && !isSelecionado;
+
+                  return (
+                    <div
+                      key={romaneio.id}
+                      className={`romaneio-wrapper${hideOnPrint ? ' hide-print' : ''}`}
+                      style={{ position: 'relative', cursor: 'pointer' }}
+                      onClick={() => toggleSelecionado(romaneio.id)}
+                    >
+                      {/* Checkbox overlay */}
+                      <div className="checkbox-overlay no-print" style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        zIndex: 20,
+                        background: 'white',
+                        borderRadius: '4px',
+                        padding: '2px'
+                      }}>
+                        {isSelecionado ? (
+                          <CheckSquare size={24} className="text-green-500" />
+                        ) : (
+                          <Square size={24} className="text-slate-300" />
+                        )}
+                      </div>
+
+                      {/* Badge impresso */}
+                      {isImpresso && (
+                        <div className="no-print" style={{
+                          position: 'absolute',
+                          top: '8px',
+                          left: '8px',
+                          zIndex: 20,
+                          background: '#457bba',
+                          color: 'white',
+                          borderRadius: '4px',
+                          padding: '2px 8px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <CheckCircle size={12} />
+                          Impresso
+                        </div>
+                      )}
+
+                      <div className={`romaneio-card-inner`}>
+                        <RomaneioCard
+                          romaneio={romaneio}
+                          extraClass={`${isSelecionado ? ' selecionado' : ''}${isImpresso ? ' impresso' : ''}`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

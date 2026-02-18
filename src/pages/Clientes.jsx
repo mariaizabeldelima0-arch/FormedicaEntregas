@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CustomDropdown } from "@/components/CustomDropdown";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,12 +56,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { buscarCep, formatarCep } from "@/utils/buscarCep";
 
 // Mapeamento de regiões
 const REGIOES = [
   { value: "BC", label: "Balneário Camboriú (BC)" },
   { value: "NOVA ESPERANÇA", label: "Nova Esperança" },
   { value: "CAMBORIÚ", label: "Camboriú" },
+  { value: "TABULEIRO", label: "Tabuleiro" },
+  { value: "MONTE ALEGRE", label: "Monte Alegre" },
   { value: "BARRA", label: "Barra" },
   { value: "ESTALEIRO", label: "Estaleiro" },
   { value: "TAQUARAS", label: "Taquaras" },
@@ -68,6 +72,7 @@ const REGIOES = [
   { value: "PRAIA DOS AMORES", label: "Praia dos Amores" },
   { value: "PRAIA BRAVA", label: "Praia Brava" },
   { value: "ITAJAI", label: "Itajaí" },
+  { value: "ESPINHEIROS", label: "Espinheiros" },
   { value: "ITAPEMA", label: "Itapema" },
   { value: "NAVEGANTES", label: "Navegantes" },
   { value: "PENHA", label: "Penha" },
@@ -75,6 +80,7 @@ const REGIOES = [
   { value: "TIJUCAS", label: "Tijucas" },
   { value: "PIÇARRAS", label: "Piçarras" },
   { value: "BOMBINHAS", label: "Bombinhas" },
+  { value: "CLINICA", label: "Clínica" },
   { value: "OUTRO", label: "Outro" }
 ];
 
@@ -239,10 +245,98 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
     });
   };
 
+  // Mapeamento de bairro/cidade para região
+  const detectarRegiao = (bairro, cidade) => {
+    const bairroNorm = (bairro || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const cidadeNorm = (cidade || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Verificar bairro primeiro (mais específico)
+    const mapaBairro = {
+      'nova esperanca': 'NOVA ESPERANÇA',
+      'barra': 'BARRA',
+      'estaleiro': 'ESTALEIRO',
+      'taquaras': 'TAQUARAS',
+      'laranjeiras': 'LARANJEIRAS',
+      'praia dos amores': 'PRAIA DOS AMORES',
+      'praia brava': 'PRAIA BRAVA',
+      'tabuleiro': 'TABULEIRO',
+      'monte alegre': 'MONTE ALEGRE',
+      'espinheiros': 'ESPINHEIROS',
+      'centro': null, // centro depende da cidade
+    };
+
+    for (const [chave, regiao] of Object.entries(mapaBairro)) {
+      if ((bairroNorm === chave || bairroNorm.includes(chave)) && regiao) return regiao;
+    }
+
+    // Verificar cidade
+    const mapaCidade = {
+      'balneario camboriu': 'BC',
+      'bal. camboriu': 'BC',
+      'bal camboriu': 'BC',
+      'bc': 'BC',
+      'camboriu': 'CAMBORIÚ',
+      'itajai': 'ITAJAI',
+      'itapema': 'ITAPEMA',
+      'navegantes': 'NAVEGANTES',
+      'penha': 'PENHA',
+      'porto belo': 'PORTO BELO',
+      'tijucas': 'TIJUCAS',
+      'picarras': 'PIÇARRAS',
+      'bombinhas': 'BOMBINHAS',
+    };
+
+    for (const [chave, regiao] of Object.entries(mapaCidade)) {
+      if (cidadeNorm === chave) return regiao;
+    }
+
+    return null;
+  };
+
   const updateEndereco = (index, field, value) => {
     const newEnderecos = [...formData.enderecos];
     newEnderecos[index] = { ...newEnderecos[index], [field]: value };
+
+    // Auto-detectar região quando bairro ou cidade mudar
+    if (field === 'bairro' || field === 'cidade') {
+      const bairro = field === 'bairro' ? value : newEnderecos[index].bairro;
+      const cidade = field === 'cidade' ? value : newEnderecos[index].cidade;
+      const regiaoDetectada = detectarRegiao(bairro, cidade);
+      if (regiaoDetectada) {
+        newEnderecos[index].regiao = regiaoDetectada;
+      }
+    }
+
     setFormData({ ...formData, enderecos: newEnderecos });
+  };
+
+  const handleCepChange = async (index, value) => {
+    const cepFormatado = formatarCep(value);
+    updateEndereco(index, 'cep', cepFormatado);
+
+    const cepLimpo = value.replace(/\D/g, '');
+    if (cepLimpo.length === 8) {
+      const enderecoCep = await buscarCep(cepLimpo);
+      if (enderecoCep) {
+        setFormData(prev => {
+          const newEnderecos = [...prev.enderecos];
+          newEnderecos[index] = {
+            ...newEnderecos[index],
+            cep: cepFormatado,
+            logradouro: enderecoCep.logradouro || newEnderecos[index].logradouro,
+            bairro: enderecoCep.bairro || newEnderecos[index].bairro,
+            cidade: enderecoCep.cidade || newEnderecos[index].cidade,
+
+          };
+          const regiaoDetectada = detectarRegiao(newEnderecos[index].bairro, newEnderecos[index].cidade);
+          if (regiaoDetectada) {
+            newEnderecos[index].regiao = regiaoDetectada;
+          }
+          return { ...prev, enderecos: newEnderecos };
+        });
+        toast.success('Endereço preenchido pelo CEP');
+      }
+    }
   };
 
   return (
@@ -321,7 +415,7 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
         </div>
 
         {formData.enderecos.map((endereco, index) => (
-          <div key={`endereco-${index}-${endereco.logradouro || 'new'}`} className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+          <div key={`endereco-${index}`} className="bg-slate-50 rounded-lg border border-slate-200 p-4">
             <div className="flex justify-between items-center mb-4">
               <h4 className="text-sm font-semibold text-slate-700">
                 Endereço {index + 1} {index === 0 && "(Principal)"}
@@ -346,27 +440,23 @@ const ClienteForm = ({ cliente, onSuccess, onCancel }) => {
                   <input
                     type="text"
                     value={endereco.cep || ""}
-                    onChange={(e) => updateEndereco(index, 'cep', e.target.value)}
+                    onChange={(e) => handleCepChange(index, e.target.value)}
                     placeholder="00000-000"
+                    maxLength={9}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Região
-                  </label>
-                  <select
+                  <CustomDropdown
+                    label="Região"
+                    options={[
+                      { value: '', label: 'Selecione a região' },
+                      ...REGIOES.map(regiao => ({ value: regiao.value, label: regiao.label }))
+                    ]}
                     value={endereco.regiao || ""}
-                    onChange={(e) => updateEndereco(index, 'regiao', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  >
-                    <option value="">Selecione a região</option>
-                    {REGIOES.map(regiao => (
-                      <option key={regiao.value} value={regiao.value}>
-                        {regiao.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => updateEndereco(index, 'regiao', value)}
+                    placeholder="Selecione a região"
+                  />
                 </div>
               </div>
 
@@ -524,7 +614,6 @@ export default function Clientes() {
   const [entregasCliente, setEntregasCliente] = useState([]);
   const [loadingEntregas, setLoadingEntregas] = useState(false);
   const [buscaEntregas, setBuscaEntregas] = useState("");
-  const [filtroStatusEntrega, setFiltroStatusEntrega] = useState("todas");
 
   const loadClientes = async () => {
     setLoading(true);
@@ -586,15 +675,15 @@ export default function Clientes() {
   const handleSelectCliente = async (cliente) => {
     setClienteSelecionado(cliente);
     setBuscaEntregas("");
-    setFiltroStatusEntrega("todas");
     await loadEntregasCliente(cliente.id);
   };
 
-  // Carregar entregas do cliente
+  // Carregar entregas do cliente (incluindo entregas onde é cliente adicional)
   const loadEntregasCliente = async (clienteId) => {
     setLoadingEntregas(true);
     try {
-      const { data, error } = await supabase
+      // Buscar entregas onde o cliente é o principal
+      const { data: entregasPrincipal, error: errorPrincipal } = await supabase
         .from('entregas')
         .select(`
           *,
@@ -605,10 +694,47 @@ export default function Clientes() {
         .eq('cliente_id', clienteId)
         .order('data_entrega', { ascending: false });
 
-      if (error) throw error;
+      if (errorPrincipal) throw errorPrincipal;
+
+      // Buscar entregas onde o cliente está nos clientes_adicionais
+      // Usar filtro com sintaxe PostgREST para arrays
+      const { data: entregasAdicional, error: errorAdicional } = await supabase
+        .from('entregas')
+        .select(`
+          *,
+          cliente:clientes(id, nome, telefone),
+          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
+          motoboy:motoboys(id, nome)
+        `)
+        .not('clientes_adicionais', 'is', null)
+        .order('data_entrega', { ascending: false });
+
+      if (errorAdicional) throw errorAdicional;
+
+      // Filtrar entregas que contêm o cliente no array clientes_adicionais
+      const entregasComClienteAdicional = (entregasAdicional || []).filter(entrega =>
+        entrega.clientes_adicionais && entrega.clientes_adicionais.includes(clienteId)
+      );
+
+      // Combinar e remover duplicatas
+      const todasEntregas = [...(entregasPrincipal || [])];
+      const idsExistentes = new Set(todasEntregas.map(e => e.id));
+
+      entregasComClienteAdicional.forEach(entrega => {
+        if (!idsExistentes.has(entrega.id)) {
+          todasEntregas.push(entrega);
+        }
+      });
+
+      // Ordenar por data de entrega (mais recente primeiro)
+      todasEntregas.sort((a, b) => {
+        const dataA = new Date(a.data_entrega || '1900-01-01');
+        const dataB = new Date(b.data_entrega || '1900-01-01');
+        return dataB - dataA;
+      });
 
       // Processar snapshot de endereço
-      const entregasComSnapshot = (data || []).map(entrega => {
+      const entregasComSnapshot = todasEntregas.map(entrega => {
         // Priorizar dados do snapshot de endereço
         const enderecoDisplay = entrega.endereco_logradouro
           ? {
@@ -644,17 +770,36 @@ export default function Clientes() {
     const toastId = toast.loading('Excluindo cliente...');
 
     try {
-      // Verificar se cliente tem entregas
-      const { data: entregas, error: entregasError } = await supabase
+      // Verificar se cliente tem entregas como cliente principal
+      const { data: entregasPrincipal, error: entregasPrincipalError } = await supabase
         .from('entregas')
         .select('id')
         .eq('cliente_id', clienteToDelete.id)
         .limit(1);
 
-      if (entregasError) throw entregasError;
+      if (entregasPrincipalError) throw entregasPrincipalError;
 
-      if (entregas && entregas.length > 0) {
+      if (entregasPrincipal && entregasPrincipal.length > 0) {
         toast.error('Não é possível excluir cliente com entregas cadastradas', { id: toastId });
+        setDeleteDialogOpen(false);
+        setClienteToDelete(null);
+        return;
+      }
+
+      // Verificar se cliente está em entregas como cliente adicional
+      const { data: entregasComAdicionais, error: entregasAdicionalError } = await supabase
+        .from('entregas')
+        .select('id, clientes_adicionais')
+        .not('clientes_adicionais', 'is', null);
+
+      if (entregasAdicionalError) throw entregasAdicionalError;
+
+      const temEntregaAdicional = (entregasComAdicionais || []).some(entrega =>
+        entrega.clientes_adicionais && entrega.clientes_adicionais.includes(clienteToDelete.id)
+      );
+
+      if (temEntregaAdicional) {
+        toast.error('Não é possível excluir cliente vinculado a entregas', { id: toastId });
         setDeleteDialogOpen(false);
         setClienteToDelete(null);
         return;
@@ -766,12 +911,6 @@ export default function Clientes() {
 
   // Filtrar entregas
   const entregasFiltradas = entregasCliente.filter(e => {
-    // Filtro de status
-    if (filtroStatusEntrega !== "todas" && e.status !== filtroStatusEntrega) {
-      return false;
-    }
-
-    // Filtro de busca
     if (buscaEntregas) {
       const termo = buscaEntregas.toLowerCase();
       return e.requisicao?.toLowerCase().includes(termo) ||
@@ -780,11 +919,7 @@ export default function Clientes() {
     return true;
   });
 
-  // Calcular estatísticas
   const totalEntregas = entregasCliente.length;
-  const entregasProducao = entregasCliente.filter(e => e.status === 'Produzindo no Laboratório').length;
-  const entregasCaminho = entregasCliente.filter(e => e.status === 'A Caminho').length;
-  const entregasEntregues = entregasCliente.filter(e => e.status === 'Entregue').length;
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -1002,89 +1137,19 @@ export default function Clientes() {
                         </div>
                       </div>
 
-                      {/* Lado Direito - Estatísticas */}
+                      {/* Lado Direito - Total de Entregas */}
                       <div>
-                        <h3 className="font-semibold text-lg text-slate-900 mb-4">Estatísticas de Entregas</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Card Total */}
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("todas")}
-                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                            style={{
-                              border: filtroStatusEntrega === "todas" ? '2px solid #376295' : '2px solid transparent'
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                                <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
-                              </div>
-                              <span className="text-sm font-bold text-slate-700">Total</span>
+                        <h3 className="font-semibold text-lg text-slate-900 mb-4">Entregas</h3>
+                        <div className="bg-white rounded-xl shadow-sm p-5" style={{ border: '2px solid #376295' }}>
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                              <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
                             </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
-                              {totalEntregas}
-                            </div>
-                          </button>
-
-                          {/* Card Produção */}
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("Produzindo no Laboratório")}
-                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                            style={{
-                              border: filtroStatusEntrega === "Produzindo no Laboratório" ? '2px solid #890d5d' : '2px solid transparent'
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                                <Package className="w-6 h-6" style={{ color: '#890d5d' }} />
-                              </div>
-                              <span className="text-sm font-bold text-slate-700">Produção</span>
-                            </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
-                              {entregasProducao}
-                            </div>
-                          </button>
-
-                          {/* Card A Caminho */}
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("A Caminho")}
-                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                            style={{
-                              border: filtroStatusEntrega === "A Caminho" ? '2px solid #f97316' : '2px solid transparent'
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                                <Truck className="w-6 h-6" style={{ color: '#f97316' }} />
-                              </div>
-                              <span className="text-sm font-bold text-slate-700">A Caminho</span>
-                            </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
-                              {entregasCaminho}
-                            </div>
-                          </button>
-
-                          {/* Card Entregues */}
-                          <button
-                            type="button"
-                            onClick={() => setFiltroStatusEntrega("Entregue")}
-                            className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
-                            style={{
-                              border: filtroStatusEntrega === "Entregue" ? '2px solid #3dac38' : '2px solid transparent'
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                                <Check className="w-6 h-6" style={{ color: '#3dac38' }} />
-                              </div>
-                              <span className="text-sm font-bold text-slate-700">Entregues</span>
-                            </div>
-                            <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
-                              {entregasEntregues}
-                            </div>
-                          </button>
+                            <span className="text-sm font-bold text-slate-700">Total</span>
+                          </div>
+                          <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                            {totalEntregas}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1114,20 +1179,6 @@ export default function Clientes() {
                           className="pl-10"
                         />
                       </div>
-                      <select
-                        value={filtroStatusEntrega}
-                        onChange={(e) => setFiltroStatusEntrega(e.target.value)}
-                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#457bba] focus:border-transparent"
-                      >
-                        <option value="todas">Todos os Status</option>
-                        <option value="Produzindo no Laboratório">Produção</option>
-                        <option value="A Caminho">A Caminho</option>
-                        <option value="Entregue">Entregue</option>
-                        <option value="Pendente">Pendente</option>
-                        <option value="Não Entregue">Não Entregue</option>
-                        <option value="Voltou">Voltou</option>
-                        <option value="Cancelado">Cancelado</option>
-                      </select>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -1139,8 +1190,8 @@ export default function Clientes() {
                       <div className="p-12 text-center">
                         <Package className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-500">
-                          {buscaEntregas || filtroStatusEntrega !== "todas"
-                            ? 'Nenhuma entrega encontrada com os filtros aplicados'
+                          {buscaEntregas
+                            ? 'Nenhuma entrega encontrada com a busca aplicada'
                             : 'Nenhuma entrega encontrada para este cliente'}
                         </p>
                       </div>
@@ -1159,7 +1210,6 @@ export default function Clientes() {
                                   <span className="font-bold text-slate-900">
                                     #{entrega.requisicao}
                                   </span>
-                                  <StatusBadge status={entrega.status} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
                                   {entrega.motoboy?.nome && (
@@ -1176,7 +1226,7 @@ export default function Clientes() {
                                   {entrega.data_entrega && (
                                     <div className="flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
-                                      {new Date(entrega.data_entrega).toLocaleDateString('pt-BR')}
+                                      {new Date(entrega.data_entrega + 'T12:00:00').toLocaleDateString('pt-BR')}
                                     </div>
                                   )}
                                   {entrega.valor && (

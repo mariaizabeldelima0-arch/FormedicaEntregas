@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CustomDatePicker } from "@/components/CustomDatePicker";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
@@ -103,7 +104,7 @@ export default function Sedex() {
 
       return base44.entities.EntregaSedex.create({
         ...data,
-        atendente_nome: user?.nome_atendente || user?.full_name,
+        atendente_nome: user?.usuario,
         atendente_email: user?.email,
         valor_entrega: data.valor_entrega ? parseFloat(data.valor_entrega) : null,
       });
@@ -376,12 +377,11 @@ export default function Sedex() {
                       />
                     </div>
                     <div>
-                      <Label>Data de Postagem *</Label>
-                      <Input
-                        type="date"
+                      <CustomDatePicker
+                        label="Data de Postagem *"
                         value={formData.data_postagem}
-                        onChange={(e) => setFormData({ ...formData, data_postagem: e.target.value })}
-                        required
+                        onChange={(value) => setFormData({ ...formData, data_postagem: value })}
+                        placeholder="Selecione a data"
                       />
                     </div>
                   </div>
@@ -475,7 +475,7 @@ export default function Sedex() {
                   <div>
                     <Label>Atendente</Label>
                     <Input
-                      value={user?.nome_atendente || user?.full_name || ""}
+                      value={user?.usuario || ""}
                       disabled
                       className="bg-slate-100"
                     />

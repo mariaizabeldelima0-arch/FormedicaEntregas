@@ -2,6 +2,7 @@
 
 -- Adicionar colunas para Receita
 ALTER TABLE entregas
+ADD COLUMN IF NOT EXISTS receita_anexo TEXT,
 ADD COLUMN IF NOT EXISTS receita_descricao TEXT;
 
 -- Adicionar colunas para Pagamento

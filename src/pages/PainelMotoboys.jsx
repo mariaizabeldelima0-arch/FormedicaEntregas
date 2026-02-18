@@ -3,37 +3,38 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, endOfWeek, addDays, subDays } from 'date-fns';
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
+import { CustomDropdown } from '@/components/CustomDropdown';
 import {
   Package,
-  CheckCircle,
   Clock,
-  MapPin,
   Phone,
   DollarSign,
-  TrendingUp,
   User,
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  Printer,
+  ChevronUp,
+  ChevronDown,
   Navigation,
-  Wallet,
-  AlertCircle,
+  AlertTriangle,
   Check,
   X,
-  GripVertical,
   Sun,
-  Sunset,
+  Sunrise,
   Search,
   Play,
   Truck,
   RotateCcw,
-  Pause
+  Pause,
+  Snowflake,
+  FileText,
+  Banknote,
+  ExternalLink
 } from 'lucide-react';
+
 
 export default function PainelMotoboys() {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ export default function PainelMotoboys() {
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [termoBusca, setTermoBusca] = useState('');
   const [ordemEntregas, setOrdemEntregas] = useState({});
+  const [statusPagamentoSemana, setStatusPagamentoSemana] = useState('Aguardando');
 
   // Definição dos status disponíveis (Em Rota é o padrão)
   const statusOptions = [
@@ -61,7 +63,6 @@ export default function PainelMotoboys() {
   // Função para normalizar status antigos para os novos
   const normalizarStatus = (status) => {
     if (!status) return STATUS_PADRAO;
-    // Mapear status antigos
     const mapeamento = {
       'A Caminho': 'Em Rota',
       'Não Entregue': 'Voltou p/ Farmácia',
@@ -69,10 +70,9 @@ export default function PainelMotoboys() {
     return mapeamento[status] || status;
   };
 
-  const [draggedItem, setDraggedItem] = useState(null);
-
   const isMotoboy = userType === 'motoboy';
-  const nomeMotoboyUsuario = user?.nome_motoboy;
+  const isAdmin = userType === 'admin';
+  const nomeMotoboyUsuario = user?.usuario;
 
   // Buscar lista de motoboys
   const { data: motoboys = [] } = useQuery({
@@ -135,9 +135,32 @@ export default function PainelMotoboys() {
     return isSameDay(entregaDate, dataSelecionada);
   });
 
+  // Função para normalizar nome da região/cidade (remover acentos, lowercase)
+  const normalizarCidade = (texto) => {
+    if (!texto) return '';
+    return texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  };
+
+  // Função para capitalizar nome corretamente
+  const capitalizarCidade = (texto) => {
+    if (!texto) return '';
+    return texto
+      .toLowerCase()
+      .split(' ')
+      .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+      .join(' ');
+  };
+
+  // Obter o local de agrupamento: região (prioridade) ou cidade
+  const obterLocal = (entrega) => entrega.regiao || entrega.endereco?.cidade || '';
+
   // Aplicar filtros
   const entregasFiltradas = entregasDoDia.filter(entrega => {
-    if (filtroLocal !== 'todos' && entrega.endereco?.cidade !== filtroLocal) return false;
+    if (filtroLocal !== 'todos' && normalizarCidade(obterLocal(entrega)) !== filtroLocal) return false;
     if (filtroPeriodo !== 'todos' && entrega.periodo !== filtroPeriodo) return false;
     if (filtroStatus !== 'todos') {
       const statusEntrega = normalizarStatus(entrega.status);
@@ -175,16 +198,18 @@ export default function PainelMotoboys() {
     return true;
   });
 
-  // Agrupar por cidade
-  const entregasPorCidade = entregasFiltradas.reduce((acc, entrega) => {
-    const cidade = entrega.endereco?.cidade || 'Sem cidade';
-    if (!acc[cidade]) acc[cidade] = [];
-    acc[cidade].push(entrega);
-    return acc;
-  }, {});
-
-  // Lista de cidades disponíveis
-  const cidadesDisponiveis = [...new Set(entregasDoDia.map(e => e.endereco?.cidade).filter(Boolean))];
+  // Lista de locais disponíveis (região ou cidade, normalizados para evitar duplicatas)
+  const cidadesMap = new Map();
+  entregasDoDia.forEach(e => {
+    const local = obterLocal(e);
+    if (local) {
+      const localNormalizado = normalizarCidade(local);
+      if (!cidadesMap.has(localNormalizado)) {
+        cidadesMap.set(localNormalizado, capitalizarCidade(local));
+      }
+    }
+  });
+  const cidadesDisponiveis = [...cidadesMap.keys()];
 
   // Contagem de entregas por status
   const contagemPorStatus = statusOptions.map(status => ({
@@ -192,11 +217,11 @@ export default function PainelMotoboys() {
     quantidade: entregasDoDia.filter(e => normalizarStatus(e.status) === status.value).length
   }));
 
-  // Resumo do dia por cidade
-  const resumoDia = cidadesDisponiveis.map(cidade => {
-    const entregasCidade = entregasDoDia.filter(e => e.endereco?.cidade === cidade);
+  // Resumo do dia por local (agrupado por região ou cidade)
+  const resumoDia = cidadesDisponiveis.map(cidadeNormalizada => {
+    const entregasCidade = entregasDoDia.filter(e => normalizarCidade(obterLocal(e)) === cidadeNormalizada);
     return {
-      cidade,
+      cidade: cidadesMap.get(cidadeNormalizada),
       quantidade: entregasCidade.length,
       valor: entregasCidade.reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0),
       taxa: entregasCidade.reduce((sum, e) => sum + (parseFloat(e.taxa) || 0), 0)
@@ -206,12 +231,14 @@ export default function PainelMotoboys() {
   const totalValorDia = resumoDia.reduce((sum, r) => sum + r.valor, 0);
   const totalTaxaDia = resumoDia.reduce((sum, r) => sum + r.taxa, 0);
 
-  // Calcular semana de trabalho
+  // Calcular semana de trabalho (começa na terça-feira, sem domingo)
   const calcularSemanaTrabalho = () => {
-    const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 0 });
+    const inicioSemana = startOfWeek(dataSelecionada, { weekStartsOn: 2 });
     const dias = [];
     for (let i = 0; i < 7; i++) {
       const data = addDays(inicioSemana, i);
+      // Pular domingo (dia 0)
+      if (data.getDay() === 0) continue;
       const dataStr = format(data, 'yyyy-MM-dd');
       const entregasDia = todasEntregas.filter(e => e.data_entrega === dataStr);
       dias.push({
@@ -277,45 +304,37 @@ export default function PainelMotoboys() {
     },
     onError: (error) => {
       console.error('Erro ao salvar ordem:', error);
-      toast.error('Erro ao salvar ordem. O campo pode não existir no banco.');
+      toast.error('Erro ao salvar ordem.');
     }
   });
 
-  // Funções de Drag and Drop
-  const handleDragStart = (e, entrega, cidade) => {
-    setDraggedItem({ entrega, cidade });
-    e.dataTransfer.effectAllowed = 'move';
-  };
+  // Função para mover entrega com setas (cima/baixo)
+  const handleMoverEntrega = (entregaId, direcao, periodo) => {
+    // Pegar entregas do mesmo período ordenadas
+    const entregasDoPeriodo = entregasFiltradas
+      .filter(e => {
+        if (periodo === 'Manhã') return e.periodo === 'Manhã';
+        if (periodo === 'Tarde') return e.periodo === 'Tarde';
+        return !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde');
+      });
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+    const entregasOrdenadas = [...entregasDoPeriodo].sort((a, b) => {
+      const ordemA = ordemEntregas[a.id] ?? a.ordem_entrega ?? 999;
+      const ordemB = ordemEntregas[b.id] ?? b.ordem_entrega ?? 999;
+      return ordemA - ordemB;
+    });
 
-  const handleDrop = (e, targetEntrega, targetCidade) => {
-    e.preventDefault();
-    if (!draggedItem || draggedItem.entrega.id === targetEntrega.id) return;
+    const currentIndex = entregasOrdenadas.findIndex(e => e.id === entregaId);
+    if (currentIndex === -1) return;
 
-    // Só permite reorganizar dentro da mesma cidade
-    if (draggedItem.cidade !== targetCidade) {
-      toast.error('Só é possível reorganizar entregas da mesma cidade');
-      return;
-    }
+    const targetIndex = direcao === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= entregasOrdenadas.length) return;
 
-    const cidade = targetCidade;
-    const entregasDaCidade = entregasFiltradas
-      .filter(e => (e.endereco?.cidade || 'Sem cidade') === cidade)
-      .sort((a, b) => (ordemEntregas[a.id] ?? a.ordem_entrega ?? 999) - (ordemEntregas[b.id] ?? b.ordem_entrega ?? 999));
-
-    const dragIndex = entregasDaCidade.findIndex(e => e.id === draggedItem.entrega.id);
-    const dropIndex = entregasDaCidade.findIndex(e => e.id === targetEntrega.id);
-
-    if (dragIndex === -1 || dropIndex === -1) return;
-
-    // Reordenar
-    const novaOrdem = [...entregasDaCidade];
-    const [removed] = novaOrdem.splice(dragIndex, 1);
-    novaOrdem.splice(dropIndex, 0, removed);
+    // Trocar posições
+    const novaOrdem = [...entregasOrdenadas];
+    const temp = novaOrdem[currentIndex];
+    novaOrdem[currentIndex] = novaOrdem[targetIndex];
+    novaOrdem[targetIndex] = temp;
 
     // Atualizar estado de ordem
     const novaOrdemObj = { ...ordemEntregas };
@@ -324,14 +343,7 @@ export default function PainelMotoboys() {
     });
 
     setOrdemEntregas(novaOrdemObj);
-    setDraggedItem(null);
-
-    // Salvar automaticamente
     salvarOrdemMutation.mutate(novaOrdemObj);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedItem(null);
   };
 
   // Ordenar entregas por ordem personalizada
@@ -348,73 +360,161 @@ export default function PainelMotoboys() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
   };
 
+  // Função para abrir rota completa no Google Maps
+  const abrirRotaGoogleMaps = () => {
+    const entregasOrdenadas = ordenarEntregas(entregasFiltradas);
+
+    if (entregasOrdenadas.length === 0) {
+      toast.error('Nenhuma entrega para criar rota');
+      return;
+    }
+
+    // Google Maps suporta até 10 waypoints na URL
+    const entregas = entregasOrdenadas.slice(0, 10);
+
+    // Criar waypoints (endereços)
+    const waypoints = entregas.map(e => {
+      if (!e.endereco) return '';
+      return `${e.endereco.logradouro}, ${e.endereco.numero}, ${e.endereco.bairro}, ${e.endereco.cidade}`;
+    }).filter(Boolean);
+
+    if (waypoints.length === 0) {
+      toast.error('Nenhum endereço válido encontrado');
+      return;
+    }
+
+    // Construir URL do Google Maps
+    // Formato: /dir/origem/destino1/destino2/.../destinoFinal
+    const baseUrl = 'https://www.google.com/maps/dir/';
+    const waypointsEncoded = waypoints.map(w => encodeURIComponent(w)).join('/');
+    const url = baseUrl + waypointsEncoded;
+
+    window.open(url, '_blank');
+
+    if (entregasOrdenadas.length > 10) {
+      toast.info(`Rota criada com as primeiras 10 entregas. Total: ${entregasOrdenadas.length}`);
+    }
+  };
+
+  const abrirRomaneio = (entrega) => {
+    navigate(`/detalhes-romaneio?id=${entrega.id}`);
+  };
+
   const motoboyAtual = motoboys.find(m => m.id === motoboyId);
 
   // Primeiro dia do mês (para posicionar corretamente no calendário)
   const primeiroDiaDoMes = getDay(startOfMonth(mesAtual));
 
+  // Carregar status de pagamento da semana atual (semana: terça a segunda)
+  const inicioSemanaAtual = format(startOfWeek(dataSelecionada, { weekStartsOn: 2 }), 'yyyy-MM-dd');
+
+  useEffect(() => {
+    const carregarPagamentoSemana = async () => {
+      if (!motoboyId) return;
+      const { data } = await supabase
+        .from('motoboys')
+        .select('pagamentos_semanais')
+        .eq('id', motoboyId)
+        .single();
+
+      if (data?.pagamentos_semanais?.[inicioSemanaAtual]) {
+        setStatusPagamentoSemana(data.pagamentos_semanais[inicioSemanaAtual]);
+      } else {
+        setStatusPagamentoSemana('Aguardando');
+      }
+    };
+    carregarPagamentoSemana();
+  }, [motoboyId, inicioSemanaAtual]);
+
+  // Mutation para salvar status de pagamento da semana
+  const salvarPagamentoSemanaMutation = useMutation({
+    mutationFn: async (status) => {
+      // Buscar pagamentos atuais do motoboy
+      const { data: motoboy } = await supabase
+        .from('motoboys')
+        .select('pagamentos_semanais')
+        .eq('id', motoboyId)
+        .single();
+
+      const pagamentosAtuais = motoboy?.pagamentos_semanais || {};
+      pagamentosAtuais[inicioSemanaAtual] = status;
+
+      const { error } = await supabase
+        .from('motoboys')
+        .update({ pagamentos_semanais: pagamentosAtuais })
+        .eq('id', motoboyId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, status) => {
+      setStatusPagamentoSemana(status);
+      toast.success(`Status de pagamento: ${status}`);
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar status de pagamento');
+    }
+  });
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
-      {/* Header */}
-      <div className="py-8 shadow-sm" style={{
+      {/* Header - Compacto para mobile */}
+      <div className="py-4 sm:py-6 shadow-sm" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {!isMotoboy && (
                 <button
                   onClick={() => navigate(-1)}
-                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                  className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
                 >
-                  <ChevronLeft className="w-6 h-6 text-white" />
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </button>
               )}
               <div>
-                <h1 className="text-4xl font-bold text-white">
+                <h1 className="text-xl sm:text-3xl font-bold text-white">
                   {isMotoboy ? 'Minhas Entregas' : 'Painel do Motoboy'}
                 </h1>
-                <p className="text-base text-white opacity-90 mt-1">
+                <p className="text-xs sm:text-sm text-white opacity-90">
                   Olá, {nomeMotoboyUsuario || user?.nome || 'Motoboy'}
                 </p>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {!isMotoboy && (
-                <select
-                  value={motoboyId || ''}
-                  onChange={(e) => setMotoboyId(e.target.value)}
-                  className="border border-white/30 bg-white/20 text-white rounded-lg px-3 py-2 text-sm"
-                >
-                  {motoboys.map(m => (
-                    <option key={m.id} value={m.id} className="text-slate-800">{m.nome}</option>
-                  ))}
-                </select>
-              )}
-              <button className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium text-white transition-colors">
-                <Printer className="w-4 h-4" />
-                Imprimir
-              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Coluna Esquerda */}
-          <div className="space-y-4">
-            {/* Calendário */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="space-y-3 sm:space-y-4">
+            {/* Seletor de Motoboy */}
+            {!isMotoboy && (
+              <div className="rounded-xl p-3 sm:p-4" style={{ backgroundColor: '#890d5d' }}>
+                <label className="block text-xs sm:text-sm font-semibold text-white mb-1.5 sm:mb-2">
+                  Selecione o Motoboy
+                </label>
+                <CustomDropdown
+                  options={motoboys.map(m => ({ value: m.id, label: m.nome }))}
+                  value={motoboyId || ''}
+                  onChange={setMotoboyId}
+                  placeholder="Selecione o motoboy"
+                />
+              </div>
+            )}
+
+            {/* Calendário - Compacto */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
               {/* Navegação do mês */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-2 sm:mb-4">
                 <button
                   onClick={() => setMesAtual(subMonths(mesAtual, 1))}
                   className="p-1 hover:bg-slate-100 rounded"
                 >
                   <ChevronLeft className="w-4 h-4 text-slate-600" />
                 </button>
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-xs sm:text-sm font-medium text-slate-700 capitalize">
                   {format(mesAtual, 'MMMM yyyy', { locale: ptBR })}
                 </span>
                 <button
@@ -426,17 +526,16 @@ export default function PainelMotoboys() {
               </div>
 
               {/* Dias da semana */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map(dia => (
-                  <div key={dia} className="text-center text-xs font-medium text-slate-500 py-1">
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
+                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((dia, i) => (
+                  <div key={i} className="text-center text-[10px] sm:text-xs font-medium text-slate-500 py-0.5 sm:py-1">
                     {dia}
                   </div>
                 ))}
               </div>
 
               {/* Dias do mês */}
-              <div className="grid grid-cols-7 gap-1">
-                {/* Espaços vazios antes do primeiro dia */}
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                 {Array.from({ length: primeiroDiaDoMes }).map((_, i) => (
                   <div key={`empty-${i}`} className="aspect-square" />
                 ))}
@@ -451,7 +550,7 @@ export default function PainelMotoboys() {
                     <button
                       key={dataStr}
                       onClick={() => setDataSelecionada(dia)}
-                      className={`aspect-square flex items-center justify-center text-sm rounded-lg transition-all relative
+                      className={`aspect-square flex items-center justify-center text-xs sm:text-sm rounded-md sm:rounded-lg transition-all relative
                         ${isSelected
                           ? 'text-white font-bold'
                           : isHoje
@@ -484,104 +583,155 @@ export default function PainelMotoboys() {
               </div>
 
               {/* Data selecionada */}
-              <div className="mt-4 pt-4 border-t border-slate-200 text-center">
-                <p className="text-sm font-semibold text-slate-700">
+              <div className="mt-2 sm:mt-4 pt-2 sm:pt-4 border-t border-slate-200 text-center">
+                <p className="text-xs sm:text-sm font-semibold text-slate-700">
                   {format(dataSelecionada, "d 'de' MMMM", { locale: ptBR })}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-[10px] sm:text-xs text-slate-500">
                   {entregasDoDia.length} entrega{entregasDoDia.length !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
 
-            {/* Resumo do Dia */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-700 mb-3">Resumo do Dia</h3>
+            {/* Resumo do Dia - Compacto */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
+              <h3 className="font-semibold text-slate-700 text-xs sm:text-sm mb-2 sm:mb-3">Resumo - {format(dataSelecionada, "dd/MM")}</h3>
 
-              {/* Cabeçalho */}
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-2 pb-2 border-b border-slate-100">
+              <div className="flex items-center justify-between text-[10px] sm:text-xs text-slate-500 mb-1.5 sm:mb-2 pb-1.5 sm:pb-2 border-b border-slate-100">
                 <span>Local</span>
-                <div className="flex items-center gap-4">
-                  <span className="w-8 text-center">Qtd</span>
-                  <span className="w-20 text-right">Valor</span>
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <span className="w-6 sm:w-8 text-center">Qtd</span>
+                  <span className="w-14 sm:w-20 text-right">Valor</span>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1 sm:space-y-2">
                 {resumoDia.map(item => (
-                  <div key={item.cidade} className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">{item.cidade}</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-slate-500 w-8 text-center">{item.quantidade}x</span>
-                      <span className="font-medium w-20 text-right" style={{ color: theme.colors.primary }}>R$ {item.valor.toFixed(2)}</span>
+                  <div key={item.cidade} className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="text-slate-600 truncate max-w-[100px] sm:max-w-none">{item.cidade}</span>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <span className="text-slate-500 w-6 sm:w-8 text-center">{item.quantidade}x</span>
+                      <span className="font-medium w-14 sm:w-20 text-right text-xs sm:text-sm" style={{ color: theme.colors.primary }}>R$ {item.valor.toFixed(2)}</span>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-slate-200">
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-700">TOTAL ENTREGAS</span>
-                  <span className="font-bold text-lg" style={{ color: theme.colors.primary }}>R$ {totalValorDia.toFixed(2)}</span>
+                  <span className="font-bold text-slate-700 text-xs sm:text-sm">TOTAL</span>
+                  <span className="font-bold text-sm sm:text-lg" style={{ color: theme.colors.primary }}>R$ {totalValorDia.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
-            {/* Semana */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-slate-700">Semana - Aguardando</h3>
-                <span className="text-xs text-slate-500">
-                  {format(semanaTrabalho[0]?.data || new Date(), 'dd/MM')} - {format(semanaTrabalho[6]?.data || new Date(), 'dd/MM')}
+            {/* Semana - Compacto */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <h3 className="font-semibold text-slate-700 text-xs sm:text-sm">Semana</h3>
+                <span className="text-[10px] sm:text-xs text-slate-500">
+                  {format(semanaTrabalho[0]?.data || new Date(), 'dd/MM')} - {format(semanaTrabalho[semanaTrabalho.length - 1]?.data || new Date(), 'dd/MM')}
                 </span>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5 sm:space-y-1">
                 {semanaTrabalho.map(dia => (
                   <div
                     key={dia.dataStr}
-                    className="flex items-center justify-between text-xs py-1 px-2 rounded"
+                    onClick={() => setDataSelecionada(dia.data)}
+                    className="flex items-center justify-between text-[10px] sm:text-xs py-1 px-1.5 sm:px-2 rounded cursor-pointer hover:bg-slate-50"
                     style={{
                       backgroundColor: isSameDay(dia.data, dataSelecionada) ? '#e8f0f8' : 'transparent'
                     }}
                   >
-                    <span className="text-slate-600 capitalize w-20">{dia.nome.slice(0, 3)}</span>
-                    <span className="text-slate-500">{format(dia.data, 'dd/MM')}</span>
-                    <span className="text-slate-500">{dia.quantidade}x</span>
-                    <span className={`font-semibold ${dia.valor > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                    <span className="text-slate-600 capitalize w-8 sm:w-12">{dia.nome.slice(0, 3)}</span>
+                    <span className="text-slate-500 w-10 sm:w-auto">{format(dia.data, 'dd/MM')}</span>
+                    <span className="text-slate-500 w-5 sm:w-auto">{dia.quantidade}x</span>
+                    <span className={`font-semibold w-14 sm:w-auto text-right ${dia.valor > 0 ? 'text-green-600' : 'text-slate-400'}`}>
                       R$ {dia.valor.toFixed(2)}
                     </span>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
-                <span className="font-bold text-slate-700">TOTAL</span>
-                <span className="font-bold text-green-600">R$ {totalSemana.toFixed(2)}</span>
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200 flex items-center justify-between">
+                <span className="font-bold text-slate-700 text-xs sm:text-sm">TOTAL</span>
+                <span className="font-bold text-green-600 text-sm sm:text-base">R$ {totalSemana.toFixed(2)}</span>
+              </div>
+
+              {/* Status de Pagamento da Semana */}
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200">
+                <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-700">Pagamento</span>
+                </div>
+
+                {isAdmin ? (
+                  <div className="flex gap-1.5 sm:gap-2">
+                    <button
+                      onClick={() => {
+                        setStatusPagamentoSemana('Aguardando');
+                        salvarPagamentoSemanaMutation.mutate('Aguardando');
+                      }}
+                      className="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+                      style={{
+                        backgroundColor: statusPagamentoSemana === 'Aguardando' ? '#f59e0b' : '#fef3c7',
+                        color: statusPagamentoSemana === 'Aguardando' ? 'white' : '#92400e',
+                        border: statusPagamentoSemana === 'Aguardando' ? '2px solid #f59e0b' : '2px solid #fcd34d'
+                      }}
+                    >
+                      Aguard.
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStatusPagamentoSemana('Pago');
+                        salvarPagamentoSemanaMutation.mutate('Pago');
+                      }}
+                      className="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all"
+                      style={{
+                        backgroundColor: statusPagamentoSemana === 'Pago' ? '#15803d' : '#dcfce7',
+                        color: statusPagamentoSemana === 'Pago' ? 'white' : '#166534',
+                        border: statusPagamentoSemana === 'Pago' ? '2px solid #15803d' : '2px solid #86efac'
+                      }}
+                    >
+                      Pago
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm font-bold text-center"
+                    style={{
+                      backgroundColor: statusPagamentoSemana === 'Pago' ? '#dcfce7' : '#fef3c7',
+                      color: statusPagamentoSemana === 'Pago' ? '#166534' : '#92400e',
+                      border: statusPagamentoSemana === 'Pago' ? '2px solid #86efac' : '2px solid #fcd34d'
+                    }}
+                  >
+                    {statusPagamentoSemana === 'Pago' ? '✓ Pago' : '⏳ Aguardando'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Coluna Direita - Entregas */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Cards de Filtro por Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+            {/* Cards de Filtro por Status - Compactos para mobile */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
               {/* Card Todas */}
               <div
                 onClick={() => setFiltroStatus('todos')}
-                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                className="bg-white rounded-lg sm:rounded-xl shadow-sm p-2 sm:p-4 cursor-pointer transition-all hover:shadow-md"
                 style={{
                   border: filtroStatus === 'todos' ? `2px solid ${theme.colors.primary}` : '2px solid transparent'
                 }}
               >
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                    <Package className="w-6 h-6" style={{ color: theme.colors.primary }} />
+                <div className="flex flex-col items-center gap-1 sm:gap-2">
+                  <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                    <Package className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: theme.colors.primary }} />
                   </div>
-                  <span className="text-sm font-bold text-slate-700">Todas</span>
-                </div>
-                <div className="text-4xl font-bold text-center" style={{ color: theme.colors.primary }}>
-                  {entregasDoDia.length}
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-700">Todas</span>
+                  <span className="text-xl sm:text-2xl font-bold" style={{ color: theme.colors.primary }}>
+                    {entregasDoDia.length}
+                  </span>
                 </div>
               </div>
 
@@ -593,45 +743,42 @@ export default function PainelMotoboys() {
                   <div
                     key={status.value}
                     onClick={() => setFiltroStatus(isActive ? 'todos' : status.value)}
-                    className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                    className="bg-white rounded-lg sm:rounded-xl shadow-sm p-2 sm:p-4 cursor-pointer transition-all hover:shadow-md"
                     style={{
                       border: isActive ? `2px solid ${status.color}` : '2px solid transparent'
                     }}
                   >
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <div className="p-2 rounded-lg" style={{ backgroundColor: bgColor }}>
-                        <Icon className="w-6 h-6" style={{ color: status.color }} />
+                    <div className="flex flex-col items-center gap-1 sm:gap-2">
+                      <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: bgColor }}>
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: status.color }} />
                       </div>
-                      <span className="text-sm font-bold text-slate-700">{status.label}</span>
-                    </div>
-                    <div className="text-4xl font-bold text-center" style={{ color: status.color }}>
-                      {status.quantidade}
+                      <span className="text-[10px] sm:text-xs font-bold text-slate-700 truncate w-full text-center">{status.label}</span>
+                      <span className="text-xl sm:text-2xl font-bold" style={{ color: status.color }}>
+                        {status.quantidade}
+                      </span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Filtros */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-700 mb-3">Filtros</h3>
-
+            {/* Filtros - Compacto */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
               {/* Campo de Busca */}
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-slate-500 mb-1">Buscar</label>
+              <div className="mb-3 sm:mb-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Nome, endereço, requisição..."
+                    placeholder="Buscar cliente, endereço..."
                     value={termoBusca}
                     onChange={(e) => setTermoBusca(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-slate-300 rounded-lg pl-8 sm:pl-10 pr-8 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {termoBusca && (
                     <button
                       onClick={() => setTermoBusca('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -639,39 +786,50 @@ export default function PainelMotoboys() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Local</label>
-                  <select
-                    value={filtroLocal}
-                    onChange={(e) => setFiltroLocal(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="todos">Todos os Locais</option>
-                    {cidadesDisponiveis.map(cidade => (
-                      <option key={cidade} value={cidade}>{cidade}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Período</label>
-                  <select
-                    value={filtroPeriodo}
-                    onChange={(e) => setFiltroPeriodo(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="todos">Todos os Períodos</option>
-                    <option value="Manhã">Manhã</option>
-                    <option value="Tarde">Tarde</option>
-                  </select>
-                </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                <CustomDropdown
+                  label="Local"
+                  options={[
+                    { value: 'todos', label: 'Todos' },
+                    ...cidadesDisponiveis.map(cidadeNorm => ({ value: cidadeNorm, label: cidadesMap.get(cidadeNorm) }))
+                  ]}
+                  value={filtroLocal}
+                  onChange={setFiltroLocal}
+                  placeholder="Local"
+                />
+                <CustomDropdown
+                  label="Período"
+                  options={[
+                    { value: 'todos', label: 'Todos' },
+                    { value: 'Manhã', label: 'Manhã' },
+                    { value: 'Tarde', label: 'Tarde' }
+                  ]}
+                  value={filtroPeriodo}
+                  onChange={setFiltroPeriodo}
+                  placeholder="Período"
+                />
               </div>
+
+              {/* Botão Abrir Rota no Google Maps */}
+              <button
+                onClick={abrirRotaGoogleMaps}
+                disabled={entregasFiltradas.length === 0}
+                className="mt-3 sm:mt-4 w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: '#890d5d',
+                  color: 'white'
+                }}
+              >
+                <Navigation className="w-4 h-4 sm:w-5 sm:h-5" />
+                Abrir Rota no Maps ({entregasFiltradas.length})
+              </button>
             </div>
 
-            {/* Dica de arrastar */}
-            <div className="flex items-center gap-2 text-sm text-slate-500 px-2">
-              <GripVertical className="w-4 h-4" />
-              <span>Arraste as entregas para reorganizar sua rota</span>
+            {/* Dica de setas - Oculta no mobile */}
+            <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm text-slate-500 px-2">
+              <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4" />
+              <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>Use as setas para reorganizar</span>
             </div>
 
             {/* Lista de Entregas */}
@@ -681,31 +839,32 @@ export default function PainelMotoboys() {
                 {(() => {
                   const entregasManha = entregasFiltradas.filter(e => e.periodo === 'Manhã');
                   if (entregasManha.length === 0) return null;
+                  const entregasOrdenadas = ordenarEntregas(entregasManha);
 
                   return (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-slate-800 px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#facc15' }}>
-                          <Sun className="w-4 h-4" />
-                          MANHÃ ({entregasManha.length})
-                        </div>
+                    <div className="mb-4 sm:mb-6">
+                      <div className="mb-2 sm:mb-4">
+                        <h2 className="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                          <Sunrise className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#eab308' }} />
+                          Manhã
+                          <span className="text-sm font-semibold px-2 sm:px-3 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            {entregasManha.length}
+                          </span>
+                        </h2>
                       </div>
 
-                      <div className="space-y-3">
-                        {ordenarEntregas(entregasManha).map((entrega, index) => (
+                      <div className="space-y-2 sm:space-y-3">
+                        {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
                             entrega={entrega}
                             index={index + 1}
-                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            totalEntregas={entregasManha.length}
                             onStatusChange={handleStatusChange}
                             isUpdating={updateStatusMutation.isPending}
                             onAbrirMapa={abrirMapa}
-                            onDragStart={handleDragStart}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            onDragEnd={handleDragEnd}
-                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            onMoverEntrega={(id, dir) => handleMoverEntrega(id, dir, 'Manhã')}
+                            onVerDetalhes={abrirRomaneio}
                             statusOptions={statusOptions}
                             normalizarStatus={normalizarStatus}
                           />
@@ -719,31 +878,32 @@ export default function PainelMotoboys() {
                 {(() => {
                   const entregasTarde = entregasFiltradas.filter(e => e.periodo === 'Tarde');
                   if (entregasTarde.length === 0) return null;
+                  const entregasOrdenadas = ordenarEntregas(entregasTarde);
 
                   return (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm" style={{ backgroundColor: '#f97316' }}>
-                          <Sunset className="w-4 h-4" />
-                          TARDE ({entregasTarde.length})
-                        </div>
+                    <div className="mb-4 sm:mb-6">
+                      <div className="mb-2 sm:mb-4">
+                        <h2 className="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                          <Sun className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#f97316' }} />
+                          Tarde
+                          <span className="text-sm font-semibold px-2 sm:px-3 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            {entregasTarde.length}
+                          </span>
+                        </h2>
                       </div>
 
-                      <div className="space-y-3">
-                        {ordenarEntregas(entregasTarde).map((entrega, index) => (
+                      <div className="space-y-2 sm:space-y-3">
+                        {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
                             entrega={entrega}
                             index={index + 1}
-                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            totalEntregas={entregasTarde.length}
                             onStatusChange={handleStatusChange}
                             isUpdating={updateStatusMutation.isPending}
                             onAbrirMapa={abrirMapa}
-                            onDragStart={handleDragStart}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            onDragEnd={handleDragEnd}
-                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            onMoverEntrega={(id, dir) => handleMoverEntrega(id, dir, 'Tarde')}
+                            onVerDetalhes={abrirRomaneio}
                             statusOptions={statusOptions}
                             normalizarStatus={normalizarStatus}
                           />
@@ -757,30 +917,32 @@ export default function PainelMotoboys() {
                 {(() => {
                   const entregasSemPeriodo = entregasFiltradas.filter(e => !e.periodo || (e.periodo !== 'Manhã' && e.periodo !== 'Tarde'));
                   if (entregasSemPeriodo.length === 0) return null;
+                  const entregasOrdenadas = ordenarEntregas(entregasSemPeriodo);
 
                   return (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-2 text-white px-4 py-2 rounded-lg font-semibold text-sm bg-slate-500">
-                          SEM PERÍODO ({entregasSemPeriodo.length})
-                        </div>
+                    <div className="mb-4 sm:mb-6">
+                      <div className="mb-2 sm:mb-4">
+                        <h2 className="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                          <Clock className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#64748b' }} />
+                          Outros
+                          <span className="text-sm font-semibold px-2 sm:px-3 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            {entregasSemPeriodo.length}
+                          </span>
+                        </h2>
                       </div>
 
-                      <div className="space-y-3">
-                        {ordenarEntregas(entregasSemPeriodo).map((entrega, index) => (
+                      <div className="space-y-2 sm:space-y-3">
+                        {entregasOrdenadas.map((entrega, index) => (
                           <EntregaCard
                             key={entrega.id}
                             entrega={entrega}
                             index={index + 1}
-                            cidade={entrega.endereco?.cidade || 'Sem cidade'}
+                            totalEntregas={entregasSemPeriodo.length}
                             onStatusChange={handleStatusChange}
                             isUpdating={updateStatusMutation.isPending}
                             onAbrirMapa={abrirMapa}
-                            onDragStart={handleDragStart}
-                            onDragOver={handleDragOver}
-                            onDrop={handleDrop}
-                            onDragEnd={handleDragEnd}
-                            isDragging={draggedItem?.entrega.id === entrega.id}
+                            onMoverEntrega={(id, dir) => handleMoverEntrega(id, dir, 'sem_periodo')}
+                            onVerDetalhes={abrirRomaneio}
                             statusOptions={statusOptions}
                             normalizarStatus={normalizarStatus}
                           />
@@ -807,15 +969,12 @@ export default function PainelMotoboys() {
 function EntregaCard({
   entrega,
   index,
-  cidade,
+  totalEntregas,
   onStatusChange,
   isUpdating,
   onAbrirMapa,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-  isDragging,
+  onMoverEntrega,
+  onVerDetalhes,
   statusOptions,
   normalizarStatus
 }) {
@@ -824,7 +983,6 @@ function EntregaCard({
     if (option) {
       return { bg: option.bg, text: option.text, label: option.label, color: option.color };
     }
-    // Fallback para status antigos ou não definidos
     switch (status) {
       case 'A Caminho':
         return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Em Rota', color: '#3b82f6' };
@@ -837,118 +995,174 @@ function EntregaCard({
 
   const statusNormalizado = normalizarStatus ? normalizarStatus(entrega.status) : entrega.status;
   const statusBadge = getStatusBadge(statusNormalizado);
-  const temCobranca = entrega.forma_pagamento === 'Dinheiro' || entrega.forma_pagamento === 'Cartão' || entrega.forma_pagamento === 'Pix';
-  const valorCobrar = parseFloat(entrega.valor) || 0;
+
+  // Verifica se precisa cobrar (Receber Dinheiro ou Receber Máquina)
+  const temCobranca = ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(entrega.forma_pagamento);
+  const valorCobrar = parseFloat(entrega.valor_venda) || parseFloat(entrega.valor) || 0;
+  const temTroco = entrega.precisa_troco && entrega.valor_troco > 0;
 
   return (
-    <div
-      className={`bg-white rounded-xl border border-slate-200 overflow-hidden transition-all ${isDragging ? 'opacity-50 scale-95' : ''}`}
-      draggable
-      onDragStart={(e) => onDragStart(e, entrega, cidade)}
-      onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e, entrega, cidade)}
-      onDragEnd={onDragEnd}
-    >
-      {/* Header do Card */}
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <GripVertical className="w-4 h-4 text-slate-400 cursor-grab active:cursor-grabbing" />
-          <span className="text-sm font-medium text-slate-500">#{index}</span>
-          <span className="font-bold text-slate-800">REQ #{entrega.requisicao || '0000'}</span>
-
-          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}>
-            {statusBadge.label}
-          </span>
-
-          {temCobranca && valorCobrar > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 flex items-center gap-1">
-              <DollarSign className="w-3 h-3" /> COBRAR
-            </span>
-          )}
-
-          {entrega.taxa && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> R$ {parseFloat(entrega.taxa).toFixed(2)}
-            </span>
-          )}
-        </div>
-
-        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">
-          {entrega.periodo || 'Sem período'}
-        </span>
-      </div>
-
-      {/* Nome do Cliente */}
-      <div className="px-4 py-2 border-b border-slate-100">
-        <span className="text-sm font-medium" style={{ color: theme.colors.primary }}>
-          {entrega.cliente?.nome || 'Cliente'}
-        </span>
-      </div>
-
-      {/* Valor a Cobrar */}
-      {temCobranca && valorCobrar > 0 && (
-        <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
-          <div className="flex items-center gap-2 text-yellow-700 text-xs font-semibold mb-1">
-            <Wallet className="w-3 h-3" /> COBRAR NA ENTREGA:
-          </div>
-          <div className="text-2xl font-bold text-yellow-700">
-            R$ {valorCobrar.toFixed(2)}
-          </div>
-        </div>
-      )}
-
-      {/* Endereço */}
-      <div className="px-4 py-3 border-b border-slate-100">
-        <div className="flex items-start gap-2">
-          <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-          <div className="text-sm">
-            <p className="text-slate-800 font-medium">
-              {entrega.endereco?.logradouro}, {entrega.endereco?.numero}
-            </p>
-            <p className="text-slate-600">
-              {entrega.endereco?.bairro} - {entrega.endereco?.cidade}
-            </p>
-            {entrega.endereco?.referencia && (
-              <p className="text-xs" style={{ color: theme.colors.secondary }}>Ref: {entrega.endereco.referencia}</p>
-            )}
-            {entrega.endereco?.complemento && (
-              <p className="text-slate-500 text-xs">A/C: {entrega.endereco.complemento}</p>
-            )}
-          </div>
-        </div>
-
-        <button
-          onClick={() => onAbrirMapa(entrega.endereco)}
-          className="mt-2 w-full flex items-center justify-center gap-2 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-        >
-          <Navigation className="w-4 h-4" />
-          Abrir no Mapa
-        </button>
-      </div>
-
-      {/* Forma de Pagamento e Telefone */}
-      <div className="px-4 py-3 border-b border-slate-100 space-y-2">
-        <div className="flex items-center gap-2 text-sm">
-          <Wallet className="w-4 h-4 text-slate-400" />
-          <span className="text-slate-700">{entrega.forma_pagamento || 'Não informado'}</span>
-        </div>
-
-        {entrega.cliente?.telefone && (
-          <div className="flex items-center gap-2 text-sm">
-            <Phone className="w-4 h-4 text-slate-400" />
-            <a
-              href={`tel:${entrega.cliente.telefone}`}
-              className="text-slate-700 hover:text-blue-600"
+    <div className="bg-white rounded-lg sm:rounded-xl border border-slate-200 overflow-hidden transition-all hover:shadow-md">
+      {/* Card Principal - Compacto */}
+      <div className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          {/* Número da ordem - Compacto */}
+          <div className="flex flex-col items-center gap-0.5 pt-0.5">
+            <button
+              onClick={() => onMoverEntrega(entrega.id, 'up')}
+              disabled={index === 1}
+              className={`p-0.5 rounded ${index === 1 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
             >
-              {entrega.cliente.telefone}
-            </a>
+              <ChevronUp className="w-4 h-4" />
+            </button>
+            <span className="text-xs font-bold text-slate-500">#{index}</span>
+            <button
+              onClick={() => onMoverEntrega(entrega.id, 'down')}
+              disabled={index === totalEntregas}
+              className={`p-0.5 rounded ${index === totalEntregas ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
           </div>
-        )}
+
+          {/* Conteúdo Principal */}
+          <div className="flex-1 min-w-0">
+            {/* Linha 1: Nome + Status */}
+            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+              <span className="text-xs font-semibold" style={{ color: '#376295' }}>
+                #{entrega.requisicao || '0000'}
+              </span>
+              <span className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                {entrega.cliente?.nome || 'Cliente'}
+              </span>
+              <span
+                className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium whitespace-nowrap"
+                style={{
+                  backgroundColor: statusBadge.color + '20',
+                  color: statusBadge.color
+                }}
+              >
+                {statusBadge.label}
+              </span>
+            </div>
+
+            {/* Endereço - Compacto */}
+            <div className="text-xs sm:text-sm text-slate-600 mb-1.5">
+              <span className="line-clamp-2">
+                {entrega.endereco
+                  ? `${entrega.endereco.logradouro}, ${entrega.endereco.numero} - ${entrega.endereco.bairro}`
+                  : 'Endereço não informado'}
+              </span>
+              {entrega.endereco?.complemento && (
+                <span className="text-slate-500 text-xs"> ({entrega.endereco.complemento})</span>
+              )}
+            </div>
+
+            {/* Telefone - Destaque para ligar */}
+            {entrega.cliente?.telefone && (
+              <a
+                href={`tel:${entrega.cliente.telefone}`}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium mb-2"
+                style={{ backgroundColor: '#E8F0F8', color: '#376295' }}
+              >
+                <Phone className="w-3 h-3" />
+                {entrega.cliente.telefone}
+              </a>
+            )}
+
+            {/* Horário de entrega - Destaque */}
+            {(entrega.horario_entrega || entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+              <div className="mb-2">
+                <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }}>
+                  ⏰ {entrega.horario_entrega || entrega.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                </span>
+              </div>
+            )}
+
+            {/* Badges inline - Compactos */}
+            {(entrega.item_geladeira || entrega.buscar_receita || entrega.reter_receita || entrega.coleta) && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {entrega.item_geladeira && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5" style={{ backgroundColor: '#cffafe', color: '#0c4a6e' }}>
+                    <Snowflake className="w-3 h-3" />
+                    Gelad.
+                  </span>
+                )}
+                {(entrega.buscar_receita || entrega.reter_receita) && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                    <FileText className="w-3 h-3" />
+                    Receita
+                  </span>
+                )}
+                {entrega.coleta && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }}>
+                    <Package className="w-3 h-3" />
+                    Coleta
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Cobrança - Compacta mas destacada */}
+            {temCobranca && valorCobrar > 0 && (
+              <div className="p-2 rounded-lg mb-2" style={{ backgroundColor: '#e8f5e9', border: '2px solid #4caf50' }}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs" style={{ color: '#1b5e20' }}>COBRAR:</span>
+                  <span className="text-lg font-bold" style={{ color: '#1b5e20' }}>
+                    R$ {valorCobrar.toFixed(2)}
+                  </span>
+                </div>
+                {temTroco && (
+                  <div className="mt-1 flex items-center gap-1 text-xs font-bold" style={{ color: '#e65100' }}>
+                    <AlertTriangle className="w-3 h-3" />
+                    Troco: R$ {parseFloat(entrega.valor_troco).toFixed(2)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Observações - Compacta */}
+            {((entrega.observacao || entrega.observacoes)?.replace(/^\|\|H:.*?\|\|\s*/, '')) && (
+              <div className="text-[10px] sm:text-xs text-slate-600 italic bg-slate-50 p-1.5 sm:p-2 rounded border border-slate-200 line-clamp-2">
+                <span className="font-semibold not-italic">Obs:</span> {(entrega.observacao || entrega.observacoes)?.replace(/^\|\|H:.*?\|\|\s*/, '')}
+              </div>
+            )}
+          </div>
+
+          {/* Valor - Lado direito */}
+          <div className="text-right flex-shrink-0">
+            <div className="text-sm sm:text-lg font-bold" style={{ color: '#376295' }}>
+              R$ {(parseFloat(entrega.valor) || 0).toFixed(2)}
+            </div>
+            <div className="text-[10px] sm:text-xs font-medium text-slate-500">
+              {entrega.regiao || entrega.endereco?.cidade}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Botões de Ação - Todos os Status */}
-      <div className="px-4 py-3">
-        <div className="grid grid-cols-5 gap-2">
+      {/* Botões de Ação - Compactos */}
+      <div className="px-3 sm:px-4 py-2 sm:py-3 bg-slate-50 border-t border-slate-200">
+        {/* Ações principais */}
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => onAbrirMapa(entrega.endereco)}
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-medium text-slate-700 hover:bg-white transition-colors"
+          >
+            <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Abrir no </span>Mapa
+          </button>
+          <button
+            onClick={() => onVerDetalhes(entrega)}
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-medium text-slate-700 hover:bg-white transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            Detalhes
+          </button>
+        </div>
+
+        {/* Botões de Status - Compactos */}
+        <div className="grid grid-cols-5 gap-1 sm:gap-2">
           {statusOptions?.map((status) => {
             const Icon = status.icon;
             const isCurrentStatus = statusNormalizado === status.value;
@@ -957,9 +1171,9 @@ function EntregaCard({
                 key={status.value}
                 onClick={() => !isCurrentStatus && onStatusChange(entrega.id, status.value)}
                 disabled={isUpdating}
-                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all text-xs font-semibold ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-1.5 sm:py-2 px-0.5 rounded-md sm:rounded-lg transition-all text-[9px] sm:text-xs font-semibold ${
                   isCurrentStatus
-                    ? 'ring-4 ring-offset-2 shadow-lg scale-105'
+                    ? 'ring-2 sm:ring-4 ring-offset-1 sm:ring-offset-2 shadow-md scale-105'
                     : 'hover:scale-105 hover:shadow-md'
                 }`}
                 style={{
@@ -969,8 +1183,8 @@ function EntregaCard({
                   opacity: isUpdating ? 0.5 : isCurrentStatus ? 1 : 0.5,
                 }}
               >
-                <Icon className="w-4 h-4" />
-                <span className="truncate w-full text-center">{status.label}</span>
+                <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="truncate w-full text-center leading-tight">{status.label}</span>
               </button>
             );
           })}

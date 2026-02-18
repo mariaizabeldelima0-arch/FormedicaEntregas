@@ -3,20 +3,70 @@ import { supabase } from '@/api/supabaseClient';
 
 const AuthContext = createContext();
 
+// Gerar fingerprint único do dispositivo/navegador
+// Persiste no localStorage para não mudar quando o navegador atualiza
+const gerarFingerprint = () => {
+  const salvo = localStorage.getItem('formedica_device_fingerprint');
+  if (salvo) return salvo;
+
+  const navegador = navigator.userAgent;
+  const plataforma = navigator.platform;
+  const idioma = navigator.language;
+  const tela = `${screen.width}x${screen.height}x${screen.colorDepth}`;
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const dados = `${navegador}|${plataforma}|${idioma}|${tela}|${timezone}`;
+
+  let hash = 0;
+  for (let i = 0; i < dados.length; i++) {
+    const char = dados.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+
+  const fingerprint = Math.abs(hash).toString(16).toUpperCase();
+  localStorage.setItem('formedica_device_fingerprint', fingerprint);
+  return fingerprint;
+};
+
+// Obter nome do dispositivo/navegador
+const obterNomeDispositivo = () => {
+  const ua = navigator.userAgent;
+  let navegador = 'Navegador Desconhecido';
+  let dispositivo = 'Desktop';
+
+  // Detectar navegador
+  if (ua.includes('Chrome') && !ua.includes('Edg')) navegador = 'Chrome';
+  else if (ua.includes('Firefox')) navegador = 'Firefox';
+  else if (ua.includes('Safari') && !ua.includes('Chrome')) navegador = 'Safari';
+  else if (ua.includes('Edg')) navegador = 'Edge';
+  else if (ua.includes('Opera') || ua.includes('OPR')) navegador = 'Opera';
+
+  // Detectar dispositivo
+  if (ua.includes('iPhone')) dispositivo = 'iPhone';
+  else if (ua.includes('iPad')) dispositivo = 'iPad';
+  else if (ua.includes('Android')) {
+    if (ua.includes('Mobile')) dispositivo = 'Android Mobile';
+    else dispositivo = 'Android Tablet';
+  } else if (ua.includes('Windows')) dispositivo = 'Windows';
+  else if (ua.includes('Mac')) dispositivo = 'Mac';
+  else if (ua.includes('Linux')) dispositivo = 'Linux';
+
+  return `${navegador} - ${dispositivo}`;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState(null); // 'admin', 'atendente', 'motoboy'
 
   useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
+    // Usar sessionStorage para manter sessão durante atualização,
+    // mas exigir login ao fechar e abrir o navegador
     try {
-      const storedUser = localStorage.getItem('formedica_user');
-      const storedType = localStorage.getItem('formedica_user_type');
-      
+      const storedUser = sessionStorage.getItem('formedica_user');
+      const storedType = sessionStorage.getItem('formedica_user_type');
+
       if (storedUser) {
         setUser(JSON.parse(storedUser));
         setUserType(storedType);
@@ -26,54 +76,101 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const login = async (usuarioLogin, senhaDigitada) => {
     try {
-      // Buscar usuário na tabela de dispositivos
-      const { data: usuarios, error } = await supabase
-        .from('dispositivos')
+      const fingerprint = gerarFingerprint();
+      const nomeDispositivo = obterNomeDispositivo();
+
+      // 1. Verificar credenciais na tabela usuarios
+      const { data: usuarioData, error: erroUsuario } = await supabase
+        .from('usuarios')
         .select('*')
         .eq('usuario', usuarioLogin)
         .eq('senha', senhaDigitada)
-        .limit(1);
+        .eq('ativo', true)
+        .maybeSingle();
 
-      if (error) {
-        console.error('Erro ao buscar usuário:', error);
+      if (erroUsuario) {
+        console.error('Erro ao buscar usuário:', erroUsuario);
         return { success: false, error: 'Erro ao conectar' };
       }
 
-      if (!usuarios || usuarios.length === 0) {
+      if (!usuarioData) {
         return { success: false, error: 'Usuário ou senha inválidos' };
       }
 
-      const usuario = usuarios[0];
+      // 2. Verificar dispositivo para este usuário + fingerprint
+      const { data: dispositivo, error: erroDisp } = await supabase
+        .from('dispositivos')
+        .select('*')
+        .eq('usuario_id', usuarioData.id)
+        .eq('impressao_digital', fingerprint)
+        .maybeSingle();
 
-      // Verificar se o usuário está autorizado
-      if (usuario.status !== 'Autorizado') {
-        return { success: false, error: 'Usuário aguardando autorização. Entre em contato com o administrador.' };
+      if (erroDisp) {
+        console.error('Erro ao buscar dispositivo:', erroDisp);
+        return { success: false, error: 'Erro ao verificar dispositivo' };
       }
 
+      // 3. Se não existe registro para este dispositivo, criar como Pendente
+      if (!dispositivo) {
+        const { error: erroCriar } = await supabase
+          .from('dispositivos')
+          .insert({
+            usuario_id: usuarioData.id,
+            nome: nomeDispositivo,
+            impressao_digital: fingerprint,
+            status: 'Pendente',
+            ultimo_acesso: new Date().toISOString()
+          });
+
+        if (erroCriar) {
+          console.error('Erro ao registrar dispositivo:', erroCriar);
+          return { success: false, error: 'Erro ao registrar dispositivo' };
+        }
+
+        return {
+          success: false,
+          error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.'
+        };
+      } else {
+        // 4. Dispositivo existe, verificar status
+        if (dispositivo.status === 'Pendente') {
+          return {
+            success: false,
+            error: 'Este dispositivo está aguardando autorização. Entre em contato com o administrador.'
+          };
+        }
+
+        if (dispositivo.status === 'Bloqueado') {
+          return {
+            success: false,
+            error: 'Este dispositivo está bloqueado. Entre em contato com o administrador.'
+          };
+        }
+      }
+
+      // 5. Login autorizado — dados vêm da tabela usuarios
       const userData = {
-        id: usuario.id,
-        usuario: usuario.usuario,
-        nome: usuario.nome,
-        tipo_usuario: usuario.tipo_usuario,
-        nome_motoboy: usuario.nome_motoboy,
-        nome_atendente: usuario.nome_atendente
+        id: usuarioData.id,
+        usuario: usuarioData.usuario,
+        tipo_usuario: usuarioData.tipo_usuario,
       };
 
       setUser(userData);
-      localStorage.setItem('formedica_user', JSON.stringify(userData));
+      sessionStorage.setItem('formedica_user', JSON.stringify(userData));
 
-      setUserType(usuario.tipo_usuario || 'atendente');
-      localStorage.setItem('formedica_user_type', usuario.tipo_usuario || 'atendente');
+      setUserType(userData.tipo_usuario || 'atendente');
+      sessionStorage.setItem('formedica_user_type', userData.tipo_usuario || 'atendente');
 
-      // Atualizar último acesso
+      // Atualizar último acesso do dispositivo
       await supabase
         .from('dispositivos')
         .update({ ultimo_acesso: new Date().toISOString() })
-        .eq('id', usuario.id);
+        .eq('usuario_id', usuarioData.id)
+        .eq('impressao_digital', fingerprint);
 
       return { success: true };
     } catch (error) {
@@ -85,8 +182,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setUserType(null);
-    localStorage.removeItem('formedica_user');
-    localStorage.removeItem('formedica_user_type');
+    sessionStorage.removeItem('formedica_user');
+    sessionStorage.removeItem('formedica_user_type');
   };
 
   return (

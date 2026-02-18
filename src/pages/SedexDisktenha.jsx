@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   Dialog,
   DialogContent,
@@ -33,9 +35,11 @@ import { format, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SedexDisktenha() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [visualizacao, setVisualizacao] = useState('dia'); // 'dia' ou 'todas'
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
@@ -52,23 +56,6 @@ export default function SedexDisktenha() {
     forma_pagamento: 'Aguardando',
     observacoes: '',
     data_saida: format(new Date(), 'yyyy-MM-dd'),
-  });
-
-  // Buscar usuário atual
-  const { data: currentUser } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) return null;
-
-      const { data } = await supabase
-        .from('usuarios')
-        .select('id, nome, email')
-        .eq('id', authUser.id)
-        .single();
-
-      return data;
-    },
   });
 
   // Função para gerar dias do mês
@@ -149,14 +136,20 @@ export default function SedexDisktenha() {
       return;
     }
 
+    if (novaEntrega.tipo === 'DISKTENHA' && (!novaEntrega.valor || parseFloat(novaEntrega.valor) <= 0)) {
+      toast.error('Informe o valor da entrega para Disktenha');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('sedex_disktenha')
         .insert([{
           ...novaEntrega,
+          codigo_rastreio: novaEntrega.codigo_rastreio || `PENDING-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           valor: parseFloat(novaEntrega.valor) || 0,
           status: 'Pendente',
-          atendente: currentUser?.nome || '',
+          atendente: user?.usuario || '',
           created_at: new Date().toISOString(),
         }]);
 
@@ -189,29 +182,29 @@ export default function SedexDisktenha() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header com gradiente */}
-      <div className="py-8 shadow-sm" style={{
+      <div className="py-4 sm:py-8 shadow-sm" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
       }}>
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
             >
-              <ChevronLeft className="w-6 h-6 text-white" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
             <div>
-              <h1 className="text-4xl font-bold text-white">Sedex / Disktenha</h1>
-              <p className="text-base text-white opacity-90 mt-1">Gerencie entregas via Sedex, PAC e Disktenha</p>
+              <h1 className="text-2xl sm:text-4xl font-bold text-white">Sedex / Disktenha</h1>
+              <p className="text-sm sm:text-base text-white opacity-90 mt-0.5 sm:mt-1">Gerencie entregas via Sedex, PAC e Disktenha</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col lg:flex-row gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col lg:flex-row gap-4 sm:gap-6">
         {/* Sidebar Esquerda - Calendário */}
         <div className="w-full lg:w-80 flex-shrink-0">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 sticky top-4 sm:top-6">
             {/* Botão Nova Entrega */}
             <Button
               onClick={() => setShowNovaEntrega(true)}
@@ -260,9 +253,7 @@ export default function SedexDisktenha() {
               <div className="flex items-center justify-between mb-3">
                 <button
                   onClick={() => {
-                    const newDate = new Date(currentMonthDate);
-                    newDate.setMonth(newDate.getMonth() - 1);
-                    setCurrentMonthDate(newDate);
+                    setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1));
                   }}
                   className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 >
@@ -275,9 +266,7 @@ export default function SedexDisktenha() {
 
                 <button
                   onClick={() => {
-                    const newDate = new Date(currentMonthDate);
-                    newDate.setMonth(newDate.getMonth() + 1);
-                    setCurrentMonthDate(newDate);
+                    setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1));
                   }}
                   className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 >
@@ -339,7 +328,7 @@ export default function SedexDisktenha() {
         {/* Conteúdo Principal */}
         <div className="flex-1">
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-6">
               {/* Total */}
               <Card
                 className="cursor-pointer transition-all hover:shadow-md bg-white rounded-xl shadow-sm"
@@ -348,14 +337,14 @@ export default function SedexDisktenha() {
                 }}
                 onClick={() => setFiltroTipo('todos')}
               >
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
-                      <ClipboardList className="w-6 h-6" style={{ color: '#376295' }} />
+                <CardContent className="p-3 sm:p-5">
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                    <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#E8F0F8' }}>
+                      <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#376295' }} />
                     </div>
-                    <span className="text-sm font-bold text-slate-700">Total</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">Total</span>
                   </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#376295' }}>
+                  <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#376295' }}>
                     {total}
                   </div>
                 </CardContent>
@@ -369,14 +358,14 @@ export default function SedexDisktenha() {
                 }}
                 onClick={() => setFiltroTipo(filtroTipo === 'SEDEX' ? 'todos' : 'SEDEX')}
               >
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
-                      <Send className="w-6 h-6" style={{ color: '#890d5d' }} />
+                <CardContent className="p-3 sm:p-5">
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                    <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
+                      <Send className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#890d5d' }} />
                     </div>
-                    <span className="text-sm font-bold text-slate-700">Sedex</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">Sedex</span>
                   </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
+                  <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#890d5d' }}>
                     {sedex}
                   </div>
                 </CardContent>
@@ -390,14 +379,14 @@ export default function SedexDisktenha() {
                 }}
                 onClick={() => setFiltroTipo(filtroTipo === 'PAC' ? 'todos' : 'PAC')}
               >
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
-                      <Package className="w-6 h-6" style={{ color: '#f97316' }} />
+                <CardContent className="p-3 sm:p-5">
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                    <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#FEF3E8' }}>
+                      <Package className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#f97316' }} />
                     </div>
-                    <span className="text-sm font-bold text-slate-700">PAC</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">PAC</span>
                   </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#f97316' }}>
+                  <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#f97316' }}>
                     {pac}
                   </div>
                 </CardContent>
@@ -411,29 +400,29 @@ export default function SedexDisktenha() {
                 }}
                 onClick={() => setFiltroTipo(filtroTipo === 'DISKTENHA' ? 'todos' : 'DISKTENHA')}
               >
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
-                      <Truck className="w-6 h-6" style={{ color: '#3dac38' }} />
+                <CardContent className="p-3 sm:p-5">
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                    <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#E8F5E8' }}>
+                      <Truck className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#3dac38' }} />
                     </div>
-                    <span className="text-sm font-bold text-slate-700">Disktenha</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">Disktenha</span>
                   </div>
-                  <div className="text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
+                  <div className="text-2xl sm:text-4xl font-bold text-center" style={{ color: '#3dac38' }}>
                     {diskenha}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Total Disktenha */}
-              <Card className="cursor-pointer transition-all hover:shadow-md rounded-xl shadow-sm" style={{ backgroundColor: '#E8F5E8', border: '3px solid #3dac38' }}>
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#d1f0d1' }}>
-                      <DollarSign className="w-6 h-6" style={{ color: '#3dac38' }} />
+              <Card className="cursor-pointer transition-all hover:shadow-md rounded-xl shadow-sm col-span-2 sm:col-span-1" style={{ backgroundColor: '#E8F5E8', border: '3px solid #3dac38' }}>
+                <CardContent className="p-3 sm:p-5">
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                    <div className="p-1.5 sm:p-2 rounded-lg" style={{ backgroundColor: '#d1f0d1' }}>
+                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: '#3dac38' }} />
                     </div>
-                    <span className="text-sm font-bold text-slate-700">Total Disktenha</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700 truncate">Total Disktenha</span>
                   </div>
-                  <div className="text-3xl font-bold text-center" style={{ color: '#3dac38' }}>
+                  <div className="text-xl sm:text-3xl font-bold text-center" style={{ color: '#3dac38' }}>
                     R$ {valorTotalDisktenha.toFixed(2)}
                   </div>
                 </CardContent>
@@ -441,15 +430,15 @@ export default function SedexDisktenha() {
             </div>
 
             {/* Busca e Filtro */}
-            <Card>
-              <CardContent className="p-4">
+            <Card className="mb-3 sm:mb-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <Input
-                    placeholder="Buscar por cliente, código, remetente..."
+                    placeholder="Buscar por cliente, código..."
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 text-sm sm:text-base"
                   />
                 </div>
               </CardContent>
@@ -457,8 +446,8 @@ export default function SedexDisktenha() {
 
             {/* Lista de Entregas */}
             <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">
+              <CardContent className="p-3 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
                   {visualizacao === 'dia'
                     ? `Entregas de ${format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}`
                     : 'Todas as Entregas'
@@ -468,9 +457,9 @@ export default function SedexDisktenha() {
                 {isLoading ? (
                   <div className="text-center py-8 text-slate-500">Carregando...</div>
                 ) : entregasFiltradas.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500">Nenhuma entrega encontrada</p>
+                  <div className="text-center py-8 sm:py-12">
+                    <Package className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300 mx-auto mb-3 sm:mb-4" />
+                    <p className="text-slate-500 text-sm sm:text-base">Nenhuma entrega encontrada</p>
                   </div>
                 ) : (
                   <div>
@@ -478,28 +467,28 @@ export default function SedexDisktenha() {
                       <div
                         key={entrega.id}
                         onClick={() => navigate(`/sedex-detalhes?id=${entrega.id}`)}
-                        className="p-5 mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
+                        className="p-3 sm:p-5 mb-3 sm:mb-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-all cursor-pointer hover:shadow-md last:mb-0"
                       >
-                        <div className="flex items-center justify-between gap-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
                           {/* Lado Esquerdo - Informações */}
                           <div className="flex-1">
                             {/* Linha 1: Requisição + Atendente + Tipo + Status */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="text-base font-semibold" style={{ color: '#376295' }}>
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                              <span className="text-sm sm:text-base font-semibold" style={{ color: '#376295' }}>
                                 #{entrega.numero_requisicao || '-'}
                               </span>
                               {entrega.atendente && (
                                 <>
-                                  <span className="text-slate-400">•</span>
-                                  <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5" />
+                                  <span className="text-slate-400 hidden sm:inline">•</span>
+                                  <span className="text-xs sm:text-sm font-medium text-slate-600 flex items-center gap-1">
+                                    <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                     {entrega.atendente}
                                   </span>
                                 </>
                               )}
                               <span className="text-slate-400">•</span>
                               <span
-                                className="px-3 py-1 rounded text-xs font-medium"
+                                className="px-2 sm:px-3 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium"
                                 style={{
                                   backgroundColor:
                                     entrega.tipo === 'SEDEX' ? '#F5E8F5' :
@@ -512,7 +501,7 @@ export default function SedexDisktenha() {
                                 {entrega.tipo}
                               </span>
                               <span
-                                className="px-3 py-1 rounded text-xs font-medium"
+                                className="px-2 sm:px-3 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium"
                                 style={{
                                   backgroundColor:
                                     entrega.status === 'Entregue' ? '#E8F5E8' :
@@ -527,21 +516,21 @@ export default function SedexDisktenha() {
                             </div>
 
                             {/* Linha 2: Nome do Cliente */}
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">
+                            <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1.5 sm:mb-2">
                               {entrega.cliente}
                             </h3>
 
                             {/* Linha 3: Informações adicionais */}
-                            <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                              {entrega.codigo_rastreio && (
-                                <div className="flex items-center gap-1.5">
-                                  <Package className="w-4 h-4" style={{ color: '#1e293b' }} />
-                                  <span>{entrega.codigo_rastreio}</span>
+                            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-slate-600">
+                              {entrega.codigo_rastreio && !entrega.codigo_rastreio.startsWith('PENDING-') && (
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
+                                  <span className="truncate max-w-[150px] sm:max-w-none">{entrega.codigo_rastreio}</span>
                                 </div>
                               )}
                               {entrega.remetente && (
-                                <div className="flex items-center gap-1.5">
-                                  <Send className="w-4 h-4" style={{ color: '#1e293b' }} />
+                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                  <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
                                   <span>{entrega.remetente}</span>
                                 </div>
                               )}
@@ -549,21 +538,21 @@ export default function SedexDisktenha() {
 
                             {/* Observações */}
                             {entrega.observacoes && (
-                              <p className="text-sm text-slate-500 mt-2">{entrega.observacoes}</p>
+                              <p className="text-xs sm:text-sm text-slate-500 mt-1.5 sm:mt-2 line-clamp-2 sm:line-clamp-none">{entrega.observacoes}</p>
                             )}
                           </div>
 
                           {/* Lado Direito - Valor e Data */}
-                          <div className="text-right">
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                             {entrega.tipo === 'DISKTENHA' && (
-                              <div className="mb-2">
-                                <p className="text-xs text-slate-500">{entrega.forma_pagamento}</p>
-                                <p className="text-xl font-bold" style={{ color: '#3dac38' }}>
+                              <div className="sm:mb-2 sm:text-right">
+                                <p className="text-[10px] sm:text-xs" style={entrega.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', display: 'inline-block' } : { color: '#64748b' }}>{entrega.forma_pagamento}</p>
+                                <p className="text-base sm:text-xl font-bold" style={{ color: '#3dac38' }}>
                                   R$ {parseFloat(entrega.valor || 0).toFixed(2)}
                                 </p>
                               </div>
                             )}
-                            <p className="text-sm text-slate-500">
+                            <p className="text-xs sm:text-sm text-slate-500">
                               {format(parseISO(entrega.data_saida), 'dd/MM/yyyy')}
                             </p>
                           </div>
@@ -579,117 +568,121 @@ export default function SedexDisktenha() {
 
       {/* Dialog Nova Entrega */}
       <Dialog open={showNovaEntrega} onOpenChange={setShowNovaEntrega}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>Cadastrar Nova Entrega</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">Cadastrar Nova Entrega</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label>Data e Horário *</Label>
-                <Input
-                  type="date"
+                <CustomDatePicker
+                  label="Data e Horário *"
                   value={novaEntrega.data_saida}
-                  onChange={(e) => setNovaEntrega({ ...novaEntrega, data_saida: e.target.value })}
+                  onChange={(value) => setNovaEntrega({ ...novaEntrega, data_saida: value })}
+                  placeholder="Selecione a data"
                 />
               </div>
-              <div>
-                <Label>Tipo de Entrega *</Label>
-                <select
-                  className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                  value={novaEntrega.tipo}
-                  onChange={(e) => setNovaEntrega({ ...novaEntrega, tipo: e.target.value })}
-                >
-                  <option value="SEDEX">SEDEX</option>
-                  <option value="PAC">PAC</option>
-                  <option value="DISKTENHA">DISKTENHA</option>
-                </select>
-              </div>
+              <CustomDropdown
+                label="Tipo de Entrega *"
+                options={[
+                  { value: 'SEDEX', label: 'SEDEX' },
+                  { value: 'PAC', label: 'PAC' },
+                  { value: 'DISKTENHA', label: 'DISKTENHA' }
+                ]}
+                value={novaEntrega.tipo}
+                onChange={(value) => setNovaEntrega({ ...novaEntrega, tipo: value })}
+                placeholder="Selecione o tipo"
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label>Cliente *</Label>
+                <Label className="text-sm">Cliente *</Label>
                 <Input
                   placeholder="Nome do cliente"
                   value={novaEntrega.cliente}
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, cliente: e.target.value })}
+                  className="text-sm sm:text-base"
                 />
               </div>
               <div>
-                <Label>Destinatário</Label>
+                <Label className="text-sm">Destinatário</Label>
                 <Input
                   placeholder="Nome do destinatário"
                   value={novaEntrega.remetente}
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, remetente: e.target.value })}
+                  className="text-sm sm:text-base"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label>Número da Requisição *</Label>
+                <Label className="text-sm">Número da Requisição *</Label>
                 <Input
                   placeholder="Ex: 123456"
                   value={novaEntrega.numero_requisicao}
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, numero_requisicao: e.target.value })}
+                  className="text-sm sm:text-base"
                 />
               </div>
               <div>
-                <Label>Código de Rastreio</Label>
+                <Label className="text-sm">Código de Rastreio</Label>
                 <Input
                   placeholder="Ex: BR123456789BR"
                   value={novaEntrega.codigo_rastreio}
                   onChange={(e) => setNovaEntrega({ ...novaEntrega, codigo_rastreio: e.target.value })}
+                  className="text-sm sm:text-base"
                 />
               </div>
             </div>
 
             <div>
-              <Label>Observações</Label>
+              <Label className="text-sm">Observações</Label>
               <Textarea
-                placeholder="Informações adicionais sobre a entrega"
+                placeholder="Informações adicionais"
                 value={novaEntrega.observacoes}
                 onChange={(e) => setNovaEntrega({ ...novaEntrega, observacoes: e.target.value })}
-                rows={3}
+                rows={2}
+                className="text-sm sm:text-base"
               />
             </div>
 
-            <div className={novaEntrega.tipo === 'DISKTENHA' ? "grid grid-cols-2 gap-4" : ""}>
+            <div className={novaEntrega.tipo === 'DISKTENHA' ? "grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4" : ""}>
               {novaEntrega.tipo === 'DISKTENHA' && (
                 <div>
-                  <Label>Valor da Entrega</Label>
+                  <Label className="text-sm">Valor da Entrega</Label>
                   <Input
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                     value={novaEntrega.valor}
                     onChange={(e) => setNovaEntrega({ ...novaEntrega, valor: e.target.value })}
+                    className="text-sm sm:text-base"
                   />
                 </div>
               )}
-              <div>
-                <Label>Status do Pagamento</Label>
-                <select
-                  className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                  value={novaEntrega.forma_pagamento}
-                  onChange={(e) => setNovaEntrega({ ...novaEntrega, forma_pagamento: e.target.value })}
-                >
-                  <option value="Aguardando">Aguardando</option>
-                  <option value="Pago">Pago</option>
-                </select>
-              </div>
+              <CustomDropdown
+                label="Status do Pagamento"
+                options={[
+                  { value: 'Aguardando', label: 'Aguardando' },
+                  { value: 'Pago', label: 'Pago' }
+                ]}
+                value={novaEntrega.forma_pagamento}
+                onChange={(value) => setNovaEntrega({ ...novaEntrega, forma_pagamento: value })}
+                placeholder="Selecione..."
+              />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowNovaEntrega(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowNovaEntrega(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
             <Button
               onClick={handleCriarEntrega}
               style={{ background: 'linear-gradient(to right, #457bba, #890d5d)' }}
-              className="text-white"
+              className="text-white w-full sm:w-auto"
             >
               Cadastrar
             </Button>

@@ -1,16 +1,10 @@
 import React from "react";
+import ReactDOM from "react-dom";
 
 export default function ImpressaoRomaneio({ romaneio }) {
   if (!romaneio) return null;
 
   const agora = new Date();
-  const dataHoraHeader = agora.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
   const dataImpressao = agora.toLocaleString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -26,7 +20,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
     return d.toLocaleDateString('pt-BR');
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div className="print-only">
       <style>{`
         /* Esconder na tela */
@@ -38,26 +32,20 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         @media print {
           @page {
-            margin: 5mm;
+            margin: 0;
             size: auto;
           }
           html, body {
             height: auto !important;
             overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          body * {
-            visibility: hidden;
-          }
-          .print-only, .print-only * {
-            visibility: visible !important;
+          #root {
+            display: none !important;
           }
           .print-only {
             display: block !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            background: white !important;
           }
           .no-print {
             display: none !important;
@@ -66,7 +54,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-page {
           font-family: Arial, sans-serif;
-          font-size: 12px;
+          font-size: 16px;
           color: #000;
           padding: 20px;
           max-width: 800px;
@@ -77,7 +65,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
         .print-header-top {
           display: flex;
           justify-content: space-between;
-          font-size: 11px;
+          font-size: 15px;
           color: #000;
           padding-bottom: 10px;
           border-bottom: 1px solid #000;
@@ -101,7 +89,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
         }
 
         .print-title h1 {
-          font-size: 18px;
+          font-size: 22px;
           font-weight: bold;
           margin: 0;
           color: #000;
@@ -126,7 +114,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-label {
           color: #000;
-          font-size: 11px;
+          font-size: 15px;
         }
 
         .print-value {
@@ -152,7 +140,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-section-title {
           font-weight: bold;
-          font-size: 11px;
+          font-size: 16px;
           margin-bottom: 10px;
           padding-bottom: 6px;
           border-bottom: 1px solid #000;
@@ -163,7 +151,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           display: flex;
           justify-content: space-between;
           margin-bottom: 6px;
-          font-size: 11px;
+          font-size: 15px;
           color: #000;
         }
 
@@ -182,26 +170,26 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-endereco-main {
           font-weight: bold;
-          font-size: 12px;
+          font-size: 16px;
           margin-bottom: 3px;
           color: #000;
         }
 
         .print-endereco-line {
-          font-size: 11px;
+          font-size: 15px;
           margin-bottom: 2px;
           color: #000;
         }
 
         .print-endereco-ref {
-          font-size: 11px;
+          font-size: 15px;
           color: #000;
           font-style: italic;
           margin-top: 3px;
         }
 
         .print-endereco-ac {
-          font-size: 11px;
+          font-size: 15px;
           margin-top: 3px;
           color: #000;
         }
@@ -213,7 +201,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           gap: 12px;
           padding: 12px 15px;
           margin-bottom: 10px;
-          font-size: 14px;
+          font-size: 18px;
           font-weight: bold;
           text-transform: uppercase;
           border: 2px solid #000;
@@ -232,7 +220,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           gap: 12px;
           padding: 12px 15px;
           margin-bottom: 10px;
-          font-size: 14px;
+          font-size: 18px;
           font-weight: bold;
           text-transform: uppercase;
           border: 2px solid #000;
@@ -244,13 +232,32 @@ export default function ImpressaoRomaneio({ romaneio }) {
           font-size: 20px;
         }
 
+        .print-coleta {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          padding: 12px 15px;
+          margin-bottom: 10px;
+          font-size: 18px;
+          font-weight: bold;
+          text-transform: uppercase;
+          border: 2px solid #000;
+          background-color: #fff;
+          color: #000;
+        }
+
+        .print-coleta-icon {
+          font-size: 20px;
+        }
+
         .print-valor-box {
           background-color: #fff;
           border: 2px solid #000;
           padding: 10px;
           margin-bottom: 10px;
           text-align: center;
-          font-size: 14px;
+          font-size: 18px;
           font-weight: bold;
           color: #000;
         }
@@ -261,7 +268,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
 
         .print-footer {
           text-align: center;
-          font-size: 9px;
+          font-size: 12px;
           color: #000;
           padding-top: 8px;
           border-top: 1px solid #000;
@@ -291,14 +298,18 @@ export default function ImpressaoRomaneio({ romaneio }) {
       `}</style>
 
       <div className="print-page">
-        {/* Carimbo PAGO - aparece apenas quando status for Pago ou Só Entregar */}
-        {romaneio.forma_pagamento && ['Pago', 'Só Entregar'].includes(romaneio.forma_pagamento) && (
+        {/* Carimbo PAGO - aparece quando pagamento recebido ou forma de pagamento começa com Pago, exceto Só Entregar */}
+        {romaneio.forma_pagamento !== 'Só Entregar' && (
+          romaneio.pagamento_recebido || (romaneio.forma_pagamento &&
+            romaneio.forma_pagamento.startsWith('Pago')
+          )
+        ) && (
           <div className="print-carimbo-pago">PAGO</div>
         )}
 
         {/* Logo e Titulo */}
         <div className="print-title">
-          <img src="/logo-formedica.png" alt="Formédica" className="print-logo-img" />
+          <img src={`${import.meta.env.BASE_URL}logo-formedica.png`} alt="Formédica" className="print-logo-img" />
           <h1>ROMANEIO DE ENTREGA</h1>
         </div>
 
@@ -314,18 +325,23 @@ export default function ImpressaoRomaneio({ romaneio }) {
               <span className="print-section-label">Data:</span>
               <span className="print-section-value">{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
             </div>
+            {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+              <div style={{ fontWeight: 'bold', fontSize: '16px', border: '2px solid #000', padding: '3px 8px', marginTop: '5px', display: 'inline-block' }}>
+                HORÁRIO: {(romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]).toUpperCase()}
+              </div>
+            )}
             <div className="print-section-row">
               <span className="print-section-label">Motoboy:</span>
               <span className="print-section-value">{romaneio.motoboy?.nome || '-'}</span>
             </div>
             <div className="print-section-row">
               <span className="print-section-label">Atendente:</span>
-              <span className="print-section-value">{romaneio.atendente?.nome || romaneio.atendente?.email || '-'}</span>
+              <span className="print-section-value">{romaneio.atendente_nome || '-'}</span>
             </div>
           </div>
 
           <div className="print-grid-col">
-            <div className="print-section-title">CLIENTE</div>
+            <div className="print-section-title">CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
             <div className="print-section-row">
               <span className="print-section-label">Nome:</span>
               <span className="print-section-value">{romaneio.cliente?.nome || '-'}</span>
@@ -334,6 +350,18 @@ export default function ImpressaoRomaneio({ romaneio }) {
               <span className="print-section-label">Telefone:</span>
               <span className="print-section-value">{romaneio.cliente?.telefone || '-'}</span>
             </div>
+            {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
+              <div key={idx} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #ccc' }}>
+                <div className="print-section-row">
+                  <span className="print-section-label">Nome:</span>
+                  <span className="print-section-value">{cliente.nome}</span>
+                </div>
+                <div className="print-section-row">
+                  <span className="print-section-label">Telefone:</span>
+                  <span className="print-section-value">{cliente.telefone || '-'}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -359,7 +387,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
             )}
             {romaneio.cliente?.nome && (
               <div className="print-endereco-ac">
-                A/C: {romaneio.cliente.nome}
+                A/C: {romaneio.cliente.nome}{romaneio.clientesAdicionais?.length > 0 && `, ${romaneio.clientesAdicionais.map(c => c.nome).join(', ')}`}
               </div>
             )}
           </div>
@@ -374,17 +402,17 @@ export default function ImpressaoRomaneio({ romaneio }) {
         </div>
 
         {/* Observações */}
-        {romaneio.observacoes && (
+        {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
           <div className="print-box">
             <div className="print-section-title">OBSERVAÇÕES</div>
             <div className="print-section-row" style={{ justifyContent: 'flex-start' }}>
-              <span className="print-section-value" style={{ textAlign: 'left' }}>{romaneio.observacoes}</span>
+              <span className="print-section-value" style={{ textAlign: 'left' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</span>
             </div>
           </div>
         )}
 
-        {/* Item Geladeira e Reter Receita - lado a lado */}
-        {(romaneio.item_geladeira || romaneio.buscar_receita) && (
+        {/* Item Geladeira, Reter Receita e Coleta - lado a lado */}
+        {(romaneio.item_geladeira || romaneio.buscar_receita || romaneio.coleta) && (
           <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
             {romaneio.item_geladeira && (
               <div className="print-geladeira" style={{ flex: 1, marginBottom: 0 }}>
@@ -409,6 +437,23 @@ export default function ImpressaoRomaneio({ romaneio }) {
                   <line x1="16" y1="13" x2="8" y2="13"></line>
                   <line x1="16" y1="17" x2="8" y2="17"></line>
                   <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+            )}
+            {romaneio.coleta && (
+              <div className="print-coleta" style={{ flex: 1, marginBottom: 0 }}>
+                <svg className="print-coleta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '20px', height: '20px'}}>
+                  <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <span>COLETA</span>
+                <svg className="print-coleta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '20px', height: '20px'}}>
+                  <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
                 </svg>
               </div>
             )}
@@ -437,6 +482,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           <div>Impressao em: {dataImpressao}</div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

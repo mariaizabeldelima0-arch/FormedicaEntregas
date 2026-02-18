@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
+import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
+import { buscarCep, formatarCep } from '@/utils/buscarCep';
 import {
   Dialog,
   DialogContent,
@@ -104,7 +107,7 @@ const MOTOBOY_POR_REGIAO = {
   'PRAIA DOS AMORES': 'Bruno',
   'PRAIA BRAVA': 'Bruno',
   'ITAPEMA': 'Bruno',
-  'NAVEGANTES': 'Bruno',
+  'NAVEGANTES': 'Marcio',
   'PENHA': 'Bruno',
   'PORTO BELO': 'Bruno',
   'TIJUCAS': 'Bruno',
@@ -132,6 +135,7 @@ const FORMAS_PAGAMENTO = [
   'Pix Aguardando',
   'Receber Dinheiro',
   'Receber Máquina',
+  'Coleta',
   'Só Entregar',
   'Via na Pasta'
 ];
@@ -180,21 +184,27 @@ const MAPEAMENTO_REGIOES = {
     'default': 'BC'
   },
   'camboriú': {
+    'monte alegre': 'MONTE ALEGRE',
+    'tabuleiro': 'TABULEIRO',
     'default': 'CAMBORIÚ'
   },
   'camboriu': {
+    'monte alegre': 'MONTE ALEGRE',
+    'tabuleiro': 'TABULEIRO',
     'default': 'CAMBORIÚ'
   },
   'itajaí': {
     'centro': 'ITAJAI',
     'vila real': 'ITAJAI',
     'espinheiros': 'ESPINHEIROS',
+    'praia brava': 'PRAIA BRAVA',
     'default': 'ITAJAI'
   },
   'itajai': {
     'centro': 'ITAJAI',
     'vila real': 'ITAJAI',
     'espinheiros': 'ESPINHEIROS',
+    'praia brava': 'PRAIA BRAVA',
     'default': 'ITAJAI'
   },
   'itapema': {
@@ -234,33 +244,33 @@ const normalizarCidade = (cidade) => {
 
 // Função para detectar região automaticamente
 const detectarRegiao = (cidade, bairro) => {
-  const cidadeLower = cidade?.toLowerCase().trim() || '';
-  const bairroLower = bairro?.toLowerCase().trim() || '';
+  const cidadeLower = cidade?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') || '';
+  const bairroLower = bairro?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') || '';
 
-  console.log('🔍 Detectando região:', { cidade: cidadeLower, bairro: bairroLower });
+  // Tentar encontrar a cidade no mapeamento (com e sem acento)
+  const mapa = MAPEAMENTO_REGIOES[cidadeLower] ||
+    MAPEAMENTO_REGIOES[cidade?.toLowerCase().trim() || ''];
 
-  // Buscar por cidade
-  if (MAPEAMENTO_REGIOES[cidadeLower]) {
-    const mapa = MAPEAMENTO_REGIOES[cidadeLower];
-
-    // Se o bairro for "centro", sempre usar região padrão da cidade
-    if (bairroLower === 'centro') {
-      console.log('✅ Bairro Centro - usando região padrão da cidade:', mapa.default);
-      return mapa.default;
-    }
-
-    // Se o bairro estiver mapeado E for diferente do default, usar a região do bairro
-    if (bairroLower && mapa[bairroLower] && mapa[bairroLower] !== mapa.default) {
-      console.log('✅ Região detectada por bairro cadastrado:', mapa[bairroLower]);
+  if (mapa) {
+    // Se o bairro estiver mapeado, usar a região do bairro
+    if (bairroLower && mapa[bairroLower]) {
       return mapa[bairroLower];
     }
-
-    // Usar região padrão da cidade (bairro não cadastrado ou sem bairro)
-    console.log('✅ Região detectada por cidade (default):', mapa.default);
+    // Tentar também com acento original
+    const bairroOriginal = bairro?.toLowerCase().trim() || '';
+    if (bairroOriginal && mapa[bairroOriginal]) {
+      return mapa[bairroOriginal];
+    }
+    // Busca parcial: "praia brava de itajaí" contém "praia brava"
+    for (const [chave, regiao] of Object.entries(mapa)) {
+      if (chave !== 'default' && bairroLower.includes(chave)) {
+        return regiao;
+      }
+    }
+    // Usar região padrão da cidade
     return mapa.default;
   }
 
-  console.log('❌ Nenhuma região detectada');
   return '';
 };
 
@@ -272,6 +282,7 @@ export default function EditarRomaneio() {
 
   const [loading, setLoading] = useState(false);
   const [loadingEntrega, setLoadingEntrega] = useState(true);
+  const carregamentoInicialRef = useRef(true);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
   const [showCadastroCliente, setShowCadastroCliente] = useState(false);
@@ -327,8 +338,14 @@ export default function EditarRomaneio() {
     valor_entrega: 0,
     item_geladeira: false,
     buscar_receita: false,
+    coleta: false,
     observacoes: '',
-    valor_venda: 0
+    valor_venda: 0,
+    precisa_troco: false,
+    valor_troco: 0,
+    tipo_horario: '',
+    hora1: '',
+    hora2: ''
   });
 
   // Formas de pagamento que precisam informar valor da venda
@@ -344,7 +361,7 @@ export default function EditarRomaneio() {
   const [indicePagamentoSelecionado, setIndicePagamentoSelecionado] = useState(-1);
   const [mostrarSugestoesPagamento, setMostrarSugestoesPagamento] = useState(false);
 
-  // Verificar se Bruno tem entrega única em AMBOS os períodos (manhã E tarde)
+  // Verificar se Bruno terá entrega única no período (Manhã ou Tarde)
   const verificarEntregaUnicaBruno = async (data, periodo, motoboy, entregaIdAtual) => {
     if (motoboy !== 'Bruno') {
       setIsEntregaUnica(false);
@@ -365,44 +382,22 @@ export default function EditarRomaneio() {
         return false;
       }
 
-      // Contar entregas do Bruno na data para MANHÃ (excluindo a entrega atual)
-      let queryManha = supabase
+      // Contar entregas do Bruno no mesmo período (excluindo a entrega atual)
+      let query = supabase
         .from('entregas')
         .select('*', { count: 'exact', head: true })
         .eq('motoboy_id', motoboyData.id)
         .eq('data_entrega', data)
-        .eq('periodo', 'Manhã');
+        .eq('periodo', periodo);
 
       if (entregaIdAtual) {
-        queryManha = queryManha.neq('id', entregaIdAtual);
+        query = query.neq('id', entregaIdAtual);
       }
 
-      const { count: countManha } = await queryManha;
+      const { count: countPeriodo } = await query;
 
-      // Contar entregas do Bruno na data para TARDE (excluindo a entrega atual)
-      let queryTarde = supabase
-        .from('entregas')
-        .select('*', { count: 'exact', head: true })
-        .eq('motoboy_id', motoboyData.id)
-        .eq('data_entrega', data)
-        .eq('periodo', 'Tarde');
-
-      if (entregaIdAtual) {
-        queryTarde = queryTarde.neq('id', entregaIdAtual);
-      }
-
-      const { count: countTarde } = await queryTarde;
-
-      // Determinar se o período atual será entrega única
-      const seriaUnicaNoPeriodoAtual = periodo === 'Manhã' ? countManha === 0 : countTarde === 0;
-
-      // Verificar se o outro período tem no máximo 1 entrega (ou seja, é única também)
-      const outroPeriodoTemUnica = periodo === 'Manhã'
-        ? (countTarde === 0 || countTarde === 1)
-        : (countManha === 0 || countManha === 1);
-
-      // Só é entrega única se AMBOS os períodos têm entregas únicas
-      const isUnica = seriaUnicaNoPeriodoAtual && outroPeriodoTemUnica;
+      // Só é entrega única se não existe nenhuma outra entrega no período
+      const isUnica = (countPeriodo || 0) === 0;
       setIsEntregaUnica(isUnica);
       return isUnica;
     } catch (error) {
@@ -448,13 +443,38 @@ export default function EditarRomaneio() {
     setNovoCliente({ ...novoCliente, enderecos: novosEnderecos });
   };
 
+  const handleCepNovoCliente = async (index, value) => {
+    const cepFormatado = formatarCep(value);
+    updateEnderecoNovoCliente(index, 'cep', cepFormatado);
+    const cepLimpo = value.replace(/\D/g, '');
+    if (cepLimpo.length === 8) {
+      const enderecoCep = await buscarCep(cepLimpo);
+      if (enderecoCep) {
+        setNovoCliente(prev => {
+          const novosEnderecos = [...prev.enderecos];
+          novosEnderecos[index] = {
+            ...novosEnderecos[index],
+            cep: cepFormatado,
+            logradouro: enderecoCep.logradouro || novosEnderecos[index].logradouro,
+            bairro: enderecoCep.bairro || novosEnderecos[index].bairro,
+            cidade: enderecoCep.cidade || novosEnderecos[index].cidade,
+
+          };
+          const regiaoDetectada = detectarRegiao(novosEnderecos[index].cidade, novosEnderecos[index].bairro);
+          if (regiaoDetectada) novosEnderecos[index].regiao = regiaoDetectada;
+          return { ...prev, enderecos: novosEnderecos };
+        });
+        toast.success('Endereço preenchido pelo CEP');
+      }
+    }
+  };
+
   // Detectar região automaticamente quando cidade ou bairro do novo endereço mudam
   useEffect(() => {
+    if (carregamentoInicialRef.current) return; // Não alterar região durante carregamento inicial
     if (novoEndereco.cidade && novoEndereco.bairro && showNovoEndereco) {
       const regiaoDetectada = detectarRegiao(novoEndereco.cidade, novoEndereco.bairro);
-      console.log('🔍 useEffect detectando região:', { cidade: novoEndereco.cidade, bairro: novoEndereco.bairro, regiaoDetectada });
       if (regiaoDetectada && regiaoDetectada !== formData.regiao) {
-        console.log('✅ Atualizando região para:', regiaoDetectada);
         handleRegiaoChange(regiaoDetectada);
       }
     }
@@ -523,8 +543,28 @@ export default function EditarRomaneio() {
           valor_entrega: entrega.valor || 0,
           item_geladeira: entrega.item_geladeira || false,
           buscar_receita: entrega.buscar_receita || false,
-          observacoes: entrega.observacoes || '',
-          valor_venda: entrega.valor_venda || 0
+          coleta: entrega.coleta || false,
+          observacoes: (entrega.observacoes || '').replace(/^\|\|H:.*?\|\|\s*/, ''),
+          valor_venda: entrega.valor_venda || 0,
+          precisa_troco: entrega.precisa_troco || false,
+          valor_troco: entrega.valor_troco || 0,
+          ...(() => {
+            const h = entrega.horario_entrega || entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1] || '';
+            if (h.startsWith('de ')) {
+              const match = h.match(/de (\d+)H até (\d+)H/);
+              return match ? { tipo_horario: 'de_ate', hora1: match[1], hora2: match[2] } : { tipo_horario: '', hora1: '', hora2: '' };
+            } else if (h.startsWith('até ')) {
+              const match = h.match(/até (\d+)H/);
+              return match ? { tipo_horario: 'ate', hora1: match[1], hora2: '' } : { tipo_horario: '', hora1: '', hora2: '' };
+            } else if (h.startsWith('antes')) {
+              const match = h.match(/antes das (\d+)H/);
+              return match ? { tipo_horario: 'antes', hora1: match[1], hora2: '' } : { tipo_horario: '', hora1: '', hora2: '' };
+            } else if (h.startsWith('depois')) {
+              const match = h.match(/depois das (\d+)H/);
+              return match ? { tipo_horario: 'depois', hora1: match[1], hora2: '' } : { tipo_horario: '', hora1: '', hora2: '' };
+            }
+            return { tipo_horario: '', hora1: '', hora2: '' };
+          })()
         });
 
         // Inicializar campo de busca de forma de pagamento
@@ -570,9 +610,9 @@ export default function EditarRomaneio() {
         }
         setTodosEnderecos(todosEnderecosTemp);
 
-        // Carregar endereços do cliente principal (para compatibilidade)
+        // Carregar endereços do cliente principal (para compatibilidade) - sem auto-selecionar para não sobrescrever a região salva
         if (entrega.cliente_id) {
-          await carregarEnderecosCliente(entrega.cliente_id);
+          await carregarEnderecosCliente(entrega.cliente_id, false);
         }
 
         // Definir endereço selecionado baseado no endereco_id da entrega
@@ -591,10 +631,13 @@ export default function EditarRomaneio() {
         }
 
         setLoadingEntrega(false);
+        // Marcar que o carregamento inicial terminou (com delay para evitar que useEffects sobrescrevam a região)
+        setTimeout(() => { carregamentoInicialRef.current = false; }, 100);
       } catch (error) {
         console.error('Erro ao carregar entrega:', error);
         toast.error('Erro ao carregar dados da entrega');
         setLoadingEntrega(false);
+        carregamentoInicialRef.current = false;
       }
     }
 
@@ -722,7 +765,7 @@ export default function EditarRomaneio() {
   };
 
   // Carregar endereços do cliente
-  const carregarEnderecosCliente = async (clienteId) => {
+  const carregarEnderecosCliente = async (clienteId, autoSelecionar = true) => {
     console.log('Buscando endereços para cliente ID:', clienteId);
     try {
       const { data, error } = await supabase
@@ -737,8 +780,8 @@ export default function EditarRomaneio() {
       if (error) throw error;
       setClienteEnderecos(data || []);
 
-      // Se só tem um endereço, seleciona automaticamente
-      if (data && data.length === 1) {
+      // Se só tem um endereço, seleciona automaticamente (apenas quando não é carregamento inicial)
+      if (autoSelecionar && data && data.length === 1) {
         console.log('Selecionando endereço automaticamente:', data[0]);
         selecionarEndereco(data[0]);
       }
@@ -754,18 +797,28 @@ export default function EditarRomaneio() {
 
     setEnderecoSelecionado(endereco);
 
-    setFormData(prevFormData => ({
-      ...prevFormData,
-      endereco_id: endereco.id,
-      endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`,
-      regiao: endereco.regiao || ''
-    }));
+    // Só atualizar a região se NÃO for carregamento inicial
+    if (carregamentoInicialRef.current) {
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        endereco_id: endereco.id,
+        endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`
+      }));
+    } else {
+      const regiaoEndereco = endereco.regiao || detectarRegiao(endereco.cidade, endereco.bairro) || '';
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        endereco_id: endereco.id,
+        endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`,
+        regiao: regiaoEndereco
+      }));
 
-    setShowNovoEndereco(false);
+      setShowNovoEndereco(false);
 
-    // Atualizar região e calcular valor
-    if (endereco.regiao) {
-      handleRegiaoChange(endereco.regiao);
+      // Atualizar região e calcular valor
+      if (regiaoEndereco) {
+        handleRegiaoChange(regiaoEndereco);
+      }
     }
   };
 
@@ -899,8 +952,9 @@ export default function EditarRomaneio() {
     }
   }, [formData.motoboy, formData.data_entrega, formData.periodo]);
 
-  // Recalcular valor quando isEntregaUnica mudar
+  // Recalcular valor quando isEntregaUnica mudar (apenas se não for carregamento inicial)
   useEffect(() => {
+    if (carregamentoInicialRef.current) return;
     if (formData.motoboy === 'Bruno' && formData.regiao && formData.regiao !== 'OUTRO') {
       const novoValor = calcularValor(formData.regiao, formData.motoboy, isEntregaUnica);
       setFormData(prev => ({
@@ -961,6 +1015,13 @@ export default function EditarRomaneio() {
     if (formasPagamentoComValorVenda.includes(formData.forma_pagamento)) {
       if (!formData.valor_venda || formData.valor_venda <= 0) {
         novosErros.valor_venda = 'Informe o valor a cobrar';
+      }
+    }
+
+    // Validar troco quando forma de pagamento é "Receber Dinheiro"
+    if (formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco) {
+      if (!formData.valor_troco || formData.valor_troco <= 0) {
+        novosErros.valor_troco = 'Informe o valor do troco';
       }
     }
 
@@ -1208,9 +1269,18 @@ export default function EditarRomaneio() {
           valor: formData.valor_entrega,
           item_geladeira: formData.item_geladeira,
           buscar_receita: formData.buscar_receita,
+          coleta: formData.coleta,
+          horario_entrega: formData.tipo_horario ? (
+            formData.tipo_horario === 'de_ate' ? `de ${formData.hora1}H até ${formData.hora2}H` :
+            formData.tipo_horario === 'ate' ? `até ${formData.hora1}H` :
+            formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}H` :
+            formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}H` : null
+          ) : null,
           observacoes: formData.observacoes,
           clientes_adicionais: clientesAdicionais,
           valor_venda: formasPagamentoComValorVenda.includes(formData.forma_pagamento) ? formData.valor_venda : 0,
+          precisa_troco: formData.forma_pagamento === 'Receber Dinheiro' ? formData.precisa_troco : false,
+          valor_troco: formData.forma_pagamento === 'Receber Dinheiro' && formData.precisa_troco ? formData.valor_troco : 0,
           // Atualizar snapshot com dados atuais do endereço
           ...enderecoSnapshot
         })
@@ -1219,6 +1289,48 @@ export default function EditarRomaneio() {
         .single();
 
       if (error) throw error;
+
+      // Atualizar valores de entregas do Bruno (promover ou rebaixar entrega única por período)
+      if (formData.motoboy === 'Bruno' && motoboyId) {
+        try {
+          // Buscar entregas do Bruno no mesmo período
+          const { data: entregasDoPeriodo } = await supabase
+            .from('entregas')
+            .select('id, regiao, valor')
+            .eq('motoboy_id', motoboyId)
+            .eq('data_entrega', formData.data_entrega)
+            .eq('periodo', formData.periodo);
+
+          if (entregasDoPeriodo && entregasDoPeriodo.length > 0) {
+            // Entrega única = apenas 1 entrega no período
+            const ehUnica = entregasDoPeriodo.length === 1;
+
+            for (const entrega of entregasDoPeriodo) {
+              const valorUnico = VALORES_ENTREGA_UNICA_BRUNO[entrega.regiao];
+              const valorNormal = VALORES_ENTREGA['Bruno']?.[entrega.regiao];
+              if (!valorUnico || !valorNormal) continue;
+
+              if (ehUnica && entrega.valor === valorNormal) {
+                // Promover para entrega única
+                await supabase
+                  .from('entregas')
+                  .update({ valor: valorUnico })
+                  .eq('id', entrega.id);
+                console.log(`Entrega ${entrega.id} promovida: R$${valorNormal} → R$${valorUnico}`);
+              } else if (!ehUnica && entrega.valor === valorUnico) {
+                // Rebaixar para valor normal
+                await supabase
+                  .from('entregas')
+                  .update({ valor: valorNormal })
+                  .eq('id', entrega.id);
+                console.log(`Entrega ${entrega.id} rebaixada: R$${valorUnico} → R$${valorNormal}`);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao atualizar entregas únicas do Bruno:', err);
+        }
+      }
 
       // Invalidar queries relevantes
       queryClient.invalidateQueries({ queryKey: ['entregas'] });
@@ -1302,12 +1414,23 @@ export default function EditarRomaneio() {
               }}
             />
             {clientesSugestoes.length > 0 && (
-              <div className="absolute z-50 bg-white border border-slate-300 rounded-lg mt-1 max-h-[200px] overflow-y-auto shadow-lg">
-                {clientesSugestoes.map(cliente => (
+              <div
+                className="absolute z-50 bg-white mt-1 max-h-[200px] overflow-y-auto shadow-lg"
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '0.5rem'
+                }}
+              >
+                {clientesSugestoes.map((cliente, index) => (
                   <div
                     key={cliente.id}
                     onClick={() => adicionarCliente(cliente)}
-                    className="p-3 cursor-pointer border-b border-slate-200 hover:bg-slate-50 transition-colors"
+                    className="p-3 cursor-pointer transition-colors"
+                    style={{
+                      borderBottom: index < clientesSugestoes.length - 1 ? '1px solid #e2e8f0' : 'none'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e3f2fd'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                   >
                     <p className="font-semibold text-slate-900 m-0">{cliente.nome}</p>
                     <p className="text-xs text-slate-600 m-0">{cliente.telefone}</p>
@@ -1318,7 +1441,10 @@ export default function EditarRomaneio() {
             {buscarCliente.length >= 2 && clientesSugestoes.length === 0 && (
               <button
                 type="button"
-                onClick={() => setShowCadastroCliente(true)}
+                onClick={() => {
+                  setNovoCliente(prev => ({ ...prev, nome: buscarCliente }));
+                  setShowCadastroCliente(true);
+                }}
                 className="mt-2 px-4 py-2 rounded-lg font-semibold text-sm"
                 style={{ backgroundColor: '#376295', color: 'white' }}
               >
@@ -1432,6 +1558,39 @@ export default function EditarRomaneio() {
                         <h5 style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.75rem' }}>
                           Cadastrar Novo Endereço
                         </h5>
+                        <input
+                          type="text"
+                          value={novoEndereco.cep}
+                          maxLength={9}
+                          onChange={async (e) => {
+                            const cepFormatado = formatarCep(e.target.value);
+                            setNovoEndereco(prev => ({ ...prev, cep: cepFormatado }));
+                            const cepLimpo = e.target.value.replace(/\D/g, '');
+                            if (cepLimpo.length === 8) {
+                              const enderecoCep = await buscarCep(cepLimpo);
+                              if (enderecoCep) {
+                                setNovoEndereco(prev => ({
+                                  ...prev,
+                                  cep: cepFormatado,
+                                  logradouro: enderecoCep.logradouro || prev.logradouro,
+                                  bairro: enderecoCep.bairro || prev.bairro,
+                                  cidade: enderecoCep.cidade || prev.cidade,
+
+                                }));
+                                toast.success('Endereço preenchido pelo CEP');
+                              }
+                            }
+                          }}
+                          placeholder="CEP"
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: '0.5rem',
+                            fontSize: '0.875rem',
+                            marginBottom: '0.5rem'
+                          }}
+                        />
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                           <input
                             type="text"
@@ -1503,20 +1662,6 @@ export default function EditarRomaneio() {
                             }}
                           />
                         </div>
-                        <input
-                          type="text"
-                          value={novoEndereco.cep}
-                          onChange={(e) => setNovoEndereco({ ...novoEndereco, cep: e.target.value })}
-                          placeholder="CEP"
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: `1px solid ${theme.colors.border}`,
-                            borderRadius: '0.5rem',
-                            fontSize: '0.875rem',
-                            marginBottom: '0.5rem'
-                          }}
-                        />
                         <textarea
                           value={novoEndereco.observacoes}
                           onChange={(e) => setNovoEndereco({ ...novoEndereco, observacoes: e.target.value })}
@@ -1615,6 +1760,39 @@ export default function EditarRomaneio() {
                               <h5 style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.75rem' }}>
                                 Editando Endereço
                               </h5>
+                              <input
+                                type="text"
+                                value={enderecoEditando.cep}
+                                maxLength={9}
+                                onChange={async (e) => {
+                                  const cepFormatado = formatarCep(e.target.value);
+                                  setEnderecoEditando(prev => ({ ...prev, cep: cepFormatado }));
+                                  const cepLimpo = e.target.value.replace(/\D/g, '');
+                                  if (cepLimpo.length === 8) {
+                                    const enderecoCep = await buscarCep(cepLimpo);
+                                    if (enderecoCep) {
+                                      setEnderecoEditando(prev => ({
+                                        ...prev,
+                                        cep: cepFormatado,
+                                        logradouro: enderecoCep.logradouro || prev.logradouro,
+                                        bairro: enderecoCep.bairro || prev.bairro,
+                                        cidade: enderecoCep.cidade || prev.cidade,
+      
+                                      }));
+                                      toast.success('Endereço preenchido pelo CEP');
+                                    }
+                                  }
+                                }}
+                                placeholder="CEP"
+                                style={{
+                                  width: '100%',
+                                  padding: '0.5rem',
+                                  border: `1px solid ${theme.colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  fontSize: '0.875rem',
+                                  marginBottom: '0.5rem'
+                                }}
+                              />
                               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                 <input
                                   type="text"
@@ -1686,20 +1864,6 @@ export default function EditarRomaneio() {
                                   }}
                                 />
                               </div>
-                              <input
-                                type="text"
-                                value={enderecoEditando.cep}
-                                onChange={(e) => setEnderecoEditando({...enderecoEditando, cep: e.target.value})}
-                                placeholder="CEP"
-                                style={{
-                                  width: '100%',
-                                  padding: '0.5rem',
-                                  border: `1px solid ${theme.colors.border}`,
-                                  borderRadius: '0.5rem',
-                                  fontSize: '0.875rem',
-                                  marginBottom: '0.75rem'
-                                }}
-                              />
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button
                                   type="button"
@@ -1966,55 +2130,23 @@ export default function EditarRomaneio() {
 
           {/* Grid: Região e Data */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Cidade/Região *
-              </label>
-              <select
-                value={formData.regiao}
-                onChange={(e) => handleRegiaoChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${errors.regiao ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="">Selecione a cidade</option>
-                {REGIOES.map(regiao => (
-                  <option key={regiao} value={regiao}>{regiao}</option>
-                ))}
-              </select>
-            </div>
+            <CustomDropdown
+              label="Cidade/Região *"
+              options={[
+                { value: '', label: 'Selecione a região' },
+                ...REGIOES.map(regiao => ({ value: regiao, label: regiao }))
+              ]}
+              value={formData.regiao}
+              onChange={handleRegiaoChange}
+              placeholder="Selecione a região"
+            />
 
             <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Data de Entrega *
-              </label>
-              <input
-                type="date"
+              <CustomDatePicker
+                label="Data de Entrega *"
                 value={formData.data_entrega}
-                onChange={(e) => setFormData({...formData, data_entrega: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
+                onChange={(value) => setFormData({...formData, data_entrega: value})}
+                placeholder="Selecione a data"
               />
             </div>
           </div>
@@ -2049,31 +2181,16 @@ export default function EditarRomaneio() {
 
           {/* Grid: Período e Forma de Pagamento */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Período de Entrega *
-              </label>
-              <select
-                value={formData.periodo}
-                onChange={(e) => setFormData({...formData, periodo: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="Manhã">Manhã</option>
-                <option value="Tarde">Tarde</option>
-              </select>
-            </div>
+            <CustomDropdown
+              label="Período de Entrega *"
+              options={[
+                { value: 'Manhã', label: 'Manhã' },
+                { value: 'Tarde', label: 'Tarde' }
+              ]}
+              value={formData.periodo}
+              onChange={(value) => setFormData({...formData, periodo: value})}
+              placeholder="Selecione o período"
+            />
 
             <div style={{ position: 'relative' }}>
               <label style={{
@@ -2214,33 +2331,118 @@ export default function EditarRomaneio() {
             </div>
           )}
 
+          {/* Precisa de troco? - apenas para Receber Dinheiro */}
+          {formData.forma_pagamento === 'Receber Dinheiro' && (
+            <div style={{
+              marginBottom: '1rem',
+              padding: '1rem',
+              background: '#fff9e6',
+              border: '2px solid #ffc107',
+              borderRadius: '0.5rem'
+            }}>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: '#f57c00',
+                  marginBottom: '0.5rem'
+                }}>
+                  Precisa de troco?
+                </label>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}>
+                    <input
+                      type="radio"
+                      name="precisa_troco"
+                      checked={formData.precisa_troco === true}
+                      onChange={() => setFormData({...formData, precisa_troco: true})}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    Sim
+                  </label>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}>
+                    <input
+                      type="radio"
+                      name="precisa_troco"
+                      checked={formData.precisa_troco === false}
+                      onChange={() => setFormData({...formData, precisa_troco: false, valor_troco: 0})}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    Não
+                  </label>
+                </div>
+              </div>
+
+              {formData.precisa_troco && (
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: '#f57c00',
+                    marginBottom: '0.5rem'
+                  }}>
+                    Valor do Troco (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.valor_troco || ''}
+                    onChange={(e) => setFormData({...formData, valor_troco: parseFloat(e.target.value) || 0})}
+                    placeholder="Ex: 50.00"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `2px solid ${errors.valor_troco ? theme.colors.danger : '#ffc107'}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      background: 'white'
+                    }}
+                  />
+                  {errors.valor_troco && (
+                    <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                      {errors.valor_troco}
+                    </p>
+                  )}
+                  <p style={{
+                    fontSize: '0.75rem',
+                    color: '#f57c00',
+                    marginTop: '0.25rem',
+                    fontWeight: '500'
+                  }}>
+                    Cliente pagará com quanto? Informe o valor para calcular o troco.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Grid: Motoboy e Valor */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: theme.colors.text,
-                marginBottom: '0.5rem'
-              }}>
-                Motoboy *
-              </label>
-              <select
+              <CustomDropdown
+                label="Motoboy *"
+                options={[
+                  { value: '', label: 'Selecione o motoboy' },
+                  { value: 'Marcio', label: 'Marcio' },
+                  { value: 'Bruno', label: 'Bruno' }
+                ]}
                 value={formData.motoboy}
-                onChange={(e) => handleMotoboyChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `1px solid ${errors.motoboy ? theme.colors.danger : theme.colors.border}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <option value="">Selecione o motoboy</option>
-                <option value="Marcio">Marcio</option>
-                <option value="Bruno">Bruno</option>
-              </select>
+                onChange={handleMotoboyChange}
+                placeholder="Selecione o motoboy"
+              />
               <p style={{ fontSize: '0.75rem', color: theme.colors.textLight, marginTop: '0.25rem' }}>
                 Valor calculado automaticamente
               </p>
@@ -2274,8 +2476,78 @@ export default function EditarRomaneio() {
             </div>
           </div>
 
-          {/* Grid: Item de Geladeira e Buscar Receita */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          {/* Horário de Entrega */}
+          <div className="mb-3 sm:mb-4" style={{ padding: '0.75rem', border: formData.tipo_horario ? '2px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '0.5rem', backgroundColor: formData.tipo_horario ? '#eff6ff' : 'white' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
+              Horário de Entrega (opcional)
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: formData.tipo_horario ? '0.75rem' : 0 }}>
+              {[
+                { value: 'de_ate', label: 'de H até H' },
+                { value: 'ate', label: 'até H' },
+                { value: 'antes', label: 'antes das H' },
+                { value: 'depois', label: 'depois das H' }
+              ].map(opt => (
+                <button key={opt.value} type="button"
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    tipo_horario: prev.tipo_horario === opt.value ? '' : opt.value,
+                    hora1: prev.tipo_horario === opt.value ? '' : (prev.hora1 || '8'),
+                    hora2: prev.tipo_horario === opt.value ? '' : (prev.hora2 || '12')
+                  }))}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    border: formData.tipo_horario === opt.value ? '2px solid #2563eb' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: formData.tipo_horario === opt.value ? '#dbeafe' : 'white',
+                    color: formData.tipo_horario === opt.value ? '#1e40af' : '#64748b',
+                    fontWeight: formData.tipo_horario === opt.value ? '600' : '400',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              {formData.tipo_horario && (
+                <button type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, tipo_horario: '', hora1: '', hora2: '' }))}
+                  style={{ padding: '0.4rem 0.75rem', border: '2px solid #fca5a5', borderRadius: '0.5rem', background: '#fef2f2', color: '#dc2626', fontWeight: '500', fontSize: '0.8rem', cursor: 'pointer' }}
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+            {formData.tipo_horario && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {formData.tipo_horario === 'de_ate' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>de</span>}
+                {formData.tipo_horario === 'ate' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>até</span>}
+                {formData.tipo_horario === 'antes' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>antes das</span>}
+                {formData.tipo_horario === 'depois' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>depois das</span>}
+                <select value={formData.hora1} onChange={e => setFormData(prev => ({ ...prev, hora1: e.target.value }))}
+                  style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white' }}>
+                  {Array.from({ length: 13 }, (_, i) => i + 7).map(h => (
+                    <option key={h} value={String(h)}>{h}H</option>
+                  ))}
+                </select>
+                {formData.tipo_horario === 'de_ate' && (
+                  <>
+                    <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>até</span>
+                    <select value={formData.hora2} onChange={e => setFormData(prev => ({ ...prev, hora2: e.target.value }))}
+                      style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white' }}>
+                      {Array.from({ length: 13 }, (_, i) => i + 7).map(h => (
+                        <option key={h} value={String(h)}>{h}H</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Grid: Item de Geladeira, Buscar Receita e Coleta */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             {/* Item de Geladeira */}
             <div>
               <label style={{
@@ -2364,6 +2636,55 @@ export default function EditarRomaneio() {
                     background: !formData.buscar_receita ? '#f1f5f9' : 'white',
                     color: !formData.buscar_receita ? '#1e293b' : '#64748b',
                     fontWeight: !formData.buscar_receita ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Não
+                </button>
+              </div>
+            </div>
+
+            {/* Coleta */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Coleta? *
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, coleta: true}))}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: formData.coleta ? '2px solid #4caf50' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: formData.coleta ? '#e8f5e9' : 'white',
+                    color: formData.coleta ? '#2e7d32' : '#64748b',
+                    fontWeight: formData.coleta ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, coleta: false}))}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: !formData.coleta ? '2px solid #64748b' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: !formData.coleta ? '#f1f5f9' : 'white',
+                    color: !formData.coleta ? '#1e293b' : '#64748b',
+                    fontWeight: !formData.coleta ? '600' : '400',
                     fontSize: '0.875rem',
                     cursor: 'pointer',
                     transition: 'all 0.15s'
@@ -2532,27 +2853,23 @@ export default function EditarRomaneio() {
                       <input
                         type="text"
                         value={endereco.cep}
-                        onChange={(e) => updateEnderecoNovoCliente(index, 'cep', e.target.value)}
+                        onChange={(e) => handleCepNovoCliente(index, e.target.value)}
                         placeholder="00000-000"
+                        maxLength={9}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 mb-1">
-                        Região
-                      </label>
-                      <select
-                        value={endereco.regiao}
-                        onChange={(e) => updateEnderecoNovoCliente(index, 'regiao', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      >
-                        <option value="">Selecione</option>
-                        {REGIOES.map(regiao => (
-                          <option key={regiao} value={regiao}>{regiao}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <CustomDropdown
+                      label="Região"
+                      options={[
+                        { value: '', label: 'Selecione' },
+                        ...REGIOES.map(regiao => ({ value: regiao, label: regiao }))
+                      ]}
+                      value={endereco.regiao}
+                      onChange={(value) => updateEnderecoNovoCliente(index, 'regiao', value)}
+                      placeholder="Selecione"
+                    />
                   </div>
 
                   <div className="grid grid-cols-3 gap-3 mb-3">

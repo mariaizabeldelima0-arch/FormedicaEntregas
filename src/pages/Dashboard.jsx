@@ -176,7 +176,8 @@ export default function Dashboard() {
         item_geladeira: entrega.item_geladeira,
         buscar_receita: entrega.buscar_receita,
         observacoes: entrega.observacoes,
-        endereco: entrega.endereco_destino
+        endereco: entrega.endereco_destino,
+        horario_entrega: entrega.horario_entrega || entrega.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1] || null
       }));
     },
     enabled: !!user,
@@ -344,7 +345,7 @@ export default function Dashboard() {
             </h1>
             <p className="text-slate-600">
               Olá, <span className="font-semibold text-[#457bba]">
-                {user?.nome_atendente || user?.full_name}
+                {user?.usuario}
               </span>
             </p>
           </div>
@@ -725,6 +726,12 @@ export default function Dashboard() {
                                         Reter Receita
                                       </Badge>
                                     )}
+                                    {romaneio.coleta && (
+                                      <Badge className="border" style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', borderColor: '#4caf50' }}>
+                                        <Package className="w-3 h-3 mr-1" />
+                                        Coleta
+                                      </Badge>
+                                    )}
                                     {romaneio.status === 'Entregue' && romaneio.buscar_receita && !romaneio.receita_recebida && (
                                       <Badge className="bg-red-100 text-red-700 border-red-400 border-2 font-bold animate-pulse">
                                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -734,6 +741,11 @@ export default function Dashboard() {
                                     <Badge variant="outline" className="text-xs">
                                       {romaneio.periodo_entrega}
                                     </Badge>
+                                    {romaneio.horario_entrega && (
+                                      <Badge style={{ backgroundColor: '#dbeafe', color: '#1e40af', fontWeight: '700' }}>
+                                        {romaneio.horario_entrega}
+                                      </Badge>
+                                    )}
                                     {romaneio.valor_entrega && (
                                       <Badge className="bg-purple-100 text-purple-700 border-purple-300 border">
                                         Taxa: R$ {romaneio.valor_entrega.toFixed(2)}
@@ -774,7 +786,7 @@ export default function Dashboard() {
                                   </div>
                                   <div className="text-sm text-slate-500">
                                     <span className="font-medium">Pagamento:</span>{' '}
-                                    {romaneio.forma_pagamento}
+                                    <span style={romaneio.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{romaneio.forma_pagamento}</span>
                                     {romaneio.valor_troco && ` - R$ ${romaneio.valor_troco.toFixed(2)}`}
                                   </div>
                                 </div>
@@ -786,6 +798,11 @@ export default function Dashboard() {
                                   <div className="text-xs text-slate-400 mt-1">
                                     {romaneio.periodo_entrega}
                                   </div>
+                                  {romaneio.horario_entrega && (
+                                    <div style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '1px 5px', borderRadius: '4px', fontWeight: '700', fontSize: '0.65rem', marginTop: '2px', display: 'inline-block' }}>
+                                      {romaneio.horario_entrega}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </Link>
