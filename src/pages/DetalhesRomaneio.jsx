@@ -676,7 +676,7 @@ export default function DetalhesRomaneio() {
                     <div className="flex-1">
                       <div className="text-sm text-slate-500 mb-1">Pagamento</div>
                       <div className="text-base font-semibold text-slate-900">
-                        {romaneio.forma_pagamento}
+                        <span style={romaneio.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: '4px' } : undefined}>{romaneio.forma_pagamento}</span>
                       </div>
                       {romaneio.valor_venda > 0 && requerCobranca(romaneio.forma_pagamento) ? (
                         <div style={{

@@ -649,7 +649,7 @@ export default function Pagamentos() {
                               </div>
                               {entrega.forma_pagamento && (
                                 <div>
-                                  <span className="font-medium">Forma:</span> {entrega.forma_pagamento}
+                                  <span className="font-medium">Forma:</span> <span style={entrega.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{entrega.forma_pagamento}</span>
                                 </div>
                               )}
                             </div>

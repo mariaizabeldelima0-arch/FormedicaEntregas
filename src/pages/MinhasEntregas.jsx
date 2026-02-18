@@ -533,7 +533,7 @@ export default function MinhasEntregas() {
           {/* Informações de Pagamento */}
           <div className="flex items-center gap-2 text-sm">
             <CreditCard className="w-4 h-4 text-slate-500" />
-            <span className="font-medium">{romaneio.forma_pagamento}</span>
+            <span className="font-medium" style={romaneio.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{romaneio.forma_pagamento}</span>
           </div>
 
           {/* Telefone */}

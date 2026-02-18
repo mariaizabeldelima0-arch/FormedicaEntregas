@@ -1387,7 +1387,7 @@ export default function EntregasMoto() {
                               {entrega.forma_pagamento && (
                                 <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                                   <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
-                                  <span>{entrega.forma_pagamento}</span>
+                                  <span style={entrega.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{entrega.forma_pagamento}</span>
                                   {entrega.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(entrega.forma_pagamento) && (
                                     <span style={{
                                       backgroundColor: '#e8f5e9',
@@ -1592,7 +1592,7 @@ export default function EntregasMoto() {
                               {entrega.forma_pagamento && (
                                 <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                                   <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#1e293b' }} />
-                                  <span>{entrega.forma_pagamento}</span>
+                                  <span style={entrega.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{entrega.forma_pagamento}</span>
                                   {entrega.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(entrega.forma_pagamento) && (
                                     <span style={{
                                       backgroundColor: '#e8f5e9',

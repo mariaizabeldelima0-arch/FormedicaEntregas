@@ -929,14 +929,17 @@ export default function PlanilhaDiaria() {
                           </td>
                           <td className="px-2 py-1.5 border-r border-slate-200">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              rom.forma_pagamento?.includes('Aguardando') ? 'font-bold' :
                               rom.forma_pagamento === 'Pago' ? 'text-green-700' :
                               rom.forma_pagamento === 'Dinheiro' ? 'text-blue-700' :
                               rom.forma_pagamento === 'Cartão' ? 'text-purple-700' :
                               'bg-slate-100 text-slate-700'
                             }`} style={{
-                              backgroundColor: rom.forma_pagamento === 'Pago' ? '#E8F5E8' :
+                              backgroundColor: rom.forma_pagamento?.includes('Aguardando') ? '#fef3c7' :
+                                rom.forma_pagamento === 'Pago' ? '#E8F5E8' :
                                 rom.forma_pagamento === 'Dinheiro' ? '#E8F0F8' :
-                                rom.forma_pagamento === 'Cartão' ? '#F5E8F5' : undefined
+                                rom.forma_pagamento === 'Cartão' ? '#F5E8F5' : undefined,
+                              color: rom.forma_pagamento?.includes('Aguardando') ? '#92400e' : undefined
                             }}>
                               {rom.forma_pagamento || '-'}
                             </span>
@@ -1178,7 +1181,11 @@ export default function PlanilhaDiaria() {
                             R$ {entrega.valor ? parseFloat(entrega.valor).toFixed(2) : '0.00'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-blue-200">
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{
+                              backgroundColor: entrega.forma_pagamento?.includes('Aguardando') ? '#fef3c7' : '#dcfce7',
+                              color: entrega.forma_pagamento?.includes('Aguardando') ? '#92400e' : '#166534',
+                              fontWeight: entrega.forma_pagamento?.includes('Aguardando') ? '700' : '500'
+                            }}>
                               {entrega.forma_pagamento}
                             </span>
                           </td>

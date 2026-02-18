@@ -780,7 +780,7 @@ export default function Dashboard() {
                                   </div>
                                   <div className="text-sm text-slate-500">
                                     <span className="font-medium">Pagamento:</span>{' '}
-                                    {romaneio.forma_pagamento}
+                                    <span style={romaneio.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' } : undefined}>{romaneio.forma_pagamento}</span>
                                     {romaneio.valor_troco && ` - R$ ${romaneio.valor_troco.toFixed(2)}`}
                                   </div>
                                 </div>

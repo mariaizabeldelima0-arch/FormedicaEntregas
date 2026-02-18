@@ -546,7 +546,7 @@ export default function SedexDisktenha() {
                           <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                             {entrega.tipo === 'DISKTENHA' && (
                               <div className="sm:mb-2 sm:text-right">
-                                <p className="text-[10px] sm:text-xs text-slate-500">{entrega.forma_pagamento}</p>
+                                <p className="text-[10px] sm:text-xs" style={entrega.forma_pagamento?.includes('Aguardando') ? { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', display: 'inline-block' } : { color: '#64748b' }}>{entrega.forma_pagamento}</p>
                                 <p className="text-base sm:text-xl font-bold" style={{ color: '#3dac38' }}>
                                   R$ {parseFloat(entrega.valor || 0).toFixed(2)}
                                 </p>
