@@ -1157,13 +1157,22 @@ export default function EntregasMoto() {
                 />
 
                 <CustomDropdown
-                  options={[
-                    { value: '', label: 'Atendentes' },
-                    { value: 'Maria Isabel', label: 'Maria Isabel' },
-                    { value: 'João Silva', label: 'João Silva' },
-                    { value: 'Ana Paula', label: 'Ana Paula' },
-                    { value: 'Carlos Santos', label: 'Carlos Santos' }
-                  ]}
+                  options={(() => {
+                    const todos = [
+                      { value: 'Maria Isabel', label: 'Maria Isabel' },
+                      { value: 'João Silva', label: 'João Silva' },
+                      { value: 'Ana Paula', label: 'Ana Paula' },
+                      { value: 'Carlos Santos', label: 'Carlos Santos' }
+                    ];
+                    const nomeAtual = user?.nome_atendente || user?.nome;
+                    const ordenados = nomeAtual
+                      ? [
+                          { value: nomeAtual, label: nomeAtual },
+                          ...todos.filter(a => a.value !== nomeAtual)
+                        ]
+                      : todos;
+                    return [{ value: '', label: 'Atendentes' }, ...ordenados];
+                  })()}
                   value={filtros.atendente}
                   onChange={(value) => setFiltros({ ...filtros, atendente: value })}
                   placeholder="Atendentes"
