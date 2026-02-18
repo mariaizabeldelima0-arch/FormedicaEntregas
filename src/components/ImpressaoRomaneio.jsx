@@ -325,6 +325,11 @@ export default function ImpressaoRomaneio({ romaneio }) {
               <span className="print-section-label">Data:</span>
               <span className="print-section-value">{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
             </div>
+            {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+              <div style={{ fontWeight: 'bold', fontSize: '16px', border: '2px solid #000', padding: '3px 8px', marginTop: '5px', display: 'inline-block' }}>
+                HORÁRIO: {(romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]).toUpperCase()}
+              </div>
+            )}
             <div className="print-section-row">
               <span className="print-section-label">Motoboy:</span>
               <span className="print-section-value">{romaneio.motoboy?.nome || '-'}</span>
@@ -397,11 +402,11 @@ export default function ImpressaoRomaneio({ romaneio }) {
         </div>
 
         {/* Observações */}
-        {romaneio.observacoes && (
+        {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
           <div className="print-box">
             <div className="print-section-title">OBSERVAÇÕES</div>
             <div className="print-section-row" style={{ justifyContent: 'flex-start' }}>
-              <span className="print-section-value" style={{ textAlign: 'left' }}>{romaneio.observacoes}</span>
+              <span className="print-section-value" style={{ textAlign: 'left' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</span>
             </div>
           </div>
         )}
