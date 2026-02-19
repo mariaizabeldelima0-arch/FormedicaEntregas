@@ -213,15 +213,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   const trocarSenha = async (novaSenha) => {
-    const { error } = await supabase
+    // Atualiza senha primeiro
+    const { error: erroSenha } = await supabase
       .from('usuarios')
-      .update({ senha: novaSenha, deve_trocar_senha: false })
+      .update({ senha: novaSenha })
       .eq('id', user.id);
-    if (!error) {
-      setDeveTrocarSenha(false);
-      sessionStorage.removeItem('formedica_deve_trocar_senha');
-    }
-    return { success: !error, error };
+
+    if (erroSenha) return { success: false, error: erroSenha };
+
+    // Tenta limpar a flag (pode falhar se a coluna ainda não existir no banco)
+    await supabase
+      .from('usuarios')
+      .update({ deve_trocar_senha: false })
+      .eq('id', user.id);
+
+    setDeveTrocarSenha(false);
+    sessionStorage.removeItem('formedica_deve_trocar_senha');
+    return { success: true };
   };
 
   const logout = () => {
