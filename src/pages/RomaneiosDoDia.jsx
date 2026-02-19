@@ -91,19 +91,19 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
           </div>
         </div>
 
-        <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
+        <div style={{ flex: '0 0 auto', maxWidth: '45%', border: '1px solid #000', padding: '8px', alignSelf: 'flex-start' }}>
           <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
-          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
+          <div style={{ fontSize: '15px', borderBottom: '1px solid #ccc', paddingBottom: '3px', marginBottom: '3px' }}>
             <span>Nome: </span>
             <span>{romaneio.cliente?.nome || '-'}</span>
           </div>
-          <div style={{ fontSize: '15px' }}>
+          <div style={{ fontSize: '15px', borderBottom: romaneio.clientesAdicionais?.length > 0 ? '1px solid #ccc' : 'none', paddingBottom: '3px', marginBottom: romaneio.clientesAdicionais?.length > 0 ? '3px' : '0' }}>
             <span>Telefone: </span>
             <span>{romaneio.cliente?.telefone || '-'}</span>
           </div>
           {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
-            <div key={idx} style={{ marginTop: '5px', paddingTop: '5px', borderTop: '1px dashed #ccc' }}>
-              <div style={{ fontSize: '15px', marginBottom: '3px' }}>
+            <div key={idx} style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #aaa' }}>
+              <div style={{ fontSize: '15px', borderBottom: '1px solid #ccc', paddingBottom: '3px', marginBottom: '3px' }}>
                 <span>Nome: </span>
                 <span>{cliente.nome}</span>
               </div>

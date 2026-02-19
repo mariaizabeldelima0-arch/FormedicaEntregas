@@ -340,19 +340,19 @@ export default function ImpressaoRomaneio({ romaneio }) {
             </div>
           </div>
 
-          <div className="print-grid-col">
+          <div className="print-grid-col" style={{ flex: '0 0 auto', maxWidth: '42%', alignSelf: 'flex-start' }}>
             <div className="print-section-title">CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
-            <div className="print-section-row">
+            <div className="print-section-row" style={{ borderBottom: '1px solid #ccc', paddingBottom: '4px', marginBottom: '4px' }}>
               <span className="print-section-label">Nome:</span>
               <span className="print-section-value">{romaneio.cliente?.nome || '-'}</span>
             </div>
-            <div className="print-section-row">
+            <div className="print-section-row" style={{ borderBottom: romaneio.clientesAdicionais?.length > 0 ? '1px solid #ccc' : 'none', paddingBottom: '4px', marginBottom: '4px' }}>
               <span className="print-section-label">Telefone:</span>
               <span className="print-section-value">{romaneio.cliente?.telefone || '-'}</span>
             </div>
             {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
-              <div key={idx} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #ccc' }}>
-                <div className="print-section-row">
+              <div key={idx} style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #aaa' }}>
+                <div className="print-section-row" style={{ borderBottom: '1px solid #ccc', paddingBottom: '4px', marginBottom: '4px' }}>
                   <span className="print-section-label">Nome:</span>
                   <span className="print-section-value">{cliente.nome}</span>
                 </div>
