@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Clock } from "lucide-react";
+import { User } from "lucide-react";
 
 // Para futuras atualizações: mude esta versão e o conteúdo abaixo
-const VERSAO_ATUAL = "horario_entrega_v1";
+const VERSAO_ATUAL = "filtro_atendente_v1";
 
 export default function BannerAtualizacao() {
   const [visivel, setVisivel] = useState(() => {
@@ -71,8 +71,8 @@ export default function BannerAtualizacao() {
               justifyContent: 'center',
               gap: '10px',
             }}>
-              <Clock size={28} />
-              Horário de Entrega
+              <User size={28} />
+              Filtro de Atendente
             </div>
           </div>
 
@@ -88,7 +88,7 @@ export default function BannerAtualizacao() {
               textAlign: 'center',
               fontWeight: '500',
             }}>
-              Agora é possível definir um horário específico para a entrega!
+              O filtro de atendente agora mostra o seu nome automaticamente como primeira opção!
             </p>
 
             <div style={{
@@ -104,11 +104,10 @@ export default function BannerAtualizacao() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
               {[
-                'Ao criar ou editar um romaneio, selecione o tipo de horário: "de xH até xH", "até xH", "antes das xH" ou "depois das xH"',
-                'Escolha o(s) horário(s) desejado(s) entre 7H e 19H',
-                'O horário aparecerá em destaque azul em todas as telas',
-                'Na impressão, o horário aparece em negrito com borda',
-                'Para remover o horário, clique em "Sem horário"',
+                'Na página de Entregas Moto, abra o filtro de atendentes',
+                'O seu nome aparecerá automaticamente como primeira opção na lista',
+                'Clique no seu nome para filtrar rapidamente as suas entregas',
+                'Os demais atendentes continuam disponíveis logo abaixo',
               ].map((texto, i) => (
                 <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                   <div style={{
