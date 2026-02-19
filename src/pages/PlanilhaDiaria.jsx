@@ -897,8 +897,21 @@ export default function PlanilhaDiaria() {
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
-                    ) : (
-                      romaneiosOrdenados.reduce((rows, rom, idx) => {
+                    ) : (() => {
+                      const countByPeriodo = {};
+                      const countByMotoboyPeriodo = {};
+                      const countByLocalMotoboyPeriodo = {};
+                      romaneiosOrdenados.forEach(r => {
+                        const per  = r.periodo || 'Sem Período';
+                        const moto = r.motoboy?.nome || 'Sem Motoboy';
+                        const loc  = r.regiao || r.endereco?.cidade || 'Sem Local';
+                        countByPeriodo[per] = (countByPeriodo[per] || 0) + 1;
+                        const km = `${moto}__${per}`;
+                        countByMotoboyPeriodo[km] = (countByMotoboyPeriodo[km] || 0) + 1;
+                        const klm = `${loc}__${moto}__${per}`;
+                        countByLocalMotoboyPeriodo[klm] = (countByLocalMotoboyPeriodo[klm] || 0) + 1;
+                      });
+                      return romaneiosOrdenados.reduce((rows, rom, idx) => {
                         const prev = romaneiosOrdenados[idx - 1];
                         const currentPeriodo = rom.periodo || 'Sem Período';
                         const currentMotoboy = rom.motoboy?.nome || 'Sem Motoboy';
@@ -927,6 +940,9 @@ export default function PlanilhaDiaria() {
                                     : <Sun style={{ width: '15px', height: '15px', color: '#f97316', flexShrink: 0 }} />
                                   }
                                   {currentPeriodo}
+                                  <span style={{ marginLeft: '6px', fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.12)', padding: '1px 7px', borderRadius: '10px' }}>
+                                    {countByPeriodo[currentPeriodo] || 0}
+                                  </span>
                                 </span>
                               </td>
                             </tr>
@@ -948,6 +964,9 @@ export default function PlanilhaDiaria() {
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <Truck style={{ width: '13px', height: '13px', color: '#0369a1', flexShrink: 0 }} />
                                   {currentMotoboy}
+                                  <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', backgroundColor: '#bae6fd', color: '#0369a1', padding: '1px 6px', borderRadius: '8px' }}>
+                                    {countByMotoboyPeriodo[`${currentMotoboy}__${currentPeriodo}`] || 0}
+                                  </span>
                                 </span>
                               </td>
                             </tr>
@@ -969,6 +988,9 @@ export default function PlanilhaDiaria() {
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                   <MapPin style={{ width: '12px', height: '12px', color: '#64748b', flexShrink: 0 }} />
                                   {currentLocal}
+                                  <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', backgroundColor: '#e2e8f0', color: '#475569', padding: '1px 5px', borderRadius: '8px' }}>
+                                    {countByLocalMotoboyPeriodo[`${currentLocal}__${currentMotoboy}__${currentPeriodo}`] || 0}
+                                  </span>
                                 </span>
                               </td>
                             </tr>
@@ -1123,8 +1145,8 @@ export default function PlanilhaDiaria() {
                           </tr>
                         );
                         return rows;
-                      }, [])
-                    )}
+                      }, []);
+                    })()}
                   </tbody>
                 </table>
               </div>
