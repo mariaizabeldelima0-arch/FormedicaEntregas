@@ -97,6 +97,7 @@ export const AuthProvider = ({ children }) => {
       if (storedUser) {
         setUser(JSON.parse(storedUser));
         setUserType(storedType);
+        setDeveTrocarSenha(sessionStorage.getItem('formedica_deve_trocar_senha') === 'true');
       }
     } catch (error) {
       console.error('Erro ao verificar usuário:', error);
@@ -200,7 +201,9 @@ export const AuthProvider = ({ children }) => {
         .eq('impressao_digital', fingerprint);
 
       // Mostrar banner se a flag estiver ativa OU se a senha ainda é "123"
-      setDeveTrocarSenha(usuarioData.deve_trocar_senha || senhaDigitada === '123');
+      const precisaTrocar = usuarioData.deve_trocar_senha || senhaDigitada === '123';
+      setDeveTrocarSenha(precisaTrocar);
+      sessionStorage.setItem('formedica_deve_trocar_senha', String(precisaTrocar));
 
       return { success: true };
     } catch (error) {
@@ -214,7 +217,10 @@ export const AuthProvider = ({ children }) => {
       .from('usuarios')
       .update({ senha: novaSenha, deve_trocar_senha: false })
       .eq('id', user.id);
-    if (!error) setDeveTrocarSenha(false);
+    if (!error) {
+      setDeveTrocarSenha(false);
+      sessionStorage.removeItem('formedica_deve_trocar_senha');
+    }
     return { success: !error, error };
   };
 
@@ -224,6 +230,7 @@ export const AuthProvider = ({ children }) => {
     setDeveTrocarSenha(false);
     sessionStorage.removeItem('formedica_user');
     sessionStorage.removeItem('formedica_user_type');
+    sessionStorage.removeItem('formedica_deve_trocar_senha');
   };
 
   return (
