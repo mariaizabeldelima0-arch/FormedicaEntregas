@@ -989,7 +989,7 @@ export default function PlanilhaDiaria() {
                             <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                               {rom.atendente || '-'}
                             </td>
-                            <td className="px-2 py-1.5 border-r border-slate-200 font-mono text-slate-700">
+                            <td className="px-2 py-1.5 border-r border-slate-200 font-mono text-slate-700 max-w-[70px]">
                               {rom.requisicao || '-'}
                             </td>
                             <td className="px-2 py-1.5 border-r border-slate-200 font-medium text-slate-800">
@@ -998,15 +998,16 @@ export default function PlanilhaDiaria() {
                             <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                               {rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '-'}
                             </td>
-                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate obs-cell-pdf">
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] obs-cell-pdf">
                               {(rom.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') || '-')}
                             </td>
-                            <td className="px-2 py-1.5 border-r border-slate-200 whitespace-nowrap">
+                            <td className="px-2 py-1.5 border-r border-slate-200 max-w-[80px] text-center">
                               <span style={{
-                                display: 'inline-block',
-                                padding: '2px 6px',
+                                display: 'block',
+                                padding: '2px 4px',
                                 borderRadius: '4px',
                                 fontSize: '10px',
+                                textAlign: 'center',
                                 fontWeight: rom.forma_pagamento?.includes('Aguardando') ? '700' : '600',
                                 backgroundColor: rom.forma_pagamento?.includes('Aguardando') ? '#fef3c7' :
                                   rom.forma_pagamento?.toLowerCase().includes('pago') ? '#E8F5E8' :
@@ -1045,29 +1046,38 @@ export default function PlanilhaDiaria() {
                             <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
                               {rom.precisa_troco && rom.valor_troco > 0 ? `R$ ${parseFloat(rom.valor_troco).toFixed(2)}` : '-'}
                             </td>
-                            <td className="px-2 py-1.5 border-r border-slate-200">
+                            <td className="px-2 py-1.5 border-r border-slate-200 max-w-[80px] text-center">
                               {(rom.horario_entrega || rom.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) ? (
-                                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 5px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                                <span style={{ display: 'block', backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 4px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', textAlign: 'center' }}>
                                   {rom.horario_entrega || rom.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
                                 </span>
                               ) : '-'}
                             </td>
-                            <td className="px-2 py-1.5 border-r border-slate-200">
-                              <CustomDropdown
-                                options={[
-                                  { value: 'Iniciar', label: 'Iniciar' },
-                                  { value: 'Pendente', label: 'Pendente' },
-                                  { value: 'Produzindo no Laboratório', label: 'Produção' },
-                                  { value: 'Preparando no Setor de Entregas', label: 'Preparando' },
-                                  { value: 'Em Rota', label: 'Em Rota' },
-                                  { value: 'Entregue', label: 'Entregue' },
-                                  { value: 'Voltou p/ Farmácia', label: 'Voltou p/ Farmácia' },
-                                  { value: 'Cancelado', label: 'Cancelado' }
-                                ]}
-                                value={rom.status || 'Produzindo no Laboratório'}
-                                onChange={(val) => handleQuickStatusUpdate(rom.id, val, 'romaneio')}
-                                disabled={updateRomaneioMutation.isPending}
-                              />
+                            <td className="px-2 py-1.5 border-r border-slate-200 max-w-[80px] text-center">
+                              <span style={{
+                                display: 'block',
+                                padding: '2px 4px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                textAlign: 'center',
+                                backgroundColor:
+                                  rom.status === 'Em Rota' || rom.status === 'A Caminho' ? '#dbeafe' :
+                                  rom.status === 'Entregue' ? '#F5E8F5' :
+                                  rom.status === 'Voltou p/ Farmácia' ? '#fef9c3' :
+                                  rom.status === 'Cancelado' ? '#fee2e2' :
+                                  '#f1f5f9',
+                                color:
+                                  rom.status === 'Em Rota' || rom.status === 'A Caminho' ? '#1e40af' :
+                                  rom.status === 'Entregue' ? '#890d5d' :
+                                  rom.status === 'Voltou p/ Farmácia' ? '#92400e' :
+                                  rom.status === 'Cancelado' ? '#dc2626' :
+                                  '#475569',
+                              }}>
+                                {rom.status === 'Produzindo no Laboratório' ? 'Produção' :
+                                 rom.status === 'Preparando no Setor de Entregas' ? 'Preparando' :
+                                 rom.status || '-'}
+                              </span>
                             </td>
                             <td className="px-2 py-1.5 border-r border-slate-200 text-center">
                               {rom.buscar_receita ? (
@@ -1257,7 +1267,7 @@ export default function PlanilhaDiaria() {
                           <td className="px-2 py-1.5 border-r border-blue-200 text-slate-700 font-semibold">
                             R$ {entrega.valor ? parseFloat(entrega.valor).toFixed(2) : '0.00'}
                           </td>
-                          <td className="px-2 py-1.5 border-r border-blue-200">
+                          <td className="px-2 py-1.5 border-r border-blue-200 max-w-[80px]">
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{
                               backgroundColor: entrega.forma_pagamento?.includes('Aguardando') ? '#fef3c7' : '#dcfce7',
                               color: entrega.forma_pagamento?.includes('Aguardando') ? '#92400e' : '#166534',
@@ -1270,20 +1280,27 @@ export default function PlanilhaDiaria() {
                             {entrega.data_saida ? format(parseISO(entrega.data_saida), 'dd/MM/yyyy') : '-'}
                           </td>
                           <td className="px-2 py-1.5 border-r border-blue-200">
-                            <CustomDropdown
-                              options={[
-                                { value: 'Pendente', label: 'Pendente' },
-                                { value: 'Em Trânsito', label: 'Em Trânsito' },
-                                { value: 'Entregue', label: 'Entregue' },
-                                { value: 'Devolvido', label: 'Devolvido' }
-                              ]}
-                              value={entrega.status || 'Pendente'}
-                              onChange={(val) => handleQuickStatusUpdate(entrega.id, val, 'sedex')}
-                              disabled={updateSedexMutation.isPending || selectionModeSedex}
-                              className="text-[10px]"
-                            />
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '2px 5px',
+                              borderRadius: '4px',
+                              fontSize: '10px',
+                              fontWeight: '600',
+                              backgroundColor:
+                                entrega.status === 'Em Trânsito' ? '#dbeafe' :
+                                entrega.status === 'Entregue' ? '#dcfce7' :
+                                entrega.status === 'Devolvido' ? '#fee2e2' :
+                                '#fef9c3',
+                              color:
+                                entrega.status === 'Em Trânsito' ? '#1e40af' :
+                                entrega.status === 'Entregue' ? '#166534' :
+                                entrega.status === 'Devolvido' ? '#dc2626' :
+                                '#92400e',
+                            }}>
+                              {entrega.status || 'Pendente'}
+                            </span>
                           </td>
-                          <td className="px-2 py-1.5 border-r border-blue-200 text-slate-600 max-w-[200px] truncate">
+                          <td className="px-2 py-1.5 border-r border-blue-200 text-slate-600 max-w-[200px]">
                             {entrega.observacoes || '-'}
                           </td>
                           <td className="px-2 py-1.5 print-hide">
