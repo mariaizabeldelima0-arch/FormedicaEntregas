@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown, MousePointerClick } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown, MousePointerClick, Sunrise, Sun, Truck, MapPin } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { createPageUrl } from "@/utils";
 import { CustomDropdown } from "@/components/CustomDropdown";
@@ -908,7 +908,13 @@ export default function PlanilhaDiaria() {
                                 letterSpacing: '2px',
                                 borderTop: '2px solid #cbd5e1',
                               }}>
-                                ◆ {currentPeriodo}
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                                  {currentPeriodo === 'Manhã'
+                                    ? <Sunrise style={{ width: '15px', height: '15px', color: '#eab308', flexShrink: 0 }} />
+                                    : <Sun style={{ width: '15px', height: '15px', color: '#f97316', flexShrink: 0 }} />
+                                  }
+                                  {currentPeriodo}
+                                </span>
                               </td>
                             </tr>
                           );
@@ -926,7 +932,10 @@ export default function PlanilhaDiaria() {
                                 borderBottom: '1px solid #bae6fd',
                                 borderLeft: '4px solid #0ea5e9',
                               }}>
-                                &#9658; {currentMotoboy}
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Truck style={{ width: '13px', height: '13px', color: '#0369a1', flexShrink: 0 }} />
+                                  {currentMotoboy}
+                                </span>
                               </td>
                             </tr>
                           );
@@ -944,7 +953,10 @@ export default function PlanilhaDiaria() {
                                 borderBottom: '1px solid #e2e8f0',
                                 borderLeft: '3px solid #94a3b8',
                               }}>
-                                &#8250; {currentLocal}
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                  <MapPin style={{ width: '12px', height: '12px', color: '#64748b', flexShrink: 0 }} />
+                                  {currentLocal}
+                                </span>
                               </td>
                             </tr>
                           );
