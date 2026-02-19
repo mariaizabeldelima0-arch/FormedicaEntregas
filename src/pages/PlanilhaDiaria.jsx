@@ -203,22 +203,22 @@ export default function PlanilhaDiaria() {
   };
 
   const romaneiosOrdenados = [...romaneiosFiltrados].sort((a, b) => {
-    // 1. Ordenar por motoboy
-    const motoboyA = a.motoboy?.nome || 'zzz';
-    const motoboyB = b.motoboy?.nome || 'zzz';
-    const motoboyCompare = motoboyA.localeCompare(motoboyB);
-    if (motoboyCompare !== 0) return motoboyCompare;
-
-    // 2. Ordenar por período
+    // 1. Ordenar por período
     const periodoA = periodoOrder[a.periodo] || 99;
     const periodoB = periodoOrder[b.periodo] || 99;
     if (periodoA !== periodoB) return periodoA - periodoB;
 
-    // 3. Ordenar por região/cidade
+    // 2. Ordenar por região/cidade
     const cidadeA = a.regiao || a.endereco?.cidade || '';
     const cidadeB = b.regiao || b.endereco?.cidade || '';
     const cidadeCompare = cidadeA.localeCompare(cidadeB);
     if (cidadeCompare !== 0) return cidadeCompare;
+
+    // 3. Ordenar por motoboy
+    const motoboyA = a.motoboy?.nome || 'zzz';
+    const motoboyB = b.motoboy?.nome || 'zzz';
+    const motoboyCompare = motoboyA.localeCompare(motoboyB);
+    if (motoboyCompare !== 0) return motoboyCompare;
 
     // 4. Ordenar por status
     const statusA = statusOrder[a.status] || 99;
@@ -861,11 +861,9 @@ export default function PlanilhaDiaria() {
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Cliente</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Telefone</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Observação</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Local</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Forma de Pgto</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Valor a Cobrar</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Troco</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Período</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Horário</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Status</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Receita</th>
@@ -877,163 +875,198 @@ export default function PlanilhaDiaria() {
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 17 : 16} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 15 : 14} className="p-8 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : romaneiosOrdenados.length === 0 ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 17 : 16} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 15 : 14} className="p-8 text-center text-slate-500">
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
                     ) : (
-                      romaneiosOrdenados.map((rom) => (
-                        <tr
-                          key={rom.id}
-                          className={`border-b border-slate-200 ${selectionMode ? 'cursor-pointer hover:opacity-80' : ''}`}
-                          style={{
-                            ...getRowColor(rom.status),
-                            ...(selectionMode && selectedIds.has(rom.id)
-                              ? { outline: '2px solid #376295', outlineOffset: '-2px', backgroundColor: '#dbeafe' }
-                              : {})
-                          }}
-                          onClick={(e) => {
-                            if (!selectionMode) return;
-                            const tag = e.target.tagName.toLowerCase();
-                            if (tag === 'a' || tag === 'button' || tag === 'select' || tag === 'input' || e.target.closest('a, button, select, [role="combobox"], [role="listbox"]')) return;
-                            toggleSelection(rom.id);
-                          }}
-                        >
-                          {visualizarTodas && (
-                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 whitespace-nowrap">
-                              {rom.data_entrega ? format(parseISO(rom.data_entrega), 'dd/MM/yyyy') : '-'}
+                      romaneiosOrdenados.reduce((rows, rom, idx) => {
+                        const prev = romaneiosOrdenados[idx - 1];
+                        const currentPeriodo = rom.periodo || 'Sem Período';
+                        const currentLocal = rom.regiao || rom.endereco?.cidade || 'Sem Local';
+                        const prevPeriodo = prev ? (prev.periodo || 'Sem Período') : null;
+                        const prevLocal = prev ? (prev.regiao || prev.endereco?.cidade || 'Sem Local') : null;
+                        const colCount = visualizarTodas ? 15 : 14;
+
+                        if (currentPeriodo !== prevPeriodo) {
+                          rows.push(
+                            <tr key={`periodo-${currentPeriodo}-${idx}`}>
+                              <td colSpan={colCount} style={{
+                                backgroundColor: currentPeriodo === 'Manhã' ? '#fef9c3' : '#ffedd5',
+                                color: currentPeriodo === 'Manhã' ? '#78350f' : '#7c2d12',
+                                padding: '5px 12px',
+                                fontWeight: '800',
+                                fontSize: '11px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1.5px',
+                                borderTop: '2px solid #cbd5e1',
+                              }}>
+                                {currentPeriodo}
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        if (currentLocal !== prevLocal || currentPeriodo !== prevPeriodo) {
+                          rows.push(
+                            <tr key={`local-${currentLocal}-${currentPeriodo}-${idx}`}>
+                              <td colSpan={colCount} style={{
+                                backgroundColor: '#f8fafc',
+                                color: '#475569',
+                                padding: '3px 20px',
+                                fontWeight: '600',
+                                fontSize: '10px',
+                                borderBottom: '1px solid #e2e8f0',
+                                borderLeft: '3px solid #94a3b8',
+                              }}>
+                                {currentLocal}
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        rows.push(
+                          <tr
+                            key={rom.id}
+                            className={`border-b border-slate-200 ${selectionMode ? 'cursor-pointer hover:opacity-80' : ''}`}
+                            style={{
+                              ...getRowColor(rom.status),
+                              ...(selectionMode && selectedIds.has(rom.id)
+                                ? { outline: '2px solid #376295', outlineOffset: '-2px', backgroundColor: '#dbeafe' }
+                                : {})
+                            }}
+                            onClick={(e) => {
+                              if (!selectionMode) return;
+                              const tag = e.target.tagName.toLowerCase();
+                              if (tag === 'a' || tag === 'button' || tag === 'select' || tag === 'input' || e.target.closest('a, button, select, [role="combobox"], [role="listbox"]')) return;
+                              toggleSelection(rom.id);
+                            }}
+                          >
+                            {visualizarTodas && (
+                              <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 whitespace-nowrap">
+                                {rom.data_entrega ? format(parseISO(rom.data_entrega), 'dd/MM/yyyy') : '-'}
+                              </td>
+                            )}
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
+                              {rom.atendente || '-'}
                             </td>
-                          )}
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.atendente || '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 font-mono text-slate-700">
-                            {rom.requisicao || '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 font-medium text-slate-800">
-                            {rom.cliente?.nome || '-'}{rom.clientesAdicionais?.length > 0 && `, ${rom.clientesAdicionais.map(c => c.nome).join(', ')}`}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate obs-cell-pdf">
-                            {(rom.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') || '-')}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.regiao || rom.endereco?.cidade || '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              rom.forma_pagamento?.includes('Aguardando') ? 'font-bold' :
-                              rom.forma_pagamento === 'Pago' ? 'text-green-700' :
-                              rom.forma_pagamento === 'Dinheiro' ? 'text-blue-700' :
-                              rom.forma_pagamento === 'Cartão' ? 'text-purple-700' :
-                              'bg-slate-100 text-slate-700'
-                            }`} style={{
-                              backgroundColor: rom.forma_pagamento?.includes('Aguardando') ? '#fef3c7' :
-                                rom.forma_pagamento === 'Pago' ? '#E8F5E8' :
-                                rom.forma_pagamento === 'Dinheiro' ? '#E8F0F8' :
-                                rom.forma_pagamento === 'Cartão' ? '#F5E8F5' : undefined,
-                              color: rom.forma_pagamento?.includes('Aguardando') ? '#92400e' : undefined
-                            }}>
-                              {rom.forma_pagamento || '-'}
-                            </span>
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200">
-                            {rom.valor_venda > 0 ? (
-                              <span
-                                className={`px-2 py-1 rounded font-semibold text-[11px] ${
-                                  rom.pagamento_recebido === true
-                                    ? 'bg-green-500 text-white'
-                                    : rom.pagamento_recebido === false
-                                    ? 'bg-red-500 text-white'
-                                    : 'bg-slate-200 text-slate-700'
-                                }`}
-                                title={rom.pagamento_recebido === true ? 'Pago' : rom.pagamento_recebido === false ? 'Não Recebido' : 'Cobrar'}
-                              >
-                                R$ {parseFloat(rom.valor_venda).toFixed(2)}
+                            <td className="px-2 py-1.5 border-r border-slate-200 font-mono text-slate-700">
+                              {rom.requisicao || '-'}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200 font-medium text-slate-800">
+                              {rom.cliente?.nome || '-'}{rom.clientesAdicionais?.length > 0 && `, ${rom.clientesAdicionais.map(c => c.nome).join(', ')}`}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
+                              {rom.cliente?.telefone ? rom.cliente.telefone.replace(/\D/g, '') : '-'}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate obs-cell-pdf">
+                              {(rom.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') || '-')}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                rom.forma_pagamento?.includes('Aguardando') ? 'font-bold' :
+                                rom.forma_pagamento === 'Pago' ? 'text-green-700' :
+                                rom.forma_pagamento === 'Dinheiro' ? 'text-blue-700' :
+                                rom.forma_pagamento === 'Cartão' ? 'text-purple-700' :
+                                'bg-slate-100 text-slate-700'
+                              }`} style={{
+                                backgroundColor: rom.forma_pagamento?.includes('Aguardando') ? '#fef3c7' :
+                                  rom.forma_pagamento === 'Pago' ? '#E8F5E8' :
+                                  rom.forma_pagamento === 'Dinheiro' ? '#E8F0F8' :
+                                  rom.forma_pagamento === 'Cartão' ? '#F5E8F5' : undefined,
+                                color: rom.forma_pagamento?.includes('Aguardando') ? '#92400e' : undefined
+                              }}>
+                                {rom.forma_pagamento || '-'}
                               </span>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
-                            {rom.precisa_troco && rom.valor_troco > 0 ? `R$ ${parseFloat(rom.valor_troco).toFixed(2)}` : '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              rom.periodo === 'Manhã' ? 'text-yellow-800' : 'text-orange-800'
-                            }`} style={{
-                              backgroundColor: rom.periodo === 'Manhã' ? '#fef9c3' : '#ffedd5'
-                            }}>
-                              {rom.periodo || '-'}
-                            </span>
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200">
-                            {(rom.horario_entrega || rom.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) ? (
-                              <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 5px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                                {rom.horario_entrega || rom.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
-                              </span>
-                            ) : '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200">
-                            <CustomDropdown
-                              options={[
-                                { value: 'Iniciar', label: 'Iniciar' },
-                                { value: 'Pendente', label: 'Pendente' },
-                                { value: 'Produzindo no Laboratório', label: 'Produção' },
-                                { value: 'Preparando no Setor de Entregas', label: 'Preparando' },
-                                { value: 'Em Rota', label: 'Em Rota' },
-                                { value: 'Entregue', label: 'Entregue' },
-                                { value: 'Voltou p/ Farmácia', label: 'Voltou p/ Farmácia' },
-                                { value: 'Cancelado', label: 'Cancelado' }
-                              ]}
-                              value={rom.status || 'Produzindo no Laboratório'}
-                              onChange={(val) => handleQuickStatusUpdate(rom.id, val, 'romaneio')}
-                              disabled={updateRomaneioMutation.isPending}
-                            />
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-center">
-                            {rom.buscar_receita ? (
-                              <button
-                                onClick={() => updateReceitaMutation.mutate({ id: rom.id, recebida: !rom.receita_recebida })}
-                                disabled={updateReceitaMutation.isPending}
-                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition-all hover:opacity-80"
-                                style={{
-                                  backgroundColor: rom.receita_recebida ? '#dcfce7' : '#fef3c7',
-                                  color: rom.receita_recebida ? '#166534' : '#92400e',
-                                  border: rom.receita_recebida ? '1px solid #22c55e' : '1px solid #f59e0b',
-                                }}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200">
+                              {rom.valor_venda > 0 ? (
+                                <span
+                                  className={`px-2 py-1 rounded font-semibold text-[11px] ${
+                                    rom.pagamento_recebido === true
+                                      ? 'bg-green-500 text-white'
+                                      : rom.pagamento_recebido === false
+                                      ? 'bg-red-500 text-white'
+                                      : 'bg-slate-200 text-slate-700'
+                                  }`}
+                                  title={rom.pagamento_recebido === true ? 'Pago' : rom.pagamento_recebido === false ? 'Não Recebido' : 'Cobrar'}
+                                >
+                                  R$ {parseFloat(rom.valor_venda).toFixed(2)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600">
+                              {rom.precisa_troco && rom.valor_troco > 0 ? `R$ ${parseFloat(rom.valor_troco).toFixed(2)}` : '-'}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200">
+                              {(rom.horario_entrega || rom.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) ? (
+                                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 5px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                                  {rom.horario_entrega || rom.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200">
+                              <CustomDropdown
+                                options={[
+                                  { value: 'Iniciar', label: 'Iniciar' },
+                                  { value: 'Pendente', label: 'Pendente' },
+                                  { value: 'Produzindo no Laboratório', label: 'Produção' },
+                                  { value: 'Preparando no Setor de Entregas', label: 'Preparando' },
+                                  { value: 'Em Rota', label: 'Em Rota' },
+                                  { value: 'Entregue', label: 'Entregue' },
+                                  { value: 'Voltou p/ Farmácia', label: 'Voltou p/ Farmácia' },
+                                  { value: 'Cancelado', label: 'Cancelado' }
+                                ]}
+                                value={rom.status || 'Produzindo no Laboratório'}
+                                onChange={(val) => handleQuickStatusUpdate(rom.id, val, 'romaneio')}
+                                disabled={updateRomaneioMutation.isPending}
+                              />
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-center">
+                              {rom.buscar_receita ? (
+                                <button
+                                  onClick={() => updateReceitaMutation.mutate({ id: rom.id, recebida: !rom.receita_recebida })}
+                                  disabled={updateReceitaMutation.isPending}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition-all hover:opacity-80"
+                                  style={{
+                                    backgroundColor: rom.receita_recebida ? '#dcfce7' : '#fef3c7',
+                                    color: rom.receita_recebida ? '#166534' : '#92400e',
+                                    border: rom.receita_recebida ? '1px solid #22c55e' : '1px solid #f59e0b',
+                                  }}
+                                >
+                                  {rom.receita_recebida ? 'Recebida' : 'Pendente'}
+                                </button>
+                              ) : (
+                                <span className="text-slate-300">-</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-medium">
+                              {rom.motoboy?.nome || '-'}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-semibold">
+                              R$ {rom.valor ? parseFloat(rom.valor).toFixed(2) : '0.00'}
+                            </td>
+                            <td className="px-2 py-1.5 print-hide">
+                              <Link
+                                to={`/detalhes-romaneio?id=${rom.id}`}
+                                className="hover:opacity-80 transition-opacity"
+                                style={{ color: '#376295' }}
                               >
-                                {rom.receita_recebida ? 'Recebida' : 'Pendente'}
-                              </button>
-                            ) : (
-                              <span className="text-slate-300">-</span>
-                            )}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-medium">
-                            {rom.motoboy?.nome || '-'}
-                          </td>
-                          <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-semibold">
-                            R$ {rom.valor ? parseFloat(rom.valor).toFixed(2) : '0.00'}
-                          </td>
-                          <td className="px-2 py-1.5 print-hide">
-                            <Link
-                              to={`/detalhes-romaneio?id=${rom.id}`}
-                              className="hover:opacity-80 transition-opacity"
-                              style={{ color: '#376295' }}
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Link>
-                          </td>
-                        </tr>
-                      ))
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                        return rows;
+                      }, [])
                     )}
                   </tbody>
                 </table>
