@@ -398,18 +398,14 @@ export default function ImpressaoRomaneio({ romaneio }) {
               <span className="print-section-label">Forma de Pagamento:</span>
               <span className="print-section-value">{romaneio.forma_pagamento || '-'}</span>
             </div>
+            {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
+              <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #555' }}>
+                <div className="print-section-title" style={{ marginBottom: '3px' }}>OBSERVAÇÕES</div>
+                <span className="print-section-value" style={{ textAlign: 'left' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</span>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Observações */}
-        {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
-          <div className="print-box">
-            <div className="print-section-title">OBSERVAÇÕES</div>
-            <div className="print-section-row" style={{ justifyContent: 'flex-start' }}>
-              <span className="print-section-value" style={{ textAlign: 'left' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</span>
-            </div>
-          </div>
-        )}
 
         {/* Item Geladeira, Reter Receita e Coleta - lado a lado */}
         {(romaneio.item_geladeira || romaneio.buscar_receita || romaneio.coleta) && (

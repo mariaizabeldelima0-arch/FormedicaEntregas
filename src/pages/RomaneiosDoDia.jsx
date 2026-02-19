@@ -137,16 +137,14 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
             <span>Forma de Pagamento: </span>
             <span>{romaneio.forma_pagamento || '-'}</span>
           </div>
+          {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
+            <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #555', fontSize: '15px' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>OBSERVAÇÕES:</div>
+              <div>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Observações */}
-      {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
-        <div style={{ border: '1px solid #000', padding: '8px', marginBottom: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>OBSERVAÇÕES</div>
-          <div style={{ fontSize: '15px' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</div>
-        </div>
-      )}
 
       {/* Item Geladeira, Reter Receita e Coleta */}
       {(romaneio.item_geladeira || romaneio.buscar_receita || romaneio.coleta) && (
