@@ -307,9 +307,9 @@ export default function Pagamentos() {
     if (filtroStatus === "outros" && ehReceber(e.forma_pagamento)) return false;
     if (filtroStatus === "pendentes" && (!ehReceber(e.forma_pagamento) || e.pagamento_recebido)) return false;
     if (filtroStatus === "recebidos" && (!ehReceber(e.forma_pagamento) || !e.pagamento_recebido)) return false;
-    // Filtros de dinheiro e cartão mostram todas as entregas com essa forma, independente do status
-    if (filtroStatus === "dinheiro" && !ehDinheiro(e.forma_pagamento)) return false;
-    if (filtroStatus === "cartao" && !ehCartao(e.forma_pagamento)) return false;
+    // Filtros de dinheiro e cartão mostram apenas entregas "Receber Dinheiro" / "Receber Máquina/Cartão"
+    if (filtroStatus === "dinheiro" && !(ehReceber(e.forma_pagamento) && ehDinheiro(e.forma_pagamento))) return false;
+    if (filtroStatus === "cartao" && !(ehReceber(e.forma_pagamento) && ehCartao(e.forma_pagamento))) return false;
     return true;
   });
 
@@ -319,10 +319,10 @@ export default function Pagamentos() {
     pendentes: entregasBase.filter(e => ehReceber(e.forma_pagamento) && !e.pagamento_recebido).length,
     recebidos: entregasBase.filter(e => ehReceber(e.forma_pagamento) && e.pagamento_recebido).length,
     dinheiro: entregasBase
-      .filter(e => ehDinheiro(e.forma_pagamento) && !e.pagamento_recebido)
+      .filter(e => ehReceber(e.forma_pagamento) && ehDinheiro(e.forma_pagamento))
       .reduce((sum, e) => sum + (parseFloat(e.valor_venda) || 0), 0),
     cartao: entregasBase
-      .filter(e => ehCartao(e.forma_pagamento) && !e.pagamento_recebido)
+      .filter(e => ehReceber(e.forma_pagamento) && ehCartao(e.forma_pagamento))
       .reduce((sum, e) => sum + (parseFloat(e.valor_venda) || 0), 0),
   };
 
