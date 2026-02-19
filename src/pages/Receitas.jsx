@@ -182,7 +182,8 @@ export default function Receitas() {
         e.cliente?.telefone?.toLowerCase().includes(termo) ||
         e.cliente?.cpf?.toLowerCase().includes(termo) ||
         e.cliente_nome?.toLowerCase().includes(termo) ||
-        e.cliente_telefone?.toLowerCase().includes(termo);
+        e.cliente_telefone?.toLowerCase().includes(termo) ||
+        e.anexos?.some(a => a.tipo === 'receita' && a.descricao?.toLowerCase().includes(termo));
       if (!match) return false;
     }
 
@@ -399,7 +400,7 @@ export default function Receitas() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por número, nome, telefone ou CPF..."
+                  placeholder="Buscar por número, nome, telefone, CPF ou nome da receita..."
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                 />
               </div>

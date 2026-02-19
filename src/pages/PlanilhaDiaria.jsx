@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
@@ -17,6 +18,7 @@ export default function PlanilhaDiaria() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const { user, userType } = useAuth();
 
   const urlParams = new URLSearchParams(location.search);
 

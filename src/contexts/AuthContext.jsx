@@ -3,12 +3,37 @@ import { supabase } from '@/api/supabaseClient';
 
 const AuthContext = createContext();
 
-// Gerar fingerprint único do dispositivo/navegador
-// Persiste no localStorage para não mudar quando o navegador atualiza
-const gerarFingerprint = () => {
-  const salvo = localStorage.getItem('formedica_device_fingerprint');
-  if (salvo) return salvo;
+// Helpers para cookie de fingerprint
+const COOKIE_NAME = 'formedica_fp';
+const COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 ano em segundos
 
+const lerCookieFp = () => {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+const salvarCookieFp = (fp) => {
+  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(fp)}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax`;
+};
+
+// Gerar fingerprint único do dispositivo/navegador
+// Salvo em localStorage E em cookie para sobreviver à limpeza de cache
+const gerarFingerprint = () => {
+  // 1. Tentar localStorage primeiro
+  const local = localStorage.getItem('formedica_device_fingerprint');
+  if (local) {
+    salvarCookieFp(local); // manter cookie sincronizado
+    return local;
+  }
+
+  // 2. Tentar cookie como backup (sobrevive quando localStorage é limpo)
+  const cookie = lerCookieFp();
+  if (cookie) {
+    localStorage.setItem('formedica_device_fingerprint', cookie);
+    return cookie;
+  }
+
+  // 3. Gerar novo fingerprint
   const navegador = navigator.userAgent;
   const plataforma = navigator.platform;
   const idioma = navigator.language;
@@ -26,6 +51,7 @@ const gerarFingerprint = () => {
 
   const fingerprint = Math.abs(hash).toString(16).toUpperCase();
   localStorage.setItem('formedica_device_fingerprint', fingerprint);
+  salvarCookieFp(fingerprint);
   return fingerprint;
 };
 

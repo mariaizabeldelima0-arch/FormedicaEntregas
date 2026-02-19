@@ -49,13 +49,25 @@ export default function DetalhesRomaneio() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [tipoAnexo, setTipoAnexo] = useState("");
   const [descricaoAnexo, setDescricaoAnexo] = useState("");
+  const [nomeReceita, setNomeReceita] = useState("");
   const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  // Estados para edição de anexo
+  const [editAnexoModal, setEditAnexoModal] = useState(false);
+  const [editAnexo, setEditAnexo] = useState(null);
+  const [editTipo, setEditTipo] = useState("");
+  const [editDescricao, setEditDescricao] = useState("");
+  const [editNomeReceita, setEditNomeReceita] = useState("");
 
   // Função para fazer upload do anexo
   const handleUploadAnexo = async () => {
     if (!arquivoSelecionado || !tipoAnexo) {
       toast.error('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+    if (tipoAnexo.toLowerCase() === 'receita' && !nomeReceita.trim()) {
+      toast.error('Por favor, preencha o nome da receita');
       return;
     }
 
@@ -75,13 +87,25 @@ export default function DetalhesRomaneio() {
         .from('entregas-anexos')
         .getPublicUrl(filePath);
 
+      // Montar descricao: para receita, combinar nome + observação
+      let descricaoFinal = null;
+      if (tipoAnexo.toLowerCase() === 'receita') {
+        descricaoFinal = nomeReceita.trim();
+        if (descricaoAnexo.trim()) {
+          descricaoFinal += ' — ' + descricaoAnexo.trim();
+        }
+      } else {
+        descricaoFinal = descricaoAnexo.trim() || null;
+      }
+      console.log('Upload anexo - tipo:', tipoAnexo, 'nomeReceita:', nomeReceita, 'descricaoFinal:', descricaoFinal);
+
       const { error: insertError } = await supabase
         .from('anexos')
         .insert({
           entrega_id: romaneioId,
           tipo: tipoAnexo.toLowerCase(),
           url: publicUrl,
-          descricao: descricaoAnexo || null,
+          descricao: descricaoFinal,
         });
 
       if (insertError) throw insertError;
@@ -92,12 +116,71 @@ export default function DetalhesRomaneio() {
       setUploadModalOpen(false);
       setTipoAnexo("");
       setDescricaoAnexo("");
+      setNomeReceita("");
       setArquivoSelecionado(null);
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
       toast.error('Erro ao enviar anexo: ' + error.message);
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Função para editar anexo
+  const handleEditAnexo = async () => {
+    if (!editAnexo || !editTipo) return;
+    if (editTipo === 'receita' && !editNomeReceita.trim()) {
+      toast.error('Por favor, preencha o nome da receita');
+      return;
+    }
+    try {
+      // Montar descricao: para receita, combinar nome + observação
+      let descricaoFinal;
+      if (editTipo === 'receita') {
+        descricaoFinal = editNomeReceita.trim();
+        if (editDescricao.trim()) {
+          descricaoFinal += ' — ' + editDescricao.trim();
+        }
+      } else {
+        descricaoFinal = editDescricao.trim() || null;
+      }
+      const updateData = {
+        tipo: editTipo.toLowerCase(),
+        descricao: descricaoFinal,
+      };
+      console.log('Atualizando anexo:', editAnexo.id, updateData);
+      const { data, error } = await supabase
+        .from('anexos')
+        .update(updateData)
+        .eq('id', editAnexo.id)
+        .select();
+      if (error) throw error;
+      console.log('Anexo atualizado:', data);
+      toast.success('Anexo atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+      setEditAnexoModal(false);
+      setEditAnexo(null);
+    } catch (error) {
+      console.error('Erro ao atualizar anexo:', error);
+      toast.error('Erro ao atualizar anexo: ' + error.message);
+    }
+  };
+
+  // Função para excluir anexo
+  const handleDeleteAnexo = async (anexo) => {
+    if (!confirm('Tem certeza que deseja excluir este anexo?')) return;
+    try {
+      // Extrair path do arquivo da URL
+      const urlParts = anexo.url.split('/object/public/entregas-anexos/');
+      if (urlParts.length > 1) {
+        await supabase.storage.from('entregas-anexos').remove([urlParts[1]]);
+      }
+      const { error } = await supabase.from('anexos').delete().eq('id', anexo.id);
+      if (error) throw error;
+      toast.success('Anexo excluído com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+    } catch (error) {
+      toast.error('Erro ao excluir anexo: ' + error.message);
     }
   };
 
@@ -617,17 +700,62 @@ export default function DetalhesRomaneio() {
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {lista.map((anexo) => (
-                          <a key={anexo.id} href={anexo.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                            <ImageIcon size={20} className={`${tipoConfig[tipo].cor} flex-shrink-0`} />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-slate-900">{tipoConfig[tipo].label}</div>
-                              {anexo.descricao && <div className="text-xs text-slate-500 truncate">{anexo.descricao}</div>}
-                              <div className="text-xs text-slate-400">
-                                {new Date(anexo.created_at).toLocaleDateString('pt-BR')}
+                          <div key={anexo.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                            <a href={anexo.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 flex-1 min-w-0">
+                              <ImageIcon size={20} className={`${tipoConfig[tipo].cor} flex-shrink-0`} />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-slate-900">
+                                  {tipo === 'receita' && anexo.descricao ? (
+                                    <>
+                                      {anexo.descricao.split(' — ')[0]}
+                                      {anexo.descricao.includes(' — ') && (
+                                        <span className="font-normal text-slate-500 text-xs"> — {anexo.descricao.split(' — ').slice(1).join(' — ')}</span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      {tipoConfig[tipo].label}
+                                      {anexo.descricao && <span className="font-normal text-slate-600"> — {anexo.descricao}</span>}
+                                    </>
+                                  )}
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                  {new Date(anexo.created_at).toLocaleDateString('pt-BR')}
+                                </div>
                               </div>
-                            </div>
-                            <ExternalLink size={14} className="text-slate-400 flex-shrink-0" />
-                          </a>
+                              <ExternalLink size={14} className="text-slate-400 flex-shrink-0" />
+                            </a>
+                            {userType !== 'motoboy' && (
+                              <div className="flex gap-1 flex-shrink-0">
+                                <button
+                                  onClick={() => {
+                                    setEditAnexo(anexo);
+                                    setEditTipo(anexo.tipo);
+                                    if (anexo.tipo === 'receita' && anexo.descricao) {
+                                      const parts = anexo.descricao.split(' — ');
+                                      setEditNomeReceita(parts[0] || '');
+                                      setEditDescricao(parts.slice(1).join(' — ') || '');
+                                    } else {
+                                      setEditNomeReceita('');
+                                      setEditDescricao(anexo.descricao || '');
+                                    }
+                                    setEditAnexoModal(true);
+                                  }}
+                                  className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                                  title="Editar"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteAnexo(anexo)}
+                                  className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -925,13 +1053,28 @@ export default function DetalhesRomaneio() {
               )}
             </div>
 
+            {tipoAnexo.toLowerCase() === 'receita' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nome da Receita *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Receita do João, Receita Antibiótico..."
+                  value={nomeReceita}
+                  onChange={(e) => setNomeReceita(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
-              <label className="text-sm font-medium">Descrição (opcional)</label>
+              <label className="text-sm font-medium">
+                {tipoAnexo.toLowerCase() === 'receita' ? 'Observação (opcional)' : 'Descrição (opcional)'}
+              </label>
               <Textarea
-                placeholder="Adicione informações adicionais sobre este anexo..."
+                placeholder={tipoAnexo.toLowerCase() === 'receita' ? 'Adicione observações sobre esta receita...' : 'Adicione informações adicionais sobre este anexo...'}
                 value={descricaoAnexo}
                 onChange={(e) => setDescricaoAnexo(e.target.value)}
-                rows={3}
+                rows={2}
               />
             </div>
           </div>
@@ -943,6 +1086,7 @@ export default function DetalhesRomaneio() {
                 setUploadModalOpen(false);
                 setTipoAnexo("");
                 setDescricaoAnexo("");
+                setNomeReceita("");
                 setArquivoSelecionado(null);
               }}
               disabled={uploading}
@@ -951,11 +1095,81 @@ export default function DetalhesRomaneio() {
             </Button>
             <Button
               onClick={handleUploadAnexo}
-              disabled={uploading || !arquivoSelecionado || !tipoAnexo}
+              disabled={uploading || !arquivoSelecionado || !tipoAnexo || (tipoAnexo.toLowerCase() === 'receita' && !nomeReceita.trim())}
               style={{ background: uploading ? '#94a3b8' : '#376295' }}
               className="text-white"
             >
               {uploading ? 'Enviando...' : 'Enviar Anexo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edição de Anexo */}
+      <Dialog open={editAnexoModal} onOpenChange={setEditAnexoModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Anexo</DialogTitle>
+            <DialogDescription>
+              Altere o tipo ou a descrição do anexo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de Anexo *</label>
+              <Select value={editTipo} onValueChange={setEditTipo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="receita">Receita</SelectItem>
+                  <SelectItem value="pagamento">Pagamento</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {editTipo === 'receita' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nome da Receita *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Receita do João, Receita Antibiótico..."
+                  value={editNomeReceita}
+                  onChange={(e) => setEditNomeReceita(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {editTipo === 'receita' ? 'Observação (opcional)' : 'Descrição (opcional)'}
+              </label>
+              <Textarea
+                placeholder={editTipo === 'receita' ? 'Adicione observações sobre esta receita...' : 'Adicione informações adicionais sobre este anexo...'}
+                value={editDescricao}
+                onChange={(e) => setEditDescricao(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setEditAnexoModal(false); setEditAnexo(null); }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleEditAnexo}
+              disabled={!editTipo || (editTipo === 'receita' && !editNomeReceita.trim())}
+              style={{ background: '#376295' }}
+              className="text-white"
+            >
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
