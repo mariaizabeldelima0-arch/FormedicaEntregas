@@ -1176,10 +1176,10 @@ export default function NovoRomaneio() {
         buscar_receita: formData.buscar_receita,
         coleta: formData.coleta,
         horario_entrega: formData.tipo_horario ? (
-          formData.tipo_horario === 'de_ate' ? `de ${formData.hora1}H até ${formData.hora2}H` :
-          formData.tipo_horario === 'ate' ? `até ${formData.hora1}H` :
-          formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}H` :
-          formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}H` : null
+          formData.tipo_horario === 'de_ate' ? `de ${formData.hora1} até ${formData.hora2}` :
+          formData.tipo_horario === 'ate' ? `até ${formData.hora1}` :
+          formData.tipo_horario === 'antes' ? `antes das ${formData.hora1}` :
+          formData.tipo_horario === 'depois' ? `depois das ${formData.hora1}` : null
         ) : null,
         observacoes: formData.observacoes,
         atendente: user?.usuario || '',
@@ -2362,8 +2362,8 @@ export default function NovoRomaneio() {
                   onClick={() => setFormData(prev => ({
                     ...prev,
                     tipo_horario: prev.tipo_horario === opt.value ? '' : opt.value,
-                    hora1: prev.tipo_horario === opt.value ? '' : (prev.hora1 || '8'),
-                    hora2: prev.tipo_horario === opt.value ? '' : (prev.hora2 || '12')
+                    hora1: prev.tipo_horario === opt.value ? '' : prev.hora1,
+                    hora2: prev.tipo_horario === opt.value ? '' : prev.hora2
                   }))}
                   style={{
                     padding: '0.4rem 0.75rem',
@@ -2395,21 +2395,23 @@ export default function NovoRomaneio() {
                 {formData.tipo_horario === 'ate' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>até</span>}
                 {formData.tipo_horario === 'antes' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>antes das</span>}
                 {formData.tipo_horario === 'depois' && <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>depois das</span>}
-                <select value={formData.hora1} onChange={e => setFormData(prev => ({ ...prev, hora1: e.target.value }))}
-                  style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white' }}>
-                  {Array.from({ length: 13 }, (_, i) => i + 7).map(h => (
-                    <option key={h} value={String(h)}>{h}H</option>
-                  ))}
-                </select>
+                <input
+                  type="text"
+                  value={formData.hora1}
+                  onChange={e => setFormData(prev => ({ ...prev, hora1: e.target.value }))}
+                  placeholder="ex: 8H"
+                  style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white', width: '70px' }}
+                />
                 {formData.tipo_horario === 'de_ate' && (
                   <>
                     <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>até</span>
-                    <select value={formData.hora2} onChange={e => setFormData(prev => ({ ...prev, hora2: e.target.value }))}
-                      style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white' }}>
-                      {Array.from({ length: 13 }, (_, i) => i + 7).map(h => (
-                        <option key={h} value={String(h)}>{h}H</option>
-                      ))}
-                    </select>
+                    <input
+                      type="text"
+                      value={formData.hora2}
+                      onChange={e => setFormData(prev => ({ ...prev, hora2: e.target.value }))}
+                      placeholder="ex: 12H"
+                      style={{ padding: '0.4rem 0.5rem', border: '2px solid #2563eb', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', color: '#1e40af', background: 'white', width: '70px' }}
+                    />
                   </>
                 )}
               </div>
