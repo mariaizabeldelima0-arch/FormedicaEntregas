@@ -54,12 +54,26 @@ export default function Pagamentos() {
   const navigate = useNavigate();
 
   // Estados
-  const [mesAtual, setMesAtual] = useState(new Date());
-  const [dataSelecionada, setDataSelecionada] = useState(new Date());
-  const [verTodos, setVerTodos] = useState(false); // Iniciar filtrando por dia
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filtroMotoboy, setFiltroMotoboy] = useState("todos");
-  const [filtroStatus, setFiltroStatus] = useState("todos"); // "todos", "pendentes", "recebidos", "dinheiro", "cartao"
+  const [dataSelecionada, setDataSelecionada] = useState(() => {
+    const saved = sessionStorage.getItem('pagamentos_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
+  const [mesAtual, setMesAtual] = useState(() => {
+    const saved = sessionStorage.getItem('pagamentos_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
+  const [verTodos, setVerTodos] = useState(() => sessionStorage.getItem('pagamentos_ver_todos') === 'true');
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem('pagamentos_search') || "");
+  const [filtroMotoboy, setFiltroMotoboy] = useState(() => sessionStorage.getItem('pagamentos_filtro_motoboy') || "todos");
+  const [filtroStatus, setFiltroStatus] = useState(() => sessionStorage.getItem('pagamentos_filtro_status') || "todos");
+
+  useEffect(() => {
+    sessionStorage.setItem('pagamentos_data', format(dataSelecionada, 'yyyy-MM-dd'));
+    sessionStorage.setItem('pagamentos_ver_todos', verTodos.toString());
+    sessionStorage.setItem('pagamentos_search', searchTerm);
+    sessionStorage.setItem('pagamentos_filtro_motoboy', filtroMotoboy);
+    sessionStorage.setItem('pagamentos_filtro_status', filtroStatus);
+  }, [dataSelecionada, verTodos, searchTerm, filtroMotoboy, filtroStatus]);
 
   // Estados para o modal de edição
   const [editModalOpen, setEditModalOpen] = useState(false);

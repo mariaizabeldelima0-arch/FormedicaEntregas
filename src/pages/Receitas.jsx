@@ -29,11 +29,24 @@ export default function Receitas() {
   const queryClient = useQueryClient();
 
   // TODOS os useState juntos (regra dos hooks)
-  const [mesAtual, setMesAtual] = useState(new Date());
-  const [dataSelecionada, setDataSelecionada] = useState(new Date());
-  const [verTodas, setVerTodas] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [dataSelecionada, setDataSelecionada] = useState(() => {
+    const saved = sessionStorage.getItem('receitas_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
+  const [mesAtual, setMesAtual] = useState(() => {
+    const saved = sessionStorage.getItem('receitas_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
+  const [verTodas, setVerTodas] = useState(() => sessionStorage.getItem('receitas_ver_todas') === 'true');
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem('receitas_search') || "");
+  const [filtroStatus, setFiltroStatus] = useState(() => sessionStorage.getItem('receitas_filtro_status') || "todos");
+
+  useEffect(() => {
+    sessionStorage.setItem('receitas_data', format(dataSelecionada, 'yyyy-MM-dd'));
+    sessionStorage.setItem('receitas_ver_todas', verTodas.toString());
+    sessionStorage.setItem('receitas_search', searchTerm);
+    sessionStorage.setItem('receitas_filtro_status', filtroStatus);
+  }, [dataSelecionada, verTodas, searchTerm, filtroStatus]);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [receitaSelecionada, setReceitaSelecionada] = useState(null);
   const [tipoAnexo, setTipoAnexo] = useState("");

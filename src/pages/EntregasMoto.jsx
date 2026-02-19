@@ -113,21 +113,38 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
 export default function EntregasMoto() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [viewMode, setViewMode] = useState('day');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState(() => sessionStorage.getItem('entregas_moto_view') || 'day');
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const saved = sessionStorage.getItem('entregas_moto_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => {
+    const saved = sessionStorage.getItem('entregas_moto_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
   const [entregas, setEntregas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem('entregas_moto_search') || '');
+  const [filtroStatus, setFiltroStatus] = useState(() => sessionStorage.getItem('entregas_moto_status') || '');
   const [cardSelecionado, setCardSelecionado] = useState('total');
-  const [filtros, setFiltros] = useState({
-    status: '',
-    atendente: '',
-    motoboy: '',
-    regiao: '',
-    periodo: ''
+  const [filtros, setFiltros] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('entregas_moto_filtros');
+      return saved ? JSON.parse(saved) : { status: '', atendente: '', motoboy: '', regiao: '', periodo: '' };
+    } catch { return { status: '', atendente: '', motoboy: '', regiao: '', periodo: '' }; }
   });
+
+  // Persistir filtros no sessionStorage
+  useEffect(() => {
+    const yyyy = selectedDate.getFullYear();
+    const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(selectedDate.getDate()).padStart(2, '0');
+    sessionStorage.setItem('entregas_moto_data', `${yyyy}-${mm}-${dd}`);
+    sessionStorage.setItem('entregas_moto_view', viewMode);
+    sessionStorage.setItem('entregas_moto_search', searchTerm);
+    sessionStorage.setItem('entregas_moto_status', filtroStatus);
+    sessionStorage.setItem('entregas_moto_filtros', JSON.stringify(filtros));
+  }, [selectedDate, viewMode, searchTerm, filtroStatus, filtros]);
 
   // Estados para modals
   const [detalhesOpen, setDetalhesOpen] = useState(false);

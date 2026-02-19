@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
@@ -40,12 +40,25 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function SedexDisktenha() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [visualizacao, setVisualizacao] = useState('dia'); // 'dia' ou 'todas'
-  const [dataSelecionada, setDataSelecionada] = useState(new Date());
-  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const [visualizacao, setVisualizacao] = useState(() => sessionStorage.getItem('sedex_disk_vis') || 'dia');
+  const [dataSelecionada, setDataSelecionada] = useState(() => {
+    const saved = sessionStorage.getItem('sedex_disk_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => {
+    const saved = sessionStorage.getItem('sedex_disk_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
   const [showNovaEntrega, setShowNovaEntrega] = useState(false);
-  const [busca, setBusca] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState('todos'); // 'todos', 'SEDEX', 'PAC', 'DISKTENHA'
+  const [busca, setBusca] = useState(() => sessionStorage.getItem('sedex_disk_busca') || '');
+  const [filtroTipo, setFiltroTipo] = useState(() => sessionStorage.getItem('sedex_disk_tipo') || 'todos');
+
+  useEffect(() => {
+    sessionStorage.setItem('sedex_disk_data', format(dataSelecionada, 'yyyy-MM-dd'));
+    sessionStorage.setItem('sedex_disk_vis', visualizacao);
+    sessionStorage.setItem('sedex_disk_busca', busca);
+    sessionStorage.setItem('sedex_disk_tipo', filtroTipo);
+  }, [dataSelecionada, visualizacao, busca, filtroTipo]);
   const [novaEntrega, setNovaEntrega] = useState({
     tipo: 'SEDEX',
     cliente: '',

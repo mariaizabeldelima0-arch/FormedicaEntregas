@@ -31,12 +31,21 @@ export default function Relatorios() {
   const urlParams = new URLSearchParams(window.location.search);
   const dataParam = urlParams.get('data');
 
-  const [dataSelecionada, setDataSelecionada] = useState(dataParam || format(new Date(), "yyyy-MM-dd"));
-  const [filtroStatus, setFiltroStatus] = useState(urlParams.get('status') || "todos");
-  const [filtroLocal, setFiltroLocal] = useState(urlParams.get('local') || "todos");
-  const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || "todos");
-  const [filtroPeriodo, setFiltroPeriodo] = useState(urlParams.get('periodo') || "todos");
-  const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || "");
+  const [dataSelecionada, setDataSelecionada] = useState(dataParam || sessionStorage.getItem('relatorios_data') || format(new Date(), "yyyy-MM-dd"));
+  const [filtroStatus, setFiltroStatus] = useState(urlParams.get('status') || sessionStorage.getItem('relatorios_status') || "todos");
+  const [filtroLocal, setFiltroLocal] = useState(urlParams.get('local') || sessionStorage.getItem('relatorios_local') || "todos");
+  const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || sessionStorage.getItem('relatorios_motoboy') || "todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState(urlParams.get('periodo') || sessionStorage.getItem('relatorios_periodo') || "todos");
+  const [searchTerm, setSearchTerm] = useState(urlParams.get('busca') || sessionStorage.getItem('relatorios_search') || "");
+
+  useEffect(() => {
+    sessionStorage.setItem('relatorios_data', dataSelecionada);
+    sessionStorage.setItem('relatorios_status', filtroStatus);
+    sessionStorage.setItem('relatorios_local', filtroLocal);
+    sessionStorage.setItem('relatorios_motoboy', filtroMotoboy);
+    sessionStorage.setItem('relatorios_periodo', filtroPeriodo);
+    sessionStorage.setItem('relatorios_search', searchTerm);
+  }, [dataSelecionada, filtroStatus, filtroLocal, filtroMotoboy, filtroPeriodo, searchTerm]);
 
   // Buscar entregas do Supabase
   const { data: entregas = [], isLoading, error: queryError } = useQuery({

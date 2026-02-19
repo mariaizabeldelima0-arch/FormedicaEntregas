@@ -251,14 +251,20 @@ export default function RomaneiosDoDia() {
   const [searchParams] = useSearchParams();
   const dataParam = searchParams.get('data');
 
-  const [selectedDate, setSelectedDate] = useState(dataParam || new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (dataParam) return dataParam;
+    const saved = sessionStorage.getItem('romaneios_dia_data');
+    if (saved) return saved;
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
   const [romaneios, setRomaneios] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filtros, setFiltros] = useState({
-    busca: '',
-    motoboy: '',
-    periodo: '',
-    status: ''
+  const [filtros, setFiltros] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('romaneios_dia_filtros');
+      return saved ? JSON.parse(saved) : { busca: '', motoboy: '', periodo: '', status: '' };
+    } catch { return { busca: '', motoboy: '', periodo: '', status: '' }; }
   });
   const [showFiltros, setShowFiltros] = useState(false);
   const [selecionados, setSelecionados] = useState(new Set());
@@ -345,6 +351,11 @@ export default function RomaneiosDoDia() {
   useEffect(() => {
     loadRomaneios();
   }, [selectedDate]);
+
+  useEffect(() => {
+    sessionStorage.setItem('romaneios_dia_data', selectedDate);
+    sessionStorage.setItem('romaneios_dia_filtros', JSON.stringify(filtros));
+  }, [selectedDate, filtros]);
 
   // Filtrar romaneios
   const romaneiosFiltrados = romaneios.filter(romaneio => {
