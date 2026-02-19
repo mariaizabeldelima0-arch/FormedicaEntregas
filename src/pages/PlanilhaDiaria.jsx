@@ -999,33 +999,39 @@ export default function PlanilhaDiaria() {
                             <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] truncate obs-cell-pdf">
                               {(rom.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') || '-')}
                             </td>
-                            <td className="px-2 py-1.5 border-r border-slate-200">
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                rom.forma_pagamento?.includes('Aguardando') ? 'font-bold' :
-                                rom.forma_pagamento === 'Pago' ? 'text-green-700' :
-                                rom.forma_pagamento === 'Dinheiro' ? 'text-blue-700' :
-                                rom.forma_pagamento === 'Cartão' ? 'text-purple-700' :
-                                'bg-slate-100 text-slate-700'
-                              }`} style={{
+                            <td className="px-2 py-1.5 border-r border-slate-200 whitespace-nowrap">
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: rom.forma_pagamento?.includes('Aguardando') ? '700' : '600',
                                 backgroundColor: rom.forma_pagamento?.includes('Aguardando') ? '#fef3c7' :
-                                  rom.forma_pagamento === 'Pago' ? '#E8F5E8' :
-                                  rom.forma_pagamento === 'Dinheiro' ? '#E8F0F8' :
-                                  rom.forma_pagamento === 'Cartão' ? '#F5E8F5' : undefined,
-                                color: rom.forma_pagamento?.includes('Aguardando') ? '#92400e' : undefined
+                                  rom.forma_pagamento?.toLowerCase().includes('pago') ? '#E8F5E8' :
+                                  rom.forma_pagamento?.toLowerCase().includes('dinheiro') ? '#E8F0F8' :
+                                  rom.forma_pagamento?.toLowerCase().includes('cartão') || rom.forma_pagamento?.toLowerCase().includes('maquina') || rom.forma_pagamento?.toLowerCase().includes('máquina') ? '#F5E8F5' :
+                                  '#f1f5f9',
+                                color: rom.forma_pagamento?.includes('Aguardando') ? '#92400e' :
+                                  rom.forma_pagamento?.toLowerCase().includes('pago') ? '#15803d' :
+                                  rom.forma_pagamento?.toLowerCase().includes('dinheiro') ? '#1d4ed8' :
+                                  rom.forma_pagamento?.toLowerCase().includes('cartão') || rom.forma_pagamento?.toLowerCase().includes('maquina') || rom.forma_pagamento?.toLowerCase().includes('máquina') ? '#7e22ce' :
+                                  '#475569',
                               }}>
                                 {rom.forma_pagamento || '-'}
                               </span>
                             </td>
-                            <td className="px-2 py-1.5 border-r border-slate-200">
+                            <td className="px-2 py-1.5 border-r border-slate-200 whitespace-nowrap">
                               {rom.valor_venda > 0 ? (
-                                <span
-                                  className={`px-2 py-1 rounded font-semibold text-[11px] ${
-                                    rom.pagamento_recebido === true
-                                      ? 'bg-green-500 text-white'
-                                      : rom.pagamento_recebido === false
-                                      ? 'bg-red-500 text-white'
-                                      : 'bg-slate-200 text-slate-700'
-                                  }`}
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  backgroundColor: rom.pagamento_recebido === true ? '#22c55e' :
+                                    rom.pagamento_recebido === false ? '#ef4444' : '#e2e8f0',
+                                  color: rom.pagamento_recebido === true || rom.pagamento_recebido === false ? '#fff' : '#334155',
+                                }}
                                   title={rom.pagamento_recebido === true ? 'Pago' : rom.pagamento_recebido === false ? 'Não Recebido' : 'Cobrar'}
                                 >
                                   R$ {parseFloat(rom.valor_venda).toFixed(2)}
