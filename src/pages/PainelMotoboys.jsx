@@ -41,12 +41,26 @@ export default function PainelMotoboys() {
   const queryClient = useQueryClient();
   const { user, userType } = useAuth();
   const [motoboyId, setMotoboyId] = useState(null);
-  const [dataSelecionada, setDataSelecionada] = useState(new Date());
-  const [mesAtual, setMesAtual] = useState(new Date());
-  const [filtroLocal, setFiltroLocal] = useState('todos');
-  const [filtroPeriodo, setFiltroPeriodo] = useState('todos');
-  const [filtroStatus, setFiltroStatus] = useState('todos');
-  const [termoBusca, setTermoBusca] = useState('');
+  const [dataSelecionada, setDataSelecionada] = useState(() => {
+    const saved = sessionStorage.getItem('painel_motoboy_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
+  const [mesAtual, setMesAtual] = useState(() => {
+    const saved = sessionStorage.getItem('painel_motoboy_data');
+    return saved ? new Date(saved + 'T00:00:00') : new Date();
+  });
+  const [filtroLocal, setFiltroLocal] = useState(() => sessionStorage.getItem('painel_motoboy_local') || 'todos');
+  const [filtroPeriodo, setFiltroPeriodo] = useState(() => sessionStorage.getItem('painel_motoboy_periodo') || 'todos');
+  const [filtroStatus, setFiltroStatus] = useState(() => sessionStorage.getItem('painel_motoboy_status') || 'todos');
+  const [termoBusca, setTermoBusca] = useState(() => sessionStorage.getItem('painel_motoboy_busca') || '');
+
+  useEffect(() => {
+    sessionStorage.setItem('painel_motoboy_data', format(dataSelecionada, 'yyyy-MM-dd'));
+    sessionStorage.setItem('painel_motoboy_local', filtroLocal);
+    sessionStorage.setItem('painel_motoboy_periodo', filtroPeriodo);
+    sessionStorage.setItem('painel_motoboy_status', filtroStatus);
+    sessionStorage.setItem('painel_motoboy_busca', termoBusca);
+  }, [dataSelecionada, filtroLocal, filtroPeriodo, filtroStatus, termoBusca]);
   const [ordemEntregas, setOrdemEntregas] = useState({});
   const [statusPagamentoSemana, setStatusPagamentoSemana] = useState('Aguardando');
 
