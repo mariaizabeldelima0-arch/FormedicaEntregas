@@ -208,17 +208,17 @@ export default function PlanilhaDiaria() {
     const periodoB = periodoOrder[b.periodo] || 99;
     if (periodoA !== periodoB) return periodoA - periodoB;
 
-    // 2. Ordenar por região/cidade
-    const cidadeA = a.regiao || a.endereco?.cidade || '';
-    const cidadeB = b.regiao || b.endereco?.cidade || '';
-    const cidadeCompare = cidadeA.localeCompare(cidadeB);
-    if (cidadeCompare !== 0) return cidadeCompare;
-
-    // 3. Ordenar por motoboy
+    // 2. Ordenar por motoboy
     const motoboyA = a.motoboy?.nome || 'zzz';
     const motoboyB = b.motoboy?.nome || 'zzz';
     const motoboyCompare = motoboyA.localeCompare(motoboyB);
     if (motoboyCompare !== 0) return motoboyCompare;
+
+    // 3. Ordenar por região/cidade
+    const cidadeA = a.regiao || a.endereco?.cidade || '';
+    const cidadeB = b.regiao || b.endereco?.cidade || '';
+    const cidadeCompare = cidadeA.localeCompare(cidadeB);
+    if (cidadeCompare !== 0) return cidadeCompare;
 
     // 4. Ordenar por status
     const statusA = statusOrder[a.status] || 99;
@@ -867,7 +867,6 @@ export default function PlanilhaDiaria() {
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Horário</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Status</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Receita</th>
-                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Moto</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Taxa</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 print-hide">Ver</th>
                     </tr>
@@ -875,13 +874,13 @@ export default function PlanilhaDiaria() {
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 15 : 14} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 14 : 13} className="p-8 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : romaneiosOrdenados.length === 0 ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 15 : 14} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 14 : 13} className="p-8 text-center text-slate-500">
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
@@ -889,43 +888,63 @@ export default function PlanilhaDiaria() {
                       romaneiosOrdenados.reduce((rows, rom, idx) => {
                         const prev = romaneiosOrdenados[idx - 1];
                         const currentPeriodo = rom.periodo || 'Sem Período';
+                        const currentMotoboy = rom.motoboy?.nome || 'Sem Motoboy';
                         const currentLocal = rom.regiao || rom.endereco?.cidade || 'Sem Local';
                         const prevPeriodo = prev ? (prev.periodo || 'Sem Período') : null;
+                        const prevMotoboy = prev ? (prev.motoboy?.nome || 'Sem Motoboy') : null;
                         const prevLocal = prev ? (prev.regiao || prev.endereco?.cidade || 'Sem Local') : null;
-                        const colCount = visualizarTodas ? 15 : 14;
+                        const colCount = visualizarTodas ? 14 : 13;
 
                         if (currentPeriodo !== prevPeriodo) {
                           rows.push(
                             <tr key={`periodo-${currentPeriodo}-${idx}`}>
                               <td colSpan={colCount} style={{
-                                backgroundColor: currentPeriodo === 'Manhã' ? '#fef9c3' : '#ffedd5',
+                                backgroundColor: currentPeriodo === 'Manhã' ? '#fef3c7' : '#fed7aa',
                                 color: currentPeriodo === 'Manhã' ? '#78350f' : '#7c2d12',
-                                padding: '5px 12px',
+                                padding: '8px 14px',
                                 fontWeight: '800',
-                                fontSize: '11px',
+                                fontSize: '13px',
                                 textTransform: 'uppercase',
-                                letterSpacing: '1.5px',
+                                letterSpacing: '2px',
                                 borderTop: '2px solid #cbd5e1',
                               }}>
-                                {currentPeriodo}
+                                ◆ {currentPeriodo}
                               </td>
                             </tr>
                           );
                         }
 
-                        if (currentLocal !== prevLocal || currentPeriodo !== prevPeriodo) {
+                        if (currentMotoboy !== prevMotoboy || currentPeriodo !== prevPeriodo) {
                           rows.push(
-                            <tr key={`local-${currentLocal}-${currentPeriodo}-${idx}`}>
+                            <tr key={`motoboy-${currentMotoboy}-${currentPeriodo}-${idx}`}>
+                              <td colSpan={colCount} style={{
+                                backgroundColor: '#e0f2fe',
+                                color: '#0369a1',
+                                padding: '5px 24px',
+                                fontWeight: '700',
+                                fontSize: '12px',
+                                borderBottom: '1px solid #bae6fd',
+                                borderLeft: '4px solid #0ea5e9',
+                              }}>
+                                &#9658; {currentMotoboy}
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        if (currentLocal !== prevLocal || currentMotoboy !== prevMotoboy || currentPeriodo !== prevPeriodo) {
+                          rows.push(
+                            <tr key={`local-${currentLocal}-${currentMotoboy}-${currentPeriodo}-${idx}`}>
                               <td colSpan={colCount} style={{
                                 backgroundColor: '#f8fafc',
                                 color: '#475569',
-                                padding: '3px 20px',
+                                padding: '4px 38px',
                                 fontWeight: '600',
-                                fontSize: '10px',
+                                fontSize: '11px',
                                 borderBottom: '1px solid #e2e8f0',
                                 borderLeft: '3px solid #94a3b8',
                               }}>
-                                {currentLocal}
+                                &#8250; {currentLocal}
                               </td>
                             </tr>
                           );
@@ -1047,9 +1066,6 @@ export default function PlanilhaDiaria() {
                               ) : (
                                 <span className="text-slate-300">-</span>
                               )}
-                            </td>
-                            <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-medium">
-                              {rom.motoboy?.nome || '-'}
                             </td>
                             <td className="px-2 py-1.5 border-r border-slate-200 text-slate-700 font-semibold">
                               R$ {rom.valor ? parseFloat(rom.valor).toFixed(2) : '0.00'}
