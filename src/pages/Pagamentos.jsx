@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Check,
   Paperclip,
+  Package,
 } from "lucide-react";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -295,10 +296,17 @@ export default function Pagamentos() {
     return f.includes('maquina') || f.includes('cartao');
   };
 
+  const ehReceber = (forma) => {
+    if (!forma) return false;
+    const f = forma.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return f.includes('receber');
+  };
+
   // Aplicar filtro de status de pagamento
   const entregasFiltradas = entregasBase.filter(e => {
-    if (filtroStatus === "pendentes" && e.pagamento_recebido) return false;
-    if (filtroStatus === "recebidos" && !e.pagamento_recebido) return false;
+    if (filtroStatus === "outros" && ehReceber(e.forma_pagamento)) return false;
+    if (filtroStatus === "pendentes" && (!ehReceber(e.forma_pagamento) || e.pagamento_recebido)) return false;
+    if (filtroStatus === "recebidos" && (!ehReceber(e.forma_pagamento) || !e.pagamento_recebido)) return false;
     // Filtros de dinheiro e cartão mostram todas as entregas com essa forma, independente do status
     if (filtroStatus === "dinheiro" && !ehDinheiro(e.forma_pagamento)) return false;
     if (filtroStatus === "cartao" && !ehCartao(e.forma_pagamento)) return false;
@@ -307,8 +315,9 @@ export default function Pagamentos() {
 
   // Calcular estatísticas (baseado nas entregas sem filtro de status)
   const stats = {
-    pendentes: entregasBase.filter(e => !e.pagamento_recebido).length,
-    recebidos: entregasBase.filter(e => e.pagamento_recebido).length,
+    outros: entregasBase.filter(e => !ehReceber(e.forma_pagamento)).length,
+    pendentes: entregasBase.filter(e => ehReceber(e.forma_pagamento) && !e.pagamento_recebido).length,
+    recebidos: entregasBase.filter(e => ehReceber(e.forma_pagamento) && e.pagamento_recebido).length,
     dinheiro: entregasBase
       .filter(e => ehDinheiro(e.forma_pagamento) && !e.pagamento_recebido)
       .reduce((sum, e) => sum + (parseFloat(e.valor_venda) || 0), 0),
@@ -521,7 +530,24 @@ export default function Pagamentos() {
             </div>
 
             {/* Cards de estatísticas */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Outros */}
+              <div
+                onClick={() => setFiltroStatus(filtroStatus === 'outros' ? 'todos' : 'outros')}
+                className="bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md"
+                style={{ border: filtroStatus === 'outros' ? '2px solid #64748b' : '2px solid transparent' }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F1F5F9' }}>
+                    <Package className="w-6 h-6" style={{ color: '#64748b' }} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Outros</span>
+                </div>
+                <div className="text-4xl font-bold text-center" style={{ color: '#64748b' }}>
+                  {stats.outros}
+                </div>
+              </div>
+
               {/* Pendentes */}
               <div
                 onClick={() => setFiltroStatus(filtroStatus === 'pendentes' ? 'todos' : 'pendentes')}
