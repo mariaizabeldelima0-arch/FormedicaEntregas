@@ -901,17 +901,17 @@ export default function PlanilhaDiaria() {
                               <td colSpan={colCount} style={{
                                 backgroundColor: currentPeriodo === 'Manhã' ? '#fef3c7' : '#fed7aa',
                                 color: currentPeriodo === 'Manhã' ? '#78350f' : '#7c2d12',
-                                padding: '8px 14px',
+                                padding: '11px 14px',
                                 fontWeight: '800',
-                                fontSize: '13px',
+                                fontSize: '16px',
                                 textTransform: 'uppercase',
                                 letterSpacing: '2px',
                                 borderTop: '2px solid #cbd5e1',
                               }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   {currentPeriodo === 'Manhã'
-                                    ? <Sunrise style={{ width: '15px', height: '15px', color: '#eab308', flexShrink: 0 }} />
-                                    : <Sun style={{ width: '15px', height: '15px', color: '#f97316', flexShrink: 0 }} />
+                                    ? <Sunrise style={{ width: '19px', height: '19px', color: '#eab308', flexShrink: 0 }} />
+                                    : <Sun style={{ width: '19px', height: '19px', color: '#f97316', flexShrink: 0 }} />
                                   }
                                   {currentPeriodo}
                                 </span>
@@ -926,14 +926,14 @@ export default function PlanilhaDiaria() {
                               <td colSpan={colCount} style={{
                                 backgroundColor: '#e0f2fe',
                                 color: '#0369a1',
-                                padding: '5px 24px',
+                                padding: '7px 26px',
                                 fontWeight: '700',
-                                fontSize: '12px',
+                                fontSize: '14px',
                                 borderBottom: '1px solid #bae6fd',
                                 borderLeft: '4px solid #0ea5e9',
                               }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <Truck style={{ width: '13px', height: '13px', color: '#0369a1', flexShrink: 0 }} />
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                                  <Truck style={{ width: '16px', height: '16px', color: '#0369a1', flexShrink: 0 }} />
                                   {currentMotoboy}
                                 </span>
                               </td>
@@ -947,14 +947,14 @@ export default function PlanilhaDiaria() {
                               <td colSpan={colCount} style={{
                                 backgroundColor: '#f8fafc',
                                 color: '#475569',
-                                padding: '4px 38px',
+                                padding: '5px 42px',
                                 fontWeight: '600',
-                                fontSize: '11px',
+                                fontSize: '13px',
                                 borderBottom: '1px solid #e2e8f0',
                                 borderLeft: '3px solid #94a3b8',
                               }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                  <MapPin style={{ width: '12px', height: '12px', color: '#64748b', flexShrink: 0 }} />
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <MapPin style={{ width: '14px', height: '14px', color: '#64748b', flexShrink: 0 }} />
                                   {currentLocal}
                                 </span>
                               </td>
