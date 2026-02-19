@@ -23,21 +23,32 @@ export default function PlanilhaDiaria() {
   const urlParams = new URLSearchParams(location.search);
 
   const [selectedDate, setSelectedDate] = useState(() => {
-    const dataParam = urlParams.get('data');
-    return dataParam ? new Date(dataParam) : new Date();
+    const dataParam = urlParams.get('data') || sessionStorage.getItem('planilha_data');
+    return dataParam ? new Date(dataParam + 'T00:00:00') : new Date();
   });
-  const [filtroMotoboy, setFiltroMotoboy] = useState(urlParams.get('motoboy') || "todos");
-  const [visualizarTodas, setVisualizarTodas] = useState(urlParams.get('todas') === 'true');
+  const [filtroMotoboy, setFiltroMotoboy] = useState(() => {
+    return urlParams.get('motoboy') || sessionStorage.getItem('planilha_motoboy') || "todos";
+  });
+  const [visualizarTodas, setVisualizarTodas] = useState(() => {
+    const urlVal = urlParams.get('todas');
+    if (urlVal !== null) return urlVal === 'true';
+    return sessionStorage.getItem('planilha_visualizar_todas') === 'true';
+  });
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedSedexIds, setSelectedSedexIds] = useState(new Set());
   const [selectionModeSedex, setSelectionModeSedex] = useState(false);
 
-  // Atualizar URL quando estado mudar
+  // Atualizar URL e sessionStorage quando estado mudar
   useEffect(() => {
+    const dataStr = format(selectedDate, 'yyyy-MM-dd');
+    sessionStorage.setItem('planilha_data', dataStr);
+    sessionStorage.setItem('planilha_motoboy', filtroMotoboy);
+    sessionStorage.setItem('planilha_visualizar_todas', visualizarTodas.toString());
+
     const params = new URLSearchParams();
     if (!visualizarTodas) {
-      params.set('data', format(selectedDate, 'yyyy-MM-dd'));
+      params.set('data', dataStr);
     }
     params.set('todas', visualizarTodas.toString());
     if (filtroMotoboy !== "todos") params.set('motoboy', filtroMotoboy);
