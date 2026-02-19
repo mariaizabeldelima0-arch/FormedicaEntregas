@@ -85,6 +85,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState(null); // 'admin', 'atendente', 'motoboy'
+  const [deveTrocarSenha, setDeveTrocarSenha] = useState(false);
 
   useEffect(() => {
     // Usar sessionStorage para manter sessão durante atualização,
@@ -198,6 +199,9 @@ export const AuthProvider = ({ children }) => {
         .eq('usuario_id', usuarioData.id)
         .eq('impressao_digital', fingerprint);
 
+      // Mostrar banner se a flag estiver ativa OU se a senha ainda é "123"
+      setDeveTrocarSenha(usuarioData.deve_trocar_senha || senhaDigitada === '123');
+
       return { success: true };
     } catch (error) {
       console.error('Erro no login:', error);
@@ -205,9 +209,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const trocarSenha = async (novaSenha) => {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ senha: novaSenha, deve_trocar_senha: false })
+      .eq('id', user.id);
+    if (!error) setDeveTrocarSenha(false);
+    return { success: !error, error };
+  };
+
   const logout = () => {
     setUser(null);
     setUserType(null);
+    setDeveTrocarSenha(false);
     sessionStorage.removeItem('formedica_user');
     sessionStorage.removeItem('formedica_user_type');
   };
@@ -218,7 +232,9 @@ export const AuthProvider = ({ children }) => {
       userType,
       loading,
       login,
-      logout
+      logout,
+      deveTrocarSenha,
+      trocarSenha
     }}>
       {children}
     </AuthContext.Provider>

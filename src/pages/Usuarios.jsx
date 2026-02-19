@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, User, UserCog, Search, UserPlus, Pencil, Trash2, CheckCircle, XCircle, Eye, EyeOff, Power } from "lucide-react";
+import { ArrowLeft, User, UserCog, Search, UserPlus, Pencil, Trash2, CheckCircle, XCircle, Eye, EyeOff, Power, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { CustomDropdown } from '@/components/CustomDropdown';
@@ -22,7 +22,6 @@ export default function Usuarios() {
   const [showNovoUsuario, setShowNovoUsuario] = useState(false);
   const [novoUsuario, setNovoUsuario] = useState({
     usuario: '',
-    senha: '',
     tipo_usuario: 'atendente',
   });
   const [showEditarUsuario, setShowEditarUsuario] = useState(false);
@@ -69,7 +68,8 @@ export default function Usuarios() {
         .insert([{
           usuario: novoUser.usuario,
           nome: novoUser.usuario,
-          senha: novoUser.senha,
+          senha: '123',
+          deve_trocar_senha: true,
           tipo_usuario: novoUser.tipo_usuario,
           ativo: true
         }]);
@@ -82,7 +82,6 @@ export default function Usuarios() {
       setShowNovoUsuario(false);
       setNovoUsuario({
         usuario: '',
-        senha: '',
         tipo_usuario: 'atendente',
       });
     },
@@ -97,8 +96,8 @@ export default function Usuarios() {
   });
 
   const handleCriarUsuario = () => {
-    if (!novoUsuario.usuario || !novoUsuario.senha) {
-      toast.error('Preencha usuário e senha');
+    if (!novoUsuario.usuario) {
+      toast.error('Preencha o nome de usuário');
       return;
     }
     criarUsuarioMutation.mutate(novoUsuario);
@@ -338,14 +337,9 @@ export default function Usuarios() {
               />
             </div>
 
-            <div>
-              <Label>Senha *</Label>
-              <Input
-                type="password"
-                value={novoUsuario.senha}
-                onChange={(e) => setNovoUsuario({ ...novoUsuario, senha: e.target.value })}
-                placeholder="Digite uma senha"
-              />
+            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              <KeyRound className="w-4 h-4 flex-shrink-0" />
+              A senha inicial será <strong>123</strong>. O usuário será obrigado a criar uma nova senha no primeiro acesso.
             </div>
 
             <CustomDropdown
@@ -478,11 +472,17 @@ function UsuarioCard({ usuario, onUpdateTipo, onEditar, onExcluir, onToggleAtivo
             <User className="w-6 h-6 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-bold text-slate-900 text-lg">
                 {usuario.usuario || 'Usuário'}
               </h3>
               {getStatusBadge()}
+              {usuario.deve_trocar_senha && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-700">
+                  <KeyRound className="w-3 h-3" />
+                  Trocar senha
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
               <span className="flex items-center gap-1 font-medium">

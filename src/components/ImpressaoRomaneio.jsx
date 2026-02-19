@@ -313,95 +313,100 @@ export default function ImpressaoRomaneio({ romaneio }) {
           <h1>ROMANEIO DE ENTREGA</h1>
         </div>
 
-        {/* Info Principal e Cliente */}
-        <div className="print-grid">
-          <div className="print-grid-col">
-            <div className="print-section-title">DADOS DA ENTREGA</div>
-            <div className="print-section-row">
-              <span className="print-section-label">N. Requisição:</span>
-              <span className="print-section-value" style={{fontWeight: 'bold'}}># {romaneio.requisicao || '0000'}</span>
-            </div>
-            <div className="print-section-row">
-              <span className="print-section-label">Data:</span>
-              <span className="print-section-value">{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
-            </div>
-            {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
-              <div style={{ fontWeight: 'bold', fontSize: '16px', border: '2px solid #000', padding: '3px 8px', marginTop: '5px', display: 'inline-block' }}>
-                HORÁRIO: {(romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]).toUpperCase()}
-              </div>
-            )}
-            <div className="print-section-row">
-              <span className="print-section-label">Motoboy:</span>
-              <span className="print-section-value">{romaneio.motoboy?.nome || '-'}</span>
-            </div>
-            <div className="print-section-row">
-              <span className="print-section-label">Atendente:</span>
-              <span className="print-section-value">{romaneio.atendente_nome || '-'}</span>
-            </div>
-          </div>
+        {/* Layout de duas colunas */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
 
-          <div className="print-grid-col" style={{ flex: '0 0 auto', maxWidth: '42%', alignSelf: 'flex-start' }}>
-            <div className="print-section-title">CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
-            <div className="print-section-row" style={{ borderBottom: '1px solid #ccc', paddingBottom: '4px', marginBottom: '4px' }}>
-              <span className="print-section-label">Nome:</span>
-              <span className="print-section-value">{romaneio.cliente?.nome || '-'}</span>
-            </div>
-            <div className="print-section-row" style={{ borderBottom: romaneio.clientesAdicionais?.length > 0 ? '1px solid #ccc' : 'none', paddingBottom: '4px', marginBottom: '4px' }}>
-              <span className="print-section-label">Telefone:</span>
-              <span className="print-section-value">{romaneio.cliente?.telefone || '-'}</span>
-            </div>
-            {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
-              <div key={idx} style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #aaa' }}>
-                <div className="print-section-row" style={{ borderBottom: '1px solid #ccc', paddingBottom: '4px', marginBottom: '4px' }}>
-                  <span className="print-section-label">Nome:</span>
-                  <span className="print-section-value">{cliente.nome}</span>
-                </div>
-                <div className="print-section-row">
-                  <span className="print-section-label">Telefone:</span>
-                  <span className="print-section-value">{cliente.telefone || '-'}</span>
-                </div>
+          {/* Coluna esquerda: DADOS DA ENTREGA + ENDEREÇO DE ENTREGA */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="print-grid-col">
+              <div className="print-section-title">DADOS DA ENTREGA</div>
+              <div className="print-section-row">
+                <span className="print-section-label">N. Requisição:</span>
+                <span className="print-section-value" style={{fontWeight: 'bold'}}># {romaneio.requisicao || '0000'}</span>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="print-section-row">
+                <span className="print-section-label">Data:</span>
+                <span className="print-section-value">{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
+              </div>
+              {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+                <div style={{ fontWeight: 'bold', fontSize: '16px', border: '2px solid #000', padding: '3px 8px', marginTop: '5px', display: 'inline-block' }}>
+                  HORÁRIO: {(romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]).toUpperCase()}
+                </div>
+              )}
+              <div className="print-section-row">
+                <span className="print-section-label">Motoboy:</span>
+                <span className="print-section-value">{romaneio.motoboy?.nome || '-'}</span>
+              </div>
+              <div className="print-section-row">
+                <span className="print-section-label">Atendente:</span>
+                <span className="print-section-value">{romaneio.atendente_nome || '-'}</span>
+              </div>
+            </div>
 
-        {/* Endereco e Pagamento */}
-        <div className="print-grid">
-          <div className="print-grid-col">
-            <div className="print-section-title">ENDERECO DE ENTREGA</div>
-            <div className="print-endereco-main">
-              {romaneio.endereco?.logradouro || '-'} , {romaneio.endereco?.numero || 'S/N'}
-            </div>
-            <div className="print-endereco-line">
-              {romaneio.endereco?.bairro || '-'} - {romaneio.endereco?.cidade || romaneio.regiao || '-'}
-            </div>
-            {romaneio.endereco?.complemento && (
+            <div className="print-grid-col" style={{ flex: 1 }}>
+              <div className="print-section-title">ENDERECO DE ENTREGA</div>
+              <div className="print-endereco-main">
+                {romaneio.endereco?.logradouro || '-'} , {romaneio.endereco?.numero || 'S/N'}
+              </div>
               <div className="print-endereco-line">
-                Compl.: {romaneio.endereco.complemento}
+                {romaneio.endereco?.bairro || '-'} - {romaneio.endereco?.cidade || romaneio.regiao || '-'}
               </div>
-            )}
-            {romaneio.endereco?.ponto_referencia && (
-              <div className="print-endereco-ref">
-                Ref.: {romaneio.endereco.ponto_referencia}
-              </div>
-            )}
-            {romaneio.cliente?.nome && (
-              <div className="print-endereco-ac">
-                A/C: {romaneio.cliente.nome}{romaneio.clientesAdicionais?.length > 0 && `, ${romaneio.clientesAdicionais.map(c => c.nome).join(', ')}`}
-              </div>
-            )}
+              {romaneio.endereco?.complemento && (
+                <div className="print-endereco-line">
+                  Compl.: {romaneio.endereco.complemento}
+                </div>
+              )}
+              {romaneio.endereco?.ponto_referencia && (
+                <div className="print-endereco-ref">
+                  Ref.: {romaneio.endereco.ponto_referencia}
+                </div>
+              )}
+              {romaneio.cliente?.nome && (
+                <div className="print-endereco-ac">
+                  A/C: {romaneio.cliente.nome}{romaneio.clientesAdicionais?.length > 0 && `, ${romaneio.clientesAdicionais.map(c => c.nome).join(', ')}`}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="print-grid-col">
-            <div className="print-section-title">PAGAMENTO</div>
-            <div className="print-section-row">
-              <span className="print-section-label">Forma de Pagamento:</span>
-              <span className="print-section-value">{romaneio.forma_pagamento || '-'}</span>
+          {/* Coluna direita: CLIENTE + PAGAMENTO + OBSERVAÇÕES */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="print-grid-col">
+              <div className="print-section-title">CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
+              <div className="print-section-row" style={{ borderBottom: '1px solid #ccc', paddingBottom: '4px', marginBottom: '4px' }}>
+                <span className="print-section-label">Nome:</span>
+                <span className="print-section-value">{romaneio.cliente?.nome || '-'}</span>
+              </div>
+              <div className="print-section-row" style={{ borderBottom: romaneio.clientesAdicionais?.length > 0 ? '1px solid #ccc' : 'none', paddingBottom: '4px', marginBottom: '4px' }}>
+                <span className="print-section-label">Telefone:</span>
+                <span className="print-section-value">{romaneio.cliente?.telefone || '-'}</span>
+              </div>
+              {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
+                <div key={idx} style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #aaa' }}>
+                  <div className="print-section-row" style={{ borderBottom: '1px solid #ccc', paddingBottom: '4px', marginBottom: '4px' }}>
+                    <span className="print-section-label">Nome:</span>
+                    <span className="print-section-value">{cliente.nome}</span>
+                  </div>
+                  <div className="print-section-row">
+                    <span className="print-section-label">Telefone:</span>
+                    <span className="print-section-value">{cliente.telefone || '-'}</span>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            <div className="print-grid-col" style={{ flex: 1 }}>
+              <div className="print-section-title">PAGAMENTO</div>
+              <div className="print-section-row">
+                <span className="print-section-label">Forma de Pagamento:</span>
+                <span className="print-section-value">{romaneio.forma_pagamento || '-'}</span>
+              </div>
+            </div>
+
             {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
-              <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #555' }}>
-                <div className="print-section-title" style={{ marginBottom: '3px' }}>OBSERVAÇÕES</div>
-                <span className="print-section-value" style={{ textAlign: 'left' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</span>
+              <div className="print-grid-col">
+                <div className="print-section-title">OBSERVAÇÕES</div>
+                <div style={{ fontSize: '15px', color: '#000' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</div>
               </div>
             )}
           </div>
@@ -460,23 +465,19 @@ export default function ImpressaoRomaneio({ romaneio }) {
         {(romaneio.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento)) || (romaneio.precisa_troco && romaneio.valor_troco > 0) ? (
           <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
             {romaneio.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento) && (
-              <div className="print-valor-box" style={{ flex: 1, marginBottom: 0 }}>
+              <div className="print-valor-box" style={{ flex: 1, marginBottom: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>
                 <span className="print-valor-icon">$</span>
                 COBRAR NA ENTREGA: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
               </div>
             )}
             {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
-              <div className="print-valor-box" style={{ flex: 1, marginBottom: 0 }}>
+              <div className="print-valor-box" style={{ flex: '0 0 auto', marginBottom: 0, whiteSpace: 'nowrap', fontSize: '16px', padding: '10px 36px' }}>
                 TROCO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
               </div>
             )}
           </div>
         ) : null}
 
-        {/* Footer */}
-        <div className="print-footer">
-          <div>Impressao em: {dataImpressao}</div>
-        </div>
       </div>
     </div>,
     document.body

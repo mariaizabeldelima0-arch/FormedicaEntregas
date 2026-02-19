@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import BannerAtualizacao from '@/components/BannerAtualizacao';
+import BannerTrocarSenha from '@/components/BannerTrocarSenha';
 
 // Ícones SVG simples
 const Icons = {
@@ -87,7 +88,7 @@ const Icons = {
 };
 
 export default function Layout({ children }) {
-  const { user, userType, logout } = useAuth();
+  const { user, userType, logout, deveTrocarSenha } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuExpanded, setIsMenuExpanded] = useState(false);
@@ -468,6 +469,7 @@ export default function Layout({ children }) {
         {children}
       </div>
       <BannerAtualizacao />
+      {deveTrocarSenha && <BannerTrocarSenha />}
     </div>
   );
 }

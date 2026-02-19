@@ -64,83 +64,88 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
         <h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0 }}>ROMANEIO DE ENTREGA</h2>
       </div>
 
-      {/* Info Principal e Cliente */}
+      {/* Layout de duas colunas */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-        <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>DADOS DA ENTREGA</div>
-          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
-            <span>N. Requisição: </span>
-            <span style={{ fontWeight: 'bold' }}>#{romaneio.requisicao || '0000'}</span>
-          </div>
-          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
-            <span>Data: </span>
-            <span>{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
-          </div>
-          {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
-            <div style={{ fontSize: '15px', marginBottom: '3px', fontWeight: 'bold', border: '2px solid #000', padding: '3px 8px', display: 'inline-block' }}>
-              HORÁRIO: {(romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]).toUpperCase()}
+
+        {/* Coluna esquerda: DADOS DA ENTREGA + ENDEREÇO DE ENTREGA */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ border: '1px solid #000', padding: '8px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>DADOS DA ENTREGA</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', marginBottom: '3px' }}>
+              <span>N. Requisição:</span>
+              <span style={{ fontWeight: 'bold', textAlign: 'right' }}>#{romaneio.requisicao || '0000'}</span>
             </div>
-          )}
-          <div style={{ fontSize: '15px', marginBottom: '3px' }}>
-            <span>Motoboy: </span>
-            <span>{romaneio.motoboy?.nome || '-'}</span>
-          </div>
-          <div style={{ fontSize: '15px' }}>
-            <span>Atendente: </span>
-            <span>{romaneio.atendente_nome || '-'}</span>
-          </div>
-        </div>
-
-        <div style={{ flex: '0 0 auto', maxWidth: '45%', border: '1px solid #000', padding: '8px', alignSelf: 'flex-start' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
-          <div style={{ fontSize: '15px', borderBottom: '1px solid #ccc', paddingBottom: '3px', marginBottom: '3px' }}>
-            <span>Nome: </span>
-            <span>{romaneio.cliente?.nome || '-'}</span>
-          </div>
-          <div style={{ fontSize: '15px', borderBottom: romaneio.clientesAdicionais?.length > 0 ? '1px solid #ccc' : 'none', paddingBottom: '3px', marginBottom: romaneio.clientesAdicionais?.length > 0 ? '3px' : '0' }}>
-            <span>Telefone: </span>
-            <span>{romaneio.cliente?.telefone || '-'}</span>
-          </div>
-          {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
-            <div key={idx} style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #aaa' }}>
-              <div style={{ fontSize: '15px', borderBottom: '1px solid #ccc', paddingBottom: '3px', marginBottom: '3px' }}>
-                <span>Nome: </span>
-                <span>{cliente.nome}</span>
-              </div>
-              <div style={{ fontSize: '15px' }}>
-                <span>Telefone: </span>
-                <span>{cliente.telefone || '-'}</span>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', marginBottom: '3px' }}>
+              <span>Data:</span>
+              <span style={{ textAlign: 'right' }}>{formatarData(romaneio.data_entrega)} - {romaneio.periodo || '-'}</span>
             </div>
-          ))}
-        </div>
-      </div>
+            {(romaneio.horario_entrega || romaneio.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) && (
+              <div style={{ fontSize: '15px', marginBottom: '3px', fontWeight: 'bold', border: '2px solid #000', padding: '3px 8px', display: 'inline-block' }}>
+                HORÁRIO: {(romaneio.horario_entrega || romaneio.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]).toUpperCase()}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', marginBottom: '3px' }}>
+              <span>Motoboy:</span>
+              <span style={{ textAlign: 'right' }}>{romaneio.motoboy?.nome || '-'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+              <span>Atendente:</span>
+              <span style={{ textAlign: 'right' }}>{romaneio.atendente_nome || '-'}</span>
+            </div>
+          </div>
 
-      {/* Endereco e Pagamento */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-        <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>ENDERECO DE ENTREGA</div>
-          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '2px' }}>
-            {romaneio.endereco?.logradouro || '-'}, {romaneio.endereco?.numero || 'S/N'}
+          <div style={{ border: '1px solid #000', padding: '8px', flex: 1 }}>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>ENDERECO DE ENTREGA</div>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '2px' }}>
+              {romaneio.endereco?.logradouro || '-'}, {romaneio.endereco?.numero || 'S/N'}
+            </div>
+            <div style={{ fontSize: '15px', marginBottom: '2px' }}>
+              {romaneio.endereco?.bairro || '-'} - {romaneio.endereco?.cidade || romaneio.regiao || '-'}
+            </div>
+            {romaneio.endereco?.complemento && (
+              <div style={{ fontSize: '15px' }}>Compl.: {romaneio.endereco.complemento}</div>
+            )}
           </div>
-          <div style={{ fontSize: '15px', marginBottom: '2px' }}>
-            {romaneio.endereco?.bairro || '-'} - {romaneio.endereco?.cidade || romaneio.regiao || '-'}
-          </div>
-          {romaneio.endereco?.complemento && (
-            <div style={{ fontSize: '15px' }}>Compl.: {romaneio.endereco.complemento}</div>
-          )}
         </div>
 
-        <div style={{ flex: 1, border: '1px solid #000', padding: '8px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>PAGAMENTO</div>
-          <div style={{ fontSize: '15px' }}>
-            <span>Forma de Pagamento: </span>
-            <span>{romaneio.forma_pagamento || '-'}</span>
+        {/* Coluna direita: CLIENTE + PAGAMENTO + OBSERVAÇÕES */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ border: '1px solid #000', padding: '8px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>CLIENTE{romaneio.clientesAdicionais?.length > 0 ? 'S' : ''}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid #ccc', paddingBottom: '3px', marginBottom: '3px' }}>
+              <span>Nome:</span>
+              <span style={{ textAlign: 'right' }}>{romaneio.cliente?.nome || '-'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: romaneio.clientesAdicionais?.length > 0 ? '1px solid #ccc' : 'none', paddingBottom: '3px', marginBottom: romaneio.clientesAdicionais?.length > 0 ? '3px' : '0' }}>
+              <span>Telefone:</span>
+              <span style={{ textAlign: 'right' }}>{romaneio.cliente?.telefone || '-'}</span>
+            </div>
+            {romaneio.clientesAdicionais?.length > 0 && romaneio.clientesAdicionais.map((cliente, idx) => (
+              <div key={idx} style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #aaa' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid #ccc', paddingBottom: '3px', marginBottom: '3px' }}>
+                  <span>Nome:</span>
+                  <span style={{ textAlign: 'right' }}>{cliente.nome}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+                  <span>Telefone:</span>
+                  <span style={{ textAlign: 'right' }}>{cliente.telefone || '-'}</span>
+                </div>
+              </div>
+            ))}
           </div>
+
+          <div style={{ border: '1px solid #000', padding: '8px', flex: 1 }}>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>PAGAMENTO</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+              <span>Forma de Pagamento:</span>
+              <span style={{ textAlign: 'right' }}>{romaneio.forma_pagamento || '-'}</span>
+            </div>
+          </div>
+
           {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
-            <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #555', fontSize: '15px' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>OBSERVAÇÕES:</div>
-              <div>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</div>
+            <div style={{ border: '1px solid #000', padding: '8px' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', borderBottom: '1px solid #000', paddingBottom: '3px' }}>OBSERVAÇÕES</div>
+              <div style={{ fontSize: '15px' }}>{romaneio.observacoes.replace(/^\|\|H:.*?\|\|\s*/, '')}</div>
             </div>
           )}
         </div>
@@ -219,21 +224,23 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
               border: '2px solid #000',
               padding: '8px',
               textAlign: 'center',
-              fontSize: '18px',
-              fontWeight: 'bold'
+              fontSize: '16px',
+              fontWeight: 'bold',
+              whiteSpace: 'nowrap'
             }}>
               $ COBRAR NA ENTREGA: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
             </div>
           )}
           {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
             <div style={{
-              flex: 1,
+              flex: '0 0 auto',
               background: '#fff',
               border: '2px solid #000',
-              padding: '8px',
+              padding: '8px 36px',
               textAlign: 'center',
-              fontSize: '18px',
-              fontWeight: 'bold'
+              fontSize: '16px',
+              fontWeight: 'bold',
+              whiteSpace: 'nowrap'
             }}>
               TROCO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
             </div>
