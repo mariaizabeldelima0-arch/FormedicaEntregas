@@ -5,6 +5,7 @@ import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import BannerAtualizacao from '@/components/BannerAtualizacao';
 import BannerTrocarSenha from '@/components/BannerTrocarSenha';
+import BannerAlertasAdmin from '@/components/BannerAlertasAdmin';
 
 // Ícones SVG simples
 const Icons = {
@@ -470,6 +471,7 @@ export default function Layout({ children }) {
       </div>
       <BannerAtualizacao />
       {deveTrocarSenha && <BannerTrocarSenha />}
+      {userType === 'admin' && <BannerAlertasAdmin />}
     </div>
   );
 }
