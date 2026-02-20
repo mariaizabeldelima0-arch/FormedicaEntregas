@@ -983,6 +983,44 @@ export default function EditarRomaneio() {
     });
   };
 
+  // Sábado: todas as entregas são do Bruno no período da Manhã
+  const isSabado = (dateStr) => {
+    if (!dateStr) return false;
+    return new Date(dateStr + 'T12:00:00').getDay() === 6;
+  };
+
+  const handleDataChange = (novaData) => {
+    const prevEhSabado = isSabado(formData.data_entrega);
+    const novoEhSabado = isSabado(novaData);
+
+    if (novoEhSabado) {
+      // Qualquer dia → Sábado: forçar Bruno + Manhã
+      const novoValor = calcularValor(formData.regiao, 'Bruno', false);
+      setFormData(prev => ({
+        ...prev,
+        data_entrega: novaData,
+        motoboy: 'Bruno',
+        periodo: 'Manhã',
+        valor_entrega: novoValor
+      }));
+    } else if (prevEhSabado) {
+      // Sábado → outro dia: reaplicar motoboy normal pela região
+      const motoboyNormal = formData.regiao && formData.regiao !== 'OUTRO'
+        ? (MOTOBOY_POR_REGIAO[formData.regiao] || 'Marcio')
+        : formData.motoboy;
+      const novoValor = calcularValor(formData.regiao, motoboyNormal);
+      setFormData(prev => ({
+        ...prev,
+        data_entrega: novaData,
+        motoboy: motoboyNormal,
+        periodo: 'Tarde',
+        valor_entrega: novoValor
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, data_entrega: novaData }));
+    }
+  };
+
   // Atualizar motoboy
   const handleMotoboyChange = (motoboy) => {
     const valor = calcularValor(formData.regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
@@ -2145,7 +2183,7 @@ export default function EditarRomaneio() {
               <CustomDatePicker
                 label="Data de Entrega *"
                 value={formData.data_entrega}
-                onChange={(value) => setFormData({...formData, data_entrega: value})}
+                onChange={handleDataChange}
                 placeholder="Selecione a data"
               />
             </div>

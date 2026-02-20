@@ -41,14 +41,14 @@ export default function Usuarios() {
     },
   });
 
-  // Buscar solicitações de redefinição de senha
-  const { data: solicitacoesSenha = [], refetch: refetchSolicitacoes } = useQuery({
-    queryKey: ['solicitacoes-senha'],
+  // Buscar usuários com código de recuperação ativo
+  const { data: codigosAtivos = [], refetch: refetchCodigos } = useQuery({
+    queryKey: ['codigos-redefinicao'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('usuarios')
-        .select('id, usuario, tipo_usuario')
-        .eq('solicitacao_redefinicao', true)
+        .select('id, usuario, tipo_usuario, codigo_redefinicao')
+        .not('codigo_redefinicao', 'is', null)
         .eq('ativo', true)
         .order('usuario');
       if (error) throw error;
@@ -56,35 +56,19 @@ export default function Usuarios() {
     },
   });
 
-  const aprovarRedefinicaoMutation = useMutation({
+  const cancelarCodigoMutation = useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase
         .from('usuarios')
-        .update({ deve_trocar_senha: true, solicitacao_redefinicao: false })
+        .update({ codigo_redefinicao: null })
         .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      refetchSolicitacoes();
-      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
-      toast.success('Aprovado! O usuário verá o banner no próximo login.');
+      refetchCodigos();
+      toast.success('Código cancelado.');
     },
-    onError: () => toast.error('Erro ao aprovar redefinição'),
-  });
-
-  const rejeitarRedefinicaoMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase
-        .from('usuarios')
-        .update({ solicitacao_redefinicao: false })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      refetchSolicitacoes();
-      toast.success('Solicitação rejeitada.');
-    },
-    onError: () => toast.error('Erro ao rejeitar solicitação'),
+    onError: () => toast.error('Erro ao cancelar código'),
   });
 
   // Mutation para atualizar tipo
@@ -158,11 +142,6 @@ export default function Usuarios() {
         tipo_usuario: userEdit.tipo_usuario,
       };
 
-      // Só atualiza a senha se foi informada uma nova
-      if (userEdit.senha) {
-        updateData.senha = userEdit.senha;
-      }
-
       const { data, error } = await supabase
         .from('usuarios')
         .update(updateData)
@@ -227,7 +206,6 @@ export default function Usuarios() {
     setUsuarioEditando({
       id: usuario.id,
       usuario: usuario.usuario || '',
-      senha: '',
       tipo_usuario: usuario.tipo_usuario || 'atendente',
     });
     setShowEditarUsuario(true);
@@ -322,21 +300,21 @@ export default function Usuarios() {
           </div>
         </div>
 
-        {/* Solicitações de Redefinição de Senha */}
-        {solicitacoesSenha.length > 0 && (
+        {/* Códigos de Recuperação Ativos */}
+        {codigosAtivos.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6 border-2 border-amber-300">
             <div className="px-6 py-4 border-b border-amber-200" style={{ backgroundColor: '#fffbeb' }}>
               <div className="flex items-center gap-2">
                 <KeyRound className="w-5 h-5 text-amber-600" />
-                <h2 className="text-lg font-bold text-amber-900">Solicitações de Redefinição de Senha</h2>
+                <h2 className="text-lg font-bold text-amber-900">Códigos de Recuperação Ativos</h2>
                 <span className="ml-1 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {solicitacoesSenha.length}
+                  {codigosAtivos.length}
                 </span>
               </div>
-              <p className="text-sm text-amber-700 mt-1">Usuários que esqueceram a senha e solicitaram redefinição.</p>
+              <p className="text-sm text-amber-700 mt-1">Informe o código ao usuário para que ele possa entrar e redefinir a senha.</p>
             </div>
             <div className="divide-y divide-slate-100">
-              {solicitacoesSenha.map((u) => {
+              {codigosAtivos.map((u) => {
                 const tipoConfig = {
                   admin: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Admin' },
                   atendente: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Atendente' },
@@ -344,33 +322,28 @@ export default function Usuarios() {
                 }[u.tipo_usuario] || { bg: 'bg-slate-100', text: 'text-slate-700', label: u.tipo_usuario };
                 return (
                   <div key={u.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <User className="w-5 h-5 text-slate-500 flex-shrink-0" />
                       <span className="font-semibold text-slate-900">{u.usuario}</span>
                       <span className={`px-2 py-0.5 rounded text-xs font-bold ${tipoConfig.bg} ${tipoConfig.text}`}>
                         {tipoConfig.label}
                       </span>
+                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-1.5">
+                        <KeyRound className="w-4 h-4 text-amber-600" />
+                        <span style={{ fontFamily: 'monospace', letterSpacing: '0.2em', fontSize: '18px', fontWeight: 'bold', color: '#92400e' }}>
+                          {u.codigo_redefinicao}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => aprovarRedefinicaoMutation.mutate(u.id)}
-                        disabled={aprovarRedefinicaoMutation.isPending || rejeitarRedefinicaoMutation.isPending}
-                        className="flex items-center gap-1.5 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                        style={{ backgroundColor: '#3dac38' }}
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Aprovar
-                      </button>
-                      <button
-                        onClick={() => rejeitarRedefinicaoMutation.mutate(u.id)}
-                        disabled={aprovarRedefinicaoMutation.isPending || rejeitarRedefinicaoMutation.isPending}
-                        className="flex items-center gap-1.5 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                        style={{ backgroundColor: '#ef4444' }}
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Rejeitar
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => cancelarCodigoMutation.mutate(u.id)}
+                      disabled={cancelarCodigoMutation.isPending}
+                      className="flex items-center gap-1.5 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                      style={{ backgroundColor: '#ef4444' }}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Cancelar código
+                    </button>
                   </div>
                 );
               })}
@@ -492,16 +465,6 @@ export default function Usuarios() {
                   value={usuarioEditando.usuario}
                   onChange={(e) => setUsuarioEditando({ ...usuarioEditando, usuario: e.target.value })}
                   placeholder="Digite o nome de usuário"
-                />
-              </div>
-
-              <div>
-                <Label>Nova Senha (deixe em branco para manter)</Label>
-                <Input
-                  type="password"
-                  value={usuarioEditando.senha}
-                  onChange={(e) => setUsuarioEditando({ ...usuarioEditando, senha: e.target.value })}
-                  placeholder="Digite uma nova senha"
                 />
               </div>
 

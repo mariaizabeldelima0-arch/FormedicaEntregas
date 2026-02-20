@@ -81,6 +81,44 @@ const obterNomeDispositivo = () => {
   return `${navegador} - ${dispositivo}`;
 };
 
+// Lógica reutilizável de verificação de dispositivo
+const verificarDispositivo = async (usuarioId, fingerprint, nomeDispositivo) => {
+  const { data: dispositivo, error: erroDisp } = await supabase
+    .from('dispositivos')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .eq('impressao_digital', fingerprint)
+    .maybeSingle();
+
+  if (erroDisp) return { ok: false, error: 'Erro ao verificar dispositivo' };
+
+  if (!dispositivo) {
+    const { error: erroCriar } = await supabase
+      .from('dispositivos')
+      .insert({
+        usuario_id: usuarioId,
+        nome: nomeDispositivo,
+        impressao_digital: fingerprint,
+        status: 'Pendente',
+        ultimo_acesso: new Date().toISOString()
+      });
+
+    if (erroCriar) return { ok: false, error: 'Erro ao registrar dispositivo' };
+
+    return { ok: false, error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.' };
+  }
+
+  if (dispositivo.status === 'Pendente') {
+    return { ok: false, error: 'Este dispositivo está aguardando autorização. Entre em contato com o administrador.' };
+  }
+
+  if (dispositivo.status === 'Bloqueado') {
+    return { ok: false, error: 'Este dispositivo está bloqueado. Entre em contato com o administrador.' };
+  }
+
+  return { ok: true };
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -129,58 +167,11 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Usuário ou senha inválidos' };
       }
 
-      // 2. Verificar dispositivo para este usuário + fingerprint
-      const { data: dispositivo, error: erroDisp } = await supabase
-        .from('dispositivos')
-        .select('*')
-        .eq('usuario_id', usuarioData.id)
-        .eq('impressao_digital', fingerprint)
-        .maybeSingle();
+      // 2. Verificar dispositivo
+      const dispResult = await verificarDispositivo(usuarioData.id, fingerprint, nomeDispositivo);
+      if (!dispResult.ok) return { success: false, error: dispResult.error };
 
-      if (erroDisp) {
-        console.error('Erro ao buscar dispositivo:', erroDisp);
-        return { success: false, error: 'Erro ao verificar dispositivo' };
-      }
-
-      // 3. Se não existe registro para este dispositivo, criar como Pendente
-      if (!dispositivo) {
-        const { error: erroCriar } = await supabase
-          .from('dispositivos')
-          .insert({
-            usuario_id: usuarioData.id,
-            nome: nomeDispositivo,
-            impressao_digital: fingerprint,
-            status: 'Pendente',
-            ultimo_acesso: new Date().toISOString()
-          });
-
-        if (erroCriar) {
-          console.error('Erro ao registrar dispositivo:', erroCriar);
-          return { success: false, error: 'Erro ao registrar dispositivo' };
-        }
-
-        return {
-          success: false,
-          error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.'
-        };
-      } else {
-        // 4. Dispositivo existe, verificar status
-        if (dispositivo.status === 'Pendente') {
-          return {
-            success: false,
-            error: 'Este dispositivo está aguardando autorização. Entre em contato com o administrador.'
-          };
-        }
-
-        if (dispositivo.status === 'Bloqueado') {
-          return {
-            success: false,
-            error: 'Este dispositivo está bloqueado. Entre em contato com o administrador.'
-          };
-        }
-      }
-
-      // 5. Login autorizado — dados vêm da tabela usuarios
+      // 3. Login autorizado
       const userData = {
         id: usuarioData.id,
         usuario: usuarioData.usuario,
@@ -212,20 +203,73 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Login com código temporário gerado pelo admin
+  const loginComCodigo = async (usuarioLogin, codigo) => {
+    try {
+      const fingerprint = gerarFingerprint();
+      const nomeDispositivo = obterNomeDispositivo();
+
+      // 1. Buscar usuário pelo código temporário
+      const { data: usuarioData, error: erroUsuario } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('usuario', usuarioLogin)
+        .eq('codigo_redefinicao', codigo)
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (erroUsuario) {
+        console.error('Erro ao buscar usuário:', erroUsuario);
+        return { success: false, error: 'Erro ao conectar' };
+      }
+
+      if (!usuarioData) {
+        return { success: false, error: 'Código inválido ou expirado.' };
+      }
+
+      // 2. Verificar dispositivo
+      const dispResult = await verificarDispositivo(usuarioData.id, fingerprint, nomeDispositivo);
+      if (!dispResult.ok) return { success: false, error: dispResult.error };
+
+      // 3. Login autorizado com código
+      const userData = {
+        id: usuarioData.id,
+        usuario: usuarioData.usuario,
+        tipo_usuario: usuarioData.tipo_usuario,
+      };
+
+      setUser(userData);
+      sessionStorage.setItem('formedica_user', JSON.stringify(userData));
+
+      setUserType(userData.tipo_usuario || 'atendente');
+      sessionStorage.setItem('formedica_user_type', userData.tipo_usuario || 'atendente');
+
+      // Atualizar último acesso
+      await supabase
+        .from('dispositivos')
+        .update({ ultimo_acesso: new Date().toISOString() })
+        .eq('usuario_id', usuarioData.id)
+        .eq('impressao_digital', fingerprint);
+
+      // Forçar troca de senha
+      setDeveTrocarSenha(true);
+      sessionStorage.setItem('formedica_deve_trocar_senha', 'true');
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erro no login com código:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const trocarSenha = async (novaSenha) => {
-    // Atualiza senha primeiro
-    const { error: erroSenha } = await supabase
-      .from('usuarios')
-      .update({ senha: novaSenha })
-      .eq('id', user.id);
+    // Usa RPC com SECURITY DEFINER para garantir que senha é atualizada
+    const { error } = await supabase.rpc('trocar_senha_usuario', {
+      p_usuario_id: user.id,
+      p_nova_senha: novaSenha
+    });
 
-    if (erroSenha) return { success: false, error: erroSenha };
-
-    // Tenta limpar a flag (pode falhar se a coluna ainda não existir no banco)
-    await supabase
-      .from('usuarios')
-      .update({ deve_trocar_senha: false })
-      .eq('id', user.id);
+    if (error) return { success: false, error };
 
     setDeveTrocarSenha(false);
     sessionStorage.removeItem('formedica_deve_trocar_senha');
@@ -247,6 +291,7 @@ export const AuthProvider = ({ children }) => {
       userType,
       loading,
       login,
+      loginComCodigo,
       logout,
       deveTrocarSenha,
       trocarSenha

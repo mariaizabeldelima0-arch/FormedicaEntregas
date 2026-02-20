@@ -4,20 +4,32 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/api/supabaseClient';
 import { theme } from '@/lib/theme';
 
+const gerarCodigo = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
 export default function Login() {
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginComCodigo } = useAuth();
   const navigate = useNavigate();
 
-  // Estado da tela de redefinição de senha
+  // Estados da tela de redefinição
   const [telaRedefinir, setTelaRedefinir] = useState(false);
   const [usuarioRedefinir, setUsuarioRedefinir] = useState('');
   const [loadingRedefinir, setLoadingRedefinir] = useState(false);
-  const [mensagemRedefinir, setMensagemRedefinir] = useState('');
   const [erroRedefinir, setErroRedefinir] = useState('');
+  // Após gerar código
+  const [codigoGerado, setCodigoGerado] = useState(false);
+  const [codigoInput, setCodigoInput] = useState('');
+  const [loadingCodigo, setLoadingCodigo] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,10 +47,9 @@ export default function Login() {
     setLoading(false);
   };
 
-  const handleSolicitarRedefinicao = async (e) => {
+  const handleGerarCodigo = async (e) => {
     e.preventDefault();
     setErroRedefinir('');
-    setMensagemRedefinir('');
 
     if (!usuarioRedefinir.trim()) {
       setErroRedefinir('Digite seu usuário.');
@@ -60,13 +71,49 @@ export default function Login() {
       return;
     }
 
-    await supabase
+    const codigo = gerarCodigo();
+
+    const { error: erroUpdate } = await supabase
       .from('usuarios')
-      .update({ solicitacao_redefinicao: true })
+      .update({ codigo_redefinicao: codigo })
       .eq('id', data.id);
 
-    setMensagemRedefinir('Pedido enviado. Aguarde o administrador liberar o acesso.');
+    if (erroUpdate) {
+      setErroRedefinir('Erro ao gerar código. Tente novamente.');
+      setLoadingRedefinir(false);
+      return;
+    }
+
+    setCodigoGerado(true);
     setLoadingRedefinir(false);
+  };
+
+  const handleEntrarComCodigo = async (e) => {
+    e.preventDefault();
+    setErroRedefinir('');
+
+    if (!codigoInput.trim()) {
+      setErroRedefinir('Digite o código fornecido pelo administrador.');
+      return;
+    }
+
+    setLoadingCodigo(true);
+    const result = await loginComCodigo(usuarioRedefinir, codigoInput.trim().toUpperCase());
+    setLoadingCodigo(false);
+
+    if (result.success) {
+      navigate('/');
+    } else {
+      setErroRedefinir(result.error || 'Código inválido.');
+    }
+  };
+
+  const voltarLogin = () => {
+    setTelaRedefinir(false);
+    setUsuarioRedefinir('');
+    setErroRedefinir('');
+    setCodigoGerado(false);
+    setCodigoInput('');
   };
 
   const inputStyle = {
@@ -84,6 +131,20 @@ export default function Login() {
     color: theme.colors.text,
     fontWeight: '500'
   };
+
+  const btnPrimary = (disabled) => ({
+    width: '100%',
+    padding: '0.75rem',
+    background: theme.colors.primary,
+    color: 'white',
+    border: 'none',
+    borderRadius: '0.5rem',
+    fontSize: '1rem',
+    fontWeight: '600',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.7 : 1,
+    marginBottom: '0.75rem'
+  });
 
   return (
     <div style={{
@@ -158,23 +219,12 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: theme.colors.primary,
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1
-              }}
+              style={btnPrimary(loading)}
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
 
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <div style={{ textAlign: 'center' }}>
               <button
                 type="button"
                 onClick={() => { setTelaRedefinir(true); setError(''); }}
@@ -195,7 +245,7 @@ export default function Login() {
 
         {/* Tela de Redefinição */}
         {telaRedefinir && (
-          <form onSubmit={handleSolicitarRedefinicao}>
+          <>
             {erroRedefinir && (
               <div style={{
                 background: '#fee2e2',
@@ -209,21 +259,9 @@ export default function Login() {
               </div>
             )}
 
-            {mensagemRedefinir ? (
-              <div style={{
-                background: '#f0fdf4',
-                color: '#166534',
-                border: '1px solid #bbf7d0',
-                padding: '0.75rem',
-                borderRadius: '0.5rem',
-                marginBottom: '1rem',
-                fontSize: '0.875rem',
-                textAlign: 'center'
-              }}>
-                {mensagemRedefinir}
-              </div>
-            ) : (
-              <>
+            {/* Passo 1: digitar usuário e gerar código */}
+            {!codigoGerado && (
+              <form onSubmit={handleGerarCodigo}>
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={labelStyle}>Digite seu usuário</label>
                   <input
@@ -238,29 +276,62 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loadingRedefinir}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    background: theme.colors.primary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    cursor: loadingRedefinir ? 'not-allowed' : 'pointer',
-                    opacity: loadingRedefinir ? 0.7 : 1,
-                    marginBottom: '0.75rem'
-                  }}
+                  style={btnPrimary(loadingRedefinir)}
                 >
-                  {loadingRedefinir ? 'Enviando...' : 'Enviar pedido'}
+                  {loadingRedefinir ? 'Gerando...' : 'Gerar código de acesso'}
                 </button>
-              </>
+              </form>
+            )}
+
+            {/* Passo 2: aguardar código do admin e entrar */}
+            {codigoGerado && (
+              <form onSubmit={handleEntrarComCodigo}>
+                <div style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: '0.5rem',
+                  padding: '0.875rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.875rem',
+                  color: '#92400e',
+                  textAlign: 'center'
+                }}>
+                  Código gerado! Entre em contato com o <strong>administrador</strong> para obter o código de acesso e digite-o abaixo.
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={labelStyle}>Código fornecido pelo administrador</label>
+                  <input
+                    type="text"
+                    value={codigoInput}
+                    onChange={(e) => setCodigoInput(e.target.value.toUpperCase())}
+                    placeholder="Ex: AB3X9K"
+                    maxLength={6}
+                    style={{
+                      ...inputStyle,
+                      textAlign: 'center',
+                      letterSpacing: '0.3em',
+                      fontSize: '1.25rem',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loadingCodigo}
+                  style={btnPrimary(loadingCodigo)}
+                >
+                  {loadingCodigo ? 'Verificando...' : 'Entrar com código'}
+                </button>
+              </form>
             )}
 
             <div style={{ textAlign: 'center' }}>
               <button
                 type="button"
-                onClick={() => { setTelaRedefinir(false); setErroRedefinir(''); setMensagemRedefinir(''); setUsuarioRedefinir(''); }}
+                onClick={voltarLogin}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -273,7 +344,7 @@ export default function Login() {
                 Voltar ao login
               </button>
             </div>
-          </form>
+          </>
         )}
       </div>
     </div>
