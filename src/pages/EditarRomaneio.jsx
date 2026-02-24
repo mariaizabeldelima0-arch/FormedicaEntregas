@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
@@ -275,6 +276,7 @@ const detectarRegiao = (cidade, bairro) => {
 };
 
 export default function EditarRomaneio() {
+  const { userType } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const entregaId = searchParams.get('id');
@@ -2496,21 +2498,36 @@ export default function EditarRomaneio() {
               }}>
                 Valor da Entrega (R$)
               </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.valor_entrega}
-                onChange={(e) => setFormData({...formData, valor_entrega: parseFloat(e.target.value) || 0})}
-                style={{
+              {userType === 'admin' ? (
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.valor_entrega}
+                  onChange={(e) => setFormData({...formData, valor_entrega: parseFloat(e.target.value) || 0})}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: theme.colors.primary
+                  }}
+                />
+              ) : (
+                <div style={{
                   width: '100%',
                   padding: '0.75rem',
                   border: `1px solid ${theme.colors.border}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: theme.colors.primary
-                }}
-              />
+                  color: theme.colors.primary,
+                  backgroundColor: '#f8fafc'
+                }}>
+                  R$ {Number(formData.valor_entrega).toFixed(2).replace('.', ',')}
+                </div>
+              )}
             </div>
           </div>
 

@@ -278,7 +278,7 @@ export default function NovoRomaneio() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, userType } = useAuth();
 
   // Ler data da URL (se vier de Entregas Moto com data selecionada)
   const urlParams = new URLSearchParams(location.search);
@@ -2365,22 +2365,37 @@ export default function NovoRomaneio() {
                   </span>
                 )}
               </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.valor_entrega}
-                onChange={(e) => setFormData({...formData, valor_entrega: parseFloat(e.target.value) || 0})}
-                style={{
+              {userType === 'admin' ? (
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.valor_entrega}
+                  onChange={(e) => setFormData({...formData, valor_entrega: parseFloat(e.target.value) || 0})}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: `1px solid ${isEntregaUnica && formData.motoboy === 'Bruno' ? '#fbbf24' : theme.colors.border}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: theme.colors.primary,
+                    backgroundColor: isEntregaUnica && formData.motoboy === 'Bruno' ? '#fffbeb' : 'white'
+                  }}
+                />
+              ) : (
+                <div style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: `1px solid ${isEntregaUnica && formData.motoboy === 'Bruno' ? '#fbbf24' : theme.colors.border}`,
+                  border: `1px solid ${theme.colors.border}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: '600',
                   color: theme.colors.primary,
-                  backgroundColor: isEntregaUnica && formData.motoboy === 'Bruno' ? '#fffbeb' : 'white'
-                }}
-              />
+                  backgroundColor: '#f8fafc'
+                }}>
+                  R$ {Number(formData.valor_entrega).toFixed(2).replace('.', ',')}
+                </div>
+              )}
             </div>
           </div>
 
