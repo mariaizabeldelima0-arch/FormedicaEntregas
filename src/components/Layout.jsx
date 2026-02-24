@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
+import { supabase } from '@/api/supabaseClient';
 import BannerAtualizacao from '@/components/BannerAtualizacao';
 import BannerTrocarSenha from '@/components/BannerTrocarSenha';
 import BannerAlertasAdmin from '@/components/BannerAlertasAdmin';
@@ -92,6 +93,69 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuExpanded, setIsMenuExpanded] = useState(false);
+  const jaCorrigiuEntregas = useRef(false);
+
+  // Corrigir valores do Bruno: verificar por PERÍODO (não por dia)
+  useEffect(() => {
+    if (jaCorrigiuEntregas.current) return;
+    jaCorrigiuEntregas.current = true;
+
+    const VALORES_UNICA = {
+      'BC': 12, 'NOVA ESPERANÇA': 15, 'CAMBORIÚ': 20, 'TABULEIRO': 15,
+      'MONTE ALEGRE': 15, 'BARRA': 15, 'ESTALEIRO': 25, 'TAQUARAS': 25,
+      'LARANJEIRAS': 25, 'ITAJAI': 25, 'ESPINHEIROS': 35, 'PRAIA DOS AMORES': 15,
+      'PRAIA BRAVA': 15, 'ITAPEMA': 35, 'NAVEGANTES': 50, 'PENHA': 75,
+      'PORTO BELO': 60, 'TIJUCAS': 87, 'PIÇARRAS': 80, 'BOMBINHAS': 90, 'CLINICA': 12
+    };
+    const VALORES_NORMAIS = {
+      'BC': 7, 'NOVA ESPERANÇA': 9, 'CAMBORIÚ': 14, 'TABULEIRO': 9,
+      'MONTE ALEGRE': 9, 'BARRA': 9, 'ESTALEIRO': 14, 'TAQUARAS': 14,
+      'LARANJEIRAS': 14, 'ITAJAI': 17, 'ESPINHEIROS': 21, 'PRAIA DOS AMORES': 11.50,
+      'PRAIA BRAVA': 11.50, 'ITAPEMA': 25, 'NAVEGANTES': 40, 'PENHA': 50,
+      'PORTO BELO': 30, 'TIJUCAS': 50, 'PIÇARRAS': 50, 'BOMBINHAS': 50, 'CLINICA': 7
+    };
+
+    (async () => {
+      try {
+        const { data: bruno } = await supabase
+          .from('motoboys').select('id').eq('nome', 'Bruno').single();
+        if (!bruno) return;
+
+        const { data: entregas } = await supabase
+          .from('entregas')
+          .select('id, data_entrega, periodo, regiao, valor')
+          .eq('motoboy_id', bruno.id);
+        if (!entregas?.length) return;
+
+        // Agrupar por data
+        const porData = {};
+        entregas.forEach(e => {
+          if (!porData[e.data_entrega]) porData[e.data_entrega] = { manha: [], tarde: [] };
+          if (e.periodo === 'Manhã') porData[e.data_entrega].manha.push(e);
+          else if (e.periodo === 'Tarde') porData[e.data_entrega].tarde.push(e);
+        });
+
+        // Verificar cada período de forma INDEPENDENTE
+        for (const periodos of Object.values(porData)) {
+          for (const lista of [periodos.manha, periodos.tarde]) {
+            if (lista.length === 0) continue;
+            const ehUnica = lista.length === 1;
+            for (const entrega of lista) {
+              const valorUnico = VALORES_UNICA[entrega.regiao];
+              const valorNormal = VALORES_NORMAIS[entrega.regiao];
+              if (!valorUnico || !valorNormal) continue;
+              const valorEsperado = ehUnica ? valorUnico : valorNormal;
+              if (entrega.valor !== valorEsperado) {
+                await supabase.from('entregas').update({ valor: valorEsperado }).eq('id', entrega.id);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao corrigir entregas do Bruno:', err);
+      }
+    })();
+  }, []);
 
   const menuItems = {
     admin: [
