@@ -21,6 +21,7 @@ import PainelMotoboys from '@/pages/PainelMotoboys';
 import Dispositivos from '@/pages/Dispositivos';
 import RomaneiosDoDia from '@/pages/RomaneiosDoDia';
 import Usuarios from '@/pages/Usuarios';
+import Backup from '@/pages/Backup';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -120,6 +121,7 @@ function AppRoutes() {
                 <Route path="/dispositivos" element={<MotoboyRoute><Dispositivos /></MotoboyRoute>} />
                 <Route path="/romaneios-do-dia" element={<MotoboyRoute><RomaneiosDoDia /></MotoboyRoute>} />
                 <Route path="/usuarios" element={<MotoboyRoute><Usuarios /></MotoboyRoute>} />
+                <Route path="/backup" element={<MotoboyRoute><Backup /></MotoboyRoute>} />
               </Routes>
             </Layout>
           </PrivateRoute>
