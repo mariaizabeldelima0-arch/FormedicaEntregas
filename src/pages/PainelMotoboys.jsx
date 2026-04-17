@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchAllRows } from '@/utils/fetchAllRows';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -32,7 +33,14 @@ import {
   Snowflake,
   FileText,
   Banknote,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  ShoppingBag,
+  Pencil,
+  Trash2,
+  Receipt,
+  CalendarDays,
+  ChevronsUpDown
 } from 'lucide-react';
 
 
@@ -63,6 +71,18 @@ export default function PainelMotoboys() {
   }, [dataSelecionada, filtroLocal, filtroPeriodo, filtroStatus, termoBusca]);
   const [ordemEntregas, setOrdemEntregas] = useState({});
   const [statusPagamentoSemana, setStatusPagamentoSemana] = useState('Aguardando');
+  const [showModalPedido, setShowModalPedido] = useState(false);
+  const [pedidoEditando, setPedidoEditando] = useState(null);
+  const [showPedidos, setShowPedidos] = useState(true);
+  const [formPedido, setFormPedido] = useState({
+    nome_formula: '',
+    numero_requisicao: '',
+    data_pedido: format(new Date(), 'yyyy-MM-dd'),
+    valor_total: '',
+    num_parcelas: 1,
+    semana_inicio: '',
+    observacoes: ''
+  });
 
   // Definição dos status disponíveis (Em Rota é o padrão)
   const statusOptions = [
@@ -121,19 +141,20 @@ export default function PainelMotoboys() {
   const { data: todasEntregasRaw = [], isLoading } = useQuery({
     queryKey: ['entregas-motoboy-all'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('entregas')
-        .select(`
-          *,
-          cliente:clientes(id, nome, telefone),
-          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
-          motoboy:motoboys(id, nome)
-        `)
-        .eq('tipo', 'moto')
-        .order('data_entrega', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('entregas')
+          .select(`
+            *,
+            cliente:clientes(id, nome, telefone),
+            endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
+            motoboy:motoboys(id, nome)
+          `)
+          .eq('tipo', 'moto')
+          .order('data_entrega', { ascending: true })
+          .range(from, to)
+      );
+      return data;
     },
     refetchOnMount: 'always',
     staleTime: 0,
@@ -268,6 +289,182 @@ export default function PainelMotoboys() {
 
   const semanaTrabalho = calcularSemanaTrabalho();
   const totalSemana = semanaTrabalho.reduce((sum, d) => sum + d.valor, 0);
+
+  // Buscar pedidos do motoboy
+  const { data: pedidosMotoboy = [] } = useQuery({
+    queryKey: ['pedidos-motoboy', motoboyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pedidos_motoboy')
+        .select(`
+          *,
+          registrado:usuarios!registrado_por(id, usuario),
+          parcelas:parcelas_pedido_motoboy(*)
+        `)
+        .eq('motoboy_id', motoboyId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!motoboyId,
+  });
+
+  // Gerar opções das próximas 8 semanas para o select (começa na terça)
+  const gerarOpcoesSemanas = () => {
+    const opcoes = [];
+    const inicioSemanaBase = startOfWeek(new Date(), { weekStartsOn: 2 });
+    for (let i = 0; i < 8; i++) {
+      const inicio = addDays(inicioSemanaBase, i * 7);
+      const fim = addDays(inicio, 6);
+      opcoes.push({
+        value: format(inicio, 'yyyy-MM-dd'),
+        label: `${format(inicio, 'dd/MM')} - ${format(fim, 'dd/MM/yyyy')}`
+      });
+    }
+    return opcoes;
+  };
+
+  // Fechar modal e resetar form
+  const fecharModalPedido = () => {
+    setShowModalPedido(false);
+    setPedidoEditando(null);
+    setFormPedido({
+      nome_formula: '',
+      numero_requisicao: '',
+      data_pedido: format(new Date(), 'yyyy-MM-dd'),
+      valor_total: '',
+      num_parcelas: 1,
+      semana_inicio: '',
+      observacoes: ''
+    });
+  };
+
+  const abrirModalNovoPedido = () => {
+    setPedidoEditando(null);
+    setFormPedido({
+      nome_formula: '',
+      numero_requisicao: '',
+      data_pedido: format(new Date(), 'yyyy-MM-dd'),
+      valor_total: '',
+      num_parcelas: 1,
+      semana_inicio: '',
+      observacoes: ''
+    });
+    setShowModalPedido(true);
+  };
+
+  const abrirModalEditarPedido = (pedido) => {
+    const primeiraParcelaSorted = [...(pedido.parcelas || [])]
+      .sort((a, b) => a.numero_parcela - b.numero_parcela)[0];
+    setPedidoEditando(pedido);
+    setFormPedido({
+      nome_formula: pedido.nome_formula || '',
+      numero_requisicao: pedido.numero_requisicao || '',
+      data_pedido: pedido.data_pedido || format(new Date(), 'yyyy-MM-dd'),
+      valor_total: String(pedido.valor_total || ''),
+      num_parcelas: pedido.num_parcelas || 1,
+      semana_inicio: primeiraParcelaSorted?.semana_inicio || '',
+      observacoes: pedido.observacoes || ''
+    });
+    setShowModalPedido(true);
+  };
+
+  // Mutation salvar pedido (criar ou editar)
+  const salvarPedidoMutation = useMutation({
+    mutationFn: async () => {
+      const valorTotal = parseFloat(formPedido.valor_total);
+      const numParcelas = parseInt(formPedido.num_parcelas);
+      const valorBase = Math.floor((valorTotal / numParcelas) * 100) / 100;
+      const ultimaParcela = Math.round((valorTotal - valorBase * (numParcelas - 1)) * 100) / 100;
+
+      let pedidoId;
+      if (pedidoEditando) {
+        const { error } = await supabase
+          .from('pedidos_motoboy')
+          .update({
+            nome_formula: formPedido.nome_formula.trim(),
+            numero_requisicao: formPedido.numero_requisicao.trim(),
+            data_pedido: formPedido.data_pedido,
+            valor_total: valorTotal,
+            num_parcelas: numParcelas,
+            observacoes: formPedido.observacoes.trim() || null,
+          })
+          .eq('id', pedidoEditando.id);
+        if (error) throw error;
+        pedidoId = pedidoEditando.id;
+        const { error: delError } = await supabase
+          .from('parcelas_pedido_motoboy')
+          .delete()
+          .eq('pedido_id', pedidoId);
+        if (delError) throw delError;
+      } else {
+        const { data: novoPedido, error } = await supabase
+          .from('pedidos_motoboy')
+          .insert({
+            motoboy_id: motoboyId,
+            registrado_por: user?.id,
+            nome_formula: formPedido.nome_formula.trim(),
+            numero_requisicao: formPedido.numero_requisicao.trim(),
+            data_pedido: formPedido.data_pedido,
+            valor_total: valorTotal,
+            num_parcelas: numParcelas,
+            observacoes: formPedido.observacoes.trim() || null,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        pedidoId = novoPedido.id;
+      }
+
+      const parcelas = Array.from({ length: numParcelas }, (_, i) => ({
+        pedido_id: pedidoId,
+        numero_parcela: i + 1,
+        valor_parcela: i === numParcelas - 1 ? ultimaParcela : valorBase,
+        semana_inicio: format(addDays(new Date(formPedido.semana_inicio + 'T00:00:00'), i * 7), 'yyyy-MM-dd'),
+        status: 'pendente',
+      }));
+
+      const { error: parcelasError } = await supabase
+        .from('parcelas_pedido_motoboy')
+        .insert(parcelas);
+      if (parcelasError) throw parcelasError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pedidos-motoboy', motoboyId] });
+      toast.success(pedidoEditando ? 'Pedido atualizado!' : 'Pedido cadastrado!');
+      fecharModalPedido();
+    },
+    onError: (err) => {
+      toast.error('Erro ao salvar pedido: ' + err.message);
+    }
+  });
+
+  // Mutation excluir pedido (CASCADE deleta as parcelas)
+  const excluirPedidoMutation = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase
+        .from('pedidos_motoboy')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pedidos-motoboy', motoboyId] });
+      toast.success('Pedido excluído!');
+    },
+    onError: (err) => {
+      toast.error('Erro ao excluir: ' + err.message);
+    }
+  });
+
+  const handleSalvarPedido = () => {
+    if (!formPedido.nome_formula.trim()) { toast.error('Informe o nome da fórmula'); return; }
+    if (!formPedido.numero_requisicao.trim()) { toast.error('Informe o nº de requisição'); return; }
+    if (!formPedido.data_pedido) { toast.error('Informe a data do pedido'); return; }
+    if (!formPedido.valor_total || parseFloat(formPedido.valor_total) <= 0) { toast.error('Informe um valor válido'); return; }
+    if (!formPedido.semana_inicio) { toast.error('Selecione a semana de início'); return; }
+    salvarPedidoMutation.mutate();
+  };
 
   // Dias do mês para o calendário
   const diasDoMes = eachDayOfInterval({
@@ -421,6 +618,15 @@ export default function PainelMotoboys() {
 
   // Carregar status de pagamento da semana atual (semana: terça a segunda)
   const inicioSemanaAtual = format(startOfWeek(dataSelecionada, { weekStartsOn: 2 }), 'yyyy-MM-dd');
+
+  // Cálculo dos descontos da semana atual
+  const descontosSemana = pedidosMotoboy.reduce((total, pedido) => {
+    const parcelasDaSemana = (pedido.parcelas || []).filter(
+      p => p.semana_inicio === inicioSemanaAtual
+    );
+    return total + parcelasDaSemana.reduce((sum, p) => sum + (parseFloat(p.valor_parcela) || 0), 0);
+  }, 0);
+  const totalLiquidoSemana = totalSemana - descontosSemana;
 
   useEffect(() => {
     const carregarPagamentoSemana = async () => {
@@ -668,9 +874,25 @@ export default function PainelMotoboys() {
                 ))}
               </div>
 
-              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200 flex items-center justify-between">
-                <span className="font-bold text-slate-700 text-xs sm:text-sm">TOTAL</span>
-                <span className="font-bold text-green-600 text-sm sm:text-base">R$ {totalSemana.toFixed(2)}</span>
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700 text-xs sm:text-sm">ENTREGAS</span>
+                  <span className="font-bold text-green-600 text-sm sm:text-base">R$ {totalSemana.toFixed(2)}</span>
+                </div>
+                {descontosSemana > 0 && (
+                  <>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="font-semibold text-red-600 text-xs sm:text-sm">DESCONTOS</span>
+                      <span className="font-semibold text-red-600 text-xs sm:text-sm">- R$ {descontosSemana.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-dashed border-slate-300 mt-1.5 pt-1.5 flex items-center justify-between">
+                      <span className="font-bold text-slate-700 text-xs sm:text-sm">TOTAL LÍQUIDO</span>
+                      <span className={`font-bold text-sm sm:text-base ${totalLiquidoSemana >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        R$ {totalLiquidoSemana.toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Status de Pagamento da Semana */}
@@ -723,6 +945,114 @@ export default function PainelMotoboys() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Pedidos / Descontos */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <button
+                  onClick={() => setShowPedidos(!showPedidos)}
+                  className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900"
+                >
+                  <ShoppingBag className="w-4 h-4" style={{ color: '#890d5d' }} />
+                  Pedidos / Descontos
+                  {pedidosMotoboy.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold text-white" style={{ backgroundColor: '#890d5d' }}>
+                      {pedidosMotoboy.length}
+                    </span>
+                  )}
+                  <ChevronsUpDown className="w-3 h-3 text-slate-400 ml-1" />
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={abrirModalNovoPedido}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white transition-all"
+                    style={{ backgroundColor: '#890d5d' }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Novo
+                  </button>
+                )}
+              </div>
+
+              {showPedidos && (
+                <div className="space-y-2 sm:space-y-3">
+                  {pedidosMotoboy.length === 0 ? (
+                    <p className="text-xs text-slate-400 text-center py-3">Nenhum pedido registrado</p>
+                  ) : (
+                    pedidosMotoboy.map(pedido => (
+                      <div key={pedido.id} className="rounded-lg border border-slate-100 p-2.5 sm:p-3 bg-slate-50">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
+                              {pedido.nome_formula}
+                            </p>
+                            <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
+                              Req. #{pedido.numero_requisicao} · {format(new Date(pedido.data_pedido + 'T00:00:00'), 'dd/MM/yyyy')}
+                            </p>
+                            <p className="text-xs font-bold mt-0.5" style={{ color: '#890d5d' }}>
+                              R$ {parseFloat(pedido.valor_total).toFixed(2)}
+                              {pedido.num_parcelas > 1 && (
+                                <span className="font-normal text-slate-500 ml-1">em {pedido.num_parcelas}x</span>
+                              )}
+                            </p>
+                          </div>
+                          {isAdmin && (
+                            <div className="flex gap-1 shrink-0">
+                              <button
+                                onClick={() => abrirModalEditarPedido(pedido)}
+                                className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Excluir pedido "${pedido.nome_formula}"?`)) {
+                                    excluirPedidoMutation.mutate(pedido.id);
+                                  }
+                                }}
+                                className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Parcelas detalhadas */}
+                        {pedido.num_parcelas > 1 && pedido.parcelas && pedido.parcelas.length > 0 && (
+                          <div className="mt-2 space-y-0.5 border-t border-slate-200 pt-2">
+                            {[...pedido.parcelas]
+                              .sort((a, b) => a.numero_parcela - b.numero_parcela)
+                              .map(parcela => (
+                                <div key={parcela.id} className="flex items-center justify-between text-[10px] sm:text-xs">
+                                  <span className={parcela.status === 'descontado' ? 'line-through text-green-600' : 'text-slate-500'}>
+                                    {parcela.numero_parcela}/{pedido.num_parcelas} · {parcela.semana_inicio}
+                                  </span>
+                                  <span className={parcela.status === 'descontado' ? 'line-through text-green-600 font-medium' : 'text-slate-600 font-medium'}>
+                                    R$ {parseFloat(parcela.valor_parcela).toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+
+                        {/* Observações */}
+                        {pedido.observacoes && (
+                          <p className="mt-1.5 text-[10px] sm:text-xs text-slate-500 italic bg-white rounded px-2 py-1 border border-slate-100">
+                            {pedido.observacoes}
+                          </p>
+                        )}
+
+                        {/* Registrado por */}
+                        <p className="text-[10px] text-slate-400 mt-1.5">
+                          Por: {pedido.registrado?.usuario || 'Sistema'}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -975,6 +1305,216 @@ export default function PainelMotoboys() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Pedido */}
+      {showModalPedido && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            zIndex: 9990,
+            padding: '16px',
+            overflowY: 'auto',
+          }}
+        >
+          <div style={{
+            width: '100%',
+            maxWidth: '520px',
+            marginTop: '16px',
+            marginBottom: '16px',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
+            backgroundColor: 'white',
+          }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)',
+              padding: '20px 24px',
+            }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white text-xs font-medium opacity-80 mb-0.5">
+                    {motoboyAtual?.nome}
+                  </p>
+                  <h2 className="text-white text-lg font-bold">
+                    {pedidoEditando ? 'Editar Pedido' : 'Novo Pedido'}
+                  </h2>
+                </div>
+                <button
+                  onClick={fecharModalPedido}
+                  className="p-2 rounded-lg text-white hover:bg-white/20 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Corpo */}
+            <div className="p-5 sm:p-6 space-y-4">
+              {/* Nome da Fórmula */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Nome da Fórmula *
+                </label>
+                <input
+                  type="text"
+                  value={formPedido.nome_formula}
+                  onChange={e => setFormPedido(f => ({ ...f, nome_formula: e.target.value }))}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ex: Vitamina C 500mg"
+                />
+              </div>
+
+              {/* Nº Requisição + Data */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Nº Requisição *
+                  </label>
+                  <input
+                    type="text"
+                    value={formPedido.numero_requisicao}
+                    onChange={e => setFormPedido(f => ({ ...f, numero_requisicao: e.target.value }))}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ex: 1234"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Data do Pedido *
+                  </label>
+                  <input
+                    type="date"
+                    value={formPedido.data_pedido}
+                    onChange={e => setFormPedido(f => ({ ...f, data_pedido: e.target.value }))}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Valor Total + Parcelas */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Valor Total (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formPedido.valor_total}
+                    onChange={e => setFormPedido(f => ({ ...f, valor_total: e.target.value }))}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0,00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Parcelas
+                  </label>
+                  <select
+                    value={formPedido.num_parcelas}
+                    onChange={e => setFormPedido(f => ({ ...f, num_parcelas: parseInt(e.target.value) }))}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(n => {
+                      const val = parseFloat(formPedido.valor_total) || 0;
+                      const parcela = val > 0 ? ` (R$ ${(val / n).toFixed(2)}/sem)` : '';
+                      return <option key={n} value={n}>{n}x{parcela}</option>;
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              {/* Semana de início */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Semana de início do desconto *
+                </label>
+                <select
+                  value={formPedido.semana_inicio}
+                  onChange={e => setFormPedido(f => ({ ...f, semana_inicio: e.target.value }))}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione uma semana</option>
+                  {gerarOpcoesSemanas().map(op => (
+                    <option key={op.value} value={op.value}>{op.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Preview das parcelas */}
+              {parseFloat(formPedido.valor_total) > 0 && formPedido.num_parcelas > 1 && formPedido.semana_inicio && (
+                <div className="rounded-lg p-3 border border-blue-100" style={{ backgroundColor: '#eff6ff' }}>
+                  <p className="text-xs font-semibold text-blue-700 mb-2">Preview das parcelas:</p>
+                  <div className="space-y-1">
+                    {Array.from({ length: formPedido.num_parcelas }, (_, i) => {
+                      const valorTotal = parseFloat(formPedido.valor_total);
+                      const numP = formPedido.num_parcelas;
+                      const valorBase = Math.floor((valorTotal / numP) * 100) / 100;
+                      const valorParcela = i === numP - 1
+                        ? Math.round((valorTotal - valorBase * (numP - 1)) * 100) / 100
+                        : valorBase;
+                      const semana = format(addDays(new Date(formPedido.semana_inicio + 'T00:00:00'), i * 7), 'dd/MM/yyyy');
+                      return (
+                        <div key={i} className="flex justify-between text-xs text-blue-600">
+                          <span>Parcela {i + 1}/{numP} · Semana {semana}</span>
+                          <span className="font-medium">R$ {valorParcela.toFixed(2)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Observações */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Observações
+                </label>
+                <textarea
+                  value={formPedido.observacoes}
+                  onChange={e => setFormPedido(f => ({ ...f, observacoes: e.target.value }))}
+                  rows={3}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder="Anotações sobre o pedido..."
+                />
+              </div>
+
+              {/* Registrado por */}
+              <div className="rounded-lg px-3 py-2.5" style={{ backgroundColor: '#dbeafe' }}>
+                <p className="text-xs text-blue-700">
+                  <span className="font-semibold">Registrado por:</span>{' '}
+                  {user?.usuario || user?.nome || 'Usuário atual'}
+                </p>
+              </div>
+
+              {/* Botões */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={fecharModalPedido}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSalvarPedido}
+                  disabled={salvarPedidoMutation.isPending}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-60"
+                  style={{ backgroundColor: '#890d5d' }}
+                >
+                  {salvarPedidoMutation.isPending ? 'Salvando...' : pedidoEditando ? 'Atualizar' : 'Cadastrar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

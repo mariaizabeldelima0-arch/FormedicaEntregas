@@ -4,6 +4,7 @@ import { Download, DatabaseBackup, Users, Package, Truck, Archive } from 'lucide
 import { toast } from 'sonner';
 import { supabase } from '@/api/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchAllRows } from '@/utils/fetchAllRows';
 
 function downloadJSON(dados, nomeArquivo) {
   const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
@@ -32,11 +33,9 @@ export default function Backup() {
   async function exportarEntregas() {
     setLoading(l => ({ ...l, entregas: true }));
     try {
-      const { data, error } = await supabase
-        .from('entregas')
-        .select('*')
-        .order('data_entrega', { ascending: false });
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase.from('entregas').select('*').order('data_entrega', { ascending: false }).range(from, to)
+      );
       downloadJSON(
         { exportado_em: new Date().toISOString(), projeto: 'Formédica Entregas', tabelas: { entregas: data } },
         `backup-entregas-${dataHoje()}.json`
@@ -97,36 +96,43 @@ export default function Backup() {
   async function exportarTudo() {
     setLoading(l => ({ ...l, tudo: true }));
     try {
-      const [resEntregas, resClientes, resEnderecos, resSedex, resMotoboys, resUsuarios] = await Promise.all([
-        supabase.from('entregas').select('*').order('data_entrega', { ascending: false }),
-        supabase.from('clientes').select('*').order('nome'),
-        supabase.from('enderecos').select('*'),
-        supabase.from('sedex_disktenha').select('*').order('data_saida', { ascending: false }),
+      const [entregas, clientes, enderecos, sedex, motoboys, resUsuarios] = await Promise.all([
+        fetchAllRows((from, to) =>
+          supabase.from('entregas').select('*').order('data_entrega', { ascending: false }).range(from, to)
+        ),
+        fetchAllRows((from, to) =>
+          supabase.from('clientes').select('*').order('nome').range(from, to)
+        ),
+        fetchAllRows((from, to) =>
+          supabase.from('enderecos').select('*').range(from, to)
+        ),
+        fetchAllRows((from, to) =>
+          supabase.from('sedex_disktenha').select('*').order('data_saida', { ascending: false }).range(from, to)
+        ),
         supabase.from('motoboys').select('id, nome'),
         supabase.from('usuarios').select('id, usuario, tipo_usuario, ativo'),
       ]);
 
-      const erros = [resEntregas, resClientes, resEnderecos, resSedex, resMotoboys, resUsuarios]
-        .find(r => r.error);
-      if (erros) throw erros.error;
+      if (motoboys.error) throw motoboys.error;
+      if (resUsuarios.error) throw resUsuarios.error;
 
       downloadJSON(
         {
           exportado_em: new Date().toISOString(),
           projeto: 'Formédica Entregas',
           tabelas: {
-            entregas: resEntregas.data,
-            clientes: resClientes.data,
-            enderecos: resEnderecos.data,
-            sedex_disktenha: resSedex.data,
-            motoboys: resMotoboys.data,
+            entregas,
+            clientes,
+            enderecos,
+            sedex_disktenha: sedex,
+            motoboys: motoboys.data,
             usuarios: resUsuarios.data,
           }
         },
         `backup-completo-${dataHoje()}.json`
       );
 
-      const total = resEntregas.data.length + resClientes.data.length + resSedex.data.length;
+      const total = entregas.length + clientes.length + sedex.length;
       toast.success(`Backup completo exportado — ${total} registros principais.`);
     } catch (err) {
       toast.error('Erro ao exportar backup completo: ' + err.message);

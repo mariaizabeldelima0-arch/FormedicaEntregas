@@ -464,7 +464,8 @@ export default function DetalheSedexDisktenha() {
                   label="Status do Pagamento"
                   options={[
                     { value: 'Aguardando', label: 'Aguardando' },
-                    { value: 'Pago', label: 'Pago' }
+                    { value: 'Pago', label: 'Pago' },
+                    { value: 'Via na Pasta', label: 'Via na Pasta' },
                   ]}
                   value={editData.forma_pagamento}
                   onChange={(value) => setEditData({ ...editData, forma_pagamento: value })}

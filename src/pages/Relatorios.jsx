@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
+import { fetchAllRows } from "@/utils/fetchAllRows";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,18 +52,19 @@ export default function Relatorios() {
   const { data: entregas = [], isLoading, error: queryError } = useQuery({
     queryKey: ['entregas-relatorio'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('entregas')
-        .select(`
-          *,
-          cliente:clientes(nome, telefone),
-          endereco:enderecos(cidade, regiao),
-          motoboy:motoboys(nome)
-        `)
-        .order('data_entrega', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('entregas')
+          .select(`
+            *,
+            cliente:clientes(nome, telefone),
+            endereco:enderecos(cidade, regiao),
+            motoboy:motoboys(nome)
+          `)
+          .order('data_entrega', { ascending: true })
+          .range(from, to)
+      );
+      return data;
     },
   });
 

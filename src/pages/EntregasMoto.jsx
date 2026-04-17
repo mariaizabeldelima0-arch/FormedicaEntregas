@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { toast } from 'sonner';
+import { fetchAllRows } from '@/utils/fetchAllRows';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -211,21 +212,20 @@ export default function EntregasMoto() {
   const loadEntregas = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('entregas')
-        .select(`
-          *,
-          cliente:clientes(id, nome, telefone, cpf),
-          endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep),
-          motoboy:motoboys(id, nome),
-          anexos(id, tipo)
-        `)
-        .eq('tipo', 'moto')
-        .order('data_entrega', { ascending: true });
-
-      const { data, error } = await query;
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('entregas')
+          .select(`
+            *,
+            cliente:clientes(id, nome, telefone, cpf),
+            endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento, cep),
+            motoboy:motoboys(id, nome),
+            anexos(id, tipo)
+          `)
+          .eq('tipo', 'moto')
+          .order('data_entrega', { ascending: true })
+          .range(from, to)
+      );
 
       // Buscar dados dos clientes adicionais e processar snapshot de endereço
       const entregasComClientesAdicionais = await Promise.all(

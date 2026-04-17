@@ -804,14 +804,14 @@ export default function EditarRomaneio() {
       setFormData(prevFormData => ({
         ...prevFormData,
         endereco_id: endereco.id,
-        endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`
+        endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero}${endereco.complemento ? ' - ' + endereco.complemento : ''} - ${endereco.bairro}`
       }));
     } else {
       const regiaoEndereco = endereco.regiao || detectarRegiao(endereco.cidade, endereco.bairro) || '';
       setFormData(prevFormData => ({
         ...prevFormData,
         endereco_id: endereco.id,
-        endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}`,
+        endereco: endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero}${endereco.complemento ? ' - ' + endereco.complemento : ''} - ${endereco.bairro}`,
         regiao: regiaoEndereco
       }));
 
@@ -913,8 +913,14 @@ export default function EditarRomaneio() {
           : e
       ));
 
-      // Se o endereço editado está selecionado, atualizar formData
+      // Se o endereço editado está selecionado, atualizar formData e enderecoSelecionado
       if (formData.endereco_id === enderecoEditando.id) {
+        const enderecoAtualizado = {
+          ...enderecoEditando,
+          endereco_completo: enderecoCompleto,
+          regiao: regiaoDetectada || enderecoEditando.regiao
+        };
+        setEnderecoSelecionado(enderecoAtualizado);
         setFormData(prev => ({
           ...prev,
           endereco: enderecoCompleto,
@@ -1255,7 +1261,7 @@ export default function EditarRomaneio() {
 
       // Usar enderecoSelecionado diretamente
       const enderecoTexto = enderecoSelecionado.endereco_completo ||
-        `${enderecoSelecionado.logradouro}, ${enderecoSelecionado.numero} - ${enderecoSelecionado.bairro}, ${enderecoSelecionado.cidade}`;
+        `${enderecoSelecionado.logradouro}, ${enderecoSelecionado.numero}${enderecoSelecionado.complemento ? ' - ' + enderecoSelecionado.complemento : ''} - ${enderecoSelecionado.bairro}, ${enderecoSelecionado.cidade}`;
 
       // Snapshot dos dados do endereço no momento da atualização
       const enderecoSnapshot = {
@@ -2017,7 +2023,7 @@ export default function EditarRomaneio() {
                                 />
                                 <div>
                                   <p style={{ margin: 0, fontWeight: '500', fontSize: '0.875rem' }}>
-                                    {endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}, ${endereco.cidade}`}
+                                    {endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero}${endereco.complemento ? ' - ' + endereco.complemento : ''} - ${endereco.bairro}, ${endereco.cidade}`}
                                   </p>
                                   {endereco.regiao && (
                                     <p style={{

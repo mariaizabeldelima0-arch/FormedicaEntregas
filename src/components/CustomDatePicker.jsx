@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 const MESES = [
@@ -18,7 +19,10 @@ export function CustomDatePicker({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 280 });
   const pickerRef = useRef(null);
+  const buttonRef = useRef(null);
+  const calendarRef = useRef(null);
 
   // Parse the value to Date object
   const selectedDate = value ? new Date(value + 'T00:00:00') : null;
@@ -31,13 +35,26 @@ export function CustomDatePicker({
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+      const insideTrigger = pickerRef.current && pickerRef.current.contains(event.target);
+      const insideCalendar = calendarRef.current && calendarRef.current.contains(event.target);
+      if (!insideTrigger && !insideCalendar) {
         setIsOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const openCalendar = () => {
+    if (disabled) return;
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const top = spaceBelow >= 320 ? rect.bottom + window.scrollY + 4 : rect.top + window.scrollY - 324;
+      setDropdownPos({ top, left: rect.left + window.scrollX, width: Math.max(rect.width, 280) });
+    }
+    setIsOpen(prev => !prev);
+  };
 
   const formatDate = (date) => {
     if (!date) return '';
@@ -112,8 +129,9 @@ export function CustomDatePicker({
       )}
       <div ref={pickerRef} style={{ position: 'relative' }}>
         <button
+          ref={buttonRef}
           type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onClick={openCalendar}
           disabled={disabled}
           style={{
             width: '100%',
@@ -142,15 +160,17 @@ export function CustomDatePicker({
           />
         </button>
 
-        {isOpen && !disabled && (
+        {isOpen && !disabled && ReactDOM.createPortal(
           <div
+            ref={calendarRef}
             style={{
               position: 'absolute',
-              zIndex: 50,
-              width: '280px',
-              marginTop: '0.25rem',
+              zIndex: 9999,
+              width: `${dropdownPos.width}px`,
+              top: `${dropdownPos.top}px`,
+              left: `${dropdownPos.left}px`,
               backgroundColor: 'white',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
               border: '1px solid #e2e8f0',
               borderRadius: '0.5rem',
               padding: '1rem'
@@ -307,7 +327,8 @@ export function CustomDatePicker({
             >
               Hoje
             </button>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
       {error && (

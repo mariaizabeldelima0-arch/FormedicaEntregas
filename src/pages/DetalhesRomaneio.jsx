@@ -20,7 +20,8 @@ import {
   CheckCircle,
   AlertCircle,
   ExternalLink,
-  Package
+  Package,
+  Copy
 } from "lucide-react";
 import {
   Dialog,
@@ -288,6 +289,55 @@ export default function DetalhesRomaneio() {
     },
   });
 
+  const handleImprimir = async () => {
+    if (!romaneio?.impresso) {
+      await supabase.from('entregas').update({
+        impresso: true,
+        data_impressao: new Date().toISOString()
+      }).eq('id', romaneioId);
+      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+    }
+    window.print();
+  };
+
+  const handleDuplicar = async () => {
+    if (!confirm('Deseja duplicar este romaneio? Um novo romaneio será criado com os mesmos dados.')) return;
+
+    try {
+      const {
+        id, created_at, data_criacao, impresso, data_impressao,
+        pagamento_recebido, receita_recebida, cliente, endereco,
+        motoboy, anexos, clientesAdicionais, atendente_nome,
+        ...campos
+      } = romaneio;
+
+      const novoRomaneio = {
+        ...campos,
+        requisicao: campos.requisicao ? `${campos.requisicao} (cópia)` : '(cópia)',
+        status: 'Pendente',
+        impresso: false,
+        data_impressao: null,
+        pagamento_recebido: false,
+        receita_recebida: false,
+        data_criacao: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('entregas')
+        .insert(novoRomaneio)
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Romaneio duplicado com sucesso!');
+      navigate(`/detalhes-romaneio?id=${data.id}`);
+    } catch (error) {
+      console.error('Erro ao duplicar romaneio:', error);
+      toast.error('Erro ao duplicar romaneio: ' + error.message);
+    }
+  };
+
   // Verifica se a forma de pagamento requer cobrança (não começa com "Pago")
   const requerCobranca = (forma) => {
     if (!forma) return false;
@@ -532,13 +582,23 @@ export default function DetalhesRomaneio() {
                   </button>
 
                   <button
-                    onClick={() => window.print()}
+                    onClick={handleImprimir}
                     className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all"
                     style={{ backgroundColor: '#890d5d', color: 'white' }}
                     title="Imprimir"
                   >
                     <Printer size={14} className="sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Imprimir</span>
+                  </button>
+
+                  <button
+                    onClick={handleDuplicar}
+                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all"
+                    style={{ backgroundColor: '#6366f1', color: 'white' }}
+                    title="Duplicar"
+                  >
+                    <Copy size={14} className="sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Duplicar</span>
                   </button>
 
                   <button
@@ -567,6 +627,15 @@ export default function DetalhesRomaneio() {
                   <FileText size={18} />
                   <h2 className="text-base sm:text-lg font-bold">Informações do Romaneio</h2>
                 </div>
+
+                {romaneio.impresso && (
+                  <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 print-hide">
+                    <Printer size={14} className="text-amber-600 flex-shrink-0" />
+                    <span className="text-xs font-semibold text-amber-700">
+                      Impresso em {new Date(romaneio.data_impressao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                   <div>

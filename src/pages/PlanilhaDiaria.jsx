@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/api/supabaseClient";
+import { fetchAllRows } from "@/utils/fetchAllRows";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation, Link } from "react-router-dom";
@@ -61,18 +62,19 @@ export default function PlanilhaDiaria() {
     queryKey: ['entregas-moto-planilha'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from('entregas')
-          .select(`
-            *,
-            cliente:clientes(id, nome, telefone),
-            endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
-            motoboy:motoboys(id, nome)
-          `)
-          .eq('tipo', 'moto')
-          .order('data_entrega', { ascending: false });
-
-        if (error) throw error;
+        const data = await fetchAllRows((from, to) =>
+          supabase
+            .from('entregas')
+            .select(`
+              *,
+              cliente:clientes(id, nome, telefone),
+              endereco:enderecos(id, logradouro, numero, bairro, cidade, complemento),
+              motoboy:motoboys(id, nome)
+            `)
+            .eq('tipo', 'moto')
+            .order('data_entrega', { ascending: false })
+            .range(from, to)
+        );
 
         // Buscar clientes adicionais para cada entrega
         const entregasComClientesAdicionais = await Promise.all(
@@ -136,6 +138,13 @@ export default function PlanilhaDiaria() {
     const ordemB = ordem[b.tipo] || 999;
     return ordemA - ordemB;
   });
+
+  const countSedex = sedexDisktenha.filter(e => e.tipo === 'SEDEX').length;
+  const countDisktenha = sedexDisktenha.filter(e => e.tipo === 'DISKTENHA').length;
+  const countPac = sedexDisktenha.filter(e => e.tipo === 'PAC').length;
+  const valorDisktenha = sedexDisktenha
+    .filter(e => e.tipo === 'DISKTENHA')
+    .reduce((sum, e) => sum + (parseFloat(e.valor) || 0), 0);
 
   // Mutation para atualizar entrega
   const updateRomaneioMutation = useMutation({
@@ -1261,7 +1270,20 @@ export default function PlanilhaDiaria() {
                         </td>
                       </tr>
                     ) : (
-                      sedexDisktenha.map((entrega) => (
+                      sedexDisktenha.flatMap((entrega, index) => {
+                        const showSubheader = index === 0 || sedexDisktenha[index - 1].tipo !== entrega.tipo;
+                        const tipoCount = entrega.tipo === 'SEDEX' ? countSedex : entrega.tipo === 'DISKTENHA' ? countDisktenha : countPac;
+                        const subheaderRow = showSubheader ? (
+                          <tr key={`subheader-${entrega.tipo}`}>
+                            <td colSpan="12" className="px-3 py-1.5 border-b border-slate-200" style={{ backgroundColor: entrega.tipo === 'SEDEX' ? '#fef2f2' : entrega.tipo === 'DISKTENHA' ? '#eff6ff' : '#fefce8' }}>
+                              <span className={`text-[11px] font-bold uppercase tracking-wide ${entrega.tipo === 'SEDEX' ? 'text-red-700' : entrega.tipo === 'DISKTENHA' ? 'text-blue-700' : 'text-yellow-700'}`}>
+                                {entrega.tipo}
+                                <span className="ml-2 font-normal text-slate-500">({tipoCount} entrega{tipoCount > 1 ? 's' : ''}){entrega.tipo === 'DISKTENHA' && valorDisktenha > 0 ? ` · R$ ${valorDisktenha.toFixed(2)}` : ''}</span>
+                              </span>
+                            </td>
+                          </tr>
+                        ) : null;
+                        const dataRow = (
                         <tr
                           key={entrega.id}
                           onClick={() => selectionModeSedex && toggleSedexSelection(entrega.id)}
@@ -1346,7 +1368,9 @@ export default function PlanilhaDiaria() {
                             </Link>
                           </td>
                         </tr>
-                      ))
+                        );
+                        return [subheaderRow, dataRow].filter(Boolean);
+                      })
                     )}
                   </tbody>
                 </table>
@@ -1379,8 +1403,8 @@ export default function PlanilhaDiaria() {
                   {romaneiosOrdenados.filter(r => r.status === 'Entregue').length}
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
-                <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="bg-white rounded-xl shadow-sm p-4 border-2 border-transparent">
+                <div className="flex items-center justify-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#F5E8F5' }}>
                     <svg className="w-6 h-6" style={{ color: '#890d5d' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -1388,7 +1412,19 @@ export default function PlanilhaDiaria() {
                   </div>
                   <span className="text-sm font-bold text-slate-700">Sedex/Disk</span>
                 </div>
-                <div className="text-4xl font-bold text-center" style={{ color: '#890d5d' }}>{sedexDisktenha.length}</div>
+                <div className="text-4xl font-bold text-center mb-2" style={{ color: '#890d5d' }}>{sedexDisktenha.length}</div>
+                {sedexDisktenha.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px]">
+                    {countDisktenha > 0 && <span className="text-blue-700 font-semibold">DISK: {countDisktenha}</span>}
+                    {countSedex > 0 && <span className="text-red-700 font-semibold">SEDEX: {countSedex}</span>}
+                    {countPac > 0 && <span className="text-yellow-700 font-semibold">PAC: {countPac}</span>}
+                  </div>
+                )}
+                {valorDisktenha > 0 && (
+                  <div className="mt-1.5 text-center text-[11px] font-bold text-blue-700">
+                    Disktenha: R$ {valorDisktenha.toFixed(2)}
+                  </div>
+                )}
               </div>
               <div className="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent">
                 <div className="flex items-center justify-center gap-2 mb-3">
@@ -1407,6 +1443,50 @@ export default function PlanilhaDiaria() {
                 </div>
               </div>
             </div>
+
+            {/* Detalhes Disktenha + Observações */}
+            {sedexDisktenha.length > 0 && (countDisktenha > 0 || sedexDisktenha.some(e => e.observacoes)) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print-hide">
+                {countDisktenha > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-blue-50 border-b border-blue-100">
+                      <span className="text-xs font-bold text-blue-800 uppercase tracking-wide">Valores Disktenha</span>
+                    </div>
+                    <div className="divide-y divide-blue-50">
+                      {sedexDisktenha.filter(e => e.tipo === 'DISKTENHA').map(e => (
+                        <div key={e.id} className="px-4 py-2 flex items-center justify-between gap-2 text-xs">
+                          <span className="text-slate-700 truncate flex-1">{e.cliente || '-'}</span>
+                          {e.numero_requisicao && <span className="text-slate-400 font-mono shrink-0">#{e.numero_requisicao}</span>}
+                          <span className="font-bold text-blue-700 shrink-0">R$ {parseFloat(e.valor || 0).toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className="px-4 py-2 flex justify-between text-xs font-bold bg-blue-50">
+                        <span className="text-blue-800">Total</span>
+                        <span className="text-blue-800">R$ {valorDisktenha.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {sedexDisktenha.some(e => e.observacoes) && (
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Observações Sedex/Disktenha</span>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {sedexDisktenha.filter(e => e.observacoes).map(e => (
+                        <div key={e.id} className="px-4 py-2 text-xs">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className={`px-1.5 py-0.5 rounded font-bold ${e.tipo === 'SEDEX' ? 'bg-red-100 text-red-800' : e.tipo === 'PAC' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>{e.tipo}</span>
+                            <span className="text-slate-600 font-medium truncate">{e.cliente || '-'}</span>
+                          </div>
+                          <p className="text-slate-500 italic">{e.observacoes}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

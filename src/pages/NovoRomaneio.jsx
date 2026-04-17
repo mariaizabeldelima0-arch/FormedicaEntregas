@@ -1186,7 +1186,7 @@ export default function NovoRomaneio() {
       }
 
       const enderecoTexto = enderecoSelecionado.endereco_completo ||
-        `${enderecoSelecionado.logradouro}, ${enderecoSelecionado.numero} - ${enderecoSelecionado.bairro}, ${enderecoSelecionado.cidade}`;
+        `${enderecoSelecionado.logradouro}, ${enderecoSelecionado.numero}${enderecoSelecionado.complemento ? ' - ' + enderecoSelecionado.complemento : ''} - ${enderecoSelecionado.bairro}, ${enderecoSelecionado.cidade}`;
 
       // Corrigir timezone: adicionar hora ao meio-dia para evitar mudança de dia
       const dataEntregaCorrigida = formData.data_entrega + 'T12:00:00';
@@ -1938,7 +1938,7 @@ export default function NovoRomaneio() {
                               style={{ flex: 1, cursor: 'pointer' }}
                             >
                               <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: '500' }}>
-                                {endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero} - ${endereco.bairro}, ${endereco.cidade}`}
+                                {endereco.endereco_completo || `${endereco.logradouro}, ${endereco.numero}${endereco.complemento ? ' - ' + endereco.complemento : ''} - ${endereco.bairro}, ${endereco.cidade}`}
                               </p>
                               {endereco.regiao && (
                                 <p style={{ margin: 0, fontSize: '0.75rem', color: theme.colors.textLight, marginTop: '0.25rem' }}>

@@ -220,7 +220,10 @@ export default function SedexDisktenha() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 sticky top-4 sm:top-6">
             {/* Botão Nova Entrega */}
             <Button
-              onClick={() => setShowNovaEntrega(true)}
+              onClick={() => {
+                setNovaEntrega(prev => ({ ...prev, data_saida: format(dataSelecionada, 'yyyy-MM-dd') }));
+                setShowNovaEntrega(true);
+              }}
               className="w-full mb-4 py-6 text-base font-bold uppercase"
               style={{ background: '#890d5d' }}
             >
@@ -679,7 +682,8 @@ export default function SedexDisktenha() {
                 label="Status do Pagamento"
                 options={[
                   { value: 'Aguardando', label: 'Aguardando' },
-                  { value: 'Pago', label: 'Pago' }
+                  { value: 'Pago', label: 'Pago' },
+                  { value: 'Via na Pasta', label: 'Via na Pasta' },
                 ]}
                 value={novaEntrega.forma_pagamento}
                 onChange={(value) => setNovaEntrega({ ...novaEntrega, forma_pagamento: value })}
