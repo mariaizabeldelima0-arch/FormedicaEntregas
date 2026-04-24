@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CustomDropdown } from '@/components/CustomDropdown';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   Dialog,
   DialogContent,
@@ -382,12 +383,6 @@ export default function DetalheSedexDisktenha() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent
           className="max-w-2xl"
-          onPointerDownOutside={(e) => {
-            if (document.body.hasAttribute('data-calendar-open')) e.preventDefault();
-          }}
-          onInteractOutside={(e) => {
-            if (document.body.hasAttribute('data-calendar-open')) e.preventDefault();
-          }}
         >
           <DialogHeader>
             <DialogTitle>Editar Entrega</DialogTitle>
@@ -481,12 +476,11 @@ export default function DetalheSedexDisktenha() {
               </div>
 
               <div>
-                <Label>Data de Saída</Label>
-                <input
-                  type="date"
-                  value={editData.data_saida || ''}
-                  onChange={(e) => setEditData({ ...editData, data_saida: e.target.value })}
-                  className="mt-1"
+                <CustomDatePicker
+                  label="Data de Saída"
+                  value={editData.data_saida}
+                  onChange={(value) => setEditData(prev => ({ ...prev, data_saida: value }))}
+                  placeholder="Selecione a data"
                 />
               </div>
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 const MESES = [
@@ -24,7 +23,6 @@ export function CustomDatePicker({
   const buttonRef = useRef(null);
   const calendarRef = useRef(null);
 
-  // Parse the value to Date object
   const selectedDate = value ? new Date(value + 'T00:00:00') : null;
 
   useEffect(() => {
@@ -32,15 +30,6 @@ export function CustomDatePicker({
       setCurrentMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
     }
   }, [value]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.setAttribute('data-calendar-open', 'true');
-    } else {
-      document.body.removeAttribute('data-calendar-open');
-    }
-    return () => document.body.removeAttribute('data-calendar-open');
-  }, [isOpen]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -59,16 +48,16 @@ export function CustomDatePicker({
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      const top = spaceBelow >= 320 ? rect.bottom + window.scrollY + 4 : rect.top + window.scrollY - 324;
-      setDropdownPos({ top, left: rect.left + window.scrollX, width: Math.max(rect.width, 280) });
+      // position: fixed → coordenadas relativas ao viewport (sem scrollY)
+      const top = spaceBelow >= 320 ? rect.bottom + 4 : rect.top - 324;
+      setDropdownPos({ top, left: rect.left, width: Math.max(rect.width, 280) });
     }
     setIsOpen(prev => !prev);
   };
 
   const formatDate = (date) => {
     if (!date) return '';
-    const d = new Date(date + 'T00:00:00');
-    return d.toLocaleDateString('pt-BR');
+    return new Date(date + 'T00:00:00').toLocaleDateString('pt-BR');
   };
 
   const getDaysInMonth = (date) => {
@@ -76,21 +65,10 @@ export function CustomDatePicker({
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
     const startingDay = firstDay.getDay();
-
     const days = [];
-
-    // Empty cells for days before the first day of the month
-    for (let i = 0; i < startingDay; i++) {
-      days.push(null);
-    }
-
-    // Days of the month
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i));
-    }
-
+    for (let i = 0; i < startingDay; i++) days.push(null);
+    for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i));
     return days;
   };
 
@@ -104,16 +82,14 @@ export function CustomDatePicker({
 
   const handleDateClick = (date) => {
     if (date) {
-      const formattedDate = date.toISOString().split('T')[0];
-      onChange(formattedDate);
+      onChange(date.toISOString().split('T')[0]);
       setIsOpen(false);
     }
   };
 
   const isToday = (date) => {
     if (!date) return false;
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
+    return date.toDateString() === new Date().toDateString();
   };
 
   const isSelected = (date) => {
@@ -136,7 +112,7 @@ export function CustomDatePicker({
           {label}
         </label>
       )}
-      <div ref={pickerRef} style={{ position: 'relative' }}>
+      <div ref={pickerRef}>
         <button
           ref={buttonRef}
           type="button"
@@ -159,23 +135,15 @@ export function CustomDatePicker({
           }}
         >
           <span>{value ? formatDate(value) : placeholder}</span>
-          <Calendar
-            size={18}
-            style={{
-              color: '#64748b',
-              flexShrink: 0,
-              marginLeft: '0.5rem'
-            }}
-          />
+          <Calendar size={18} style={{ color: '#64748b', flexShrink: 0, marginLeft: '0.5rem' }} />
         </button>
 
-        {isOpen && !disabled && ReactDOM.createPortal(
+        {isOpen && !disabled && (
           <div
             ref={calendarRef}
-            data-calendar-portal
             style={{
-              position: 'absolute',
-              zIndex: 9999,
+              position: 'fixed',
+              zIndex: 99999,
               width: `${dropdownPos.width}px`,
               top: `${dropdownPos.top}px`,
               left: `${dropdownPos.left}px`,
@@ -186,51 +154,24 @@ export function CustomDatePicker({
               padding: '1rem'
             }}
           >
-            {/* Header - Month/Year Navigation */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '1rem'
-            }}>
+            {/* Navegação mês */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
+                style={{ padding: '0.5rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
                 <ChevronLeft size={20} color="#64748b" />
               </button>
-              <span style={{
-                fontWeight: '600',
-                color: '#334155',
-                fontSize: '0.9rem'
-              }}>
+              <span style={{ fontWeight: '600', color: '#334155', fontSize: '0.9rem' }}>
                 {MESES[currentMonth.getMonth()]} {currentMonth.getFullYear()}
               </span>
               <button
                 type="button"
                 onClick={handleNextMonth}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
+                style={{ padding: '0.5rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
@@ -238,35 +179,17 @@ export function CustomDatePicker({
               </button>
             </div>
 
-            {/* Days of Week Header */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: '0.25rem',
-              marginBottom: '0.5rem'
-            }}>
+            {/* Dias da semana */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem', marginBottom: '0.5rem' }}>
               {DIAS_SEMANA.map((dia) => (
-                <div
-                  key={dia}
-                  style={{
-                    textAlign: 'center',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    color: '#64748b',
-                    padding: '0.25rem'
-                  }}
-                >
+                <div key={dia} style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#64748b', padding: '0.25rem' }}>
                   {dia}
                 </div>
               ))}
             </div>
 
-            {/* Calendar Days */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: '0.25rem'
-            }}>
+            {/* Dias */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem' }}>
               {days.map((date, index) => (
                 <button
                   key={index}
@@ -277,44 +200,25 @@ export function CustomDatePicker({
                     padding: '0.5rem',
                     borderRadius: '0.375rem',
                     border: 'none',
-                    backgroundColor: isSelected(date)
-                      ? '#376295'
-                      : isToday(date)
-                        ? '#dce8f5'
-                        : 'transparent',
-                    color: isSelected(date)
-                      ? 'white'
-                      : date
-                        ? '#334155'
-                        : 'transparent',
+                    backgroundColor: isSelected(date) ? '#376295' : isToday(date) ? '#dce8f5' : 'transparent',
+                    color: isSelected(date) ? 'white' : date ? '#334155' : 'transparent',
                     cursor: date ? 'pointer' : 'default',
                     fontSize: '0.875rem',
                     fontWeight: isToday(date) || isSelected(date) ? '600' : 'normal',
                     transition: 'all 0.15s'
                   }}
-                  onMouseEnter={(e) => {
-                    if (date && !isSelected(date)) {
-                      e.target.style.backgroundColor = '#dce8f5';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (date && !isSelected(date)) {
-                      e.target.style.backgroundColor = isToday(date) ? '#dce8f5' : 'transparent';
-                    }
-                  }}
+                  onMouseEnter={(e) => { if (date && !isSelected(date)) e.target.style.backgroundColor = '#dce8f5'; }}
+                  onMouseLeave={(e) => { if (date && !isSelected(date)) e.target.style.backgroundColor = isToday(date) ? '#dce8f5' : 'transparent'; }}
                 >
                   {date ? date.getDate() : ''}
                 </button>
               ))}
             </div>
 
-            {/* Today Button */}
+            {/* Botão Hoje */}
             <button
               type="button"
-              onClick={() => {
-                const today = new Date();
-                handleDateClick(today);
-              }}
+              onClick={() => handleDateClick(new Date())}
               style={{
                 width: '100%',
                 marginTop: '0.75rem',
@@ -328,23 +232,16 @@ export function CustomDatePicker({
                 cursor: 'pointer',
                 transition: 'all 0.15s'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#e3f2fd';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
-              }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#dce8f5'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = 'white'; }}
             >
               Hoje
             </button>
-          </div>,
-          document.body
+          </div>
         )}
       </div>
       {error && (
-        <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-          {error}
-        </p>
+        <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{error}</p>
       )}
     </div>
   );

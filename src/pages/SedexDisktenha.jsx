@@ -586,12 +586,6 @@ export default function SedexDisktenha() {
       <Dialog open={showNovaEntrega} onOpenChange={setShowNovaEntrega}>
         <DialogContent
           className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto"
-          onPointerDownOutside={(e) => {
-            if (document.body.hasAttribute('data-calendar-open')) e.preventDefault();
-          }}
-          onInteractOutside={(e) => {
-            if (document.body.hasAttribute('data-calendar-open')) e.preventDefault();
-          }}
         >
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Cadastrar Nova Entrega</DialogTitle>
@@ -599,13 +593,11 @@ export default function SedexDisktenha() {
           <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#334155', marginBottom: '0.5rem' }}>
-                  Data *
-                </label>
-                <input
-                  type="date"
-                  value={novaEntrega.data_saida || ''}
-                  onChange={(e) => setNovaEntrega({ ...novaEntrega, data_saida: e.target.value })}
+                <CustomDatePicker
+                  label="Data *"
+                  value={novaEntrega.data_saida}
+                  onChange={(value) => setNovaEntrega(prev => ({ ...prev, data_saida: value }))}
+                  placeholder="Selecione a data"
                 />
               </div>
               <CustomDropdown
