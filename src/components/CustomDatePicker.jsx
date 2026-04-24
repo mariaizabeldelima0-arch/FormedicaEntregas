@@ -34,6 +34,15 @@ export function CustomDatePicker({
   }, [value]);
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.setAttribute('data-calendar-open', 'true');
+    } else {
+      document.body.removeAttribute('data-calendar-open');
+    }
+    return () => document.body.removeAttribute('data-calendar-open');
+  }, [isOpen]);
+
+  useEffect(() => {
     function handleClickOutside(event) {
       const insideTrigger = pickerRef.current && pickerRef.current.contains(event.target);
       const insideCalendar = calendarRef.current && calendarRef.current.contains(event.target);

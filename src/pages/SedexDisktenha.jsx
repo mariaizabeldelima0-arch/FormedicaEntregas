@@ -586,8 +586,11 @@ export default function SedexDisktenha() {
       <Dialog open={showNovaEntrega} onOpenChange={setShowNovaEntrega}>
         <DialogContent
           className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto"
+          onPointerDownOutside={(e) => {
+            if (document.body.hasAttribute('data-calendar-open')) e.preventDefault();
+          }}
           onInteractOutside={(e) => {
-            if (e.target?.closest?.('[data-calendar-portal]')) e.preventDefault();
+            if (document.body.hasAttribute('data-calendar-open')) e.preventDefault();
           }}
         >
           <DialogHeader>
