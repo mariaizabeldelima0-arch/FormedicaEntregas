@@ -163,6 +163,7 @@ export function CustomDatePicker({
         {isOpen && !disabled && ReactDOM.createPortal(
           <div
             ref={calendarRef}
+            data-calendar-portal
             style={{
               position: 'absolute',
               zIndex: 9999,

@@ -381,7 +381,12 @@ export default function DetalheSedexDisktenha() {
 
       {/* Dialog de Edição */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent
+          className="max-w-2xl"
+          onInteractOutside={(e) => {
+            if (e.target?.closest?.('[data-calendar-portal]')) e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Editar Entrega</DialogTitle>
           </DialogHeader>

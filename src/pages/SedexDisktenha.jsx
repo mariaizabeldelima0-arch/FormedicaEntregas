@@ -584,7 +584,12 @@ export default function SedexDisktenha() {
 
       {/* Dialog Nova Entrega */}
       <Dialog open={showNovaEntrega} onOpenChange={setShowNovaEntrega}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto"
+          onInteractOutside={(e) => {
+            if (e.target?.closest?.('[data-calendar-portal]')) e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Cadastrar Nova Entrega</DialogTitle>
           </DialogHeader>
