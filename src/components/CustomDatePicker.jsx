@@ -268,9 +268,9 @@ export function CustomDatePicker({
                     borderRadius: '0.375rem',
                     border: 'none',
                     backgroundColor: isSelected(date)
-                      ? '#3b82f6'
+                      ? '#376295'
                       : isToday(date)
-                        ? '#dbeafe'
+                        ? '#dce8f5'
                         : 'transparent',
                     color: isSelected(date)
                       ? 'white'
@@ -284,12 +284,12 @@ export function CustomDatePicker({
                   }}
                   onMouseEnter={(e) => {
                     if (date && !isSelected(date)) {
-                      e.target.style.backgroundColor = '#e3f2fd';
+                      e.target.style.backgroundColor = '#dce8f5';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (date && !isSelected(date)) {
-                      e.target.style.backgroundColor = isToday(date) ? '#dbeafe' : 'transparent';
+                      e.target.style.backgroundColor = isToday(date) ? '#dce8f5' : 'transparent';
                     }
                   }}
                 >
@@ -312,7 +312,7 @@ export function CustomDatePicker({
                 borderRadius: '0.375rem',
                 border: '1px solid #e2e8f0',
                 backgroundColor: 'white',
-                color: '#3b82f6',
+                color: '#376295',
                 fontSize: '0.875rem',
                 fontWeight: '500',
                 cursor: 'pointer',

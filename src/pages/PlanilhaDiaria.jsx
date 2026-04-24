@@ -11,7 +11,6 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown, MousePointerClick, Sunrise, Sun, Truck, MapPin } from "lucide-react";
 import html2pdf from "html2pdf.js";
-import { createPageUrl } from "@/utils";
 import { CustomDropdown } from "@/components/CustomDropdown";
 import { CustomDatePicker } from "@/components/CustomDatePicker";
 
@@ -1091,7 +1090,7 @@ export default function PlanilhaDiaria() {
                             <td className="px-2 py-1.5 border-r border-slate-200 max-w-[80px] text-center">
                               {(rom.horario_entrega || rom.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]) ? (
                                 <span style={{ display: 'block', backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 4px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', textAlign: 'center' }}>
-                                  {rom.horario_entrega || rom.observacoes.match(/^\|\|H:(.*?)\|\|/)[1]}
+                                  {rom.horario_entrega || rom.observacoes?.match(/^\|\|H:(.*?)\|\|/)?.[1]}
                                 </span>
                               ) : '-'}
                             </td>
