@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CustomDropdown } from '@/components/CustomDropdown';
-import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   Dialog,
   DialogContent,
@@ -482,11 +481,12 @@ export default function DetalheSedexDisktenha() {
               </div>
 
               <div>
-                <CustomDatePicker
-                  label="Data de Saída"
-                  value={editData.data_saida}
-                  onChange={(value) => setEditData({ ...editData, data_saida: value })}
-                  placeholder="Selecione a data"
+                <Label>Data de Saída</Label>
+                <input
+                  type="date"
+                  value={editData.data_saida || ''}
+                  onChange={(e) => setEditData({ ...editData, data_saida: e.target.value })}
+                  className="mt-1"
                 />
               </div>
 

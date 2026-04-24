@@ -599,11 +599,13 @@ export default function SedexDisktenha() {
           <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <CustomDatePicker
-                  label="Data e Horário *"
-                  value={novaEntrega.data_saida}
-                  onChange={(value) => setNovaEntrega({ ...novaEntrega, data_saida: value })}
-                  placeholder="Selecione a data"
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#334155', marginBottom: '0.5rem' }}>
+                  Data *
+                </label>
+                <input
+                  type="date"
+                  value={novaEntrega.data_saida || ''}
+                  onChange={(e) => setNovaEntrega({ ...novaEntrega, data_saida: e.target.value })}
                 />
               </div>
               <CustomDropdown
