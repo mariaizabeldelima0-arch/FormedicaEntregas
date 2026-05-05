@@ -42,7 +42,7 @@ export default function Receitas() {
   const [filtroStatus, setFiltroStatus] = useState(() => sessionStorage.getItem('receitas_filtro_status') || "todos");
 
   useEffect(() => {
-    sessionStorage.setItem('receitas_data', format(dataSelecionada, 'yyyy-MM-dd'));
+    if (dataSelecionada) sessionStorage.setItem('receitas_data', format(dataSelecionada, 'yyyy-MM-dd'));
     sessionStorage.setItem('receitas_ver_todas', verTodas.toString());
     sessionStorage.setItem('receitas_search', searchTerm);
     sessionStorage.setItem('receitas_filtro_status', filtroStatus);

@@ -68,7 +68,7 @@ export default function Pagamentos() {
   const [filtroStatus, setFiltroStatus] = useState(() => sessionStorage.getItem('pagamentos_filtro_status') || "todos");
 
   useEffect(() => {
-    sessionStorage.setItem('pagamentos_data', format(dataSelecionada, 'yyyy-MM-dd'));
+    if (dataSelecionada) sessionStorage.setItem('pagamentos_data', format(dataSelecionada, 'yyyy-MM-dd'));
     sessionStorage.setItem('pagamentos_ver_todos', verTodos.toString());
     sessionStorage.setItem('pagamentos_search', searchTerm);
     sessionStorage.setItem('pagamentos_filtro_motoboy', filtroMotoboy);
