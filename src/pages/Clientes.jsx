@@ -618,21 +618,18 @@ export default function Clientes() {
   const loadClientes = async () => {
     setLoading(true);
     try {
-      // Buscar clientes com seus endereços
       const { data, error } = await supabase
         .from('clientes')
-        .select(`
-          *,
-          enderecos (*)
-        `)
-        .order('nome', { ascending: true });
+        .select('*, enderecos (*)')
+        .order('nome', { ascending: true })
+        .range(0, 49999);
 
       if (error) throw error;
-      setClientes(data || []);
+      const allClientes = data || [];
+      setClientes(allClientes);
 
-      // Selecionar o primeiro cliente automaticamente se não houver nenhum selecionado
-      if (data && data.length > 0 && !clienteSelecionado) {
-        handleSelectCliente(data[0]);
+      if (allClientes.length > 0 && !clienteSelecionado) {
+        handleSelectCliente(allClientes[0]);
       }
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
@@ -1002,7 +999,7 @@ export default function Clientes() {
                   {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+                <div className="divide-y divide-slate-100 max-h-[calc(100vh-320px)] overflow-y-auto">
                   {filteredClientes.map((cliente) => (
                     <div
                       key={cliente.id}
