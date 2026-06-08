@@ -33,23 +33,11 @@ const gerarFingerprint = () => {
     return cookie;
   }
 
-  // 3. Gerar novo fingerprint
-  const navegador = navigator.userAgent;
-  const plataforma = navigator.platform;
-  const idioma = navigator.language;
-  const tela = `${screen.width}x${screen.height}x${screen.colorDepth}`;
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // 3. Gerar novo ID estável usando UUID (não depende de propriedades do navegador que mudam com atualizações)
+  const fingerprint = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'DEV-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 10);
 
-  const dados = `${navegador}|${plataforma}|${idioma}|${tela}|${timezone}`;
-
-  let hash = 0;
-  for (let i = 0; i < dados.length; i++) {
-    const char = dados.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-
-  const fingerprint = Math.abs(hash).toString(16).toUpperCase();
   localStorage.setItem('formedica_device_fingerprint', fingerprint);
   salvarCookieFp(fingerprint);
   return fingerprint;
