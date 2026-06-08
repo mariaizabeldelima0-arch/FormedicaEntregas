@@ -231,18 +231,21 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
               $ COBRAR NA ENTREGA: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
             </div>
           )}
-          {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
-            <div style={{
-              flex: '0 0 auto',
-              background: '#fff',
-              border: '2px solid #000',
-              padding: '8px 36px',
-              textAlign: 'center',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              whiteSpace: 'nowrap'
-            }}>
-              TROCO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
+          {romaneio.precisa_troco && (
+            <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ background: '#fff', border: '2px solid #000', padding: '6px 12px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                PRECISA DE TROCO: SIM
+              </div>
+              {romaneio.valor_troco > 0 && (
+                <div style={{ background: '#fff', border: '2px solid #000', padding: '6px 12px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                  VALOR A SER PAGO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
+                </div>
+              )}
+              {romaneio.valor_troco > 0 && romaneio.valor_venda > 0 && (
+                <div style={{ background: '#fff', border: '2px solid #000', padding: '6px 12px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                  MANDAR TROCO: R$ {(romaneio.valor_troco - romaneio.valor_venda).toFixed(2).replace('.', ',')}
+                </div>
+              )}
             </div>
           )}
         </div>

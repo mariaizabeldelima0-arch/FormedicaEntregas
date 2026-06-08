@@ -470,9 +470,21 @@ export default function ImpressaoRomaneio({ romaneio }) {
                 COBRAR NA ENTREGA: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
               </div>
             )}
-            {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
-              <div className="print-valor-box" style={{ flex: '0 0 auto', marginBottom: 0, whiteSpace: 'nowrap', fontSize: '16px', padding: '10px 36px' }}>
-                TROCO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
+            {romaneio.precisa_troco && (
+              <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div className="print-valor-box" style={{ marginBottom: 0, whiteSpace: 'nowrap', fontSize: '14px', padding: '6px 12px' }}>
+                  PRECISA DE TROCO: SIM
+                </div>
+                {romaneio.valor_troco > 0 && (
+                  <div className="print-valor-box" style={{ marginBottom: 0, whiteSpace: 'nowrap', fontSize: '14px', padding: '6px 12px' }}>
+                    VALOR A SER PAGO: R$ {romaneio.valor_troco.toFixed(2).replace('.', ',')}
+                  </div>
+                )}
+                {romaneio.valor_troco > 0 && romaneio.valor_venda > 0 && (
+                  <div className="print-valor-box" style={{ marginBottom: 0, whiteSpace: 'nowrap', fontSize: '14px', padding: '6px 12px', fontWeight: 'bold' }}>
+                    MANDAR TROCO: R$ {(romaneio.valor_troco - romaneio.valor_venda).toFixed(2).replace('.', ',')}
+                  </div>
+                )}
               </div>
             )}
           </div>
