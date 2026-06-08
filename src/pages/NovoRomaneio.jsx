@@ -2282,7 +2282,7 @@ export default function NovoRomaneio() {
                     color: '#f57c00',
                     marginBottom: '0.5rem'
                   }}>
-                    Valor do Troco (R$) *
+                    Valor a ser pago (R$) *
                   </label>
                   <input
                     type="number"
@@ -2306,8 +2306,42 @@ export default function NovoRomaneio() {
                     marginTop: '0.25rem',
                     fontWeight: '500'
                   }}>
-                    Cliente pagará com quanto? Informe o valor para calcular o troco.
+                    Valor que o cliente vai entregar ao motoboy.
                   </p>
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      color: '#f57c00',
+                      marginBottom: '0.5rem'
+                    }}>
+                      Mandar troco (R$)
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={
+                        formData.valor_troco && formData.valor_venda
+                          ? `R$ ${(formData.valor_troco - formData.valor_venda).toFixed(2)}`
+                          : '—'
+                      }
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '2px solid #ffc107',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        background: '#fff9e6',
+                        color: '#f57c00',
+                        fontWeight: '700',
+                        cursor: 'default'
+                      }}
+                    />
+                    <p style={{ fontSize: '0.75rem', color: '#f57c00', marginTop: '0.25rem', fontWeight: '500' }}>
+                      Valor a ser pago − Valor a Cobrar
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
