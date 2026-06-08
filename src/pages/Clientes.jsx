@@ -618,14 +618,23 @@ export default function Clientes() {
   const loadClientes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('*, enderecos (*)')
-        .order('nome', { ascending: true })
-        .range(0, 49999);
+      let allClientes = [];
+      let from = 0;
+      const BATCH = 1000;
 
-      if (error) throw error;
-      const allClientes = data || [];
+      while (true) {
+        const { data, error } = await supabase
+          .from('clientes')
+          .select('*, enderecos (*)')
+          .order('nome', { ascending: true })
+          .range(from, from + BATCH - 1);
+
+        if (error) throw error;
+        allClientes = allClientes.concat(data || []);
+        if (!data || data.length < BATCH) break;
+        from += BATCH;
+      }
+
       setClientes(allClientes);
 
       if (allClientes.length > 0 && !clienteSelecionado) {
