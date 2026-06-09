@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { theme } from '@/lib/theme';
 import { supabase } from '@/api/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, AlertTriangle } from 'lucide-react';
 import { CustomDropdown } from '@/components/CustomDropdown';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
 import { buscarCep, formatarCep } from '@/utils/buscarCep';
@@ -284,6 +284,7 @@ export default function EditarRomaneio() {
 
   const [loading, setLoading] = useState(false);
   const [loadingEntrega, setLoadingEntrega] = useState(true);
+  const [eraImpresso, setEraImpresso] = useState(false);
   const carregamentoInicialRef = useRef(true);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
@@ -568,6 +569,8 @@ export default function EditarRomaneio() {
             return { tipo_horario: '', hora1: '', hora2: '' };
           })()
         });
+
+        setEraImpresso(entrega.impresso === true);
 
         // Inicializar campo de busca de forma de pagamento
         setBuscaFormaPagamento(entrega.forma_pagamento || '');
@@ -1384,6 +1387,14 @@ export default function EditarRomaneio() {
 
       toast.success('Romaneio atualizado com sucesso!', { id: toastId });
 
+      if (eraImpresso) {
+        await supabase.from('notificacoes_edicoes').insert({
+          romaneio_id: entregaId,
+          cliente_nome: formData.cliente_nome || '—',
+          editado_por: user?.usuario || 'desconhecido',
+        });
+      }
+
       // Aguardar um pouco antes de navegar para o usuário ver o toast
       setTimeout(() => navigate(-1), 800);
     } catch (error) {
@@ -1438,6 +1449,17 @@ export default function EditarRomaneio() {
       <div className="max-w-4xl mx-auto px-6">
 
       <form onSubmit={handleSubmit}>
+        {eraImpresso && (
+          <div style={{
+            background: '#fff7ed', border: '2px solid #f97316', borderRadius: '8px',
+            padding: '10px 14px', marginBottom: '16px', display: 'flex',
+            alignItems: 'center', gap: '8px', fontSize: '13px', color: '#c2410c', fontWeight: '600'
+          }}>
+            <AlertTriangle size={16} />
+            Este romaneio já foi impresso. Informe o setor de entregas sobre qualquer alteração.
+          </div>
+        )}
+
         {/* Informações do Romaneio */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
           <h3 className="text-lg font-bold text-slate-900 mb-6" style={{ color: '#376295' }}>

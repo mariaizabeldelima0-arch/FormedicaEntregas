@@ -582,7 +582,15 @@ export default function DetalhesRomaneio() {
               {userType !== 'motoboy' && (
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => navigate(`/editar-romaneio?id=${romaneioId}`)}
+                    onClick={() => {
+                      if (romaneio?.impresso) {
+                        const confirmar = window.confirm(
+                          'Atenção: este romaneio já foi impresso.\n\nAo editá-lo, informe o setor de entregas sobre a alteração.\n\nDeseja continuar?'
+                        );
+                        if (!confirmar) return;
+                      }
+                      navigate(`/editar-romaneio?id=${romaneioId}`);
+                    }}
                     className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all"
                     style={{ backgroundColor: '#376295', color: 'white' }}
                     title="Editar"

@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/api/supabaseClient';
-import { Bell, KeyRound, Smartphone, CheckCircle, XCircle, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Bell, KeyRound, Smartphone, CheckCircle, XCircle, ChevronDown, ChevronUp, User, FilePenLine } from 'lucide-react';
 
 export default function BannerAlertasAdmin() {
   const [codigos, setCodigos] = useState([]);
   const [dispositivos, setDispositivos] = useState([]);
+  const [edicoes, setEdicoes] = useState([]);
   const [expandido, setExpandido] = useState(true);
   const [carregando, setCarregando] = useState({});
   const canalRef = useRef(null);
 
   const fetchDados = useCallback(async () => {
-    const [resCodigos, resDispositivos] = await Promise.all([
+    const hoje = new Date().toISOString().split('T')[0];
+    const [resCodigos, resDispositivos, resEdicoes] = await Promise.all([
       supabase
         .from('usuarios')
         .select('id, usuario, tipo_usuario, codigo_redefinicao')
@@ -21,11 +23,18 @@ export default function BannerAlertasAdmin() {
         .from('dispositivos')
         .select('id, nome, usuario_id, ultimo_acesso, usuarios(usuario, tipo_usuario)')
         .eq('status', 'Pendente')
-        .order('ultimo_acesso', { ascending: false })
+        .order('ultimo_acesso', { ascending: false }),
+      supabase
+        .from('notificacoes_edicoes')
+        .select('*')
+        .gte('created_at', `${hoje}T00:00:00`)
+        .lte('created_at', `${hoje}T23:59:59`)
+        .order('created_at', { ascending: false })
     ]);
 
     setCodigos(resCodigos.data || []);
     setDispositivos(resDispositivos.data || []);
+    setEdicoes(resEdicoes.data || []);
   }, []);
 
   useEffect(() => {
@@ -35,6 +44,7 @@ export default function BannerAlertasAdmin() {
       .channel('admin-alertas')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, fetchDados)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dispositivos' }, fetchDados)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificacoes_edicoes' }, fetchDados)
       .subscribe();
 
     canalRef.current = canal;
@@ -46,7 +56,6 @@ export default function BannerAlertasAdmin() {
 
   // Auto-expandir quando aparecem novos itens
   const totalAnterior = useRef(0);
-  const total = codigos.length + dispositivos.length;
   useEffect(() => {
     if (total > totalAnterior.current) {
       setExpandido(true);
@@ -71,6 +80,8 @@ export default function BannerAlertasAdmin() {
     setCarregandoItem(id, false);
     fetchDados();
   };
+
+  const total = codigos.length + dispositivos.length + edicoes.length;
 
   if (total === 0) return null;
 
@@ -334,6 +345,42 @@ export default function BannerAlertasAdmin() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Seção: Romaneios impressos editados hoje */}
+            {edicoes.length > 0 && (
+              <div>
+                <div style={{
+                  padding: '8px 16px 4px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  color: '#9a3412',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  background: '#fff7ed',
+                  borderBottom: '1px solid #fed7aa',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}>
+                  <FilePenLine size={13} />
+                  Romaneios impressos editados hoje ({edicoes.length})
+                </div>
+                {edicoes.map(e => (
+                  <div key={e.id} style={{
+                    padding: '10px 16px',
+                    borderBottom: '1px solid #f1f5f9',
+                    background: '#fffaf7',
+                  }}>
+                    <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b', marginBottom: '2px' }}>
+                      {e.cliente_nome}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      Editado por <strong>{e.editado_por}</strong> às {new Date(e.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
