@@ -289,14 +289,24 @@ export default function DetalhesRomaneio() {
     },
   });
 
-  const handleImprimir = async () => {
-    if (!romaneio?.impresso) {
-      await supabase.from('entregas').update({
-        impresso: true,
-        data_impressao: new Date().toISOString()
-      }).eq('id', romaneioId);
-      queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
-    }
+  const handleImprimir = () => {
+    const onAfterPrint = () => {
+      window.removeEventListener('afterprint', onAfterPrint);
+      setTimeout(async () => {
+        if (window.confirm('A impressão foi realizada com sucesso?')) {
+          if (!romaneio?.impresso) {
+            await supabase.from('entregas').update({
+              impresso: true,
+              data_impressao: new Date().toISOString()
+            }).eq('id', romaneioId);
+            queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
+          }
+          toast.success('Romaneio marcado como impresso');
+        }
+      }, 300);
+    };
+
+    window.addEventListener('afterprint', onAfterPrint);
     window.print();
   };
 
