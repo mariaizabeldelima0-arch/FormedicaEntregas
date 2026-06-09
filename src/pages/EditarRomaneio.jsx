@@ -1385,7 +1385,7 @@ export default function EditarRomaneio() {
       toast.success('Romaneio atualizado com sucesso!', { id: toastId });
 
       // Aguardar um pouco antes de navegar para o usuário ver o toast
-      setTimeout(() => navigate('/'), 800);
+      setTimeout(() => navigate(-1), 800);
     } catch (error) {
       console.error('Erro ao criar romaneio:', error);
       toast.error('Erro ao criar romaneio: ' + error.message, { id: toastId });

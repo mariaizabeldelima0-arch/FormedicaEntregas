@@ -1296,7 +1296,7 @@ export default function NovoRomaneio() {
       toast.success('Romaneio criado com sucesso!', { id: toastId });
 
       // Aguardar um pouco antes de navegar para o usuário ver o toast
-      setTimeout(() => navigate('/'), 1000);
+      setTimeout(() => navigate(-1), 1000);
     } catch (error) {
       console.error('Erro ao criar romaneio:', error);
       toast.error('Erro ao criar romaneio: ' + error.message, { id: toastId });
