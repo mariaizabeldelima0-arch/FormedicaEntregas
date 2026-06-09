@@ -218,7 +218,7 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
       {romaneio.valor_venda > 0 && ['Receber Dinheiro', 'Receber Máquina', 'Pagar MP'].includes(romaneio.forma_pagamento) && (
         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
           <div style={{ flex: 1, background: '#fff', border: '2px solid #000', padding: '8px', textAlign: 'center', fontSize: '16px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-            COBRAR: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
+            TOTAL: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
           </div>
           {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
             <div style={{ flex: 1, background: '#fff', border: '2px solid #000', padding: '8px', textAlign: 'center', fontSize: '16px', fontWeight: 'bold' }}>

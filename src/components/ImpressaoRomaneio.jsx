@@ -466,7 +466,7 @@ export default function ImpressaoRomaneio({ romaneio }) {
           <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
             <div className="print-valor-box" style={{ flex: 1, marginBottom: 0, whiteSpace: 'nowrap', fontSize: '16px' }}>
               <span className="print-valor-icon">$</span>
-              COBRAR: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
+              TOTAL: R$ {romaneio.valor_venda.toFixed(2).replace('.', ',')}
             </div>
             {romaneio.precisa_troco && romaneio.valor_troco > 0 && (
               <div className="print-valor-box" style={{ flex: 1, marginBottom: 0, fontSize: '16px' }}>
