@@ -412,18 +412,23 @@ export default function RomaneiosDoDia() {
       ? [...selecionados]
       : romaneiosFiltrados.map(r => r.id);
 
-    const marcarComoImpressos = () => {
+    const marcarComoImpressos = async () => {
       const novosImpressos = new Set(impressos);
       idsParaImprimir.forEach(id => novosImpressos.add(id));
       setImpressos(novosImpressos);
       localStorage.setItem('romaneios_impressos', JSON.stringify([...novosImpressos]));
+
+      await supabase
+        .from('entregas')
+        .update({ impresso: true, data_impressao: new Date().toISOString() })
+        .in('id', idsParaImprimir);
     };
 
     const onAfterPrint = () => {
       window.removeEventListener('afterprint', onAfterPrint);
-      setTimeout(() => {
+      setTimeout(async () => {
         if (window.confirm('A impressão foi realizada com sucesso?')) {
-          marcarComoImpressos();
+          await marcarComoImpressos();
           toast.success(`${idsParaImprimir.length} romaneio(s) marcado(s) como impresso(s)`);
         }
       }, 300);
@@ -713,7 +718,7 @@ export default function RomaneiosDoDia() {
               }}>
                 {romaneiosFiltrados.map((romaneio) => {
                   const isSelecionado = selecionados.has(romaneio.id);
-                  const isImpresso = impressos.has(romaneio.id);
+                  const isImpresso = impressos.has(romaneio.id) || romaneio.impresso === true;
                   const hideOnPrint = selecionados.size > 0 && !isSelecionado;
 
                   return (
