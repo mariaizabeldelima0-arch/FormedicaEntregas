@@ -276,7 +276,7 @@ const detectarRegiao = (cidade, bairro) => {
 };
 
 export default function EditarRomaneio() {
-  const { userType } = useAuth();
+  const { user, userType } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const entregaId = searchParams.get('id');

@@ -54,6 +54,8 @@ export default function BannerAlertasAdmin() {
     };
   }, [fetchDados]);
 
+  const total = codigos.length + dispositivos.length + edicoes.length;
+
   // Auto-expandir quando aparecem novos itens
   const totalAnterior = useRef(0);
   useEffect(() => {
@@ -80,8 +82,6 @@ export default function BannerAlertasAdmin() {
     setCarregandoItem(id, false);
     fetchDados();
   };
-
-  const total = codigos.length + dispositivos.length + edicoes.length;
 
   if (total === 0) return null;
 
