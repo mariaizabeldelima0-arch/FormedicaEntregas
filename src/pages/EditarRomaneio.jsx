@@ -1425,7 +1425,7 @@ export default function EditarRomaneio() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-8" style={{ paddingBottom: userType === 'admin' ? '420px' : '32px' }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-8">
       {/* Header Customizado */}
       <div className="py-8 shadow-sm mb-6" style={{
         background: 'linear-gradient(135deg, #457bba 0%, #890d5d 100%)'
