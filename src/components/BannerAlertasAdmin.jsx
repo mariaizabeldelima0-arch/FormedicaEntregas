@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/api/supabaseClient';
 import { Bell, KeyRound, Smartphone, CheckCircle, XCircle, ChevronDown, User, FilePenLine } from 'lucide-react';
 import { theme } from '@/lib/theme';
@@ -155,7 +156,7 @@ export default function BannerAlertasAdmin({ isMenuExpanded }) {
       </button>
 
       {/* Painel de notificações */}
-      {expandido && (
+      {expandido && createPortal(
         <div
           className="painel-alertas-admin no-print"
           style={{
@@ -430,7 +431,8 @@ export default function BannerAlertasAdmin({ isMenuExpanded }) {
               ))}
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
