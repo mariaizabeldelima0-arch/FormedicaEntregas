@@ -300,6 +300,7 @@ export default function Layout({ children }) {
               </button>
             );
           })}
+          {userType === 'admin' && <BannerAlertasAdmin isMenuExpanded={isMenuExpanded} />}
         </nav>
 
         {/* User Info */}
@@ -390,7 +391,6 @@ export default function Layout({ children }) {
         {children}
       </div>
       {deveTrocarSenha && <BannerTrocarSenha />}
-      {userType === 'admin' && <BannerAlertasAdmin />}
     </div>
   );
 }
