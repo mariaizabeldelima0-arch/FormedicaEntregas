@@ -81,19 +81,38 @@ const verificarDispositivo = async (usuarioId, fingerprint, nomeDispositivo) => 
   if (erroDisp) return { ok: false, error: 'Erro ao verificar dispositivo' };
 
   if (!dispositivo) {
+    // Se o usuário já possui algum dispositivo autorizado, é alguém já aprovado
+    // (o fingerprint mudou por ter sido perdido o armazenamento local) — liberar
+    // automaticamente, mas manter o registro visível para o admin.
+    const { data: dispositivoAutorizado, error: erroCheck } = await supabase
+      .from('dispositivos')
+      .select('id')
+      .eq('usuario_id', usuarioId)
+      .eq('status', 'Autorizado')
+      .limit(1)
+      .maybeSingle();
+
+    if (erroCheck) return { ok: false, error: 'Erro ao verificar dispositivo' };
+
+    const statusInicial = dispositivoAutorizado ? 'Autorizado' : 'Pendente';
+
     const { error: erroCriar } = await supabase
       .from('dispositivos')
       .insert({
         usuario_id: usuarioId,
         nome: nomeDispositivo,
         impressao_digital: fingerprint,
-        status: 'Pendente',
+        status: statusInicial,
         ultimo_acesso: new Date().toISOString()
       });
 
     if (erroCriar) return { ok: false, error: 'Erro ao registrar dispositivo' };
 
-    return { ok: false, error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.' };
+    if (statusInicial === 'Pendente') {
+      return { ok: false, error: 'Novo dispositivo/navegador detectado. Aguarde a autorização do administrador.' };
+    }
+
+    return { ok: true };
   }
 
   if (dispositivo.status === 'Pendente') {
