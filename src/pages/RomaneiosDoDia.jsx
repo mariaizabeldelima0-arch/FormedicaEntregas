@@ -15,7 +15,10 @@ import {
   Package,
   CheckSquare,
   Square,
-  CheckCircle
+  CheckCircle,
+  Columns2,
+  Files,
+  Gift
 } from 'lucide-react';
 
 // Componente de impressão individual do romaneio (versão para tela)
@@ -232,6 +235,17 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
           )}
         </div>
       )}
+
+      {/* Brinde - separado por linha pontilhada para recorte */}
+      {romaneio.enviar_brinde && (
+        <div style={{ borderTop: '2px dashed #000', marginTop: '10px', paddingTop: '8px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '16px', fontWeight: 'bold', color: '#000' }}>
+            <Gift size={18} />
+            <span>BRINDE{romaneio.brinde_descricao ? `: ${romaneio.brinde_descricao}` : ''}</span>
+            <Gift size={18} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -257,6 +271,9 @@ export default function RomaneiosDoDia() {
     } catch { return { busca: '', motoboy: '', periodo: '', status: '' }; }
   });
   const [showFiltros, setShowFiltros] = useState(false);
+  const [modoImpressao, setModoImpressao] = useState(() => {
+    return localStorage.getItem('romaneios_modo_impressao') || 'duas-por-pagina';
+  });
   const [selecionados, setSelecionados] = useState(new Set());
   const [impressos, setImpressos] = useState(() => {
     try {
@@ -406,6 +423,12 @@ export default function RomaneiosDoDia() {
     setSelecionados(new Set());
   };
 
+  const alternarModoImpressao = () => {
+    const novoModo = modoImpressao === 'duas-por-pagina' ? 'individual' : 'duas-por-pagina';
+    setModoImpressao(novoModo);
+    localStorage.setItem('romaneios_modo_impressao', novoModo);
+  };
+
   // Imprimir selecionados (ou todos se nenhum selecionado)
   const handlePrint = () => {
     const idsParaImprimir = selecionados.size > 0
@@ -484,6 +507,16 @@ export default function RomaneiosDoDia() {
           .checkbox-overlay {
             display: none !important;
           }
+          ${modoImpressao === 'individual' ? `
+          .romaneio-wrapper {
+            page-break-after: always;
+            break-after: page;
+          }
+          .romaneio-wrapper:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+          ` : ''}
         }
 
         @media screen {
@@ -525,6 +558,20 @@ export default function RomaneiosDoDia() {
                 </div>
               </div>
               <div className="flex items-center gap-2 pl-8 sm:pl-0">
+                <button
+                  onClick={alternarModoImpressao}
+                  title={modoImpressao === 'duas-por-pagina' ? 'Modo atual: 2 romaneios por página. Clique para imprimir cada um em página individual.' : 'Modo atual: página individual por romaneio. Clique para imprimir 2 por página.'}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-semibold text-xs sm:text-sm text-white transition-colors"
+                >
+                  {modoImpressao === 'duas-por-pagina' ? (
+                    <Columns2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  ) : (
+                    <Files size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {modoImpressao === 'duas-por-pagina' ? '2 por página' : 'Página individual'}
+                  </span>
+                </button>
                 <button
                   onClick={handlePrint}
                   className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white rounded-lg font-semibold text-xs sm:text-sm hover:bg-gray-100 transition-colors"

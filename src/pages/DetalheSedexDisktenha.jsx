@@ -234,7 +234,7 @@ export default function DetalheSedexDisktenha() {
               <button
                 onClick={handleEdit}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                style={{ backgroundColor: '#376295', color: 'white' }}
+                style={{ backgroundColor: '#2596be', color: 'white' }}
               >
                 <Edit size={16} />
                 Editar
@@ -252,7 +252,7 @@ export default function DetalheSedexDisktenha() {
               <button
                 onClick={handleDelete}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-                style={{ backgroundColor: '#ef4444', color: 'white' }}
+                style={{ backgroundColor: '#2596be', color: 'white' }}
               >
                 <Trash2 size={16} />
                 Excluir

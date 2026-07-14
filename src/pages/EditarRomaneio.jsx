@@ -342,6 +342,8 @@ export default function EditarRomaneio() {
     item_geladeira: false,
     buscar_receita: false,
     coleta: false,
+    enviar_brinde: false,
+    brinde_descricao: '',
     observacoes: '',
     valor_venda: 0,
     precisa_troco: false,
@@ -547,6 +549,8 @@ export default function EditarRomaneio() {
           item_geladeira: entrega.item_geladeira || false,
           buscar_receita: entrega.buscar_receita || false,
           coleta: entrega.coleta || false,
+          enviar_brinde: entrega.enviar_brinde || false,
+          brinde_descricao: entrega.brinde_descricao || '',
           observacoes: (entrega.observacoes || '').replace(/^\|\|H:.*?\|\|\s*/, ''),
           valor_venda: entrega.valor_venda || 0,
           precisa_troco: entrega.precisa_troco || false,
@@ -975,12 +979,21 @@ export default function EditarRomaneio() {
     }
   }, [isEntregaUnica]);
 
+  // Sábado: todas as entregas são do Bruno no período da Manhã
+  const isSabado = (dateStr) => {
+    if (!dateStr) return false;
+    return new Date(dateStr + 'T12:00:00').getDay() === 6;
+  };
+
   // Atualizar região
   const handleRegiaoChange = (regiao) => {
     console.log('Mudando região para:', regiao);
 
     setFormData(prevFormData => {
-      const motoboy = regiao === 'OUTRO' ? prevFormData.motoboy : (MOTOBOY_POR_REGIAO[regiao] || 'Marcio');
+      // Sábado: sempre Bruno, independente da região
+      const motoboy = isSabado(prevFormData.data_entrega)
+        ? 'Bruno'
+        : (regiao === 'OUTRO' ? prevFormData.motoboy : (MOTOBOY_POR_REGIAO[regiao] || 'Marcio'));
       const valor = calcularValor(regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
 
       console.log('Novo motoboy:', motoboy, 'Novo valor:', valor, 'Entrega única:', isEntregaUnica);
@@ -989,15 +1002,10 @@ export default function EditarRomaneio() {
         ...prevFormData,
         regiao,
         motoboy,
+        periodo: isSabado(prevFormData.data_entrega) ? 'Manhã' : prevFormData.periodo,
         valor_entrega: valor
       };
     });
-  };
-
-  // Sábado: todas as entregas são do Bruno no período da Manhã
-  const isSabado = (dateStr) => {
-    if (!dateStr) return false;
-    return new Date(dateStr + 'T12:00:00').getDay() === 6;
   };
 
   const handleDataChange = (novaData) => {
@@ -1319,6 +1327,8 @@ export default function EditarRomaneio() {
           item_geladeira: formData.item_geladeira,
           buscar_receita: formData.buscar_receita,
           coleta: formData.coleta,
+          enviar_brinde: formData.enviar_brinde,
+          brinde_descricao: formData.enviar_brinde ? formData.brinde_descricao : null,
           horario_entrega: formData.tipo_horario ? (
             formData.tipo_horario === 'de_ate' ? `de ${formData.hora1} até ${formData.hora2}` :
             formData.tipo_horario === 'ate' ? `até ${formData.hora1}` :
@@ -2354,6 +2364,7 @@ export default function EditarRomaneio() {
                 min="0"
                 value={formData.valor_venda || ''}
                 onChange={(e) => setFormData({...formData, valor_venda: parseFloat(e.target.value) || 0})}
+                onWheel={(e) => e.target.blur()}
                 placeholder="Ex: 150.00"
                 style={{
                   width: '100%',
@@ -2665,8 +2676,8 @@ export default function EditarRomaneio() {
             )}
           </div>
 
-          {/* Grid: Item de Geladeira, Buscar Receita e Coleta */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          {/* Grid: Item de Geladeira, Buscar Receita, Coleta e Brinde */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             {/* Item de Geladeira */}
             <div>
               <label style={{
@@ -2813,7 +2824,84 @@ export default function EditarRomaneio() {
                 </button>
               </div>
             </div>
+
+            {/* Enviar Brinde */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Enviar Brinde? *
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, enviar_brinde: true}))}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: formData.enviar_brinde ? '2px solid #d946ef' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: formData.enviar_brinde ? '#fae8ff' : 'white',
+                    color: formData.enviar_brinde ? '#a21caf' : '#64748b',
+                    fontWeight: formData.enviar_brinde ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, enviar_brinde: false, brinde_descricao: ''}))}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    border: !formData.enviar_brinde ? '2px solid #64748b' : '2px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    background: !formData.enviar_brinde ? '#f1f5f9' : 'white',
+                    color: !formData.enviar_brinde ? '#1e293b' : '#64748b',
+                    fontWeight: !formData.enviar_brinde ? '600' : '400',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Não
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Descrição do Brinde */}
+          {formData.enviar_brinde && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                O que é o brinde? *
+              </label>
+              <input
+                type="text"
+                value={formData.brinde_descricao}
+                onChange={(e) => setFormData({...formData, brinde_descricao: e.target.value})}
+                placeholder="Ex: Amostra grátis, brinde promocional..."
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem'
+                }}
+              />
+            </div>
+          )}
 
           {/* Observações */}
           <div>

@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import { Gift } from "lucide-react";
 
 export default function ImpressaoRomaneio({ romaneio }) {
   if (!romaneio) return null;
@@ -480,6 +481,17 @@ export default function ImpressaoRomaneio({ romaneio }) {
             )}
           </div>
         ) : null}
+
+        {/* Brinde - separado por linha pontilhada para recorte */}
+        {romaneio.enviar_brinde && (
+          <div style={{ borderTop: '2px dashed #000', marginTop: '10px', paddingTop: '10px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '18px', fontWeight: 'bold', color: '#000' }}>
+              <Gift size={20} />
+              <span>BRINDE{romaneio.brinde_descricao ? `: ${romaneio.brinde_descricao}` : ''}</span>
+              <Gift size={20} />
+            </div>
+          </div>
+        )}
 
       </div>
     </div>,

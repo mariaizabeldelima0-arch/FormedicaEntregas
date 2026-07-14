@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 const MESES = [
@@ -138,7 +139,7 @@ export function CustomDatePicker({
           <Calendar size={18} style={{ color: '#64748b', flexShrink: 0, marginLeft: '0.5rem' }} />
         </button>
 
-        {isOpen && !disabled && (
+        {isOpen && !disabled && ReactDOM.createPortal(
           <div
             ref={calendarRef}
             style={{
@@ -237,7 +238,8 @@ export function CustomDatePicker({
             >
               Hoje
             </button>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
       {error && (

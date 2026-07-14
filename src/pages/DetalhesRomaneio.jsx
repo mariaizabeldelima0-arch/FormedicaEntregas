@@ -21,7 +21,8 @@ import {
   AlertCircle,
   ExternalLink,
   Package,
-  Copy
+  Copy,
+  Gift
 } from "lucide-react";
 import {
   Dialog,
@@ -612,7 +613,7 @@ export default function DetalhesRomaneio() {
                   <button
                     onClick={handleDuplicar}
                     className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all"
-                    style={{ backgroundColor: '#6366f1', color: 'white' }}
+                    style={{ backgroundColor: '#457bba', color: 'white' }}
                     title="Duplicar"
                   >
                     <Copy size={14} className="sm:w-4 sm:h-4" />
@@ -1087,6 +1088,28 @@ export default function DetalhesRomaneio() {
                       <Package size={20} />
                       <span>COLETA</span>
                       <Package size={20} />
+                    </div>
+                  )}
+
+                  {/* Brinde */}
+                  {romaneio.enviar_brinde && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      padding: '12px 15px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      border: '2px solid #890d5d',
+                      backgroundColor: '#F5E8F5',
+                      color: '#890d5d',
+                      borderRadius: '8px'
+                    }}>
+                      <Gift size={20} />
+                      <span>BRINDE{romaneio.brinde_descricao ? `: ${romaneio.brinde_descricao}` : ''}</span>
+                      <Gift size={20} />
                     </div>
                   )}
 

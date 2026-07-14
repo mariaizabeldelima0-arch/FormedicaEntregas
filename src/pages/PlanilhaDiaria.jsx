@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown, MousePointerClick, Sunrise, Sun, Truck, MapPin } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, Download, Printer, FileDown, MousePointerClick, Sunrise, Sun, Truck, MapPin, Gift } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { CustomDropdown } from "@/components/CustomDropdown";
 import { CustomDatePicker } from "@/components/CustomDatePicker";
@@ -882,6 +882,7 @@ export default function PlanilhaDiaria() {
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Cliente</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Telefone</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Observação</th>
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Brinde</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Forma de Pgto</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Valor a Cobrar</th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-slate-200">Troco</th>
@@ -895,13 +896,13 @@ export default function PlanilhaDiaria() {
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 14 : 13} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 15 : 14} className="p-8 text-center text-slate-500">
                           Carregando...
                         </td>
                       </tr>
                     ) : romaneiosOrdenados.length === 0 ? (
                       <tr>
-                        <td colSpan={visualizarTodas ? 14 : 13} className="p-8 text-center text-slate-500">
+                        <td colSpan={visualizarTodas ? 15 : 14} className="p-8 text-center text-slate-500">
                           Nenhuma entrega encontrada
                         </td>
                       </tr>
@@ -1041,6 +1042,27 @@ export default function PlanilhaDiaria() {
                             </td>
                             <td className="px-2 py-1.5 border-r border-slate-200 text-slate-600 max-w-[200px] obs-cell-pdf">
                               {(rom.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') || '-')}
+                            </td>
+                            <td className="px-2 py-1.5 border-r border-slate-200 max-w-[140px] text-center">
+                              {rom.enviar_brinde ? (
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#F5E8F5',
+                                  color: '#890d5d',
+                                  border: '1px solid #890d5d'
+                                }}>
+                                  <Gift size={11} />
+                                  {rom.brinde_descricao || 'Sim'}
+                                </span>
+                              ) : (
+                                <span className="text-slate-300">-</span>
+                              )}
                             </td>
                             <td className="px-2 py-1.5 border-r border-slate-200 max-w-[80px] text-center">
                               <span style={{
