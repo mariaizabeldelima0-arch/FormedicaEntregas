@@ -142,9 +142,11 @@ export function CustomDatePicker({
         {isOpen && !disabled && ReactDOM.createPortal(
           <div
             ref={calendarRef}
+            data-datepicker-calendar="true"
             style={{
               position: 'fixed',
               zIndex: 99999,
+              pointerEvents: 'auto',
               width: `${dropdownPos.width}px`,
               top: `${dropdownPos.top}px`,
               left: `${dropdownPos.left}px`,

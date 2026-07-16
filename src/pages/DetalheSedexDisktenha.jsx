@@ -383,6 +383,9 @@ export default function DetalheSedexDisktenha() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent
           className="max-w-2xl"
+          onPointerDownOutside={(e) => {
+            if (e.target.closest('[data-datepicker-calendar]')) e.preventDefault();
+          }}
         >
           <DialogHeader>
             <DialogTitle>Editar Entrega</DialogTitle>

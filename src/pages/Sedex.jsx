@@ -363,6 +363,9 @@ export default function Sedex() {
             </DialogTrigger>
               <DialogContent
                 className="max-w-2xl max-h-[90vh] overflow-y-auto"
+                onPointerDownOutside={(e) => {
+                  if (e.target.closest('[data-datepicker-calendar]')) e.preventDefault();
+                }}
               >
                 <DialogHeader>
                   <DialogTitle>Cadastrar Nova Entrega</DialogTitle>
