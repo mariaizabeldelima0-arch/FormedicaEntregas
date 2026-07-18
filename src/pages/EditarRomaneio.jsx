@@ -338,6 +338,7 @@ export default function EditarRomaneio() {
     periodo: 'Tarde',
     forma_pagamento: '',
     motoboy: '',
+    motoboy_outro_nome: '',
     valor_entrega: 0,
     item_geladeira: false,
     buscar_receita: false,
@@ -544,7 +545,8 @@ export default function EditarRomaneio() {
           data_entrega: entrega.data_entrega || '',
           periodo: entrega.periodo || 'Tarde',
           forma_pagamento: entrega.forma_pagamento || '',
-          motoboy: entrega.motoboy?.nome || '',
+          motoboy: entrega.motoboy?.nome && !['Marcio', 'Bruno'].includes(entrega.motoboy.nome) ? 'Outro' : (entrega.motoboy?.nome || ''),
+          motoboy_outro_nome: entrega.motoboy?.nome && !['Marcio', 'Bruno'].includes(entrega.motoboy.nome) ? entrega.motoboy.nome : '',
           valor_entrega: entrega.valor || 0,
           item_geladeira: entrega.item_geladeira || false,
           buscar_receita: entrega.buscar_receita || false,
@@ -955,6 +957,11 @@ export default function EditarRomaneio() {
       return VALORES_ENTREGA_UNICA_BRUNO[regiao] || 0;
     }
 
+    // Motoboy "Outro": usa a mesma tabela de valores do Marcio
+    if (motoboy === 'Outro') {
+      return VALORES_ENTREGA.Marcio[regiao] || 0;
+    }
+
     return VALORES_ENTREGA[motoboy]?.[regiao] || 0;
   };
 
@@ -1046,6 +1053,7 @@ export default function EditarRomaneio() {
     setFormData({
       ...formData,
       motoboy,
+      motoboy_outro_nome: motoboy === 'Outro' ? formData.motoboy_outro_nome : '',
       valor_entrega: valor
     });
   };
@@ -1067,6 +1075,7 @@ export default function EditarRomaneio() {
     if (!formData.data_entrega) novosErros.data = 'Data obrigatória';
     if (!formData.forma_pagamento) novosErros.pagamento = 'Forma de pagamento obrigatória';
     if (!formData.motoboy) novosErros.motoboy = 'Selecione o motoboy';
+    if (formData.motoboy === 'Outro' && !formData.motoboy_outro_nome.trim()) novosErros.motoboy_outro_nome = 'Informe o nome do motoboy';
 
     // Validar valor da venda quando forma de pagamento exige
     if (formasPagamentoComValorVenda.includes(formData.forma_pagamento)) {
@@ -1284,20 +1293,32 @@ export default function EditarRomaneio() {
         endereco_cep: enderecoSelecionado.cep
       };
 
-      // Buscar ID do motoboy pelo nome
+      // Buscar ID do motoboy pelo nome (para "Outro", usa o nome digitado e cria o registro se necessário)
       let motoboyId = null;
-      if (formData.motoboy) {
+      const nomeMotoboyFinal = formData.motoboy === 'Outro' ? formData.motoboy_outro_nome.trim() : formData.motoboy;
+      if (nomeMotoboyFinal) {
         const { data: motoboyData, error: motoboyError } = await supabase
           .from('motoboys')
           .select('id')
-          .eq('nome', formData.motoboy)
+          .eq('nome', nomeMotoboyFinal)
           .limit(1);
 
         if (motoboyError) {
           console.error('Erro ao buscar motoboy:', motoboyError);
         }
         motoboyId = motoboyData?.[0]?.id || null;
-        console.log('Motoboy selecionado:', formData.motoboy, 'ID encontrado:', motoboyId);
+
+        if (!motoboyId && formData.motoboy === 'Outro') {
+          const { data: novoMotoboy, error: novoMotoboyError } = await supabase
+            .from('motoboys')
+            .insert({ nome: nomeMotoboyFinal })
+            .select('id')
+            .single();
+
+          if (novoMotoboyError) throw novoMotoboyError;
+          motoboyId = novoMotoboy.id;
+        }
+        console.log('Motoboy selecionado:', nomeMotoboyFinal, 'ID encontrado:', motoboyId);
       }
 
       // Preparar array com IDs dos clientes adicionais (todos exceto o primeiro)
@@ -2550,7 +2571,8 @@ export default function EditarRomaneio() {
                 options={[
                   { value: '', label: 'Selecione o motoboy' },
                   { value: 'Marcio', label: 'Marcio' },
-                  { value: 'Bruno', label: 'Bruno' }
+                  { value: 'Bruno', label: 'Bruno' },
+                  { value: 'Outro', label: 'Outro' }
                 ]}
                 value={formData.motoboy}
                 onChange={handleMotoboyChange}
@@ -2603,6 +2625,39 @@ export default function EditarRomaneio() {
               )}
             </div>
           </div>
+
+          {/* Nome do Outro Motoboy */}
+          {formData.motoboy === 'Outro' && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: theme.colors.text,
+                marginBottom: '0.5rem'
+              }}>
+                Nome do Motoboy *
+              </label>
+              <input
+                type="text"
+                value={formData.motoboy_outro_nome}
+                onChange={(e) => setFormData({...formData, motoboy_outro_nome: e.target.value})}
+                placeholder="Digite o nome do motoboy"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `1px solid ${errors.motoboy_outro_nome ? theme.colors.danger : theme.colors.border}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem'
+                }}
+              />
+              {errors.motoboy_outro_nome && (
+                <p style={{ color: theme.colors.danger, fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  {errors.motoboy_outro_nome}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Horário de Entrega */}
           <div className="mb-3 sm:mb-4" style={{ padding: '0.75rem', border: formData.tipo_horario ? '2px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '0.5rem', backgroundColor: formData.tipo_horario ? '#eff6ff' : 'white' }}>
