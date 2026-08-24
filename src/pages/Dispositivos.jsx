@@ -16,8 +16,7 @@ import {
   User,
   Pencil,
   Check,
-  X,
-  KeyRound
+  X
 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 
@@ -127,36 +126,6 @@ export default function Dispositivos() {
     onError: () => {
       toast.error('Erro ao remover dispositivo');
     }
-  });
-
-  // Buscar usuários com código de recuperação ativo
-  const { data: codigosAtivos = [], refetch: refetchCodigos } = useQuery({
-    queryKey: ['codigos-redefinicao'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('id, usuario, tipo_usuario, codigo_redefinicao')
-        .not('codigo_redefinicao', 'is', null)
-        .eq('ativo', true)
-        .order('usuario');
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const cancelarCodigoMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase
-        .from('usuarios')
-        .update({ codigo_redefinicao: null })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      refetchCodigos();
-      toast.success('Código cancelado.');
-    },
-    onError: () => toast.error('Erro ao cancelar código'),
   });
 
   // Mutation para renomear
@@ -321,57 +290,6 @@ export default function Dispositivos() {
           </div>
         </div>
 
-        {/* Códigos de Recuperação Ativos */}
-        {codigosAtivos.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6 border-2 border-amber-300">
-            <div className="px-6 py-4 border-b border-amber-200" style={{ backgroundColor: '#fffbeb' }}>
-              <div className="flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-amber-600" />
-                <h2 className="text-lg font-bold text-amber-900">Códigos de Recuperação Ativos</h2>
-                <span className="ml-1 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {codigosAtivos.length}
-                </span>
-              </div>
-              <p className="text-sm text-amber-700 mt-1">Informe o código ao usuário para que ele possa entrar e redefinir a senha.</p>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {codigosAtivos.map((u) => {
-                const tipoConfig = {
-                  admin: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Admin' },
-                  atendente: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Atendente' },
-                  motoboy: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Motoboy' },
-                }[u.tipo_usuario] || { bg: 'bg-slate-100', text: 'text-slate-700', label: u.tipo_usuario };
-
-                return (
-                  <div key={u.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <User className="w-5 h-5 text-slate-500 flex-shrink-0" />
-                      <span className="font-semibold text-slate-900">{u.usuario}</span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${tipoConfig.bg} ${tipoConfig.text}`}>
-                        {tipoConfig.label}
-                      </span>
-                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-1.5">
-                        <KeyRound className="w-4 h-4 text-amber-600" />
-                        <span style={{ fontFamily: 'monospace', letterSpacing: '0.2em', fontSize: '18px', fontWeight: 'bold', color: '#92400e' }}>
-                          {u.codigo_redefinicao}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => cancelarCodigoMutation.mutate(u.id)}
-                      disabled={cancelarCodigoMutation.isPending}
-                      className="flex items-center gap-1.5 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                      style={{ backgroundColor: '#ef4444' }}
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Cancelar código
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Lista de Dispositivos */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">

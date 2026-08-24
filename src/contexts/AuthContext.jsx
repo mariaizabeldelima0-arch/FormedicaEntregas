@@ -156,12 +156,11 @@ export const AuthProvider = ({ children }) => {
       const fingerprint = gerarFingerprint();
       const nomeDispositivo = obterNomeDispositivo();
 
-      // 1. Verificar credenciais na tabela usuarios
+      // 1. Descobrir o e-mail (e demais dados) a partir do usuário digitado
       const { data: usuarioData, error: erroUsuario } = await supabase
         .from('usuarios')
         .select('*')
         .eq('usuario', usuarioLogin)
-        .eq('senha', senhaDigitada)
         .eq('ativo', true)
         .maybeSingle();
 
@@ -170,15 +169,28 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Erro ao conectar' };
       }
 
-      if (!usuarioData) {
+      if (!usuarioData || !usuarioData.email) {
         return { success: false, error: 'Usuário ou senha inválidos' };
       }
 
-      // 2. Verificar dispositivo
-      const dispResult = await verificarDispositivo(usuarioData.id, fingerprint, nomeDispositivo);
-      if (!dispResult.ok) return { success: false, error: dispResult.error };
+      // 2. Autenticar de verdade via Supabase Auth
+      const { error: erroAuth } = await supabase.auth.signInWithPassword({
+        email: usuarioData.email,
+        password: senhaDigitada
+      });
 
-      // 3. Login autorizado
+      if (erroAuth) {
+        return { success: false, error: 'Usuário ou senha inválidos' };
+      }
+
+      // 3. Verificar dispositivo
+      const dispResult = await verificarDispositivo(usuarioData.id, fingerprint, nomeDispositivo);
+      if (!dispResult.ok) {
+        await supabase.auth.signOut();
+        return { success: false, error: dispResult.error };
+      }
+
+      // 4. Login autorizado
       const userData = {
         id: usuarioData.id,
         usuario: usuarioData.usuario,
@@ -198,8 +210,7 @@ export const AuthProvider = ({ children }) => {
         .eq('usuario_id', usuarioData.id)
         .eq('impressao_digital', fingerprint);
 
-      // Mostrar banner se a flag estiver ativa OU se a senha ainda é "123"
-      const precisaTrocar = usuarioData.deve_trocar_senha || senhaDigitada === '123';
+      const precisaTrocar = usuarioData.deve_trocar_senha === true;
       setDeveTrocarSenha(precisaTrocar);
       sessionStorage.setItem('formedica_deve_trocar_senha', String(precisaTrocar));
 
@@ -210,73 +221,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Login com código temporário gerado pelo admin
-  const loginComCodigo = async (usuarioLogin, codigo) => {
-    try {
-      const fingerprint = gerarFingerprint();
-      const nomeDispositivo = obterNomeDispositivo();
-
-      // 1. Buscar usuário pelo código temporário
-      const { data: usuarioData, error: erroUsuario } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('usuario', usuarioLogin)
-        .eq('codigo_redefinicao', codigo)
-        .eq('ativo', true)
-        .maybeSingle();
-
-      if (erroUsuario) {
-        console.error('Erro ao buscar usuário:', erroUsuario);
-        return { success: false, error: 'Erro ao conectar' };
-      }
-
-      if (!usuarioData) {
-        return { success: false, error: 'Código inválido ou expirado.' };
-      }
-
-      // 2. Verificar dispositivo
-      const dispResult = await verificarDispositivo(usuarioData.id, fingerprint, nomeDispositivo);
-      if (!dispResult.ok) return { success: false, error: dispResult.error };
-
-      // 3. Login autorizado com código
-      const userData = {
-        id: usuarioData.id,
-        usuario: usuarioData.usuario,
-        tipo_usuario: usuarioData.tipo_usuario,
-      };
-
-      setUser(userData);
-      sessionStorage.setItem('formedica_user', JSON.stringify(userData));
-
-      setUserType(userData.tipo_usuario || 'atendente');
-      sessionStorage.setItem('formedica_user_type', userData.tipo_usuario || 'atendente');
-
-      // Atualizar último acesso
-      await supabase
-        .from('dispositivos')
-        .update({ ultimo_acesso: new Date().toISOString() })
-        .eq('usuario_id', usuarioData.id)
-        .eq('impressao_digital', fingerprint);
-
-      // Forçar troca de senha
-      setDeveTrocarSenha(true);
-      sessionStorage.setItem('formedica_deve_trocar_senha', 'true');
-
-      return { success: true };
-    } catch (error) {
-      console.error('Erro no login com código:', error);
-      return { success: false, error: error.message };
-    }
-  };
-
   const trocarSenha = async (novaSenha) => {
-    // Usa RPC com SECURITY DEFINER para garantir que senha é atualizada
-    const { error } = await supabase.rpc('trocar_senha_usuario', {
-      p_usuario_id: user.id,
-      p_nova_senha: novaSenha
-    });
-
+    const { error } = await supabase.auth.updateUser({ password: novaSenha });
     if (error) return { success: false, error };
+
+    if (user?.id) {
+      await supabase.from('usuarios').update({ deve_trocar_senha: false }).eq('id', user.id);
+    }
 
     setDeveTrocarSenha(false);
     sessionStorage.removeItem('formedica_deve_trocar_senha');
@@ -284,6 +235,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    supabase.auth.signOut();
     setUser(null);
     setUserType(null);
     setDeveTrocarSenha(false);
@@ -298,7 +250,6 @@ export const AuthProvider = ({ children }) => {
       userType,
       loading,
       login,
-      loginComCodigo,
       logout,
       deveTrocarSenha,
       trocarSenha

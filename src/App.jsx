@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Login from '@/pages/Login';
+import DefinirSenha from '@/pages/DefinirSenha';
 import EntregasMoto from '@/pages/EntregasMoto';
 import NovoRomaneio from '@/pages/NovoRomaneio';
 import EditarRomaneio from '@/pages/EditarRomaneio';
@@ -90,6 +91,7 @@ function AppRoutes() {
         path="/login"
         element={user ? <Navigate to={getDefaultRoute()} /> : <Login />}
       />
+      <Route path="/definir-senha" element={<DefinirSenha />} />
       {/* Rota de impressão SEM Layout */}
       <Route
         path="/imprimir-romaneio"

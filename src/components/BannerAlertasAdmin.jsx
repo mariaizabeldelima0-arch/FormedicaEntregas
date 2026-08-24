@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/api/supabaseClient';
-import { Bell, KeyRound, Smartphone, CheckCircle, XCircle, ChevronDown, User, FilePenLine } from 'lucide-react';
+import { Bell, Smartphone, CheckCircle, XCircle, ChevronDown, User, FilePenLine } from 'lucide-react';
 import { theme } from '@/lib/theme';
 
 export default function BannerAlertasAdmin({ isMenuExpanded }) {
-  const [codigos, setCodigos] = useState([]);
   const [dispositivos, setDispositivos] = useState([]);
   const [edicoes, setEdicoes] = useState([]);
   const [expandido, setExpandido] = useState(false);
@@ -14,13 +13,7 @@ export default function BannerAlertasAdmin({ isMenuExpanded }) {
 
   const fetchDados = useCallback(async () => {
     const hoje = new Date().toISOString().split('T')[0];
-    const [resCodigos, resDispositivos, resEdicoes] = await Promise.all([
-      supabase
-        .from('usuarios')
-        .select('id, usuario, tipo_usuario, codigo_redefinicao')
-        .not('codigo_redefinicao', 'is', null)
-        .eq('ativo', true)
-        .order('usuario'),
+    const [resDispositivos, resEdicoes] = await Promise.all([
       supabase
         .from('dispositivos')
         .select('id, nome, usuario_id, ultimo_acesso, usuarios(usuario, tipo_usuario)')
@@ -34,7 +27,6 @@ export default function BannerAlertasAdmin({ isMenuExpanded }) {
         .order('created_at', { ascending: false })
     ]);
 
-    setCodigos(resCodigos.data || []);
     setDispositivos(resDispositivos.data || []);
     setEdicoes(resEdicoes.data || []);
   }, []);
@@ -44,7 +36,6 @@ export default function BannerAlertasAdmin({ isMenuExpanded }) {
 
     const canal = supabase
       .channel('admin-alertas')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, fetchDados)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dispositivos' }, fetchDados)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificacoes_edicoes' }, fetchDados)
       .subscribe();
@@ -56,17 +47,10 @@ export default function BannerAlertasAdmin({ isMenuExpanded }) {
     };
   }, [fetchDados]);
 
-  const total = codigos.length + dispositivos.length + edicoes.length;
+  const total = dispositivos.length + edicoes.length;
 
   const setCarregandoItem = (id, valor) => {
     setCarregando(prev => ({ ...prev, [id]: valor }));
-  };
-
-  const cancelarCodigo = async (id) => {
-    setCarregandoItem(id, true);
-    await supabase.from('usuarios').update({ codigo_redefinicao: null }).eq('id', id);
-    setCarregandoItem(id, false);
-    fetchDados();
   };
 
   const atualizarDispositivo = async (id, status) => {
@@ -207,93 +191,6 @@ export default function BannerAlertasAdmin({ isMenuExpanded }) {
               <ChevronDown size={16} />
             </button>
           </div>
-
-          {/* Seção: Códigos de recuperação */}
-          {codigos.length > 0 && (
-            <div>
-              <div style={{
-                padding: '8px 16px 4px',
-                fontSize: '11px',
-                fontWeight: '700',
-                color: '#92400e',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                background: '#fffbeb',
-                borderBottom: '1px solid #fde68a',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}>
-                <KeyRound size={13} />
-                Códigos de recuperação ({codigos.length})
-              </div>
-              {codigos.map(u => {
-                const tipo = getTipo(u.tipo_usuario);
-                return (
-                  <div key={u.id} style={{
-                    padding: '10px 16px',
-                    borderBottom: '1px solid #f1f5f9',
-                    background: '#fffcf0',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                      <User size={14} style={{ color: '#64748b', flexShrink: 0 }} />
-                      <span style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{u.usuario}</span>
-                      <span style={{
-                        padding: '1px 7px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: '700',
-                        background: tipo.bg,
-                        color: tipo.text,
-                      }}>{tipo.label}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: '#fef3c7',
-                        border: '1px solid #fcd34d',
-                        borderRadius: '8px',
-                        padding: '4px 10px',
-                      }}>
-                        <KeyRound size={13} style={{ color: '#d97706' }} />
-                        <span style={{
-                          fontFamily: 'monospace',
-                          letterSpacing: '0.2em',
-                          fontSize: '16px',
-                          fontWeight: '800',
-                          color: '#92400e',
-                        }}>{u.codigo_redefinicao}</span>
-                      </div>
-                      <button
-                        onClick={() => cancelarCodigo(u.id)}
-                        disabled={carregando[u.id]}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '5px 10px',
-                          background: '#ef4444',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '7px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: carregando[u.id] ? 'not-allowed' : 'pointer',
-                          opacity: carregando[u.id] ? 0.6 : 1,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <XCircle size={13} />
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
 
           {/* Seção: Dispositivos pendentes */}
           {dispositivos.length > 0 && (
