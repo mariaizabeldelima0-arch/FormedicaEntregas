@@ -362,11 +362,6 @@ export default function ImpressaoRomaneio({ romaneio }) {
                   Ref.: {romaneio.endereco.ponto_referencia}
                 </div>
               )}
-              {romaneio.cliente?.nome && (
-                <div className="print-endereco-ac">
-                  A/C: {romaneio.cliente.nome}{romaneio.clientesAdicionais?.length > 0 && `, ${romaneio.clientesAdicionais.map(c => c.nome).join(', ')}`}
-                </div>
-              )}
             </div>
           </div>
 
