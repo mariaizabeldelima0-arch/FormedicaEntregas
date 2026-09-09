@@ -93,7 +93,6 @@ export default function PlanilhaDiaria() {
           })
         );
 
-        console.log('Entregas carregadas:', entregasComClientesAdicionais);
         return entregasComClientesAdicionais || [];
       } catch (error) {
         console.error('Erro ao carregar entregas:', error);
@@ -125,7 +124,6 @@ export default function PlanilhaDiaria() {
         toast.error('Erro ao carregar Sedex/Disktenha');
         return [];
       }
-      console.log('Sedex/Disktenha carregados:', data);
       return data || [];
     },
   });
@@ -202,11 +200,6 @@ export default function PlanilhaDiaria() {
     return true;
   });
 
-  console.log('Total entregas:', romaneios.length);
-  console.log('Entregas filtradas:', romaneiosFiltrados.length);
-  console.log('Data selecionada:', selectedDate);
-  console.log('Visualizar todas:', visualizarTodas);
-  console.log('Filtro motoboy:', filtroMotoboy);
 
   // Ordenar por motoboy, período, cidade e status
   const statusOrder = {

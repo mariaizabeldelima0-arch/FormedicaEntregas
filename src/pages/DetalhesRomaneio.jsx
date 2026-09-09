@@ -99,7 +99,6 @@ export default function DetalhesRomaneio() {
       } else {
         descricaoFinal = descricaoAnexo.trim() || null;
       }
-      console.log('Upload anexo - tipo:', tipoAnexo, 'nomeReceita:', nomeReceita, 'descricaoFinal:', descricaoFinal);
 
       const { error: insertError } = await supabase
         .from('anexos')
@@ -150,14 +149,12 @@ export default function DetalhesRomaneio() {
         tipo: editTipo.toLowerCase(),
         descricao: descricaoFinal,
       };
-      console.log('Atualizando anexo:', editAnexo.id, updateData);
       const { data, error } = await supabase
         .from('anexos')
         .update(updateData)
         .eq('id', editAnexo.id)
         .select();
       if (error) throw error;
-      console.log('Anexo atualizado:', data);
       toast.success('Anexo atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['romaneio', romaneioId] });
       setEditAnexoModal(false);
@@ -189,7 +186,6 @@ export default function DetalhesRomaneio() {
   const { data: romaneio, isLoading, error: queryError } = useQuery({
     queryKey: ['romaneio', romaneioId],
     queryFn: async () => {
-      console.log('🔍 Buscando romaneio com ID:', romaneioId);
 
       if (!romaneioId) {
         console.error('❌ ID do romaneio não fornecido');
@@ -213,7 +209,6 @@ export default function DetalhesRomaneio() {
         throw error;
       }
 
-      console.log('✅ Romaneio encontrado:', data);
 
       // Buscar clientes adicionais se houver
       let clientesAdicionais = [];
@@ -443,7 +438,6 @@ export default function DetalhesRomaneio() {
                     .from('entregas')
                     .update({ valor: valorUnico })
                     .eq('id', entrega.id);
-                  console.log(`Entrega ${entrega.id} promovida para entrega única: R$${valorNormal} → R$${valorUnico}`);
                 }
               }
             }

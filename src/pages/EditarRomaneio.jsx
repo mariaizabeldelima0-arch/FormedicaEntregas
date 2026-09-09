@@ -777,7 +777,6 @@ export default function EditarRomaneio() {
 
   // Carregar endereços do cliente
   const carregarEnderecosCliente = async (clienteId, autoSelecionar = true) => {
-    console.log('Buscando endereços para cliente ID:', clienteId);
     try {
       const { data, error } = await supabase
         .from('enderecos')
@@ -785,15 +784,14 @@ export default function EditarRomaneio() {
         .eq('cliente_id', clienteId)
         .order('is_principal', { ascending: false });
 
-      console.log('Endereços encontrados:', data);
-      console.log('Erro ao buscar endereços:', error);
-
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar endereços:', error);
+        throw error;
+      }
       setClienteEnderecos(data || []);
 
       // Se só tem um endereço, seleciona automaticamente (apenas quando não é carregamento inicial)
       if (autoSelecionar && data && data.length === 1) {
-        console.log('Selecionando endereço automaticamente:', data[0]);
         selecionarEndereco(data[0]);
       }
     } catch (error) {
@@ -804,7 +802,6 @@ export default function EditarRomaneio() {
 
   // Selecionar endereço
   const selecionarEndereco = (endereco) => {
-    console.log('Selecionando endereço:', endereco);
 
     setEnderecoSelecionado(endereco);
 
@@ -994,7 +991,6 @@ export default function EditarRomaneio() {
 
   // Atualizar região
   const handleRegiaoChange = (regiao) => {
-    console.log('Mudando região para:', regiao);
 
     setFormData(prevFormData => {
       // Sábado: sempre Bruno, independente da região
@@ -1003,7 +999,6 @@ export default function EditarRomaneio() {
         : (regiao === 'OUTRO' ? prevFormData.motoboy : (MOTOBOY_POR_REGIAO[regiao] || 'Marcio'));
       const valor = calcularValor(regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
 
-      console.log('Novo motoboy:', motoboy, 'Novo valor:', valor, 'Entrega única:', isEntregaUnica);
 
       return {
         ...prevFormData,
@@ -1318,17 +1313,10 @@ export default function EditarRomaneio() {
           if (novoMotoboyError) throw novoMotoboyError;
           motoboyId = novoMotoboy.id;
         }
-        console.log('Motoboy selecionado:', nomeMotoboyFinal, 'ID encontrado:', motoboyId);
       }
 
       // Preparar array com IDs dos clientes adicionais (todos exceto o primeiro)
       const clientesAdicionais = clientesSelecionados.slice(1).map(c => c.id);
-
-      console.log('Salvando entrega com:', {
-        motoboy_id: motoboyId,
-        valor: formData.valor_entrega,
-        regiao: formData.regiao
-      });
 
       // Atualizar entrega com snapshot do endereço
       const { data, error } = await supabase
@@ -1396,14 +1384,12 @@ export default function EditarRomaneio() {
                   .from('entregas')
                   .update({ valor: valorUnico })
                   .eq('id', entrega.id);
-                console.log(`Entrega ${entrega.id} promovida: R$${valorNormal} → R$${valorUnico}`);
               } else if (!ehUnica && entrega.valor === valorUnico) {
                 // Rebaixar para valor normal
                 await supabase
                   .from('entregas')
                   .update({ valor: valorNormal })
                   .eq('id', entrega.id);
-                console.log(`Entrega ${entrega.id} rebaixada: R$${valorUnico} → R$${valorNormal}`);
               }
             }
           }
