@@ -63,14 +63,12 @@ export default function DetalheSedexDisktenha() {
 
   const updateMutation = useMutation({
     mutationFn: async (data) => {
-      console.log('📦 Dados enviados para update:', data);
       const { data: result, error } = await supabase
         .from('sedex_disktenha')
         .update(data)
         .eq('id', entregaId)
         .select();
 
-      console.log('📦 Resultado do update:', { result, error });
       if (error) throw error;
       return result;
     },

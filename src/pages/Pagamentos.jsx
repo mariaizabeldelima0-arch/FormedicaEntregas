@@ -168,14 +168,12 @@ export default function Pagamentos() {
   // Mutation silenciosa para corrigir pagamentos (sem toast individual)
   const corrigirPagamentoMutation = useMutation({
     mutationFn: async (entregaId) => {
-      console.log('Tentando corrigir entrega:', entregaId);
       const { data, error } = await supabase
         .from('entregas')
         .update({ pagamento_recebido: true })
         .eq('id', entregaId)
         .select();
 
-      console.log('Resultado:', { data, error });
       if (error) {
         console.error('Erro detalhado:', JSON.stringify(error, null, 2));
         throw error;

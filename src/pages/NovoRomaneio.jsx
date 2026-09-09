@@ -691,7 +691,6 @@ export default function NovoRomaneio() {
         regiao: regiaoFinal
       };
 
-      console.log('🔄 Atualizando endereço:', enderecoEmEdicao, enderecoAtualizado);
 
       const { data, error } = await supabase
         .from('enderecos')
@@ -701,11 +700,9 @@ export default function NovoRomaneio() {
 
       if (error) throw error;
 
-      console.log('✅ Endereço atualizado no banco:', data);
 
       // Pegar o endereço antigo para manter o cliente_nome e outras propriedades
       const enderecoAntigo = todosEnderecos.find(e => e.id === enderecoEmEdicao);
-      console.log('📦 Endereço antigo encontrado:', enderecoAntigo);
 
       // Criar novo objeto completo com todas as propriedades
       const enderecoCompleto = {
@@ -722,7 +719,6 @@ export default function NovoRomaneio() {
         is_principal: enderecoAntigo?.is_principal || false
       };
 
-      console.log('📝 Endereço completo para atualizar:', enderecoCompleto);
 
       // Atualizar a lista local de endereços
       const novosEnderecos = todosEnderecos.map(end => {
@@ -732,12 +728,10 @@ export default function NovoRomaneio() {
         return end;
       });
 
-      console.log('📋 Novos endereços:', novosEnderecos);
       setTodosEnderecos(novosEnderecos);
 
       // Se o endereço editado estava selecionado, atualizar completamente
       if (enderecoSelecionado?.id === enderecoEmEdicao) {
-        console.log('🎯 Atualizando endereço selecionado');
         setEnderecoSelecionado(enderecoCompleto);
         if (regiaoFinal) {
           handleRegiaoChange(regiaoFinal);
@@ -906,7 +900,6 @@ export default function NovoRomaneio() {
 
   // Atualizar região
   const handleRegiaoChange = (regiao) => {
-    console.log('Mudando região para:', regiao);
 
     setFormData(prevFormData => {
       // Sábado: sempre Bruno, independente da região
@@ -915,7 +908,6 @@ export default function NovoRomaneio() {
         : (regiao === 'OUTRO' ? prevFormData.motoboy : (MOTOBOY_POR_REGIAO[regiao] || 'Marcio'));
       const valor = calcularValor(regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
 
-      console.log('Novo motoboy:', motoboy, 'Novo valor:', valor, 'Entrega única:', isEntregaUnica);
 
       return {
         ...prevFormData,
@@ -1274,7 +1266,6 @@ export default function NovoRomaneio() {
 
       if (error) throw error;
 
-      console.log('Entregas criadas:', entregasCriadas);
 
       // Atualizar valores de entregas do Bruno que não são mais entrega única
       if (formData.motoboy === 'Bruno' && motoboyId) {
@@ -1310,7 +1301,6 @@ export default function NovoRomaneio() {
                     .from('entregas')
                     .update({ valor: valorNormal })
                     .eq('id', entrega.id);
-                  console.log(`Entrega ${entrega.id} atualizada de R$${valorUnico} para R$${valorNormal} (não é mais entrega única)`);
                 }
               }
             }
