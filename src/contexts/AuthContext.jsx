@@ -135,20 +135,35 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Usar sessionStorage para manter sessão durante atualização,
     // mas exigir login ao fechar e abrir o navegador
-    try {
-      const storedUser = sessionStorage.getItem('formedica_user');
-      const storedType = sessionStorage.getItem('formedica_user_type');
+    const restaurarSessao = async () => {
+      try {
+        const storedUser = sessionStorage.getItem('formedica_user');
+        if (!storedUser) return;
 
-      if (storedUser) {
+        // Só considera alguém logado se a sessão do Supabase Auth também
+        // existir. Sem essa conferência, a tela abriria "logada" mas sem
+        // permissão nenhuma no banco — um estado quebrado e difícil de
+        // diagnosticar depois que as regras de acesso estiverem ligadas.
+        const { data } = await supabase.auth.getSession();
+
+        if (!data.session) {
+          sessionStorage.removeItem('formedica_user');
+          sessionStorage.removeItem('formedica_user_type');
+          sessionStorage.removeItem('formedica_deve_trocar_senha');
+          return;
+        }
+
         setUser(JSON.parse(storedUser));
-        setUserType(storedType);
+        setUserType(sessionStorage.getItem('formedica_user_type'));
         setDeveTrocarSenha(sessionStorage.getItem('formedica_deve_trocar_senha') === 'true');
+      } catch (error) {
+        console.error('Erro ao verificar usuário:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Erro ao verificar usuário:', error);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    restaurarSessao();
   }, []);
 
   const login = async (usuarioLogin, senhaDigitada) => {
@@ -156,10 +171,12 @@ export const AuthProvider = ({ children }) => {
       const fingerprint = gerarFingerprint();
       const nomeDispositivo = obterNomeDispositivo();
 
-      // 1. Descobrir o e-mail (e demais dados) a partir do usuário digitado
+      // 1. Descobrir o e-mail (e demais dados) a partir do usuário digitado.
+      // Só as colunas necessárias: a coluna `senha` (texto puro, a ser apagada)
+      // não tem motivo nenhum para chegar até o navegador.
       const { data: usuarioData, error: erroUsuario } = await supabase
         .from('usuarios')
-        .select('*')
+        .select('id, usuario, email, tipo_usuario, deve_trocar_senha')
         .eq('usuario', usuarioLogin)
         .eq('ativo', true)
         .maybeSingle();

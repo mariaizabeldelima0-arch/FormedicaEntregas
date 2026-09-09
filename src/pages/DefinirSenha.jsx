@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
 import { theme } from '@/lib/theme';
+import { senhaValida, MENSAGEM_REGRA } from '@/lib/senha';
+import RequisitosSenha from '@/components/RequisitosSenha';
 
 export default function DefinirSenha() {
   const [verificando, setVerificando] = useState(true);
@@ -35,8 +37,8 @@ export default function DefinirSenha() {
     e.preventDefault();
     setError('');
 
-    if (senha.length < 6) {
-      setError('A senha precisa ter pelo menos 6 caracteres.');
+    if (!senhaValida(senha)) {
+      setError(MENSAGEM_REGRA);
       return;
     }
     if (senha !== confirmarSenha) {
@@ -158,24 +160,26 @@ export default function DefinirSenha() {
               </div>
             )}
 
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{ marginBottom: '0.75rem' }}>
               <label style={labelStyle}>Nova senha</label>
               <input
                 type="password"
                 value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                placeholder="Pelo menos 6 caracteres"
+                onChange={(e) => { setSenha(e.target.value); setError(''); }}
+                placeholder="Mínimo 8 caracteres"
                 required
                 style={inputStyle}
               />
             </div>
+
+            <RequisitosSenha senha={senha} />
 
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={labelStyle}>Confirmar nova senha</label>
               <input
                 type="password"
                 value={confirmarSenha}
-                onChange={(e) => setConfirmarSenha(e.target.value)}
+                onChange={(e) => { setConfirmarSenha(e.target.value); setError(''); }}
                 placeholder="Digite a senha novamente"
                 required
                 style={inputStyle}

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, User, UserCog, Search, UserPlus, Pencil, Trash2, CheckCircle, XCircle, Power, KeyRound } from "lucide-react";
+import { ArrowLeft, User, UserCog, Search, UserPlus, Pencil, Trash2, CheckCircle, XCircle, Power, KeyRound, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { CustomDropdown } from '@/components/CustomDropdown';
@@ -15,6 +15,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+// As funções do Supabase explicam o problema no corpo da resposta.
+// Sem isso, o erro chega como "Edge Function returned a non-2xx status code".
+async function mensagemDaFuncao(erro, padrao) {
+  try {
+    const corpo = await erro.context?.json();
+    if (corpo?.error) return corpo.error;
+  } catch {
+    // resposta sem corpo legível — usa a mensagem padrão
+  }
+  return padrao;
+}
+
 export default function Usuarios() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -22,6 +34,7 @@ export default function Usuarios() {
   const [showNovoUsuario, setShowNovoUsuario] = useState(false);
   const [novoUsuario, setNovoUsuario] = useState({
     usuario: '',
+    email: '',
     tipo_usuario: 'atendente',
   });
   const [showEditarUsuario, setShowEditarUsuario] = useState(false);
@@ -61,43 +74,45 @@ export default function Usuarios() {
   });
 
   // Mutation para criar novo usuário
+  // Passa pela função criar-usuario no Supabase: ela cria o login, envia o
+  // convite por e-mail e grava a linha na tabela — tudo do lado do servidor.
   const criarUsuarioMutation = useMutation({
     mutationFn: async (novoUser) => {
-      const { error } = await supabase
-        .from('usuarios')
-        .insert([{
-          usuario: novoUser.usuario,
-          nome: novoUser.usuario,
-          senha: '123',
-          deve_trocar_senha: true,
+      const { data, error } = await supabase.functions.invoke('criar-usuario', {
+        body: {
+          usuario: novoUser.usuario.trim(),
+          email: novoUser.email.trim(),
           tipo_usuario: novoUser.tipo_usuario,
-          ativo: true
-        }]);
+        }
+      });
 
-      if (error) throw error;
+      if (error) throw new Error(await mensagemDaFuncao(error, 'Erro ao criar usuário'));
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
-      toast.success('Usuário criado com sucesso!');
+      toast.success(data?.mensagem || 'Usuário criado! Convite enviado por e-mail.');
       setShowNovoUsuario(false);
       setNovoUsuario({
         usuario: '',
+        email: '',
         tipo_usuario: 'atendente',
       });
     },
     onError: (error) => {
       console.error('Erro ao criar usuário:', error);
-      if (error.message?.includes('duplicate') || error.code === '23505') {
-        toast.error('Já existe um usuário com esse login');
-      } else {
-        toast.error('Erro ao criar usuário');
-      }
+      toast.error(error.message || 'Erro ao criar usuário');
     }
   });
 
   const handleCriarUsuario = () => {
-    if (!novoUsuario.usuario) {
+    if (!novoUsuario.usuario.trim()) {
       toast.error('Preencha o nome de usuário');
+      return;
+    }
+    if (!novoUsuario.email.trim()) {
+      toast.error('Preencha o e-mail');
       return;
     }
     criarUsuarioMutation.mutate(novoUsuario);
@@ -106,6 +121,21 @@ export default function Usuarios() {
   // Mutation para editar usuário
   const editarUsuarioMutation = useMutation({
     mutationFn: async (userEdit) => {
+      // O e-mail é alterado pelo servidor, porque ele precisa ser trocado
+      // também no login (Supabase Auth) — os dois têm que ficar iguais.
+      const emailNovo = (userEdit.email || '').trim().toLowerCase();
+      const emailAntigo = (userEdit.emailOriginal || '').trim().toLowerCase();
+
+      if (emailNovo !== emailAntigo) {
+        const { data: respostaEmail, error: erroEmail } = await supabase.functions.invoke(
+          'atualizar-email-usuario',
+          { body: { id: userEdit.id, email: emailNovo } }
+        );
+
+        if (erroEmail) throw new Error(await mensagemDaFuncao(erroEmail, 'Erro ao alterar o e-mail'));
+        if (respostaEmail?.error) throw new Error(respostaEmail.error);
+      }
+
       const updateData = {
         usuario: userEdit.usuario,
         nome: userEdit.usuario,
@@ -176,6 +206,9 @@ export default function Usuarios() {
     setUsuarioEditando({
       id: usuario.id,
       usuario: usuario.usuario || '',
+      email: usuario.email || '',
+      // guardado para saber se o e-mail foi realmente alterado
+      emailOriginal: usuario.email || '',
       tipo_usuario: usuario.tipo_usuario || 'atendente',
     });
     setShowEditarUsuario(true);
@@ -184,6 +217,10 @@ export default function Usuarios() {
   const handleSalvarEdicao = () => {
     if (!usuarioEditando.usuario) {
       toast.error('Preencha o usuário');
+      return;
+    }
+    if (!usuarioEditando.email?.trim()) {
+      toast.error('Preencha o e-mail');
       return;
     }
     editarUsuarioMutation.mutate(usuarioEditando);
@@ -332,9 +369,19 @@ export default function Usuarios() {
               />
             </div>
 
+            <div>
+              <Label>E-mail *</Label>
+              <Input
+                type="email"
+                value={novoUsuario.email}
+                onChange={(e) => setNovoUsuario({ ...novoUsuario, email: e.target.value })}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+
             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-              <KeyRound className="w-4 h-4 flex-shrink-0" />
-              A senha inicial será <strong>123</strong>. O usuário será obrigado a criar uma nova senha no primeiro acesso.
+              <Mail className="w-4 h-4 flex-shrink-0" />
+              A pessoa receberá um e-mail para criar a própria senha. Use um e-mail individual, não compartilhado.
             </div>
 
             <CustomDropdown
@@ -385,6 +432,16 @@ export default function Usuarios() {
                   value={usuarioEditando.usuario}
                   onChange={(e) => setUsuarioEditando({ ...usuarioEditando, usuario: e.target.value })}
                   placeholder="Digite o nome de usuário"
+                />
+              </div>
+
+              <div>
+                <Label>E-mail *</Label>
+                <Input
+                  type="email"
+                  value={usuarioEditando.email}
+                  onChange={(e) => setUsuarioEditando({ ...usuarioEditando, email: e.target.value })}
+                  placeholder="email@exemplo.com"
                 />
               </div>
 
