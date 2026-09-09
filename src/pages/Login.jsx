@@ -4,21 +4,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/api/supabaseClient';
 import { theme } from '@/lib/theme';
 
-const gerarCodigo = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-};
+const urlDefinirSenha = () =>
+  `${window.location.origin}${import.meta.env.MODE === 'production' ? '/FormedicaEntregas' : ''}/definir-senha`;
 
 export default function Login() {
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, loginComCodigo } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   // Estados da tela de redefinição
@@ -26,10 +20,7 @@ export default function Login() {
   const [usuarioRedefinir, setUsuarioRedefinir] = useState('');
   const [loadingRedefinir, setLoadingRedefinir] = useState(false);
   const [erroRedefinir, setErroRedefinir] = useState('');
-  // Após gerar código
-  const [codigoGerado, setCodigoGerado] = useState(false);
-  const [codigoInput, setCodigoInput] = useState('');
-  const [loadingCodigo, setLoadingCodigo] = useState(false);
+  const [emailEnviado, setEmailEnviado] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,7 +38,7 @@ export default function Login() {
     setLoading(false);
   };
 
-  const handleGerarCodigo = async (e) => {
+  const handleEnviarLinkRedefinicao = async (e) => {
     e.preventDefault();
     setErroRedefinir('');
 
@@ -60,60 +51,36 @@ export default function Login() {
 
     const { data, error } = await supabase
       .from('usuarios')
-      .select('id')
+      .select('email')
       .eq('usuario', usuarioRedefinir.trim())
       .eq('ativo', true)
       .maybeSingle();
 
-    if (error || !data) {
-      setErroRedefinir('Usuário não encontrado.');
+    if (error || !data?.email) {
+      setErroRedefinir('Usuário não encontrado ou sem e-mail cadastrado. Fale com o administrador.');
       setLoadingRedefinir(false);
       return;
     }
 
-    const codigo = gerarCodigo();
+    const { error: erroReset } = await supabase.auth.resetPasswordForEmail(data.email, {
+      redirectTo: urlDefinirSenha()
+    });
 
-    const { error: erroUpdate } = await supabase
-      .from('usuarios')
-      .update({ codigo_redefinicao: codigo })
-      .eq('id', data.id);
-
-    if (erroUpdate) {
-      setErroRedefinir('Erro ao gerar código. Tente novamente.');
+    if (erroReset) {
+      setErroRedefinir('Erro ao enviar o link. Tente novamente.');
       setLoadingRedefinir(false);
       return;
     }
 
-    setCodigoGerado(true);
+    setEmailEnviado(true);
     setLoadingRedefinir(false);
-  };
-
-  const handleEntrarComCodigo = async (e) => {
-    e.preventDefault();
-    setErroRedefinir('');
-
-    if (!codigoInput.trim()) {
-      setErroRedefinir('Digite o código fornecido pelo administrador.');
-      return;
-    }
-
-    setLoadingCodigo(true);
-    const result = await loginComCodigo(usuarioRedefinir, codigoInput.trim().toUpperCase());
-    setLoadingCodigo(false);
-
-    if (result.success) {
-      navigate('/');
-    } else {
-      setErroRedefinir(result.error || 'Código inválido.');
-    }
   };
 
   const voltarLogin = () => {
     setTelaRedefinir(false);
     setUsuarioRedefinir('');
     setErroRedefinir('');
-    setCodigoGerado(false);
-    setCodigoInput('');
+    setEmailEnviado(false);
   };
 
   const inputStyle = {
@@ -259,9 +226,9 @@ export default function Login() {
               </div>
             )}
 
-            {/* Passo 1: digitar usuário e gerar código */}
-            {!codigoGerado && (
-              <form onSubmit={handleGerarCodigo}>
+            {/* Digitar usuário e enviar link de redefinição por e-mail */}
+            {!emailEnviado && (
+              <form onSubmit={handleEnviarLinkRedefinicao}>
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={labelStyle}>Digite seu usuário</label>
                   <input
@@ -278,54 +245,23 @@ export default function Login() {
                   disabled={loadingRedefinir}
                   style={btnPrimary(loadingRedefinir)}
                 >
-                  {loadingRedefinir ? 'Gerando...' : 'Gerar código de acesso'}
+                  {loadingRedefinir ? 'Enviando...' : 'Enviar link por e-mail'}
                 </button>
               </form>
             )}
 
-            {/* Passo 2: aguardar código do admin e entrar */}
-            {codigoGerado && (
-              <form onSubmit={handleEntrarComCodigo}>
-                <div style={{
-                  background: '#fffbeb',
-                  border: '1px solid #fde68a',
-                  borderRadius: '0.5rem',
-                  padding: '0.875rem',
-                  marginBottom: '1.25rem',
-                  fontSize: '0.875rem',
-                  color: '#92400e',
-                  textAlign: 'center'
-                }}>
-                  Código gerado! Entre em contato com o <strong>administrador</strong> para obter o código de acesso e digite-o abaixo.
-                </div>
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={labelStyle}>Código fornecido pelo administrador</label>
-                  <input
-                    type="text"
-                    value={codigoInput}
-                    onChange={(e) => setCodigoInput(e.target.value.toUpperCase())}
-                    placeholder="Ex: AB3X9K"
-                    maxLength={6}
-                    style={{
-                      ...inputStyle,
-                      textAlign: 'center',
-                      letterSpacing: '0.3em',
-                      fontSize: '1.25rem',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase'
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loadingCodigo}
-                  style={btnPrimary(loadingCodigo)}
-                >
-                  {loadingCodigo ? 'Verificando...' : 'Entrar com código'}
-                </button>
-              </form>
+            {emailEnviado && (
+              <div style={{
+                background: '#dcfce7',
+                border: '1px solid #86efac',
+                borderRadius: '0.5rem',
+                padding: '0.875rem',
+                fontSize: '0.875rem',
+                color: '#166534',
+                textAlign: 'center'
+              }}>
+                Enviamos um link para o e-mail cadastrado. Abra-o para definir sua nova senha.
+              </div>
             )}
 
             <div style={{ textAlign: 'center' }}>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lock, Eye, EyeOff } from 'lucide-react';
+import { senhaValida, MENSAGEM_REGRA } from '@/lib/senha';
+import RequisitosSenha from '@/components/RequisitosSenha';
 
 export default function BannerTrocarSenha() {
   const { trocarSenha } = useAuth();
@@ -18,8 +20,8 @@ export default function BannerTrocarSenha() {
       setErro('Preencha os dois campos.');
       return;
     }
-    if (novaSenha.length < 4) {
-      setErro('A senha deve ter pelo menos 4 caracteres.');
+    if (!senhaValida(novaSenha)) {
+      setErro(MENSAGEM_REGRA);
       return;
     }
     if (novaSenha !== confirmarSenha) {
@@ -87,7 +89,7 @@ export default function BannerTrocarSenha() {
         {/* Corpo */}
         <div style={{ padding: '24px' }}>
           {/* Nova senha */}
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '10px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
               Nova senha
             </label>
@@ -95,8 +97,8 @@ export default function BannerTrocarSenha() {
               <input
                 type={mostrarNova ? 'text' : 'password'}
                 value={novaSenha}
-                onChange={(e) => setNovaSenha(e.target.value)}
-                placeholder="Mínimo 4 caracteres"
+                onChange={(e) => { setNovaSenha(e.target.value); setErro(''); }}
+                placeholder="Mínimo 8 caracteres"
                 style={{
                   width: '100%',
                   padding: '10px 40px 10px 12px',
@@ -129,6 +131,8 @@ export default function BannerTrocarSenha() {
             </div>
           </div>
 
+          <RequisitosSenha senha={novaSenha} />
+
           {/* Confirmar senha */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
@@ -138,7 +142,7 @@ export default function BannerTrocarSenha() {
               <input
                 type={mostrarConfirmar ? 'text' : 'password'}
                 value={confirmarSenha}
-                onChange={(e) => setConfirmarSenha(e.target.value)}
+                onChange={(e) => { setConfirmarSenha(e.target.value); setErro(''); }}
                 placeholder="Repita a senha"
                 style={{
                   width: '100%',
