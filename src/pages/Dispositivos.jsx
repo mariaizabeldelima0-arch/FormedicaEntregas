@@ -63,6 +63,24 @@ export default function Dispositivos() {
     );
   });
 
+  // Agrupar por pessoa. A ordem de dentro de cada grupo e a ordem entre os
+  // grupos continuam sendo "acesso mais recente primeiro", como era antes.
+  const grupos = Object.values(
+    dispositivosFiltrados.reduce((acc, d) => {
+      const chave = d.usuarios?.id || 'sem-usuario';
+      if (!acc[chave]) {
+        acc[chave] = {
+          chave,
+          nome: d.usuarios?.usuario || 'Sem usuário',
+          tipo: d.usuarios?.tipo_usuario || '',
+          itens: [],
+        };
+      }
+      acc[chave].itens.push(d);
+      return acc;
+    }, {})
+  );
+
   // Calcular estatísticas
   const stats = {
     total: dispositivos.length,
@@ -314,21 +332,44 @@ export default function Dispositivos() {
                 </div>
               </div>
             ) : (
-              dispositivosFiltrados.map((dispositivo) => (
-                <DispositivoCard
-                  key={dispositivo.id}
-                  dispositivo={dispositivo}
-                  onAutorizar={handleAutorizar}
-                  onBloquear={handleBloquear}
-                  onDeletar={handleDeletar}
-                  onRenomear={handleRenomear}
-                  isUpdating={
-                    autorizarMutation.isPending ||
-                    bloquearMutation.isPending ||
-                    deletarMutation.isPending ||
-                    renomearMutation.isPending
-                  }
-                />
+              grupos.map((grupo) => (
+                <div key={grupo.chave}>
+                  <div className="px-4 sm:px-6 py-2 bg-slate-50 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <span className="text-sm font-semibold text-slate-700 truncate">
+                        {grupo.nome}
+                      </span>
+                      {grupo.tipo && (
+                        <span className="text-xs text-slate-500 hidden sm:inline">
+                          ({grupo.tipo})
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-slate-500 flex-shrink-0">
+                      {grupo.itens.length} {grupo.itens.length === 1 ? 'aparelho' : 'aparelhos'}
+                    </span>
+                  </div>
+
+                  <div className="divide-y divide-slate-200">
+                    {grupo.itens.map((dispositivo) => (
+                      <DispositivoCard
+                        key={dispositivo.id}
+                        dispositivo={dispositivo}
+                        onAutorizar={handleAutorizar}
+                        onBloquear={handleBloquear}
+                        onDeletar={handleDeletar}
+                        onRenomear={handleRenomear}
+                        isUpdating={
+                          autorizarMutation.isPending ||
+                          bloquearMutation.isPending ||
+                          deletarMutation.isPending ||
+                          renomearMutation.isPending
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
               ))
             )}
           </div>
