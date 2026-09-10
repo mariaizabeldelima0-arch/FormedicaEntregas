@@ -81,6 +81,29 @@ const verificarDispositivo = async (usuarioId, fingerprint, nomeDispositivo) => 
   if (erroDisp) return { ok: false, error: 'Erro ao verificar dispositivo' };
 
   if (!dispositivo) {
+    // O código que identifica o aparelho é gravado dentro do navegador, e
+    // alguns navegadores apagam isso sozinhos — o Safari do iPhone limpa
+    // depois de poucos dias sem uso. Quando isso acontece é o MESMO aparelho
+    // voltando, não um novo. Se já existe um registro autorizado com o mesmo
+    // nome, reaproveitamos ele em vez de criar outro: era assim que um único
+    // iPhone virava 142 "aparelhos" na tela de Dispositivos.
+    const { data: mesmoNavegador } = await supabase
+      .from('dispositivos')
+      .select('id')
+      .eq('usuario_id', usuarioId)
+      .eq('nome', nomeDispositivo)
+      .eq('status', 'Autorizado')
+      .limit(1)
+      .maybeSingle();
+
+    if (mesmoNavegador) {
+      await supabase
+        .from('dispositivos')
+        .update({ impressao_digital: fingerprint, ultimo_acesso: new Date().toISOString() })
+        .eq('id', mesmoNavegador.id);
+      return { ok: true };
+    }
+
     // Se o usuário já possui algum dispositivo autorizado, é alguém já aprovado
     // (o fingerprint mudou por ter sido perdido o armazenamento local) — liberar
     // automaticamente, mas manter o registro visível para o admin.
