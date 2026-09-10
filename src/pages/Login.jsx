@@ -49,20 +49,18 @@ export default function Login() {
 
     setLoadingRedefinir(true);
 
+    // Mesma função do login: a pessoa aqui ainda não está autenticada, então
+    // não pode ler a tabela `usuarios` — só perguntar o e-mail dela.
     const { data, error } = await supabase
-      .from('usuarios')
-      .select('email')
-      .eq('usuario', usuarioRedefinir.trim())
-      .eq('ativo', true)
-      .maybeSingle();
+      .rpc('email_do_usuario', { p_usuario: usuarioRedefinir.trim() });
 
-    if (error || !data?.email) {
+    if (error || !data) {
       setErroRedefinir('Usuário não encontrado ou sem e-mail cadastrado. Fale com o administrador.');
       setLoadingRedefinir(false);
       return;
     }
 
-    const { error: erroReset } = await supabase.auth.resetPasswordForEmail(data.email, {
+    const { error: erroReset } = await supabase.auth.resetPasswordForEmail(data, {
       redirectTo: urlDefinirSenha()
     });
 
