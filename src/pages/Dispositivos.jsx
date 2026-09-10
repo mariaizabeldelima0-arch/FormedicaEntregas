@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   ChevronLeft,
+  ChevronDown,
+  ChevronRight,
   Smartphone,
   Monitor,
   Search,
@@ -25,6 +27,18 @@ export default function Dispositivos() {
   const queryClient = useQueryClient();
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [busca, setBusca] = useState('');
+  // Quais pessoas estão com a lista aberta. Por padrão todas ficam
+  // recolhidas, mostrando só o aparelho usado mais recentemente.
+  const [abertos, setAbertos] = useState(() => new Set());
+
+  const alternarAberto = (chave) => {
+    setAbertos((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(chave)) novo.delete(chave);
+      else novo.add(chave);
+      return novo;
+    });
+  };
 
   // Buscar dispositivos com dados do usuário vinculado
   const { data: dispositivos = [], isLoading } = useQuery({
@@ -332,45 +346,69 @@ export default function Dispositivos() {
                 </div>
               </div>
             ) : (
-              grupos.map((grupo) => (
-                <div key={grupo.chave}>
-                  <div className="px-4 sm:px-6 py-2 bg-slate-50 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-sm font-semibold text-slate-700 truncate">
-                        {grupo.nome}
-                      </span>
-                      {grupo.tipo && (
-                        <span className="text-xs text-slate-500 hidden sm:inline">
-                          ({grupo.tipo})
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-slate-500 flex-shrink-0">
-                      {grupo.itens.length} {grupo.itens.length === 1 ? 'aparelho' : 'aparelhos'}
-                    </span>
-                  </div>
+              grupos.map((grupo) => {
+                const temMais = grupo.itens.length > 1;
+                // Durante uma busca, abrir tudo: esconder um resultado que a
+                // pessoa acabou de procurar seria confuso.
+                const aberto = abertos.has(grupo.chave) || busca.trim() !== '';
+                const visiveis = aberto ? grupo.itens : grupo.itens.slice(0, 1);
+                const escondidos = grupo.itens.length - visiveis.length;
 
-                  <div className="divide-y divide-slate-200">
-                    {grupo.itens.map((dispositivo) => (
-                      <DispositivoCard
-                        key={dispositivo.id}
-                        dispositivo={dispositivo}
-                        onAutorizar={handleAutorizar}
-                        onBloquear={handleBloquear}
-                        onDeletar={handleDeletar}
-                        onRenomear={handleRenomear}
-                        isUpdating={
-                          autorizarMutation.isPending ||
-                          bloquearMutation.isPending ||
-                          deletarMutation.isPending ||
-                          renomearMutation.isPending
-                        }
-                      />
-                    ))}
+                return (
+                  <div key={grupo.chave}>
+                    <button
+                      type="button"
+                      onClick={() => temMais && alternarAberto(grupo.chave)}
+                      disabled={!temMais}
+                      className={`w-full px-4 sm:px-6 py-2 bg-slate-50 flex items-center justify-between gap-2 text-left ${
+                        temMais ? 'hover:bg-slate-100 cursor-pointer' : 'cursor-default'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {temMais ? (
+                          aberto
+                            ? <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                            : <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                        ) : (
+                          <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        )}
+                        <span className="text-sm font-semibold text-slate-700 truncate">
+                          {grupo.nome}
+                        </span>
+                        {grupo.tipo && (
+                          <span className="text-xs text-slate-500 hidden sm:inline">
+                            ({grupo.tipo})
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-500 flex-shrink-0">
+                        {escondidos > 0
+                          ? `+${escondidos} ${escondidos === 1 ? 'aparelho' : 'aparelhos'}`
+                          : `${grupo.itens.length} ${grupo.itens.length === 1 ? 'aparelho' : 'aparelhos'}`}
+                      </span>
+                    </button>
+
+                    <div className="divide-y divide-slate-200">
+                      {visiveis.map((dispositivo) => (
+                        <DispositivoCard
+                          key={dispositivo.id}
+                          dispositivo={dispositivo}
+                          onAutorizar={handleAutorizar}
+                          onBloquear={handleBloquear}
+                          onDeletar={handleDeletar}
+                          onRenomear={handleRenomear}
+                          isUpdating={
+                            autorizarMutation.isPending ||
+                            bloquearMutation.isPending ||
+                            deletarMutation.isPending ||
+                            renomearMutation.isPending
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
