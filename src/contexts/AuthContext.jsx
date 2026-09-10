@@ -194,33 +194,43 @@ export const AuthProvider = ({ children }) => {
       const fingerprint = gerarFingerprint();
       const nomeDispositivo = obterNomeDispositivo();
 
-      // 1. Descobrir o e-mail (e demais dados) a partir do usuário digitado.
-      // Só as colunas necessárias: a coluna `senha` (texto puro, a ser apagada)
-      // não tem motivo nenhum para chegar até o navegador.
-      const { data: usuarioData, error: erroUsuario } = await supabase
-        .from('usuarios')
-        .select('id, usuario, email, tipo_usuario, deve_trocar_senha')
-        .eq('usuario', usuarioLogin)
-        .eq('ativo', true)
-        .maybeSingle();
+      // 1. Descobrir o e-mail a partir do usuário digitado.
+      // Aqui a pessoa ainda não está autenticada, então não dá para ler a
+      // tabela `usuarios` — ela é fechada. A função no banco responde só
+      // essa pergunta e devolve apenas o e-mail, nada mais.
+      const { data: emailDoUsuario, error: erroUsuario } = await supabase
+        .rpc('email_do_usuario', { p_usuario: usuarioLogin });
 
       if (erroUsuario) {
         console.error('Erro ao buscar usuário:', erroUsuario);
         return { success: false, error: 'Erro ao conectar' };
       }
 
-      if (!usuarioData || !usuarioData.email) {
+      if (!emailDoUsuario) {
         return { success: false, error: 'Usuário ou senha inválidos' };
       }
 
       // 2. Autenticar de verdade via Supabase Auth
       const { error: erroAuth } = await supabase.auth.signInWithPassword({
-        email: usuarioData.email,
+        email: emailDoUsuario,
         password: senhaDigitada
       });
 
       if (erroAuth) {
         return { success: false, error: 'Usuário ou senha inválidos' };
+      }
+
+      // 2b. Agora sim, já autenticada, a pessoa pode ler o próprio cadastro.
+      const { data: usuarioData, error: erroCadastro } = await supabase
+        .from('usuarios')
+        .select('id, usuario, tipo_usuario, deve_trocar_senha')
+        .eq('auth_id', (await supabase.auth.getUser()).data.user?.id)
+        .maybeSingle();
+
+      if (erroCadastro || !usuarioData) {
+        console.error('Erro ao carregar o cadastro:', erroCadastro);
+        await supabase.auth.signOut();
+        return { success: false, error: 'Não foi possível carregar seu cadastro. Fale com o administrador.' };
       }
 
       // 3. Verificar dispositivo
