@@ -23,6 +23,7 @@ import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterva
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { comprimirImagem, extensaoDoArquivo } from '@/lib/comprimirImagem';
 
 export default function Receitas() {
   const navigate = useNavigate();
@@ -116,13 +117,16 @@ export default function Receitas() {
     setUploading(true);
     try {
       // Upload do arquivo para Supabase Storage
-      const fileExt = arquivoSelecionado.name.split('.').pop();
+      // Comprime no navegador antes de subir. Se falhar, sobe a original.
+      const { arquivo: arquivoParaEnviar, comprimido } = await comprimirImagem(arquivoSelecionado);
+
+      const fileExt = extensaoDoArquivo(arquivoSelecionado, comprimido);
       const fileName = `${receitaSelecionada.id}_${tipoAnexo}_${Date.now()}.${fileExt}`;
       const filePath = `anexos/${fileName}`;
 
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('entregas-anexos')
-        .upload(filePath, arquivoSelecionado);
+        .upload(filePath, arquivoParaEnviar, { contentType: arquivoParaEnviar.type });
 
       if (uploadError) throw uploadError;
 
