@@ -36,6 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { comprimirImagem, extensaoDoArquivo } from '@/lib/comprimirImagem';
 import { useAuth } from '@/contexts/AuthContext';
 import ImpressaoRomaneio from "@/components/ImpressaoRomaneio";
 import { CustomDropdown } from "@/components/CustomDropdown";
@@ -75,13 +76,16 @@ export default function DetalhesRomaneio() {
 
     setUploading(true);
     try {
-      const fileExt = arquivoSelecionado.name.split('.').pop();
+      // Comprime no navegador antes de subir. Se falhar, sobe a original.
+      const { arquivo: arquivoParaEnviar, comprimido } = await comprimirImagem(arquivoSelecionado);
+
+      const fileExt = extensaoDoArquivo(arquivoSelecionado, comprimido);
       const fileName = `${romaneioId}_${tipoAnexo}_${Date.now()}.${fileExt}`;
       const filePath = `anexos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('entregas-anexos')
-        .upload(filePath, arquivoSelecionado);
+        .upload(filePath, arquivoParaEnviar, { contentType: arquivoParaEnviar.type });
 
       if (uploadError) throw uploadError;
 
