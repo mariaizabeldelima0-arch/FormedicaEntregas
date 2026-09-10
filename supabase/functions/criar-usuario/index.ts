@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
   }
 
   // 5. Grava na tabela do sistema, já vinculada à conta criada
-  const { error: erroInsert } = await admin.from('usuarios').insert([{
+  const { data: criado, error: erroInsert } = await admin.from('usuarios').insert([{
     usuario,
     nome: usuario,
     email,
@@ -156,14 +156,66 @@ Deno.serve(async (req) => {
     ativo: true,
     auth_id: convite.user.id,
     deve_trocar_senha: false,
-  }]);
+  }]).select('id').single();
 
   // 6. Deu errado? Desfaz o convite para não sobrar conta sem dono.
-  if (erroInsert) {
+  if (erroInsert || !criado) {
     await admin.auth.admin.deleteUser(convite.user.id);
     return resposta(
       { error: 'Erro ao gravar o usuário. Nada foi criado — pode tentar de novo.' },
       500,
+      origin
+    );
+  }
+
+  // 7. Motoboy precisa também de um cadastro na lista de motoboys, ligado a
+  // ele. Sem esse vínculo o Painel dos Motoboys não sabe quais entregas são
+  // dele e mostra um aviso em vez das entregas.
+  if (tipo_usuario === 'motoboy') {
+    const desfazerTudo = async () => {
+      await admin.from('usuarios').delete().eq('id', criado.id);
+      await admin.auth.admin.deleteUser(convite.user.id);
+    };
+
+    const { data: jaExiste } = await admin
+      .from('motoboys')
+      .select('id, nome, usuario_id')
+      .ilike('nome', usuario)
+      .maybeSingle();
+
+    if (jaExiste?.usuario_id) {
+      // Já existe um motoboy com esse nome e ele é de outra pessoa.
+      await desfazerTudo();
+      return resposta(
+        { error: `Já existe um motoboy chamado "${jaExiste.nome}" vinculado a outro usuário. Nada foi criado.` },
+        409,
+        origin
+      );
+    }
+
+    const erroMoto = jaExiste
+      // Motoboy já estava na lista, sem login: só liga ao usuário novo.
+      ? (await admin.from('motoboys').update({ usuario_id: criado.id }).eq('id', jaExiste.id)).error
+      // Não existia: cria o cadastro já vinculado.
+      : (await admin.from('motoboys').insert([{ nome: usuario, usuario_id: criado.id, ativo: true }])).error;
+
+    if (erroMoto) {
+      await desfazerTudo();
+      return resposta(
+        { error: 'Erro ao criar o cadastro de motoboy. Nada foi criado — pode tentar de novo.' },
+        500,
+        origin
+      );
+    }
+
+    return resposta(
+      {
+        ok: true,
+        mensagem: jaExiste
+          ? `Usuário criado e ligado ao motoboy "${jaExiste.nome}". Convite enviado para ${email}.`
+          : `Usuário e cadastro de motoboy criados. Convite enviado para ${email}.`,
+      },
+      200,
       origin
     );
   }
