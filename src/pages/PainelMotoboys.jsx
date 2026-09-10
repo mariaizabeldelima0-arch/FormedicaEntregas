@@ -123,19 +123,21 @@ export default function PainelMotoboys() {
 
   // Selecionar motoboy automaticamente
   useEffect(() => {
-    if (motoboys.length > 0 && !motoboyId) {
-      if (isMotoboy && nomeMotoboyUsuario) {
-        const motoboyDoUsuario = motoboys.find(m =>
-          m.nome.toLowerCase() === nomeMotoboyUsuario.toLowerCase()
-        );
-        if (motoboyDoUsuario) {
-          setMotoboyId(motoboyDoUsuario.id);
-          return;
-        }
-      }
-      setMotoboyId(motoboys[0].id);
+    if (motoboys.length === 0 || motoboyId) return;
+
+    if (isMotoboy) {
+      // O vínculo vem do cadastro (motoboys.usuario_id), não da comparação de
+      // nomes. Comparar texto era arriscado: bastava um acento diferente ou
+      // renomear o usuário para o motoboy passar a ver as entregas de outro.
+      const meuCadastro = motoboys.find(m => m.usuario_id === user?.id);
+      if (meuCadastro) setMotoboyId(meuCadastro.id);
+      // Sem vínculo, não seleciona ninguém de propósito: é melhor a tela
+      // avisar do que mostrar as entregas de outra pessoa.
+      return;
     }
-  }, [motoboys, motoboyId, isMotoboy, nomeMotoboyUsuario]);
+
+    setMotoboyId(motoboys[0].id);
+  }, [motoboys, motoboyId, isMotoboy, user?.id]);
 
   // Buscar entregas do motoboy
   const { data: todasEntregasRaw = [], isLoading } = useQuery({
@@ -709,6 +711,16 @@ export default function PainelMotoboys() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Coluna Esquerda */}
           <div className="space-y-3 sm:space-y-4">
+            {/* Motoboy sem vínculo com um cadastro: avisar em vez de mostrar
+                as entregas de outra pessoa */}
+            {isMotoboy && !motoboyId && motoboys.length > 0 && (
+              <div className="rounded-xl p-3 sm:p-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                <strong>Seu usuário ainda não está vinculado a um cadastro de motoboy.</strong>
+                <br />
+                Por isso não é possível mostrar suas entregas. Avise um administrador.
+              </div>
+            )}
+
             {/* Seletor de Motoboy */}
             {!isMotoboy && (
               <div className="rounded-xl p-3 sm:p-4" style={{ backgroundColor: '#890d5d' }}>
