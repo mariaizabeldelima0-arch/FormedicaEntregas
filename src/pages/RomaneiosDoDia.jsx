@@ -272,7 +272,16 @@ export default function RomaneiosDoDia() {
   });
   const [showFiltros, setShowFiltros] = useState(false);
   const [modoImpressao, setModoImpressao] = useState(() => {
-    return localStorage.getItem('romaneios_modo_impressao') || 'duas-por-pagina';
+    // O padrao passou de "2 por pagina" para "pagina individual", que e o uso
+    // mais frequente. Quem ja tinha mexido no botao tem a escolha antiga
+    // guardada no navegador, e ela venceria o padrao novo — por isso ela e
+    // limpa uma unica vez. Da proxima vez em diante, a escolha de cada pessoa
+    // volta a ser respeitada normalmente.
+    if (!localStorage.getItem('romaneios_modo_impressao_padrao_individual')) {
+      localStorage.removeItem('romaneios_modo_impressao');
+      localStorage.setItem('romaneios_modo_impressao_padrao_individual', '1');
+    }
+    return localStorage.getItem('romaneios_modo_impressao') || 'individual';
   });
   const [selecionados, setSelecionados] = useState(new Set());
   const [impressos, setImpressos] = useState(() => {
