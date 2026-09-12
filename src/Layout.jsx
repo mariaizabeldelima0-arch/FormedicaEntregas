@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Users,
   FileText,
-  Package,
   LogOut,
   Truck,
   BarChart3,
@@ -82,12 +81,6 @@ export default function Layout({ children, currentPageName }) {
       title: "Minhas Entregas",
       url: createPageUrl("PainelMotoboys"),
       icon: Truck,
-    },
-  ] : isEntregador ? [
-    {
-      title: "Minhas Entregas",
-      url: createPageUrl("MinhasEntregas"),
-      icon: Package,
     },
   ] : isAtendente ? [
     {
