@@ -37,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { comprimirImagem, extensaoDoArquivo } from '@/lib/comprimirImagem';
+import { abrirAnexo, assinarUrls, caminhoDoAnexo } from '@/lib/anexoUrl';
 import { useAuth } from '@/contexts/AuthContext';
 import ImpressaoRomaneio from "@/components/ImpressaoRomaneio";
 import { CustomDropdown } from "@/components/CustomDropdown";
@@ -62,6 +63,10 @@ export default function DetalhesRomaneio() {
   const [editTipo, setEditTipo] = useState("");
   const [editDescricao, setEditDescricao] = useState("");
   const [editNomeReceita, setEditNomeReceita] = useState("");
+
+  // Links temporários dos anexos (ver src/lib/anexoUrl.js).
+  // Mapa: url gravada no banco -> link assinado, válido por uma hora.
+  const [linksDosAnexos, setLinksDosAnexos] = useState(new Map());
 
   // Função para fazer upload do anexo
   const handleUploadAnexo = async () => {
@@ -89,6 +94,9 @@ export default function DetalhesRomaneio() {
 
       if (uploadError) throw uploadError;
 
+      // O balde é privado: este endereço NÃO abre sozinho. Ele é só a forma
+      // de identificar o arquivo, no mesmo formato das linhas antigas — quem
+      // abre a imagem é o link assinado (src/lib/anexoUrl.js).
       const { data: { publicUrl } } = supabase.storage
         .from('entregas-anexos')
         .getPublicUrl(filePath);
@@ -174,9 +182,9 @@ export default function DetalhesRomaneio() {
     if (!confirm('Tem certeza que deseja excluir este anexo?')) return;
     try {
       // Extrair path do arquivo da URL
-      const urlParts = anexo.url.split('/object/public/entregas-anexos/');
-      if (urlParts.length > 1) {
-        await supabase.storage.from('entregas-anexos').remove([urlParts[1]]);
+      const caminho = caminhoDoAnexo(anexo.url);
+      if (caminho) {
+        await supabase.storage.from('entregas-anexos').remove([caminho]);
       }
       const { error } = await supabase.from('anexos').delete().eq('id', anexo.id);
       if (error) throw error;
@@ -267,6 +275,24 @@ export default function DetalhesRomaneio() {
       console.error('❌ Erro na query:', queryError);
     }
   }, [queryError]);
+
+  // Assina os anexos assim que o romaneio carrega, todos num pedido só, para
+  // que o link já esteja pronto quando a pessoa clicar.
+  const urlsDosAnexos = (romaneio?.anexos || []).map((a) => a.url).join('|');
+
+  useEffect(() => {
+    if (!urlsDosAnexos) {
+      setLinksDosAnexos(new Map());
+      return;
+    }
+
+    let cancelado = false;
+    assinarUrls(urlsDosAnexos.split('|')).then((mapa) => {
+      if (!cancelado) setLinksDosAnexos(mapa);
+    });
+
+    return () => { cancelado = true; };
+  }, [urlsDosAnexos]);
 
   // Mutation para atualizar status de pagamento recebido
   const updatePagamentoMutation = useMutation({
@@ -787,7 +813,21 @@ export default function DetalhesRomaneio() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {lista.map((anexo) => (
                           <div key={anexo.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                            <a href={anexo.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 flex-1 min-w-0">
+                            <a
+                              href={linksDosAnexos.get(anexo.url) || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                // Se o link ainda não ficou pronto (ou falhou),
+                                // assina na hora em vez de deixar o clique cair no vazio.
+                                if (linksDosAnexos.get(anexo.url)) return;
+                                e.preventDefault();
+                                abrirAnexo(anexo.url).then((abriu) => {
+                                  if (!abriu) toast.error('Não foi possível abrir o anexo. Tente de novo.');
+                                });
+                              }}
+                              className="flex items-center gap-3 flex-1 min-w-0"
+                            >
                               <ImageIcon size={20} className={`${tipoConfig[tipo].cor} flex-shrink-0`} />
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium text-slate-900">

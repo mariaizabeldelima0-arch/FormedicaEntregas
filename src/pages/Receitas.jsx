@@ -24,6 +24,7 @@ import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { comprimirImagem, extensaoDoArquivo } from '@/lib/comprimirImagem';
+import { abrirAnexo } from '@/lib/anexoUrl';
 
 export default function Receitas() {
   const navigate = useNavigate();
@@ -130,7 +131,9 @@ export default function Receitas() {
 
       if (uploadError) throw uploadError;
 
-      // Obter URL pública
+      // O balde é privado: este endereço NÃO abre sozinho. Ele é só a forma
+      // de identificar o arquivo, no mesmo formato das linhas antigas — quem
+      // abre a imagem é o link assinado (src/lib/anexoUrl.js).
       const { data: { publicUrl } } = supabase.storage
         .from('entregas-anexos')
         .getPublicUrl(filePath);
@@ -540,7 +543,10 @@ export default function Receitas() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const receitaAnexos = receita.anexos.filter(a => a.tipo === 'receita');
-                                window.open(receitaAnexos[receitaAnexos.length - 1].url, '_blank');
+                                const ultima = receitaAnexos[receitaAnexos.length - 1];
+                                abrirAnexo(ultima.url).then((abriu) => {
+                                  if (!abriu) toast.error('Não foi possível abrir a receita. Tente de novo.');
+                                });
                               }}
                               className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-medium text-slate-700"
                             >

@@ -1,7 +1,6 @@
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
 import NovoRomaneio from './pages/NovoRomaneio';
-import MinhasEntregas from './pages/MinhasEntregas';
 import DetalhesRomaneio from './pages/DetalhesRomaneio';
 import Rastreamento from './pages/Rastreamento';
 import Relatorios from './pages/Relatorios';
@@ -21,7 +20,6 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Clientes": Clientes,
     "NovoRomaneio": NovoRomaneio,
-    "MinhasEntregas": MinhasEntregas,
     "DetalhesRomaneio": DetalhesRomaneio,
     "Rastreamento": Rastreamento,
     "Relatorios": Relatorios,
