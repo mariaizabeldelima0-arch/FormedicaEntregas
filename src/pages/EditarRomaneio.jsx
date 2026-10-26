@@ -286,6 +286,18 @@ export default function EditarRomaneio() {
   const [loadingEntrega, setLoadingEntrega] = useState(true);
   const [eraImpresso, setEraImpresso] = useState(false);
   const carregamentoInicialRef = useRef(true);
+
+  // O valor da entrega tem duas origens: a tabela de precos (automatico) e o
+  // que o admin digita (manual). Estas duas marcas dizem qual das duas vale
+  // agora, para que o recalculo automatico nunca apague um valor digitado de
+  // proposito — era o que acontecia nas entregas do Bruno.
+  //
+  // Fica ligada quando a pessoa mexe em regiao, motoboy, data ou periodo:
+  // nesses casos o valor DEVE ser recalculado pela tabela.
+  const recalculoAutomaticoLiberadoRef = useRef(false);
+  // Fica ligada quando a pessoa digita o valor a mao: a partir dai a tabela
+  // nao manda mais, ate que ela mexa num dos campos acima.
+  const valorEditadoAMaoRef = useRef(false);
   const [buscarCliente, setBuscarCliente] = useState('');
   const [clientesSugestoes, setClientesSugestoes] = useState([]);
   const [showCadastroCliente, setShowCadastroCliente] = useState(false);
@@ -974,6 +986,15 @@ export default function EditarRomaneio() {
   // Recalcular valor quando isEntregaUnica mudar (apenas se não for carregamento inicial)
   useEffect(() => {
     if (carregamentoInicialRef.current) return;
+
+    // A consulta "esta e a unica entrega do Bruno no periodo?" vem da internet
+    // e demora. A trava de carregamento acima e por TEMPO (100ms), entao a
+    // resposta quase sempre chega depois dela — e este recalculo passava por
+    // cima do valor que veio do banco, ou do que a pessoa tinha acabado de
+    // digitar. So recalculamos quando o recalculo foi realmente pedido.
+    if (!recalculoAutomaticoLiberadoRef.current) return;
+    if (valorEditadoAMaoRef.current) return;
+
     if (formData.motoboy === 'Bruno' && formData.regiao && formData.regiao !== 'OUTRO') {
       const novoValor = calcularValor(formData.regiao, formData.motoboy, isEntregaUnica);
       setFormData(prev => ({
@@ -991,6 +1012,9 @@ export default function EditarRomaneio() {
 
   // Atualizar região
   const handleRegiaoChange = (regiao) => {
+    // Trocou a regiao: o valor volta a ser o da tabela.
+    recalculoAutomaticoLiberadoRef.current = true;
+    valorEditadoAMaoRef.current = false;
 
     setFormData(prevFormData => {
       // Sábado: sempre Bruno, independente da região
@@ -1011,6 +1035,11 @@ export default function EditarRomaneio() {
   };
 
   const handleDataChange = (novaData) => {
+    // Trocou a data: pode mudar o motoboy (sabado e sempre Bruno) e se e
+    // entrega unica, entao o valor volta a ser o da tabela.
+    recalculoAutomaticoLiberadoRef.current = true;
+    valorEditadoAMaoRef.current = false;
+
     const prevEhSabado = isSabado(formData.data_entrega);
     const novoEhSabado = isSabado(novaData);
 
@@ -1044,6 +1073,10 @@ export default function EditarRomaneio() {
 
   // Atualizar motoboy
   const handleMotoboyChange = (motoboy) => {
+    // Trocou o motoboy: cada um tem sua tabela, entao o valor volta a ser o dela.
+    recalculoAutomaticoLiberadoRef.current = true;
+    valorEditadoAMaoRef.current = false;
+
     const valor = calcularValor(formData.regiao, motoboy, motoboy === 'Bruno' ? isEntregaUnica : false);
     setFormData({
       ...formData,
@@ -1374,6 +1407,11 @@ export default function EditarRomaneio() {
             const ehUnica = entregasDoPeriodo.length === 1;
 
             for (const entrega of entregasDoPeriodo) {
+              // Se o valor desta entrega acabou de ser digitado a mao, a
+              // tabela nao pode desfazer isso logo depois de salvar. As
+              // OUTRAS entregas do Bruno continuam sendo ajustadas normalmente.
+              if (entrega.id === entregaId && valorEditadoAMaoRef.current) continue;
+
               const valorUnico = VALORES_ENTREGA_UNICA_BRUNO[entrega.regiao];
               const valorNormal = VALORES_ENTREGA['Bruno']?.[entrega.regiao];
               if (!valorUnico || !valorNormal) continue;
@@ -2273,7 +2311,13 @@ export default function EditarRomaneio() {
                 { value: 'Tarde', label: 'Tarde' }
               ]}
               value={formData.periodo}
-              onChange={(value) => setFormData({...formData, periodo: value})}
+              onChange={(value) => {
+                // Trocou o periodo: muda se e entrega unica do Bruno, entao o
+                // valor volta a ser o da tabela.
+                recalculoAutomaticoLiberadoRef.current = true;
+                valorEditadoAMaoRef.current = false;
+                setFormData({...formData, periodo: value});
+              }}
               placeholder="Selecione o período"
             />
 
@@ -2584,7 +2628,13 @@ export default function EditarRomaneio() {
                   type="number"
                   step="0.01"
                   value={formData.valor_entrega}
-                  onChange={(e) => setFormData({...formData, valor_entrega: parseFloat(e.target.value) || 0})}
+                  onChange={(e) => {
+                    // Digitou a mao: a partir daqui a tabela de precos nao
+                    // manda mais neste valor, ate mexer em regiao, motoboy,
+                    // data ou periodo.
+                    valorEditadoAMaoRef.current = true;
+                    setFormData({...formData, valor_entrega: parseFloat(e.target.value) || 0});
+                  }}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
