@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Gift } from "lucide-react";
+import { CHAVE_PIX_CNPJ, romaneioAceitaPix } from "@/lib/pix";
 
 export default function ImpressaoRomaneio({ romaneio }) {
   if (!romaneio) return null;
@@ -154,6 +155,42 @@ export default function ImpressaoRomaneio({ romaneio }) {
           margin-bottom: 6px;
           font-size: 15px;
           color: #000;
+        }
+
+        /* Bloco do PIX dentro da caixa PAGAMENTO */
+        .print-pix {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px dashed #000;
+        }
+
+        .print-pix-img {
+          width: 92px;
+          height: 92px;
+          flex-shrink: 0;
+        }
+
+        .print-pix-texto {
+          font-size: 13px;
+          line-height: 1.35;
+          color: #000;
+        }
+
+        .print-pix-titulo {
+          font-weight: bold;
+          font-size: 14px;
+          margin-bottom: 3px;
+        }
+
+        .print-pix-chave {
+          font-weight: bold;
+          font-size: 13px;
+          /* O CNPJ tem que sair inteiro numa linha so, em qualquer largura
+             de caixa — sem isso ele quebrava no meio do numero. */
+          white-space: nowrap;
         }
 
         .print-section-row:last-child {
@@ -397,6 +434,21 @@ export default function ImpressaoRomaneio({ romaneio }) {
                 <span className="print-section-label">Forma de Pagamento:</span>
                 <span className="print-section-value">{romaneio.forma_pagamento || '-'}</span>
               </div>
+
+              {romaneioAceitaPix(romaneio.forma_pagamento) && (
+                <div className="print-pix">
+                  <img
+                    src={`${import.meta.env.BASE_URL}pix-qrcode.png`}
+                    alt="QR Code do PIX da Formédica"
+                    className="print-pix-img"
+                  />
+                  <div className="print-pix-texto">
+                    <div className="print-pix-titulo">PAGUE COM PIX</div>
+                    <div>Chave tipo CNPJ</div>
+                    <div className="print-pix-chave">{CHAVE_PIX_CNPJ}</div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
