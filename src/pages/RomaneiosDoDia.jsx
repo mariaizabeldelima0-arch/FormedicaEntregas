@@ -4,6 +4,7 @@ import { supabase } from '@/api/supabaseClient';
 import { toast } from 'sonner';
 import { CustomDropdown } from '@/components/CustomDropdown';
 import { CustomDatePicker } from '@/components/CustomDatePicker';
+import { CHAVE_PIX_CNPJ, romaneioAceitaPix } from '@/lib/pix';
 import {
   ChevronLeft,
   Printer,
@@ -143,6 +144,30 @@ function RomaneioCard({ romaneio, extraClass = '' }) {
               <span>Forma de Pagamento:</span>
               <span style={{ textAlign: 'right' }}>{romaneio.forma_pagamento || '-'}</span>
             </div>
+
+            {/* PIX da farmacia — so quando o valor ainda vai ser recebido */}
+            {romaneioAceitaPix(romaneio.forma_pagamento) && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginTop: '8px',
+                paddingTop: '8px',
+                borderTop: '1px dashed #000'
+              }}>
+                <img
+                  src={`${import.meta.env.BASE_URL}pix-qrcode.png`}
+                  alt="QR Code do PIX da Formédica"
+                  style={{ width: '92px', height: '92px', flexShrink: 0 }}
+                />
+                <div style={{ fontSize: '13px', lineHeight: 1.35 }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '3px' }}>PAGUE COM PIX</div>
+                  <div>Chave tipo CNPJ</div>
+                  {/* nowrap: o CNPJ tem que sair inteiro numa linha so */}
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', whiteSpace: 'nowrap' }}>{CHAVE_PIX_CNPJ}</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {romaneio.observacoes?.replace(/^\|\|H:.*?\|\|\s*/, '') && (
