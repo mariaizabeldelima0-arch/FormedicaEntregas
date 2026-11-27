@@ -11,13 +11,17 @@ export const CHAVE_PIX_CNPJ = '00.922.390/0001-57';
 /**
  * Diz se o romaneio deve sair com o QR do PIX.
  *
- * So faz sentido oferecer o PIX quando o dinheiro ainda vai ser recebido do
- * cliente na entrega. Hoje essas formas sao "Receber Dinheiro" e "Receber
- * Maquina"; a regra olha o inicio "Receber" para valer tambem para formas
- * novas que venham a existir.
+ * So faz sentido oferecer o PIX quando o dinheiro ainda nao entrou. Sao dois
+ * casos, e a regra olha o texto da forma de pagamento em vez de uma lista
+ * fechada, para valer tambem em formas novas que venham a existir:
  *
- * Ficam de fora: "Pago ..." (ja foi pago), "Pagar MP" e "So Entregar".
+ *   - comeca com "Receber"  -> Receber Dinheiro, Receber Maquina
+ *   - contem "Aguardando"   -> Aguardando, Link Aguardando, Pix Aguardando
+ *
+ * Ficam de fora: "Pago ..." (ja foi pago), "Pagar MP", "Boleto", "Coleta",
+ * "So Entregar" e "Via na Pasta".
  */
 export function romaneioAceitaPix(formaPagamento) {
-  return String(formaPagamento || '').trim().toLowerCase().startsWith('receber');
+  const forma = String(formaPagamento || '').trim().toLowerCase();
+  return forma.startsWith('receber') || forma.includes('aguardando');
 }
